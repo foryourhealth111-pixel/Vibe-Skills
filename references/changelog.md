@@ -1,5 +1,12 @@
 # VCO Changelog
 
+## v2.0.10 (2026-02-24)
+
+- 将决策提问接口从 `AskUserQuestion` 重构为 runtime-neutral `user_confirm interface`
+- 将状态记录从 `TodoWrite` 重构为 runtime-neutral `state_store` 抽象
+- 同步更新核心文档与 bundled 副本（SKILL / protocols / references / hooks）
+- 新增自动化快速自测脚本，覆盖 M/L/XL 三个 `/vibe` 路由场景与关键约束断言
+
 ## v2.0.9 (2026-02-24)
 
 - 删除 XL 设计中的 legacy compatibility orchestration 描述，统一为 Codex native agent runtime + ruflo 协作

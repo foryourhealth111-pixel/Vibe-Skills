@@ -26,7 +26,7 @@ Activated when the task requires writing or modifying code:
    - Fresh subagent per task
    - Two-stage review: spec compliance + code quality
    - Sequential execution to avoid conflicts
-3. Use TodoWrite to track progress across tasks
+3. Use runtime-neutral state_store to track progress across tasks
 4. Final review with Superpowers verification-before-completion
 
 ### XL Grade

@@ -14,9 +14,9 @@ Use with caution:
 - Never use dangerously-skip-permissions flag
 - Configure `allowedTools` in `~/.claude.json` instead
 
-## TodoWrite Best Practices
+## state_store Best Practices
 
-Use TodoWrite tool to:
+Use runtime-neutral state_store interface to:
 - Track progress on multi-step tasks
 - Verify understanding of instructions
 - Enable real-time steering

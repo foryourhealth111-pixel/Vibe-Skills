@@ -110,7 +110,7 @@ When task is purely research (no implementation):
 1. Skip B1 unless scope is unclear
 2. Go directly to B4 (deep-research)
 3. Optionally use sc:research for web research
-4. Store findings in ruflo memory (or TodoWrite if unavailable)
+4. Store findings in ruflo memory (or state_store if unavailable)
 
 ## Conflict Avoidance
 - Do NOT write code during this protocol (respect HARD-GATE)

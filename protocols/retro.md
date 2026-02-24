@@ -165,7 +165,7 @@ Store via Serena write_memory(retro/YYYY-MM-DD, report).
 | 2.3 Workflows | Session file analysis | Everything-CC | episodic search |
 | 2.4 Trends | think-ultra / think-harder | Claude-code-settings | Direct reasoning |
 | 3.x Discussion | brainstorming methodology | Superpowers | Direct dialogue |
-| 4.x Decisions | AskUserQuestion | Claude Code native | Direct dialogue |
+| 4.x Decisions | user_confirm interface | Runtime-neutral | Direct dialogue |
 | 5.1 Hooks | hookify | Hookify | Manual creation |
 | 5.2 Skills | writing-skills | Superpowers | Manual creation |
 | 5.3 Instincts | continuous-learning-v2 | Everything-CC | Manual creation |

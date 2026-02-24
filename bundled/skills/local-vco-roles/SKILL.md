@@ -34,7 +34,7 @@ Use this skill when:
 - Keep major confirmation points aligned with `vibe` team protocol.
 
 6. Memory behavior:
-- Default state tracking via TodoWrite-style task state.
+- Default state tracking via runtime-neutral state_store-style task state.
 - Optional enhancements (if available) must not become hard dependencies.
 
 ## Role Prompt Library

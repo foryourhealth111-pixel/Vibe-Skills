@@ -66,7 +66,7 @@ If both levels fail: fall back to direct Claude reasoning (no tool).
 Level 1: Codex native team + ruflo collaboration (preferred)
   |
   v (ruflo unavailable, native APIs still available)
-Level 1 (degraded): Codex native team only (TodoWrite + conversation state)
+Level 1 (degraded): Codex native team only (state_store + conversation state)
   |
   v (native team APIs unavailable or orchestration failure)
 Level 2: Sequential L-grade execution (Superpowers subagent system)
@@ -88,7 +88,7 @@ Direct: Single-agent execution with direct Claude reasoning
 
 | System | Primary | Fallback |
 |--------|---------|----------|
-| Session state | ruflo memory_store | TodoWrite + conversation context |
+| Session state | ruflo memory_store | state_store + conversation context |
 | Cross-session | episodic-memory:search | Serena MCP read_memory |
 | Pattern learning | continuous-learning-v2 | episodic-memory (manual notes) |
 | Project knowledge | Serena MCP write_memory | ruflo memory_store with "project" tag |
@@ -129,13 +129,13 @@ Resolution order for build-specific debugging:
 | Situation | Tool | Source |
 |-----------|------|--------|
 | Context getting large | everything-claude-code:strategic-compact | Everything-CC |
-| Preserve state before compact | ruflo session_save (or TodoWrite) | Claude-flow |
-| Resume after compact | ruflo session_restore (or re-read TodoWrite) | Claude-flow |
-| Store intermediate results | ruflo memory_store (or TodoWrite) | Claude-flow |
+| Preserve state before compact | ruflo session_save (or state_store) | Claude-flow |
+| Resume after compact | ruflo session_restore (or re-read state_store) | Claude-flow |
+| Store intermediate results | ruflo memory_store (or state_store) | Claude-flow |
 
 ### Context Budget Rules
 1. L+ 任务开始前，评估任务复杂度与当前对话长度
 2. L 任务中对话明显变长时：考虑 strategic-compact
 3. XL 任务中多 agent 返回大量结果时：保存状态后 compact
-4. 收到 compaction 提示时：立即保存关键决策到 TodoWrite/ruflo
+4. 收到 compaction 提示时：立即保存关键决策到 state_store/ruflo
 5. Always store key decisions BEFORE compaction

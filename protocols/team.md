@@ -42,7 +42,7 @@ ruflo remains optional for workflow/memory enhancements.
 
 ### Option B: Codex Native Team Only (When ruflo Unavailable)
 1. Run native lifecycle only: `spawn_agent` → `send_input` → `wait` → `close_agent`
-2. Use TodoWrite + conversation context for milestone state
+2. Use runtime-neutral state_store + conversation context for milestone state
 3. Keep the same staged confirmations and validation gates
 
 ### Option C: Ralph-loop (Iterative Tasks)

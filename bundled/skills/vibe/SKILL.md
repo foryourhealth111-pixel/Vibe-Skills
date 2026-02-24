@@ -53,14 +53,14 @@ Gather objective signals before classification:
 3. Output: { affected_files, needs_design, parallelizable, key_signals }
 
 4. 探测失败处理：Glob/Grep 调用失败或返回空结果时，
-   跳过自动分类，进入 Step 2 的 AskUserQuestion 流程。
+   跳过自动分类，进入 Step 2 的 user_confirm 决策流程。
 ```
 
 ### Step 2: Recommend + Confirm
 
 **Low-friction rule**: If probe signals are unambiguous (single module, no design keywords, ≤3 files), skip the question and proceed with M grade directly. 在 ANALYZE 开头以括号注释形式简述分类依据（如 `[M级: 3文件, 单模块, 无设计需求]`），不作为独立输出段落。
 
-Otherwise, present probe results and recommended grade via AskUserQuestion:
+Otherwise, present probe results and recommended grade via the runtime-neutral user_confirm interface:
 
 ```
 探测结果：预计影响 {N} 文件，检测到 {signals}。
@@ -143,12 +143,12 @@ Full Codex native team orchestration + ruflo collaboration. See protocols/team.m
 
 ## 4. Memory Rules (Inline)
 
-1. **TodoWrite** = default state storage (always available, zero dependency)
+1. **state_store (runtime-neutral)** = default state storage (always available, zero dependency)
 2. **ruflo memory** = optional enhancement — vector search for intermediate results (when MCP available)
 3. **Serena memory** = project knowledge persistence — architecture decisions, conventions (when MCP available)
 4. **Everything-CC instincts** = behavioral patterns — auto-run, no manual action needed
 
-Key principle: TodoWrite is the DEFAULT. ruflo/Serena are ENHANCEMENTS. System runs fully on TodoWrite + conversation context even if all MCP servers are down.
+Key principle: state_store is the DEFAULT. ruflo/Serena are ENHANCEMENTS. System runs fully on state_store + conversation context even if all MCP servers are down.
 
 ## 5. Core Quality Gates (Inline)
 
@@ -164,7 +164,7 @@ Enhanced tier (XL): see protocols/team.md.
 3 rules. Full specification: references/conflict-rules.md
 
 **Rule 1 — Agent Boundary**: M=single-agent tools (no subagent spawning; individual skill commands permitted), L=Superpowers subagent, XL=Codex native team (`spawn_agent` family) + optional ruflo collaboration. One system per task.
-**Rule 2 — Memory Division**: TodoWrite=state, ruflo=vectors, Serena=project, instincts=behavior.
+**Rule 2 — Memory Division**: state_store=state, ruflo=vectors, Serena=project, instincts=behavior.
 **Rule 3 — Command Priority**: User explicit command > VCO routing > plugin defaults.
 
 ## 7. Tool Detection (Lazy)

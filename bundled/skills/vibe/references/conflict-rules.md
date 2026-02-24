@@ -49,14 +49,14 @@ Each memory system has a specific role. Do not cross boundaries.
 
 | Memory System | Scope | Use For |
 |--------------|-------|---------|
-| TodoWrite | Session-level (default) | Task state, intermediate results |
+| state_store (runtime-neutral) | Session-level (default) | Task state, intermediate results |
 | ruflo memory_store | Current project, session | Vector search, enhanced state (when available) |
 | Serena MCP write_memory | Project knowledge | Architecture decisions, conventions |
 | episodic-memory | Cross-session, long-term | Searching past conversations |
 | Everything-CC instincts | Behavioral patterns | Auto-applying learned patterns |
 
-Key principle: TodoWrite is the DEFAULT, not the fallback.
-ruflo/Serena are ENHANCEMENTS. System runs fully on TodoWrite + conversation context even if all MCP servers are down.
+Key principle: state_store is the DEFAULT, not the fallback.
+ruflo/Serena are ENHANCEMENTS. System runs fully on state_store + conversation context even if all MCP servers are down.
 
 ## Rule 3: Command Priority
 
