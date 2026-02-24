@@ -167,6 +167,7 @@ pwsh -File .\scripts\bootstrap\sync-local-compat.ps1
 ## 许可证与第三方边界
 
 - 本仓库根许可证：`Apache-2.0`（见 `LICENSE`）。
+- 仓库简版公告：`NOTICE`（仓库名/年份/作者规范化）。
 - 第三方来源与边界清单：`THIRD_PARTY_LICENSES.md`。
 - 第三方上游项目保留其各自许可证，不因本仓库发布而被重新授权。
 - 外部语料（如 `system-prompts-and-models-of-ai-tools`）默认作为“研究输入”处理，不应将原始语料直接并入核心编排协议。
