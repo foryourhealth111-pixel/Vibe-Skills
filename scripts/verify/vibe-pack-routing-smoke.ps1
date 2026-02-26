@@ -27,6 +27,7 @@ $skillKeywordIndexPath = Join-Path $configRoot "skill-keyword-index.json"
 $routingRulesPath = Join-Path $configRoot "skill-routing-rules.json"
 $deepDiscoveryPolicyPath = Join-Path $configRoot "deep-discovery-policy.json"
 $capabilityCatalogPath = Join-Path $configRoot "capability-catalog.json"
+$heartbeatPolicyPath = Join-Path $configRoot "heartbeat-policy.json"
 
 $results = @()
 
@@ -38,6 +39,7 @@ $results += Assert-True -Condition (Test-Path -LiteralPath $skillKeywordIndexPat
 $results += Assert-True -Condition (Test-Path -LiteralPath $routingRulesPath) -Message "skill-routing-rules.json exists"
 $results += Assert-True -Condition (Test-Path -LiteralPath $deepDiscoveryPolicyPath) -Message "deep-discovery-policy.json exists"
 $results += Assert-True -Condition (Test-Path -LiteralPath $capabilityCatalogPath) -Message "capability-catalog.json exists"
+$results += Assert-True -Condition (Test-Path -LiteralPath $heartbeatPolicyPath) -Message "heartbeat-policy.json exists"
 
 $packManifest = Get-Content -LiteralPath $packManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $aliasMap = Get-Content -LiteralPath $aliasMapPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -46,6 +48,7 @@ $skillKeywordIndex = Get-Content -LiteralPath $skillKeywordIndexPath -Raw -Encod
 $routingRules = Get-Content -LiteralPath $routingRulesPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $deepDiscoveryPolicy = Get-Content -LiteralPath $deepDiscoveryPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $capabilityCatalog = Get-Content -LiteralPath $capabilityCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$heartbeatPolicy = Get-Content -LiteralPath $heartbeatPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $requiredPackIds = @(
     "orchestration-core",
@@ -106,6 +109,9 @@ $results += Assert-True -Condition ((@($skillKeywordIndex.skills.PSObject.Proper
 $results += Assert-True -Condition ((@($routingRules.skills.PSObject.Properties).Count -gt 0)) -Message "routing rules contain skill mappings"
 $results += Assert-True -Condition ($deepDiscoveryPolicy.mode -ne $null) -Message "deep discovery mode configured"
 $results += Assert-True -Condition ((@($capabilityCatalog.capabilities).Count -gt 0)) -Message "capability catalog contains entries"
+$results += Assert-True -Condition ($heartbeatPolicy.mode -ne $null) -Message "heartbeat mode configured"
+$results += Assert-True -Condition ($heartbeatPolicy.timers.hard_stall_silence_sec -ne $null) -Message "heartbeat hard stall threshold configured"
+$results += Assert-True -Condition ($heartbeatPolicy.timers.user_brief_interval_sec -ne $null) -Message "heartbeat brief interval configured"
 
 foreach ($ruleProp in @($routingRules.skills.PSObject.Properties | Select-Object -First 10)) {
     $rule = $ruleProp.Value

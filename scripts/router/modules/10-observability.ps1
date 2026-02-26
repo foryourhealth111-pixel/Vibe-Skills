@@ -108,6 +108,9 @@ function Write-ObservabilityRouteEvent {
             selected_skill = $selectedSkill
             deep_discovery_route_filter_applied = [bool]$Result.deep_discovery_route_filter_applied
             deep_discovery_route_mode_override = [bool]$Result.deep_discovery_route_mode_override
+            heartbeat_status = if ($Result.heartbeat_status) { [string]$Result.heartbeat_status.current_status } else { "disabled" }
+            heartbeat_pulse_count = if ($Result.heartbeat_status -and $Result.heartbeat_status.pulse_count -ne $null) { [int]$Result.heartbeat_status.pulse_count } else { 0 }
+            heartbeat_stall_score = if ($Result.heartbeat_status -and $Result.heartbeat_status.stall_score -ne $null) { [double]$Result.heartbeat_status.stall_score } else { 0.0 }
         }
         overlays = [pscustomobject]@{
             deep_discovery_triggered = [bool]($Result.deep_discovery_advice -and $Result.deep_discovery_advice.trigger_active)
@@ -124,7 +127,21 @@ function Write-ObservabilityRouteEvent {
             python_clean_code_confirm_required = [bool]($Result.python_clean_code_advice -and $Result.python_clean_code_advice.confirm_required)
             system_design_confirm_required = [bool]($Result.system_design_advice -and $Result.system_design_advice.confirm_required)
             cuda_kernel_confirm_required = [bool]($Result.cuda_kernel_advice -and $Result.cuda_kernel_advice.confirm_required)
+            heartbeat_confirm_required = [bool]($Result.heartbeat_advice -and $Result.heartbeat_advice.confirm_required)
             any_confirm_required = (Test-OverlayConfirmRequired -Result $Result)
+        }
+        heartbeat = [pscustomobject]@{
+            enabled = [bool]($Result.heartbeat_advice -and $Result.heartbeat_advice.enabled)
+            mode = if ($Result.heartbeat_advice) { [string]$Result.heartbeat_advice.mode } else { "off" }
+            enforcement = if ($Result.heartbeat_advice) { [string]$Result.heartbeat_advice.enforcement } else { "none" }
+            reason = if ($Result.heartbeat_advice) { [string]$Result.heartbeat_advice.reason } else { "policy_off" }
+            status = if ($Result.heartbeat_status) { [string]$Result.heartbeat_status.current_status } else { "disabled" }
+            lifecycle_status = if ($Result.heartbeat_status) { [string]$Result.heartbeat_status.lifecycle_status } else { "disabled" }
+            pulse_count = if ($Result.heartbeat_status -and $Result.heartbeat_status.pulse_count -ne $null) { [int]$Result.heartbeat_status.pulse_count } else { 0 }
+            stall_score = if ($Result.heartbeat_status -and $Result.heartbeat_status.stall_score -ne $null) { [double]$Result.heartbeat_status.stall_score } else { 0.0 }
+            suspect_stall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.suspect_stall } else { $false }
+            hard_stall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.hard_stall } else { $false }
+            auto_diagnosis_triggered = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.auto_diagnosis_triggered } else { $false }
         }
     }
 

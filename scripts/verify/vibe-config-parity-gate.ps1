@@ -192,6 +192,7 @@ $pairs = @(
     [pscustomobject]@{ id = "system-design-overlay"; main = "config/system-design-overlay.json"; bundled = "bundled/skills/vibe/config/system-design-overlay.json" },
     [pscustomobject]@{ id = "cuda-kernel-overlay"; main = "config/cuda-kernel-overlay.json"; bundled = "bundled/skills/vibe/config/cuda-kernel-overlay.json" },
     [pscustomobject]@{ id = "observability-policy"; main = "config/observability-policy.json"; bundled = "bundled/skills/vibe/config/observability-policy.json" },
+    [pscustomobject]@{ id = "heartbeat-policy"; main = "config/heartbeat-policy.json"; bundled = "bundled/skills/vibe/config/heartbeat-policy.json" },
     [pscustomobject]@{ id = "deep-discovery-policy"; main = "config/deep-discovery-policy.json"; bundled = "bundled/skills/vibe/config/deep-discovery-policy.json" },
     [pscustomobject]@{ id = "capability-catalog"; main = "config/capability-catalog.json"; bundled = "bundled/skills/vibe/config/capability-catalog.json" }
 )

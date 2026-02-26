@@ -301,6 +301,7 @@ function Test-OverlayConfirmRequired {
     param([object]$Result)
 
     if (-not $Result) { return $false }
+    if ($Result.heartbeat_advice -and [bool]$Result.heartbeat_advice.confirm_required) { return $true }
     if ($Result.deep_discovery_advice -and [bool]$Result.deep_discovery_advice.confirm_required) { return $true }
     if ($Result.openspec_advice -and [string]$Result.openspec_advice.enforcement -eq "confirm_required") { return $true }
     if ($Result.prompt_overlay_advice -and [bool]$Result.prompt_overlay_advice.confirm_required) { return $true }

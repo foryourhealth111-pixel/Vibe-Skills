@@ -47,6 +47,7 @@ Check-Path -Label "vibe python clean code overlay config" -Path (Join-Path $Targ
 Check-Path -Label "vibe system design overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\system-design-overlay.json")
 Check-Path -Label "vibe cuda kernel overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\cuda-kernel-overlay.json")
 Check-Path -Label "vibe observability policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\observability-policy.json")
+Check-Path -Label "vibe heartbeat policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\heartbeat-policy.json")
 Check-Path -Label "vibe deep discovery policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\deep-discovery-policy.json")
 Check-Path -Label "vibe capability catalog config" -Path (Join-Path $TargetRoot "skills\vibe\config\capability-catalog.json")
 

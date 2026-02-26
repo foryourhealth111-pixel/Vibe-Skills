@@ -1,0 +1,62 @@
+{
+    "version":  1,
+    "updated":  "2026-02-27",
+    "enabled":  true,
+    "mode":  "shadow",
+    "preserve_routing_assignment":  true,
+    "routing_integration":  "router_lifecycle_guard",
+    "scope":  {
+                  "grade_allow":  [
+                                      "M",
+                                      "L",
+                                      "XL"
+                                  ],
+                  "task_allow":  [
+                                     "planning",
+                                     "coding",
+                                     "review",
+                                     "debug",
+                                     "research"
+                                 ]
+              },
+    "timers":  {
+                   "user_brief_interval_sec":  15,
+                   "debug_tick_interval_sec":  5,
+                   "soft_stall_silence_sec":  30,
+                   "hard_stall_silence_sec":  120,
+                   "max_no_state_change_sec":  180
+               },
+    "policy_by_grade":  {
+                            "M":  {
+                                      "brief_interval_sec":  15,
+                                      "hard_stall_silence_sec":  120
+                                  },
+                            "L":  {
+                                      "brief_interval_sec":  10,
+                                      "hard_stall_silence_sec":  90
+                                  },
+                            "XL":  {
+                                       "brief_interval_sec":  8,
+                                       "hard_stall_silence_sec":  60
+                                   }
+                        },
+    "runtime_digest":  {
+                           "enabled":  true,
+                           "include_recent_pulses":  8
+                       },
+    "auto_diagnosis":  {
+                           "enabled":  true,
+                           "tail_lines":  120,
+                           "collect_process_snapshot":  true,
+                           "collect_last_phase":  true
+                       },
+    "noise_control":  {
+                          "suppress_duplicate_state":  true,
+                          "min_delta_elapsed_sec":  10,
+                          "only_emit_on_phase_or_risk_change":  true
+                      },
+    "fallback_behavior":  {
+                              "on_missing_policy":  "disable_heartbeat",
+                              "on_error":  "continue_without_heartbeat"
+                          }
+}

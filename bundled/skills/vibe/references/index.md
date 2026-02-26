@@ -29,6 +29,8 @@ Navigation guide for all VCO (Vibe Code Orchestrator) documentation.
 | [../docs/observability-consistency-governance.md](../docs/observability-consistency-governance.md) | Strict observability/consistency governance (lean telemetry + manual rollback confirmation policy) |
 | [../docs/blackbox-probe-and-enhancement-playbook.md](../docs/blackbox-probe-and-enhancement-playbook.md) | Unified playbook for blackbox route probing, user semantic overlay expansion, and threshold sensitivity tuning |
 | [../docs/deep-discovery-mode-design.md](../docs/deep-discovery-mode-design.md) | Deep Discovery mode design (trigger/interview/contract/filter prepack chain with probe-visible data contracts) |
+| [../docs/heartbeat-runtime-integration.md](../docs/heartbeat-runtime-integration.md) | Heartbeat runtime integration design (anti-silent-execution watchdog with stall diagnosis and progress telemetry) |
+| [../docs/heartbeat-unified-vibe-entry-recheck-2026-02-27.md](../docs/heartbeat-unified-vibe-entry-recheck-2026-02-27.md) | Unified `$vibe` entry recheck report for heartbeat trigger correctness and strict escalation validation |
 | [../templates/cer-report.md.template](../templates/cer-report.md.template) | CER markdown template for human-readable retro reports |
 | [../templates/cer-report.json.template](../templates/cer-report.json.template) | CER JSON template for machine analytics and comparison |
 | [../templates/cer-report.schema.json](../templates/cer-report.schema.json) | CER JSON schema for validation gates |

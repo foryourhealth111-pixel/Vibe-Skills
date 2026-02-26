@@ -28,6 +28,7 @@ For a single entrypoint that ties route probing, semantic expansion, threshold t
 - `vibe-system-design-overlay-gate.ps1`: validates system-design-primer overlay semantics (architecture signal + coverage dimensions + strict confirm advice + route invariance).
 - `vibe-cuda-kernel-overlay-gate.ps1`: validates LeetCUDA-inspired CUDA kernel overlay semantics (CUDA optimization signal + coverage dimensions + strict confirm advice + route invariance).
 - `vibe-observability-gate.ps1`: validates observability policy behavior (privacy-safe telemetry fields + profile IDs + deterministic route event capture).
+- `vibe-heartbeat-gate.ps1`: validates heartbeat runtime guard behavior (lifecycle pulse collection, strict stall signaling, and policy-off disable semantics).
 - `vibe-routing-probe-trace.ps1`: runs multi-case route probes and emits per-stage data-flow traces plus runtime-state prompts to inspect pack and overlay injection behavior end-to-end.
 - `vibe-routing-probe-research.ps1`: runs a larger engineering research matrix (ambiguous vs specific vs overlay-targeted cases), validates stage-chain integrity, summarizes overlay injection statistics, and emits report-ready Markdown/JSON artifacts.
 - `vibe-deep-discovery-gate.ps1`: validates Deep Discovery mode semantics across `off/shadow/soft/strict` (trigger/interview/contract/filter, route mutation boundaries, and fallback safety).
@@ -140,6 +141,12 @@ Run observability gate:
 
 ```powershell
 & ".\vibe-observability-gate.ps1"
+```
+
+Run heartbeat gate:
+
+```powershell
+& ".\vibe-heartbeat-gate.ps1"
 ```
 
 Run route probe trace (white-box data-flow inspection):

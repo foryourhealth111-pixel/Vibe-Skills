@@ -19,6 +19,7 @@ $routerModules = @(
     "00-core-utils.ps1",
     "10-observability.ps1",
     "11-route-probe.ps1",
+    "12-heartbeat.ps1",
     "20-routing-rules.ps1",
     "21-capability-interview.ps1",
     "22-intent-contract.ps1",
@@ -64,6 +65,7 @@ $pythonCleanCodeOverlayPolicyPath = Join-Path $configRoot "python-clean-code-ove
 $systemDesignOverlayPolicyPath = Join-Path $configRoot "system-design-overlay.json"
 $cudaKernelOverlayPolicyPath = Join-Path $configRoot "cuda-kernel-overlay.json"
 $observabilityPolicyPath = Join-Path $configRoot "observability-policy.json"
+$heartbeatPolicyPath = Join-Path $configRoot "heartbeat-policy.json"
 $aiRerankPolicyPath = Join-Path $configRoot "ai-rerank-policy.json"
 $probePolicyPath = Join-Path $configRoot "router-probe-policy.json"
 $deepDiscoveryPolicyPath = Join-Path $configRoot "deep-discovery-policy.json"
@@ -146,6 +148,15 @@ $observabilityPolicy = if (Test-Path -LiteralPath $observabilityPolicyPath) {
 } else {
     $null
 }
+$heartbeatPolicy = if (Test-Path -LiteralPath $heartbeatPolicyPath) {
+    try {
+        Get-Content -LiteralPath $heartbeatPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        $null
+    }
+} else {
+    $null
+}
 $aiRerankPolicy = if (Test-Path -LiteralPath $aiRerankPolicyPath) {
     try {
         Get-Content -LiteralPath $aiRerankPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -203,11 +214,16 @@ $probeContext = New-RouteProbeContext `
     -ProbePromptMaxChars $ProbePromptMaxChars `
     -ProbePolicy $probePolicy
 
+$heartbeatContext = New-HeartbeatContext -HeartbeatPolicy $heartbeatPolicy -Grade $Grade -TaskType $TaskType
+
 Add-RouteProbeEvent -Context $probeContext -Stage "router.init" -Note "router modules loaded" -Data @{
     module_count = $routerModules.Count
     modules = @($routerModules)
     config_root = $configRoot
     probe_policy_loaded = [bool]$probePolicy
+}
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.init" -Phase "router.init" -Note "router modules loaded" -Data @{
+    module_count = $routerModules.Count
 }
 
 Add-RouteProbeEvent -Context $probeContext -Stage "router.config" -Note "core router and overlay policies loaded" -Data @{
@@ -231,9 +247,11 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.config" -Note "core ro
         cuda_kernel_mode = if ($cudaKernelOverlayPolicy -and $cudaKernelOverlayPolicy.mode) { [string]$cudaKernelOverlayPolicy.mode } else { "off" }
         ai_rerank_mode = if ($aiRerankPolicy -and $aiRerankPolicy.mode) { [string]$aiRerankPolicy.mode } else { "off" }
         observability_mode = if ($observabilityPolicy -and $observabilityPolicy.mode) { [string]$observabilityPolicy.mode } else { "off" }
+        heartbeat_mode = if ($heartbeatPolicy -and $heartbeatPolicy.mode) { [string]$heartbeatPolicy.mode } else { "off" }
         deep_discovery_mode = if ($deepDiscoveryPolicy -and $deepDiscoveryPolicy.mode) { [string]$deepDiscoveryPolicy.mode } else { "off" }
     }
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.config" -Phase "router.config" -Note "router config and policy load completed"
 
 $aliasResult = Resolve-Alias -Skill $RequestedSkill -AliasMap $aliasMap
 $requestedCanonical = [string]$aliasResult.canonical
@@ -262,6 +280,7 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.prepack" -Note "base a
         memory = Get-RouteProbeAdviceSummary -Advice $memoryGovernanceAdvice
     }
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.prepack" -Phase "router.prepack" -Note "base route advice prepared"
 
 $deepDiscoveryAdvice = Get-DeepDiscoveryInterviewAdvice `
     -PromptText $Prompt `
@@ -285,12 +304,17 @@ Add-RouteProbeEvent -Context $probeContext -Stage "deep_discovery.trigger" -Note
         @()
     }
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "deep_discovery.trigger" -Phase "deep_discovery" -Note "deep discovery trigger evaluated" -Data @{
+    trigger_active = [bool]($deepDiscoveryAdvice -and $deepDiscoveryAdvice.trigger_active)
+    confirm_required = [bool]($deepDiscoveryAdvice -and $deepDiscoveryAdvice.confirm_required)
+}
 
 Add-RouteProbeEvent -Context $probeContext -Stage "deep_discovery.interview" -Note "deep discovery interview advice prepared" -Data @{
     interview_required = [bool]($deepDiscoveryAdvice -and $deepDiscoveryAdvice.interview_required)
     confirm_required = [bool]($deepDiscoveryAdvice -and $deepDiscoveryAdvice.confirm_required)
     questions = if ($deepDiscoveryAdvice -and $deepDiscoveryAdvice.interview_questions) { @($deepDiscoveryAdvice.interview_questions) } else { @() }
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "deep_discovery.interview" -Phase "deep_discovery" -Note "deep discovery interview advice prepared"
 
 $intentContract = Get-DeepDiscoveryIntentContract `
     -PromptText $Prompt `
@@ -306,6 +330,7 @@ Add-RouteProbeEvent -Context $probeContext -Stage "deep_discovery.contract" -Not
     missing_fields = if ($intentContract) { @($intentContract.missing_fields) } else { @("goal", "deliverable", "constraints", "capabilities") }
     capabilities = if ($intentContract) { @($intentContract.capabilities) } else { @() }
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "deep_discovery.contract" -Phase "deep_discovery" -Note "intent contract synthesized"
 
 $deepDiscoveryFilter = Get-DeepDiscoveryCandidateFilter `
     -Packs @($packManifest.packs) `
@@ -316,6 +341,9 @@ $deepDiscoveryFilter = Get-DeepDiscoveryCandidateFilter `
 $deepDiscoveryFilterSummary = Get-DeepDiscoveryFilterSummary -DeepDiscoveryFilter $deepDiscoveryFilter
 
 Add-RouteProbeEvent -Context $probeContext -Stage "deep_discovery.filter" -Note "deep discovery candidate filter evaluated" -Data $deepDiscoveryFilterSummary
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "deep_discovery.filter" -Phase "deep_discovery" -Note "candidate filter evaluated" -Data @{
+    route_filter_applied = [bool]($deepDiscoveryFilter -and $deepDiscoveryFilter.route_filter_applied)
+}
 
 $packsForScoring = if ($deepDiscoveryFilter -and $deepDiscoveryFilter.route_filter_applied -and $deepDiscoveryFilter.filtered_packs -and @($deepDiscoveryFilter.filtered_packs).Count -gt 0) {
     @($deepDiscoveryFilter.filtered_packs)
@@ -447,6 +475,11 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.pack_scoring" -Note "p
     candidate_signal = [double]$candidateSignal
     deep_discovery_route_mode_override = [bool]$deepDiscoveryRouteModeOverride
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.pack_scoring" -Phase "router.pack_scoring" -Note "pack scoring complete" -Data @{
+    route_mode = $routeMode
+    confidence = [double]$confidence
+    candidate_signal = [double]$candidateSignal
+}
 
 $aiRerankAdvice = Get-AiRerankAdvice `
     -PromptText $Prompt `
@@ -481,6 +514,9 @@ Add-RouteProbeEvent -Context $probeContext -Stage "overlay.ai_rerank" -Note "ai 
     route_mode_after = $routeMode
     route_reason_after = $routeReason
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.ai_rerank" -Phase "overlay" -Note "ai rerank overlay evaluated" -Data @{
+    route_override_applied = [bool]$aiRerankRouteOverride
+}
 
 $promptOverlayRouteOverride = $false
 if ($routeMode -eq "pack_overlay" -and $promptOverlayAdvice -and $promptOverlayAdvice.scope_applicable -and $promptOverlayAdvice.confirm_required) {
@@ -495,6 +531,9 @@ Add-RouteProbeEvent -Context $probeContext -Stage "overlay.prompt" -Note "prompt
     route_override_applied = [bool]$promptOverlayRouteOverride
     route_mode_after = $routeMode
     route_reason_after = $routeReason
+}
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.prompt" -Phase "overlay" -Note "prompt overlay evaluated" -Data @{
+    route_override_applied = [bool]$promptOverlayRouteOverride
 }
 
 $dataScaleAdvice = Get-DataScaleOverlayAdvice `
@@ -537,6 +576,9 @@ Add-RouteProbeEvent -Context $probeContext -Stage "overlay.data_scale" -Note "da
     route_override_applied = [bool]$dataScaleRouteOverride
     route_mode_after = $routeMode
     route_reason_after = $routeReason
+}
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.data_scale" -Phase "overlay" -Note "data-scale overlay evaluated" -Data @{
+    route_override_applied = [bool]$dataScaleRouteOverride
 }
 
 $qualityDebtAdvice = Get-QualityDebtOverlayAdvice `
@@ -613,6 +655,16 @@ Add-RouteProbeEvent -Context $probeContext -Stage "overlay.bundle" -Note "post-r
     system_design = Get-RouteProbeAdviceSummary -Advice $systemDesignAdvice
     cuda_kernel = Get-RouteProbeAdviceSummary -Advice $cudaKernelAdvice
 }
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.bundle" -Phase "overlay" -Note "post-route advisory overlays evaluated"
+$heartbeatFinalizeStatus = Finalize-HeartbeatContext -Context $heartbeatContext -FinalPhase "router.final" -Succeeded $true -Note "route output assembled"
+$heartbeatAdvice = Get-HeartbeatAdvice -Context $heartbeatContext
+$heartbeatStatus = if ($heartbeatFinalizeStatus) { $heartbeatFinalizeStatus } else { Get-HeartbeatStatus -Context $heartbeatContext }
+$heartbeatRuntimeDigestEnabled = [bool]($heartbeatContext -and $heartbeatContext.runtime_digest_enabled)
+$heartbeatRuntimeDigest = if ($heartbeatRuntimeDigestEnabled) {
+    Get-HeartbeatRuntimeDigest -Context $heartbeatContext -RecentPulseCount ([int]$heartbeatContext.runtime_digest_recent_pulses)
+} else {
+    $null
+}
 
 $result = [pscustomobject]@{
     prompt = $Prompt
@@ -651,6 +703,9 @@ $result = [pscustomobject]@{
     python_clean_code_advice = $pythonCleanCodeAdvice
     system_design_advice = $systemDesignAdvice
     cuda_kernel_advice = $cudaKernelAdvice
+    heartbeat_advice = $heartbeatAdvice
+    heartbeat_status = $heartbeatStatus
+    heartbeat_runtime_digest = $heartbeatRuntimeDigest
     selected = if ($effectiveTop) {
         [pscustomobject]@{
             pack_id = $effectiveTop.pack_id
@@ -690,6 +745,17 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.final" -Note "final ro
         contract_completeness = if ($result.intent_contract -and $result.intent_contract.completeness -ne $null) { [double]$result.intent_contract.completeness } else { 0.0 }
         route_filter_applied = [bool]$result.deep_discovery_route_filter_applied
         route_mode_override = [bool]$result.deep_discovery_route_mode_override
+    }
+    heartbeat = [pscustomobject]@{
+        mode = if ($result.heartbeat_advice) { [string]$result.heartbeat_advice.mode } else { "off" }
+        status = if ($result.heartbeat_status) { [string]$result.heartbeat_status.current_status } else { "disabled" }
+        lifecycle_status = if ($result.heartbeat_status) { [string]$result.heartbeat_status.lifecycle_status } else { "disabled" }
+        pulse_count = if ($result.heartbeat_status -and $result.heartbeat_status.pulse_count -ne $null) { [int]$result.heartbeat_status.pulse_count } else { 0 }
+        stall_score = if ($result.heartbeat_status -and $result.heartbeat_status.stall_score -ne $null) { [double]$result.heartbeat_status.stall_score } else { 0.0 }
+        hard_stall = if ($result.heartbeat_status) { [bool]$result.heartbeat_status.hard_stall } else { $false }
+        suspect_stall = if ($result.heartbeat_status) { [bool]$result.heartbeat_status.suspect_stall } else { $false }
+        confirm_required = if ($result.heartbeat_advice) { [bool]$result.heartbeat_advice.confirm_required } else { $false }
+        auto_diagnosis_triggered = if ($result.heartbeat_advice) { [bool]$result.heartbeat_advice.auto_diagnosis_triggered } else { $false }
     }
     observability = if ($observabilityWrite) { $observabilityWrite } else { $null }
 }

@@ -35,7 +35,17 @@ function Get-RouteProbeAdviceSummary {
         "route_override_applied",
         "would_override",
         "override_target_pack",
-        "override_target_skill"
+        "override_target_skill",
+        "status",
+        "lifecycle_status",
+        "pulse_count",
+        "stall_score",
+        "suspect_stall",
+        "hard_stall",
+        "auto_diagnosis_triggered",
+        "user_brief_interval_sec",
+        "debug_tick_interval_sec",
+        "elapsed_sec"
     )
 
     $keys = @($Advice.PSObject.Properties.Name)
@@ -255,6 +265,15 @@ function Get-RouteRuntimeStatePrompt {
         $overlayLines += "- none"
     }
 
+    $heartbeatMode = if ($Result.heartbeat_advice -and $Result.heartbeat_advice.mode) { [string]$Result.heartbeat_advice.mode } else { "off" }
+    $heartbeatStatus = if ($Result.heartbeat_status -and $Result.heartbeat_status.current_status) { [string]$Result.heartbeat_status.current_status } else { "disabled" }
+    $heartbeatLifecycle = if ($Result.heartbeat_status -and $Result.heartbeat_status.lifecycle_status) { [string]$Result.heartbeat_status.lifecycle_status } else { "disabled" }
+    $heartbeatPulseCount = if ($Result.heartbeat_status -and $Result.heartbeat_status.pulse_count -ne $null) { [int]$Result.heartbeat_status.pulse_count } else { 0 }
+    $heartbeatStallScore = if ($Result.heartbeat_status -and $Result.heartbeat_status.stall_score -ne $null) { [double]$Result.heartbeat_status.stall_score } else { 0.0 }
+    $heartbeatHardStall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.hard_stall } else { $false }
+    $heartbeatSuspectStall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.suspect_stall } else { $false }
+    $heartbeatConfirmRequired = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.confirm_required } else { $false }
+
     $stateLines = @(
         "[VCO Runtime State Prompt]",
         ("Input task: {0}" -f $PromptText),
@@ -268,6 +287,8 @@ function Get-RouteRuntimeStatePrompt {
         ("Execution protocol hint: {0}" -f $protocolHint),
         "Quality contract: enforce P5 evidence, V2 completion gate, and V3 pipeline for coding tasks.",
         "Memory contract: state_store=session, Serena=decisions, ruflo=short cache, Cognee=long-term graph, episodic-memory=disabled.",
+        ("Heartbeat guard: mode={0}, status={1}, lifecycle={2}, pulse_count={3}, stall_score={4}, suspect_stall={5}, hard_stall={6}, confirm_required={7}" -f `
+            $heartbeatMode, $heartbeatStatus, $heartbeatLifecycle, $heartbeatPulseCount, $heartbeatStallScore, $heartbeatSuspectStall, $heartbeatHardStall, $heartbeatConfirmRequired),
         "Overlay injections:",
         ($overlayLines -join "`n"),
         ("Execution handoff: Route this task to skill '{0}' under pack '{1}' and follow protocol '{2}'." -f $selectedSkill, $selectedPack, $protocolHint)
@@ -330,6 +351,13 @@ function Write-RouteProbeArtifact {
             ai_rerank_route_override = $Result.ai_rerank_route_override
             prompt_overlay_route_override = $Result.prompt_overlay_route_override
             data_scale_route_override = $Result.data_scale_route_override
+            heartbeat_mode = if ($Result.heartbeat_advice -and $Result.heartbeat_advice.mode) { [string]$Result.heartbeat_advice.mode } else { "off" }
+            heartbeat_status = if ($Result.heartbeat_status -and $Result.heartbeat_status.current_status) { [string]$Result.heartbeat_status.current_status } else { "disabled" }
+            heartbeat_lifecycle_status = if ($Result.heartbeat_status -and $Result.heartbeat_status.lifecycle_status) { [string]$Result.heartbeat_status.lifecycle_status } else { "disabled" }
+            heartbeat_pulse_count = if ($Result.heartbeat_status -and $Result.heartbeat_status.pulse_count -ne $null) { [int]$Result.heartbeat_status.pulse_count } else { 0 }
+            heartbeat_stall_score = if ($Result.heartbeat_status -and $Result.heartbeat_status.stall_score -ne $null) { [double]$Result.heartbeat_status.stall_score } else { 0.0 }
+            heartbeat_confirm_required = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.confirm_required } else { $false }
+            heartbeat_auto_diagnosis_triggered = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.auto_diagnosis_triggered } else { $false }
         }
         runtime_state_prompt = $runtimeStatePrompt
     }

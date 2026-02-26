@@ -1,5 +1,55 @@
 # VCO Changelog
 
+## v2.3.21 (2026-02-27)
+
+- 统一 `$vibe` 入口复检后，将 heartbeat 默认策略固定为可观测但非侵入：
+  - `config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
+  - `bundled/skills/vibe/config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
+- 新增复检报告：
+  - `docs/heartbeat-unified-vibe-entry-recheck-2026-02-27.md`
+  - 覆盖 M/L/XL 与模糊场景的统一入口触发结果、strict 压测触发结果与门禁通过证据。
+
+## v2.3.20 (2026-02-26)
+
+- Heartbeat runtime V1 正式接入路由执行链（默认 `shadow`，非破坏式）：
+  - 新增配置（main + bundled）：
+    - `config/heartbeat-policy.json`
+    - `bundled/skills/vibe/config/heartbeat-policy.json`
+  - 新增模块：
+    - `scripts/router/modules/12-heartbeat.ps1`
+  - 路由入口接入：
+    - `scripts/router/resolve-pack-route.ps1`
+    - 在 `router.init`、`router.prepack`、`router.pack_scoring`、`overlay.*`、`router.final` 写入 heartbeat pulse。
+  - 路由输出新增：
+    - `heartbeat_advice`
+    - `heartbeat_status`
+    - `heartbeat_runtime_digest`
+- 可观测与探针联动：
+  - `scripts/router/modules/10-observability.ps1` 新增 heartbeat telemetry 摘要字段。
+  - `scripts/router/modules/11-route-probe.ps1` 在 runtime state prompt 与 final_state 中加入 heartbeat guard 视图。
+  - `scripts/router/modules/22-intent-contract.ps1` 的 `runtime_state_prompt_digest` 新增 heartbeat 摘要。
+  - `scripts/router/modules/00-core-utils.ps1` 的 `Test-OverlayConfirmRequired` 纳入 heartbeat confirm 信号。
+- 新增门禁与验证链路：
+  - `scripts/verify/vibe-heartbeat-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 heartbeat policy parity
+  - `scripts/verify/vibe-pack-routing-smoke.ps1` 纳入 heartbeat policy 结构校验
+  - `scripts/verify/README.md` 新增 heartbeat gate 入口
+  - `check.ps1` / `check.sh` 新增 heartbeat policy 存在性检查
+
+## v2.3.19 (2026-02-26)
+
+- 新增 Heartbeat Runtime 实现文档：
+  - `docs/heartbeat-runtime-integration.md`
+  - 定义 VCO 执行心跳状态机、软/硬卡住判定、自动诊断动作与用户回显节奏。
+- 将 Error Resolver 五步法嵌入卡住治理：
+  - `CLASSIFY -> PARSE -> MATCH -> ANALYZE -> RESOLVE`
+  - 明确 hard-stall 场景的 replay 记录与预防策略。
+- 新增可观测与门禁建议：
+  - 统一心跳事件协议、`heartbeat-policy` 配置模型、`vibe-heartbeat-gate` 验证建议。
+  - 验收指标：TTFU、silent_time_total、stall_false_positive_rate、diagnosis_coverage。
+- 文档索引更新：
+  - `references/index.md` 新增 heartbeat 文档入口，便于快速复用与检索。
+
 ## v2.3.18 (2026-02-26)
 
 - 新增 Deep Discovery Mode（prepack 可观测扩展链）：

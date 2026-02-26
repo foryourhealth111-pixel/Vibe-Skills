@@ -44,6 +44,7 @@ check_path "vibe python clean code overlay config" "${TARGET_ROOT}/skills/vibe/c
 check_path "vibe system design overlay config" "${TARGET_ROOT}/skills/vibe/config/system-design-overlay.json"
 check_path "vibe cuda kernel overlay config" "${TARGET_ROOT}/skills/vibe/config/cuda-kernel-overlay.json"
 check_path "vibe observability policy config" "${TARGET_ROOT}/skills/vibe/config/observability-policy.json"
+check_path "vibe heartbeat policy config" "${TARGET_ROOT}/skills/vibe/config/heartbeat-policy.json"
 check_path "vibe deep discovery policy config" "${TARGET_ROOT}/skills/vibe/config/deep-discovery-policy.json"
 check_path "vibe capability catalog config" "${TARGET_ROOT}/skills/vibe/config/capability-catalog.json"
 for n in brainstorming writing-plans subagent-driven-development systematic-debugging; do

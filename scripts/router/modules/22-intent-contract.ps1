@@ -330,6 +330,18 @@ function Get-RouteRuntimeStatePromptDigest {
             contract_completeness = if ($intentContract -and $intentContract.completeness -ne $null) { [double]$intentContract.completeness } else { 0.0 }
             route_filter_applied = [bool]$Result.deep_discovery_route_filter_applied
         }
+        heartbeat = [pscustomobject]@{
+            enabled = [bool]($Result.heartbeat_advice -and $Result.heartbeat_advice.enabled)
+            mode = if ($Result.heartbeat_advice -and $Result.heartbeat_advice.mode) { [string]$Result.heartbeat_advice.mode } else { "off" }
+            status = if ($Result.heartbeat_status -and $Result.heartbeat_status.current_status) { [string]$Result.heartbeat_status.current_status } else { "disabled" }
+            lifecycle_status = if ($Result.heartbeat_status -and $Result.heartbeat_status.lifecycle_status) { [string]$Result.heartbeat_status.lifecycle_status } else { "disabled" }
+            pulse_count = if ($Result.heartbeat_status -and $Result.heartbeat_status.pulse_count -ne $null) { [int]$Result.heartbeat_status.pulse_count } else { 0 }
+            stall_score = if ($Result.heartbeat_status -and $Result.heartbeat_status.stall_score -ne $null) { [double]$Result.heartbeat_status.stall_score } else { 0.0 }
+            hard_stall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.hard_stall } else { $false }
+            suspect_stall = if ($Result.heartbeat_status) { [bool]$Result.heartbeat_status.suspect_stall } else { $false }
+            confirm_required = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.confirm_required } else { $false }
+            auto_diagnosis_triggered = if ($Result.heartbeat_advice) { [bool]$Result.heartbeat_advice.auto_diagnosis_triggered } else { $false }
+        }
         overlay_digest = [pscustomobject]@{
             active_overlays = @($overlayActive | Select-Object -First 8)
             folded_outside_scope_count = [int]$overlayFoldedCount
