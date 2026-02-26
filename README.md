@@ -274,6 +274,50 @@ pwsh -File .\install.ps1 -Profile full -InstallExternal
 `ivy` 作为可选 Python 依赖默认不自动安装，安装器仅做可用性提示（建议手动执行 `pip install ivy`）。
 离线强一致安装建议使用 `-StrictOffline`；默认不再依赖仓库外技能目录。若必须临时放开外部兜底，可显式使用 `-AllowExternalSkillFallback`（不建议用于团队基线）。
 
+### 强建议安装的 MCP（Full Profile）
+
+为保证 `/vibe` 路由与增强能力稳定，建议在 `full` 配置下至少安装并启用以下 MCP 组合（与 `mcp/profiles/full.json` 对齐）：
+
+| MCP | 作用 | 安装方式 |
+|---|---|---|
+| `github` | PR/Issue/代码检索与仓库操作 | 在 Codex MCP/插件管理中启用 GitHub 集成 |
+| `context7` | 官方文档检索与代码示例查询 | 在 Codex MCP/插件管理中启用 Context7 集成 |
+| `serena` | 项目决策型记忆（显式决策记录） | 在 Codex MCP/插件管理中启用 Serena 集成 |
+| `claude-flow` | 本地 stdio MCP 扩展能力 | `npm install -g claude-flow` 或 `install.ps1 -InstallExternal` |
+
+可选增强（不影响核心路由）：`prompts-chat`、`xan`、`ivy`、`fuck-u-code`。
+
+### MCP 安装步骤（Windows）
+
+1. 安装 VCO（离线强一致）：
+
+```powershell
+pwsh -File .\install.ps1 -Profile full -StrictOffline
+```
+
+2. 安装本地 `claude-flow`（二选一）：
+
+```powershell
+# 方式 A：让安装器处理外部依赖
+pwsh -File .\install.ps1 -Profile full -InstallExternal
+
+# 方式 B：手动安装
+npm install -g claude-flow
+```
+
+3. 在 Codex MCP/插件管理中手动启用：`github`、`context7`、`serena`。
+
+4. 使用仓库模板作为服务清单参考：`mcp/servers.template.json`；目标 profile 参考：`mcp/profiles/full.json`。
+
+5. 运行健康检查：
+
+```powershell
+pwsh -File .\check.ps1 -Profile full -Deep
+pwsh -File .\scripts\verify\vibe-offline-skills-gate.ps1
+```
+
+说明：`-StrictOffline` 只保证“技能与路由闭包”不回退；MCP 服务本身是否可用取决于本机是否完成对应 MCP 的安装与授权配置。
+
 ### 指定安装目录
 
 ```powershell
