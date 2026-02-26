@@ -1,5 +1,37 @@
 # VCO Changelog
 
+## v2.3.13 (2026-02-26)
+
+- 新增 CUDA Kernel Overlay（LeetCUDA 增强，post-route advice-only，不替代 Pack 路由）：
+  - 新增配置（main + bundled）：
+    - `config/cuda-kernel-overlay.json`
+    - `bundled/skills/vibe/config/cuda-kernel-overlay.json`
+  - 路由器输出新增：
+    - `cuda_kernel_advice`
+  - 核心信号：
+    - CUDA 优化语义关键词（PTX/WMMA/MMA/tensor core/shared memory/occupancy/bank conflict 等）
+    - 文件与环境信号（`.cu/.ptx/nvcc/nvidia-smi`）
+    - 优化维度覆盖评分（kernel target/memory hierarchy/profiling/correctness/fallback/hardware context）
+    - interview/noise 语义抑制，减少误触发
+  - 语义行为：
+    - `shadow`：仅建议，不改 selected pack/skill
+    - `soft`：证据不足或风险较高时给出 `confirm_recommended`
+    - `strict`：严格范围内且覆盖分不足时输出 `confirm_required` advice（仍不改路由分配）
+  - 许可证边界：
+    - `LeetCUDA` 上游为 GPL-3.0，本仓库仅方法论 advisory 接入，不 vendoring 上游源码
+- 新增验证门禁：
+  - `scripts/verify/vibe-cuda-kernel-overlay-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `cuda-kernel-overlay` main/bundled parity
+- 健康检查增强：
+  - `check.ps1`、`check.sh` 新增 `cuda-kernel-overlay` 配置存在性检查
+- 新增设计文档：
+  - `docs/cuda-kernel-overlay-integration.md`（main + bundled）
+- 文档同步：
+  - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 CUDA kernel overlay 说明
+- 第三方与上游映射：
+  - `THIRD_PARTY_LICENSES.md` 新增 `xlite-dev/LeetCUDA`
+  - `config/upstream-lock.json` 新增 `xlite-dev/LeetCUDA` 锁定条目
+
 ## v2.3.12 (2026-02-26)
 
 - 新增 System Design Overlay（system-design-primer 增强，post-route advice-only，不替代 Pack 路由）：

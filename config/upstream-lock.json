@@ -1,6 +1,6 @@
 ﻿{
   "version": 1,
-  "updated_at": "2026-02-25",
+  "updated_at": "2026-02-26",
   "dependencies": [
     {
       "id": "obra/superpowers",
@@ -120,6 +120,14 @@
       "integration_mode": "methodology-overlay",
       "local_rewrite_required": false,
       "notes": "Architecture methodology source for system-design-overlay (post-route advisory integration)"
+    },
+    {
+      "id": "xlite-dev/LeetCUDA",
+      "upstream_repo": "https://github.com/xlite-dev/LeetCUDA",
+      "upstream_ref": "master",
+      "integration_mode": "methodology-overlay",
+      "local_rewrite_required": false,
+      "notes": "CUDA optimization methodology source for cuda-kernel-overlay (post-route advisory integration, no upstream code vendoring)"
     }
   ]
 }

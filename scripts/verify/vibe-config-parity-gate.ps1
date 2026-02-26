@@ -189,7 +189,8 @@ $pairs = @(
     [pscustomobject]@{ id = "framework-interop-overlay"; main = "config/framework-interop-overlay.json"; bundled = "bundled/skills/vibe/config/framework-interop-overlay.json" },
     [pscustomobject]@{ id = "ml-lifecycle-overlay"; main = "config/ml-lifecycle-overlay.json"; bundled = "bundled/skills/vibe/config/ml-lifecycle-overlay.json" },
     [pscustomobject]@{ id = "python-clean-code-overlay"; main = "config/python-clean-code-overlay.json"; bundled = "bundled/skills/vibe/config/python-clean-code-overlay.json" },
-    [pscustomobject]@{ id = "system-design-overlay"; main = "config/system-design-overlay.json"; bundled = "bundled/skills/vibe/config/system-design-overlay.json" }
+    [pscustomobject]@{ id = "system-design-overlay"; main = "config/system-design-overlay.json"; bundled = "bundled/skills/vibe/config/system-design-overlay.json" },
+    [pscustomobject]@{ id = "cuda-kernel-overlay"; main = "config/cuda-kernel-overlay.json"; bundled = "bundled/skills/vibe/config/cuda-kernel-overlay.json" }
 )
 
 $results = @()

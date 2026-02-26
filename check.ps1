@@ -45,6 +45,7 @@ Check-Path -Label "vibe framework interop overlay config" -Path (Join-Path $Targ
 Check-Path -Label "vibe ml lifecycle overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\ml-lifecycle-overlay.json")
 Check-Path -Label "vibe python clean code overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\python-clean-code-overlay.json")
 Check-Path -Label "vibe system design overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\system-design-overlay.json")
+Check-Path -Label "vibe cuda kernel overlay config" -Path (Join-Path $TargetRoot "skills\vibe\config\cuda-kernel-overlay.json")
 
 foreach ($name in $requiredWorkflow) {
   Check-Path -Label "workflow skill/$name" -Path (Join-Path $TargetRoot "skills\$name\SKILL.md")

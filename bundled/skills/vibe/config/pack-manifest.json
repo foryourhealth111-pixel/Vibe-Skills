@@ -220,7 +220,17 @@
                                                "评估",
                                                "降维",
                                                "可解释性",
-                                               "机器学习可视化"
+                                               "机器学习可视化",
+                                               "cuda kernel",
+                                               "gpu kernel",
+                                               "ptx",
+                                               "wmma",
+                                               "tensor core",
+                                               "cuda优化",
+                                               "gpu优化",
+                                               "核函数优化",
+                                               "共享内存优化",
+                                               "occupancy"
                                            ],
                       "skill_candidates":  [
                                                "aeon",

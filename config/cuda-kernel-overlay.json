@@ -1,0 +1,221 @@
+﻿{
+  "version": 1,
+  "updated": "2026-02-26",
+  "enabled": true,
+  "mode": "shadow",
+  "preserve_routing_assignment": true,
+  "routing_integration": "post_route_cuda_kernel_overlay",
+  "task_allow": [
+    "coding",
+    "debug",
+    "research"
+  ],
+  "grade_allow": [
+    "M",
+    "L",
+    "XL"
+  ],
+  "monitor": {
+    "pack_allow": [
+      "data-ml",
+      "code-quality"
+    ],
+    "skill_allow": []
+  },
+  "positive_keywords": [
+    "cuda kernel",
+    "gpu kernel",
+    "cuda optimization",
+    "kernel optimization",
+    "ptx",
+    "wmma",
+    "mma",
+    "tensor core",
+    "shared memory",
+    "bank conflict",
+    "occupancy",
+    "warp",
+    "block size",
+    "coalesced",
+    "register pressure",
+    "flash attention",
+    "hgemm",
+    "nsight compute",
+    "nvprof",
+    "kernel launch",
+    "cuda内核",
+    "gpu内核",
+    "ptx优化",
+    "tensor core优化",
+    "共享内存",
+    "bank冲突",
+    "占用率",
+    "访存合并",
+    "warp调优",
+    "核函数优化"
+  ],
+  "negative_keywords": [
+    "leetcode interview",
+    "algorithm interview",
+    "刷题",
+    "面试题",
+    "纯python业务",
+    "frontend css",
+    "excel format",
+    "benchmarkdotnet",
+    "csharp benchmark"
+  ],
+  "file_signals": {
+    "extensions": [
+      ".cu",
+      ".cuh",
+      ".ptx",
+      ".cubin",
+      ".sass"
+    ],
+    "path_keywords": [
+      "cuda/",
+      "kernels/",
+      "kernel/",
+      "hgemm",
+      "flash-attn",
+      "cutlass",
+      "triton"
+    ],
+    "build_indicators": [
+      "nvcc",
+      "cuda_add_executable",
+      "find_package(cuda",
+      "find_package(cudatoolkit",
+      "torch.utils.cpp_extension",
+      "setup_cuda",
+      "cudnn"
+    ]
+  },
+  "environment_signals": [
+    "nvidia-smi",
+    "cuda",
+    "gpu",
+    "sm80",
+    "sm90",
+    "compute capability"
+  ],
+  "optimization_dimensions": {
+    "kernel_target": [
+      "target kernel",
+      "operator",
+      "hotspot",
+      "算子",
+      "热点内核"
+    ],
+    "memory_hierarchy": [
+      "global memory",
+      "shared memory",
+      "l2",
+      "cache",
+      "bank conflict",
+      "共享内存",
+      "访存",
+      "bank冲突"
+    ],
+    "tensor_core_usage": [
+      "tensor core",
+      "wmma",
+      "mma",
+      "tf32",
+      "bf16",
+      "fp16",
+      "tensor core",
+      "张量核"
+    ],
+    "occupancy_parallelism": [
+      "occupancy",
+      "block size",
+      "thread block",
+      "warp",
+      "register pressure",
+      "占用率",
+      "线程块"
+    ],
+    "profiling_evidence": [
+      "nsight compute",
+      "nsys",
+      "nvprof",
+      "roofline",
+      "metrics",
+      "性能剖析",
+      "基准"
+    ],
+    "correctness_guard": [
+      "numerical parity",
+      "tolerance",
+      "unit test",
+      "regression test",
+      "correctness",
+      "数值一致",
+      "精度误差",
+      "回归测试"
+    ],
+    "integration_fallback": [
+      "fallback",
+      "cpu fallback",
+      "degrade",
+      "feature flag",
+      "portability",
+      "回退路径",
+      "降级"
+    ],
+    "hardware_context": [
+      "gpu model",
+      "driver",
+      "cuda version",
+      "sm architecture",
+      "hardware",
+      "显卡型号",
+      "驱动版本"
+    ]
+  },
+  "thresholds": {
+    "trigger_signal_score_min": 0.42,
+    "confirm_signal_score_min": 0.56,
+    "high_signal_score_min": 0.78,
+    "negative_penalty_weight": 0.22,
+    "min_dimension_hits_for_overlay": 2,
+    "min_coverage_score_for_ready": 0.55,
+    "min_coverage_score_for_strict_confirm": 0.75
+  },
+  "strict_confirm_scope": {
+    "grades": [
+      "L",
+      "XL"
+    ],
+    "task_types": [
+      "coding",
+      "debug"
+    ]
+  },
+  "artifact_contract": [
+    "kernel-baseline-benchmark",
+    "kernel-optimization-log",
+    "kernel-correctness-checklist",
+    "hardware-context-note"
+  ],
+  "recommendations_by_dimension": {
+    "kernel_target": "Pin down the exact hotspot kernel/op before changing low-level implementation details.",
+    "memory_hierarchy": "Document memory hierarchy choices and fix coalescing/bank-conflict risks first.",
+    "tensor_core_usage": "State whether tensor core paths are applicable and list precision trade-offs.",
+    "occupancy_parallelism": "Record occupancy assumptions, launch configuration, and register/shared-memory pressure.",
+    "profiling_evidence": "Attach Nsight/benchmark evidence with baseline vs optimized metrics and reproducible settings.",
+    "correctness_guard": "Define numerical correctness checks with tolerances and regression safeguards.",
+    "integration_fallback": "Provide fallback/degrade behavior for unsupported GPUs or runtime failures.",
+    "hardware_context": "Capture GPU model, driver, CUDA version, and SM architecture for reproducibility."
+  },
+  "fallback_behavior": {
+    "on_missing_config": "bypass_overlay",
+    "on_parser_failure": "continue_advisory"
+  },
+  "license_boundary_note": "LeetCUDA is GPL-3.0 upstream. VCO integrates methodology-level advisory only; no upstream code vendoring."
+}
+
+
+

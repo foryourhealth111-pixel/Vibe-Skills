@@ -21,6 +21,7 @@ Complete reference of VCO execution tools, their capabilities, APIs, state paths
 | 13 | Made-With-ML lifecycle patterns (optional governance source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
 | 14 | clean-code-python patterns (optional Python quality source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
 | 15 | system-design-primer patterns (optional architecture source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
+| 16 | LeetCUDA patterns (optional CUDA optimization source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
 
 ## Verification Status Legend
 
@@ -387,3 +388,21 @@ Characteristics:
 - Does not replace OpenSpec governance or pack routing decisions.
 - Does not mutate route selection; only emits architecture-coverage advice metadata.
 - Suppresses interview-only prompts via negative keywords to avoid noisy production routing.
+
+---
+
+## 16. LeetCUDA Patterns (Optional CUDA Optimization Source)
+
+**Package/Repo**: `xlite-dev/LeetCUDA`  
+**Integration Type**: CUDA optimization methodology source (non-executable dependency)
+
+### Key Capabilities Imported into VCO
+- CUDA kernel optimization checklist framing (memory hierarchy, tensor core path, occupancy, launch parameters)
+- Profiling-first workflow emphasis (baseline vs optimized, Nsight evidence, reproducible hardware context)
+- Correctness/guardrail expectations (numerical parity checks, fallback/degrade strategy)
+
+### VCO Integration Boundary
+- Integrated through `cuda-kernel-overlay` as post-route advice only.
+- Does not replace `data-ml` pack routing or generic code-quality routing.
+- Does not mutate route selection; only emits CUDA optimization advice metadata.
+- License-safe boundary: methodology-level advisory only, no upstream code vendoring (`LeetCUDA` upstream is GPL-3.0).
