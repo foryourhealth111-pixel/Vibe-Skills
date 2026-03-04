@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-02-25",
+  "updated": "2026-03-03",
   "selection": {
     "weights": {
       "keyword_match": 0.85,
@@ -124,7 +124,7 @@
       "keywords": ["scientific writing", "imrad", "manuscript", "科研写作", "论文写作", "学术稿件"]
     },
     "designing-experiments": {
-      "keywords": ["did", "its", "synthetic control", "实验设计", "因果实验", "准实验方法"]
+      "keywords": ["did", "difference-in-differences", "its", "interrupted time series", "synthetic control", "quasi-experimental", "准实验", "合成控制", "中断时间序列", "断点回归"]
     },
     "figma-implement-design": {
       "keywords": ["figma to code", "implement design", "设计稿还原", "figma实现", "按figma开发", "figma设计稿", "还原代码", "设计转代码"]
@@ -155,6 +155,288 @@
     },
     "research-lookup": {
       "keywords": ["literature search", "paper search", "文献检索", "查找论文", "研究调研"]
+    },
+    "pubmed-database": {
+      "keywords": ["pubmed", "pmid", "mesh", "medline", "ncbi", "e-utilities", "biomedical literature", "文献检索", "医学文献"]
+    },
+    "openalex-database": {
+      "keywords": ["openalex", "doi", "citation graph", "works api", "paper metadata", "引用网络", "论文元数据", "文献元数据"]
+    },
+    "biorxiv-database": {
+      "keywords": ["biorxiv", "bioRxiv", "preprint", "预印本", "生物预印本"]
+    },
+    "bgpt-paper-search": {
+      "keywords": ["paper search", "literature search", "论文检索", "文献搜索", "bgpt"]
+    },
+    "paper-2-web": {
+      "keywords": ["paper to web", "paper2web", "论文转网页", "论文可视化", "paper viewer"]
+    },
+    "open-notebook": {
+      "keywords": ["research notebook", "open notebook", "lab notebook", "研究笔记", "实验记录", "notebook"]
+    },
+    "pyzotero": {
+      "keywords": ["zotero", "pyzotero", "bibtex", "citation management", "references", "参考文献管理", "引文管理"]
+    },
+    "citation-management": {
+      "keywords": ["citation", "bibtex", "zotero", "endnote", "references", "bibliography", "引用格式", "参考文献"]
+    },
+    "literature-review": {
+      "keywords": ["literature review", "systematic review", "meta-analysis", "文献综述", "系统综述", "荟萃分析"]
+    },
+    "peer-review": {
+      "keywords": ["peer review", "reviewer comments", "rebuttal", "同行评审", "审稿意见", "审稿", "返修"]
+    },
+    "scholar-evaluation": {
+      "keywords": ["scholar evaluation", "paper evaluation", "methodology scoring", "论文评价", "学术评估", "评估论文"]
+    },
+    "scientific-critical-thinking": {
+      "keywords": ["critical thinking", "scientific critique", "methodology critique", "批判性思维", "科研批判", "方法学批判"]
+    },
+    "chembl-database": {
+      "keywords": ["chembl", "bioactivity", "assay", "ic50", "ki", "kd", "target", "化合物活性", "药物靶点"]
+    },
+    "drugbank-database": {
+      "keywords": ["drugbank", "drug target", "drug interaction", "adme", "drug info", "药物靶点", "药物相互作用"]
+    },
+    "pubchem-database": {
+      "keywords": ["pubchem", "cid", "smiles", "inchi", "compound", "化合物", "化学结构"]
+    },
+    "brenda-database": {
+      "keywords": ["brenda", "enzyme", "km", "kcat", "vmax", "enzymology", "酶动力学", "酶参数"]
+    },
+    "hmdb-database": {
+      "keywords": ["hmdb", "metabolite", "metabolomics", "代谢物", "代谢组"]
+    },
+    "zinc-database": {
+      "keywords": ["zinc", "virtual screening", "compound library", "small molecules", "化合物库", "虚拟筛选库"]
+    },
+    "datamol": {
+      "keywords": ["datamol", "rdkit wrapper", "molecule utils", "molecule processing", "分子处理"]
+    },
+    "deepchem": {
+      "keywords": ["deepchem", "cheminformatics", "drug discovery", "molecular ml", "药物发现", "分子机器学习"]
+    },
+    "medchem": {
+      "keywords": ["medchem", "medicinal chemistry", "lead optimization", "hit to lead", "药物化学", "先导优化"]
+    },
+    "rdkit": {
+      "keywords": ["rdkit", "smiles", "fingerprint", "descriptor", "logp", "tpsa", "分子指纹", "分子描述符"]
+    },
+    "diffdock": {
+      "keywords": ["diffdock", "docking", "protein ligand", "binding pose", "virtual screening", "分子对接", "结合构象"]
+    },
+    "molfeat": {
+      "keywords": ["molfeat", "featurization", "fingerprint", "molecular features", "分子特征", "分子表示"]
+    },
+    "pytdc": {
+      "keywords": ["tdc", "therapeutics data commons", "admet dataset", "drug discovery benchmark", "药物数据集", "基准数据集"]
+    },
+    "clinicaltrials-database": {
+      "keywords": ["clinicaltrials.gov", "clinical trial", "nct", "trial phase", "eligibility", "临床试验", "NCT"]
+    },
+    "fda-database": {
+      "keywords": ["fda", "drug label", "drug safety", "adverse event", "药监", "药品说明书", "不良反应"]
+    },
+    "clinpgx-database": {
+      "keywords": ["pharmacogenomics", "cpic", "pharmgkb", "drug gene", "药物基因组", "用药基因"]
+    },
+    "clinical-reports": {
+      "keywords": ["clinical report", "case report", "medical report", "临床报告", "病例报告"]
+    },
+    "treatment-plans": {
+      "keywords": ["treatment plan", "care plan", "治疗方案", "诊疗方案", "用药方案"]
+    },
+    "iso-13485-certification": {
+      "keywords": ["iso 13485", "medical device", "quality system", "regulatory", "医疗器械", "质量体系"]
+    },
+    "clinical-decision-support": {
+      "keywords": ["clinical decision support", "cds", "guideline", "evidence-based", "临床决策支持", "用药指南"]
+    },
+    "pydicom": {
+      "keywords": ["pydicom", "dicom", "ct", "mri", "dicom tag", "医学影像", "DICOM"]
+    },
+    "imaging-data-commons": {
+      "keywords": ["imaging data commons", "idc", "imaging dataset", "dicom dataset", "影像数据集", "IDC"]
+    },
+    "histolab": {
+      "keywords": ["histolab", "whole slide image", "wsi", "histopathology", "病理切片", "WSI"]
+    },
+    "omero-integration": {
+      "keywords": ["omero", "microscopy", "image server", "bioimaging", "显微图像", "图像服务器"]
+    },
+    "pathml": {
+      "keywords": ["pathml", "digital pathology", "wsi", "tissue segmentation", "数字病理", "病理图像分析"]
+    },
+    "opentrons-integration": {
+      "keywords": ["opentrons", "ot-2", "liquid handling", "pipetting robot", "实验室自动化", "移液机器人"]
+    },
+    "pylabrobot": {
+      "keywords": ["pylabrobot", "liquid handler", "hamilton", "tecan", "液体处理", "实验室机器人"]
+    },
+    "protocolsio-integration": {
+      "keywords": ["protocols.io", "lab protocol", "protocol", "实验协议", "protocols"]
+    },
+    "benchling-integration": {
+      "keywords": ["benchling", "lims", "eln", "lab notebook", "实验室信息管理", "电子实验记录"]
+    },
+    "labarchive-integration": {
+      "keywords": ["labarchive", "eln", "lab notebook", "实验记录", "ELN"]
+    },
+    "latchbio-integration": {
+      "keywords": ["latchbio", "workflow", "bioinformatics platform", "pipeline", "生信平台", "数据管道"]
+    },
+    "ginkgo-cloud-lab": {
+      "keywords": ["ginkgo", "cloud lab", "lab services", "云实验室", "外包实验"]
+    },
+    "edgartools": {
+      "keywords": ["edgar", "sec", "10-k", "10q", "8-k", "13f", "财报", "美国证监会", "EDGAR"]
+    },
+    "alpha-vantage": {
+      "keywords": ["alpha vantage", "alphavantage", "stock price", "market data", "美股行情", "股票数据"]
+    },
+    "fred-economic-data": {
+      "keywords": ["fred", "economic data", "macro", "interest rate", "inflation", "宏观数据", "经济数据"]
+    },
+    "usfiscaldata": {
+      "keywords": ["us fiscal data", "treasury", "fiscal", "budget", "deficit", "财政数据", "美国财政", "国库"]
+    },
+    "hedgefundmonitor": {
+      "keywords": ["hedge fund monitor", "ofr", "hedge fund", "对冲基金", "OFR"]
+    },
+    "market-research-reports": {
+      "keywords": ["market research", "industry report", "competitive analysis", "市场研究", "行业报告", "市场调研"]
+    },
+    "datacommons-client": {
+      "keywords": ["data commons", "datacommons", "public data", "open data", "公共数据", "开放数据"]
+    },
+    "qiskit": {
+      "keywords": ["qiskit", "quantum circuit", "ibm quantum", "量子电路", "量子计算"]
+    },
+    "cirq": {
+      "keywords": ["cirq", "google quantum", "quantum circuit", "量子电路"]
+    },
+    "pennylane": {
+      "keywords": ["pennylane", "qml", "quantum machine learning", "量子机器学习", "量子ML"]
+    },
+    "qutip": {
+      "keywords": ["qutip", "quantum dynamics", "open quantum system", "量子动力学", "开放量子系统"]
+    },
+    "uspto-database": {
+      "keywords": ["uspto", "patent", "patents", "专利", "专利检索", "发明专利"]
+    },
+    "astropy": {
+      "keywords": ["astropy", "fits", "astronomy", "wcs", "天文", "FITS", "天球坐标"]
+    },
+    "pymatgen": {
+      "keywords": ["pymatgen", "materials", "crystal", "structure", "phase diagram", "材料", "晶体", "相图"]
+    },
+    "geopandas": {
+      "keywords": ["geopandas", "gis", "shapefile", "geojson", "geospatial", "地理数据", "空间数据", "地图"]
+    },
+    "geo-database": {
+      "keywords": ["geodatabase", "geodata", "geonames", "spatial database", "地理数据库", "地理信息"]
+    },
+    "geomaster": {
+      "keywords": ["geomaster", "coordinate transform", "projection", "geospatial", "坐标转换", "投影"]
+    },
+    "polars": {
+      "keywords": ["polars", "dataframe", "parquet", "arrow", "rust dataframe", "高性能dataframe", "大表处理"]
+    },
+    "vaex": {
+      "keywords": ["vaex", "out-of-core", "big dataframe", "large data", "磁盘外计算", "大数据df"]
+    },
+    "zarr-python": {
+      "keywords": ["zarr", "chunked array", "out-of-core", "大数组", "分块存储", "chunk"]
+    },
+    "tiledbvcf": {
+      "keywords": ["tiledb-vcf", "tiledb vcf", "tiledbvcf", "vcf", "bcf", "genomics storage", "variant storage", "变异存储", "population genomics", "variant query"]
+    },
+    "hypothesis-generation": {
+      "keywords": ["hypothesis", "hypotheses", "hypothesis generation", "research hypothesis", "scientific hypothesis", "testable", "falsifiable", "假设生成", "研究假设", "科学假设", "假设", "可检验", "可证伪", "prediction", "预测"]
+    },
+    "research-grants": {
+      "keywords": ["research grant", "grant proposal", "nih", "nsf", "darpa", "科研基金", "项目申请书", "基金申请"]
+    },
+    "arboreto": {
+      "keywords": ["arboreto", "grn", "gene regulatory network", "pySCENIC", "基因调控网络", "转录因子"]
+    },
+    "cobrapy": {
+      "keywords": ["cobrapy", "flux balance", "fba", "metabolic model", "代谢建模", "通量平衡"]
+    },
+    "esm": {
+      "keywords": ["esm", "protein language model", "protein embedding", "蛋白语言模型", "蛋白嵌入"]
+    },
+    "flowio": {
+      "keywords": ["flowio", "flow cytometry", "fcs", "cytometry", "流式细胞", "FCS"]
+    },
+    "geniml": {
+      "keywords": ["geniml", "genomic ml", "genome embedding", "基因组机器学习", "基因组嵌入"]
+    },
+    "scientific-slides": {
+      "keywords": ["scientific slides", "slide deck", "ppt", "pptx", "科研幻灯片", "学术幻灯片"]
+    },
+    "pptx-posters": {
+      "keywords": ["pptx poster", "poster", "powerpoint poster", "科研海报", "学术海报", "PPT海报"]
+    },
+    "infographics": {
+      "keywords": ["infographic", "data story", "visual summary", "信息图", "可视化总结"]
+    },
+    "markdown-mermaid-writing": {
+      "keywords": ["mermaid", "flowchart", "sequence diagram", "markdown diagram", "流程图", "时序图"]
+    },
+    "markitdown": {
+      "keywords": ["markitdown", "convert to markdown", "pdf to markdown", "docx to markdown", "转成 markdown", "转成markdown", "markdown转换", "pdf转markdown"]
+    },
+    "document-skills": {
+      "keywords": ["document processing", "report formatting", "文档处理", "报告排版", "文档生成"]
+    },
+    "generate-image": {
+      "keywords": ["generate image", "image generation", "生成图片", "图片生成", "出图"]
+    },
+    "fluidsim": {
+      "keywords": ["fluidsim", "cfd", "navier-stokes", "turbulence", "computational fluid dynamics", "流体仿真", "湍流"]
+    },
+    "simpy": {
+      "keywords": ["simpy", "discrete event simulation", "queue", "resource", "离散事件", "排队系统", "仿真"]
+    },
+    "matchms": {
+      "keywords": ["matchms", "ms/ms", "msms", "mass spectrum", "spectral similarity", "代谢组", "谱图匹配"]
+    },
+    "matlab": {
+      "keywords": ["matlab", "octave", ".m script", "m-file", "simulink", "矩阵计算"]
+    },
+    "modal": {
+      "keywords": ["modal.com", "modal run", "modal deploy", "serverless gpu", "batch job", "gpu container", "云端运行", "gpu容器"]
+    },
+    "modal-labs": {
+      "keywords": ["modal.com", "modal labs", "modallabs", "modal run", "modal deploy", "modal serve", "serverless gpu", "batch job", "autoscaling containers", "云端运行"]
+    },
+    "neuropixels-analysis": {
+      "keywords": ["neuropixels", "kilosort", "spike sorting", "spikeglx", "open ephys", "ibl", "神经电生理"]
+    },
+    "pymc": {
+      "keywords": ["pymc", "bayesian", "mcmc", "nuts", "posterior", "hierarchical model", "贝叶斯", "后验"]
+    },
+    "pymoo": {
+      "keywords": ["pymoo", "multi-objective", "nsga", "pareto", "constraint optimization", "多目标优化", "帕累托"]
+    },
+    "rowan": {
+      "keywords": ["rowan api", "quantum chemistry", "autodock vina", "pka prediction", "geometry optimization", "量子化学", "分子对接"]
+    },
+    "stable-baselines3": {
+      "keywords": ["stable-baselines3", "sb3", "ppo", "sac", "dqn", "reinforcement learning", "强化学习"]
+    },
+    "timesfm-forecasting": {
+      "keywords": ["timesfm", "time series forecasting", "zero-shot forecasting", "prediction intervals", "时间序列预测", "零样本预测"]
+    },
+    "torch-geometric": {
+      "keywords": ["torch-geometric", "pyg", "pytorch geometric", "graph neural network", "gnn", "图神经网络"]
+    },
+    "torch_geometric": {
+      "keywords": ["torch_geometric", "pyg", "pytorch geometric", "graph neural network", "gnn", "图神经网络"]
+    },
+    "docx-comment-reply": {
+      "keywords": ["批注", "回复批注", "word批注", "评论线程", "comment thread", "comment reply", "threaded comment", "comments.xml", "commentsExtended.xml", "commentsextended.xml", "docx批注", "doc批注"]
     }
   }
 }

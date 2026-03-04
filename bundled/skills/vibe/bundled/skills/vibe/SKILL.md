@@ -44,7 +44,7 @@ Gather objective signals before classification:
      "前后端", "并行", "多智能体",
      multiple independent modules → parallelizable = true
    - Dialectic signals: "辩证", "dialectic", "多视角", "think-tank",
-     "对比方案", "权衡" → needs_dialectic = true
+     "对比方案", "权衡" → dialectic_candidate = true（仅候选信号，不自动触发辩证智囊团）
 
 2. If task mentions code changes, quick Glob/Grep:
    - Count estimated affected files
@@ -103,6 +103,44 @@ After grade and task-type are decided, VCO applies a pack overlay:
 5. If confidence is below threshold, fallback to the legacy Grade×Type matrix above
 
 Pack routing MUST respect grade/task boundaries and Rule 3 command priority.
+
+#### `confirm_required` → White-box Skill Choice
+
+When the router returns `route_mode=confirm_required`, do **NOT** proceed with a silent/opaque auto-route.
+Instead, provide a white-box choice so the user can explicitly select the best-fit skill.
+
+Contract:
+
+- `scripts/router/resolve-pack-route.ps1` now emits `confirm_ui` when `route_mode=confirm_required`.
+- `confirm_ui.rendered_text` is a ready-to-show menu containing the top relevant skills (name + description).
+- User may respond with either:
+  - an option number (e.g. `1`), or
+  - an explicit skill command (e.g. `$tdd-guide`, `$systematic-debugging`).
+
+Execution rule:
+
+1. Show `confirm_ui.rendered_text` to the user.
+2. If the user selects a skill, treat it as an explicit command (Rule 3), and/or re-run the router with `-RequestedSkill <skill>` to lock in the selection.
+3. Proceed with the selected skill’s normal workflow (its `SKILL.md`), including quality gates.
+
+Config:
+
+- Policy: `config/confirm-ui-policy.json` (top-k options, descriptions, unattended behavior).
+
+#### Unattended Mode (Skip Confirm)
+
+If the user explicitly requests unattended execution (e.g. “进入无人值守模式”), the router may override `confirm_required` to `pack_overlay` so execution can continue without additional questions.
+
+Supported controls:
+
+- One-shot: call router with `-Unattended`.
+- Sticky (default TTL): user prompt contains “进入无人值守模式” / “退出无人值守”；state is stored at `outputs/runtime/confirm-ui-state.json`.
+
+In unattended mode:
+
+- Do not present the white-box menu.
+- Still emit evidence in the route output (`unattended_decision`, `unattended_override_applied`, and `route_mode_before_unattended_override`) for observability.
+
 When `config/prompt-overlay.json` is enabled, router emits `prompt_overlay_advice` and may elevate ambiguous prompt-vs-doc requests to `confirm_required` without replacing pack selection.
 When `config/data-scale-overlay.json` is enabled, router emits `data_scale_advice` and can adapt spreadsheet skill selection by real file signals (size/rows/format) in a mode-gated, post-route way.
 When `config/quality-debt-overlay.json` is enabled, router emits `quality_debt_advice` to expose quality-debt risk and optional analyzer hints in a post-route, advice-first way.
@@ -111,7 +149,10 @@ When `config/ml-lifecycle-overlay.json` is enabled, router emits `ml_lifecycle_a
 When `config/python-clean-code-overlay.json` is enabled, router emits `python_clean_code_advice` to expose Python clean-code guidance with automatic `.py` signal detection in a post-route, advice-first way.
 When `config/system-design-overlay.json` is enabled, router emits `system_design_advice` to expose system-design-primer architecture coverage guidance in a post-route, advice-first way.
 When `config/cuda-kernel-overlay.json` is enabled, router emits `cuda_kernel_advice` to expose LeetCUDA-inspired CUDA kernel optimization coverage guidance in a post-route, advice-first way.
+When `config/deep-discovery-policy.json` is enabled, router runs a prepack Deep Discovery chain (`trigger`/`interview`/`contract`/`filter`), emits `deep_discovery_advice` + `intent_contract`, and may apply capability-based candidate filtering only in mode-gated paths (default shadow remains non-mutating).
 When `config/observability-policy.json` is enabled, router writes privacy-safe route telemetry events (`outputs/telemetry/*.jsonl`) for deterministic observability and offline adaptive suggestions; route assignment remains unchanged.
+When `config/dialectic-team-policy.json` is enabled, dialectic think-tank activation is gated by explicit request only (`explicit_only`) and blocks implicit team activation.
+When `config/daily-dialectic-guard.json` is enabled, router emits `daily_dialectic_advice` as always-on thesis/antithesis/synthesis guardrails in post-route advisory mode.
 
 Specialized agents available at ANY grade (exempt from agent boundary rule):
 - build-error-resolver: build-specific errors (compat alias: local `error-resolver`)
@@ -251,6 +292,7 @@ Detect availability AFTER routing selects a tool, BEFORE invoking:
 | docs/system-design-overlay-integration.md | System-design overlay integration (system-design-primer inspired architecture coverage advisory) |
 | docs/cuda-kernel-overlay-integration.md | CUDA kernel overlay integration (LeetCUDA inspired kernel optimization advisory) |
 | docs/observability-consistency-governance.md | Observability + consistency governance (lean telemetry + manual rollback confirmation) |
+| docs/blackbox-probe-and-enhancement-playbook.md | Blackbox probing + semantic enhancement + threshold tuning unified engineering playbook |
 | docs/skills-consolidation-roadmap.md | Pack consolidation phases and gates |
 | changelog.md | Version history |
 | index.md | Navigation index |
@@ -274,8 +316,8 @@ Detect availability AFTER routing selects a tool, BEFORE invoking:
 
 ## Maintenance
 
-- Version: 2.3.14
-- Updated: 2026-02-26
+- Version: 2.3.24
+- Updated: 2026-02-27
 - Sources: Source code analysis of 6 plugins (2026-02-18) + Agent-Skills-for-Context-Engineering (2026-02-24)
 - Changelog: references/changelog.md
 - Known limits:

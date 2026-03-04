@@ -9,6 +9,28 @@ Activated when the task requires writing or modifying code:
 - Code refactoring
 - Test writing
 
+## Closure-First Contract (2 Probes + 1 Verify)
+
+Primary objective for execution tasks: **avoid dead-air** and reach a **minimal closed loop** quickly.
+This contract applies even if routing/pack selection is imperfect.
+
+### Contract
+Within the first 3 actions of an execution task, do:
+1. **Probe #1 (glob, fast):** establish repo shape and likely entry points.
+   - Example: `Get-ChildItem -Force | Select-Object Name`
+2. **Probe #2 (rg, targeted):** search the most relevant keyword(s) from the user prompt.
+   - Example: `rg -n -F -e '<keyword>' .`
+3. **Verify #1 (smallest relevant):** pick 1 verification command that can falsify your change.
+   - Coding: run the narrowest test (`pytest -q`, `npm test`, `pnpm test`, etc.)
+   - Debug: reproduce the bug / run the failing test / run the minimal build step
+
+### Router Hints (When Available)
+If VCO router output includes:
+- `closure_advice`: follow `closure_advice.contract.probes` + `closure_advice.contract.verify` (prefer verbatim).
+- `exploration_advice`: use `exploration_advice.recommended_execution_mode`:
+  - `analysis_first`: allow brief analysis first, but **do not skip probes**.
+  - `direct_execution`: go straight to Probe #1 → Probe #2 → Verify.
+
 ## Tool Orchestration by Grade
 
 ### M Grade

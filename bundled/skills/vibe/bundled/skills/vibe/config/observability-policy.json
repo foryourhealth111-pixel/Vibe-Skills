@@ -1,8 +1,8 @@
-{
+﻿{
     "version":  1,
     "updated":  "2026-02-26",
     "enabled":  true,
-    "mode":  "shadow",
+    "mode": "soft",
     "preserve_routing_assignment":  true,
     "routing_integration":  "post_route_observability_only",
     "event_schema_version":  "v1",
@@ -58,3 +58,7 @@
                               "on_write_error":  "continue_without_telemetry"
                           }
 }
+
+
+
+

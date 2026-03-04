@@ -44,6 +44,7 @@ if (-not (Test-Path -LiteralPath $governancePath)) {
 $governance = Get-Content -LiteralPath $governancePath -Raw -Encoding UTF8 | ConvertFrom-Json
 $canonicalRoot = Join-Path $repoRoot ([string]$governance.source_of_truth.canonical_root)
 $bundledRoot = Join-Path $repoRoot ([string]$governance.source_of_truth.bundled_root)
+$nestedBundledRoot = Join-Path $bundledRoot "bundled\skills\vibe"
 $mirrorFiles = @($governance.packaging.mirror.files)
 $mirrorDirs = @($governance.packaging.mirror.directories)
 $allowBundledOnly = @($governance.packaging.allow_bundled_only)
@@ -51,49 +52,61 @@ $allowBundledOnly = @($governance.packaging.allow_bundled_only)
 Write-Host "=== Sync Bundled Vibe ===" -ForegroundColor Cyan
 Write-Host ("Canonical root: {0}" -f $canonicalRoot)
 Write-Host ("Bundled root  : {0}" -f $bundledRoot)
-
-foreach ($rel in $mirrorFiles) {
-    $src = Join-Path $canonicalRoot $rel
-    $dst = Join-Path $bundledRoot $rel
-    if (-not (Test-Path -LiteralPath $src)) {
-        Write-Warning ("Skip missing canonical file: {0}" -f $rel)
-        continue
-    }
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
-    Copy-Item -LiteralPath $src -Destination $dst -Force
-    Write-Host ("[SYNC] file {0}" -f $rel)
+if (Test-Path -LiteralPath $nestedBundledRoot) {
+    Write-Host ("Nested root   : {0}" -f $nestedBundledRoot)
 }
 
-foreach ($dir in $mirrorDirs) {
-    $srcDir = Join-Path $canonicalRoot $dir
-    $dstDir = Join-Path $bundledRoot $dir
-    if (-not (Test-Path -LiteralPath $srcDir)) {
-        Write-Warning ("Skip missing canonical dir: {0}" -f $dir)
-        continue
+function Sync-ToBundledRoot {
+    param([string]$TargetRoot)
+
+    foreach ($rel in $mirrorFiles) {
+        $src = Join-Path $canonicalRoot $rel
+        $dst = Join-Path $TargetRoot $rel
+        if (-not (Test-Path -LiteralPath $src)) {
+            Write-Warning ("Skip missing canonical file: {0}" -f $rel)
+            continue
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
+        Copy-Item -LiteralPath $src -Destination $dst -Force
+        Write-Host ("[SYNC] file {0} -> {1}" -f $rel, $TargetRoot)
     }
-    Copy-DirContent -Source $srcDir -Destination $dstDir
-    Write-Host ("[SYNC] dir  {0}" -f $dir)
 
-    if ($PruneBundledExtras) {
-        $srcFiles = @(
-            Get-ChildItem -LiteralPath $srcDir -Recurse -File | ForEach-Object {
-                Get-RelativePathPortable -BasePath $srcDir -TargetPath $_.FullName
-            }
-        )
-        $dstFiles = @(
-            Get-ChildItem -LiteralPath $dstDir -Recurse -File | ForEach-Object {
-                Get-RelativePathPortable -BasePath $dstDir -TargetPath $_.FullName
-            }
-        )
+    foreach ($dir in $mirrorDirs) {
+        $srcDir = Join-Path $canonicalRoot $dir
+        $dstDir = Join-Path $TargetRoot $dir
+        if (-not (Test-Path -LiteralPath $srcDir)) {
+            Write-Warning ("Skip missing canonical dir: {0}" -f $dir)
+            continue
+        }
+        Copy-DirContent -Source $srcDir -Destination $dstDir
+        Write-Host ("[SYNC] dir  {0} -> {1}" -f $dir, $TargetRoot)
 
-        foreach ($relPath in @($dstFiles | Where-Object { $_ -notin $srcFiles })) {
-            $allowRel = "{0}/{1}" -f $dir, $relPath
-            if ($allowBundledOnly -contains $allowRel) { continue }
-            $target = Join-Path $dstDir $relPath
-            Remove-Item -LiteralPath $target -Force
-            Write-Host ("[PRUNE] {0}" -f $allowRel)
+        if ($PruneBundledExtras) {
+            $srcFiles = @(
+                Get-ChildItem -LiteralPath $srcDir -Recurse -File | ForEach-Object {
+                    Get-RelativePathPortable -BasePath $srcDir -TargetPath $_.FullName
+                }
+            )
+            $dstFiles = @(
+                Get-ChildItem -LiteralPath $dstDir -Recurse -File | ForEach-Object {
+                    Get-RelativePathPortable -BasePath $dstDir -TargetPath $_.FullName
+                }
+            )
+
+            foreach ($relPath in @($dstFiles | Where-Object { $_ -notin $srcFiles })) {
+                $allowRel = "{0}/{1}" -f $dir, $relPath
+                if ($allowBundledOnly -contains $allowRel) { continue }
+                $target = Join-Path $dstDir $relPath
+                Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+                Write-Host ("[PRUNE] {0} -> {1}" -f $allowRel, $TargetRoot)
+            }
         }
     }
+}
+
+Sync-ToBundledRoot -TargetRoot $bundledRoot
+if (Test-Path -LiteralPath $nestedBundledRoot) {
+    Sync-ToBundledRoot -TargetRoot $nestedBundledRoot
 }
 
 Write-Host "Sync complete." -ForegroundColor Green

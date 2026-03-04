@@ -1,0 +1,120 @@
+{
+  "description": "VCO ecosystem plugin manifest — lists all plugins with their role in VCO routing",
+  "plugins": {
+    "core": [
+      {
+        "id": "superpowers@superpowers-marketplace",
+        "repo": "https://github.com/obra/superpowers",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "L grade: brainstorming, writing-plans, subagent-driven-dev, deep-research, continuous-learning-v2",
+        "required": true
+      },
+      {
+        "id": "everything-claude-code@everything-claude-code",
+        "repo": "https://github.com/punkpeye/everything-claude-code",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "M grade agents: tdd-guide, code-reviewer, security-reviewer, build-error-resolver, planner, architect, systematic-debugging",
+        "required": true
+      },
+      {
+        "id": "claude-code-settings@claude-code-settings",
+        "repo": "https://github.com/feiskyer/claude-code-settings",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "M grade: think-harder/think-ultra structured analysis",
+        "required": true
+      },
+      {
+        "id": "hookify@claude-plugins-official",
+        "repo": "https://github.com/anthropics/claude-code-plugins",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Hook management: auto-plugin-discovery, large-file-write prevention",
+        "required": true
+      },
+      {
+        "id": "ralph-loop@claude-plugins-official",
+        "repo": "https://github.com/frankbria/ralph-claude-code",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Autonomous development loop with intelligent exit detection",
+        "required": true
+      }
+    ],
+    "recommended": [
+      {
+        "id": "episodic-memory@superpowers-marketplace",
+        "repo": "https://github.com/obra/superpowers",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Cross-session memory via vector search",
+        "required": false
+      },
+      {
+        "id": "serena@claude-plugins-official",
+        "repo": "https://github.com/anthropics/claude-code-plugins",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Semantic code analysis, symbol navigation, project memory",
+        "required": false
+      },
+      {
+        "id": "context7@claude-plugins-official",
+        "repo": "https://github.com/anthropics/claude-code-plugins",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Library documentation lookup",
+        "required": false
+      },
+      {
+        "id": "github@claude-plugins-official",
+        "repo": "https://github.com/anthropics/claude-code-plugins",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "GitHub operations (PRs, issues, code search)",
+        "required": false
+      },
+      {
+        "id": "playwright@claude-plugins-official",
+        "repo": "https://github.com/anthropics/claude-code-plugins",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Browser automation and E2E testing",
+        "required": false
+      },
+      {
+        "id": "elements-of-style@superpowers-marketplace",
+        "install_mode": "manual-codex",
+        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+        "role": "Code style enforcement",
+        "required": false
+      }
+    ],
+    "external": [
+      {
+        "name": "SuperClaude Framework",
+        "repo": "https://github.com/SuperClaude-Org/SuperClaude_Framework",
+        "install": "Cloned by install script to ~/.claude/commands/sc/",
+        "role": "sc:* commands (design, research, brainstorm, etc.)",
+        "required": true
+      },
+      {
+        "name": "claude-flow (ruflo)",
+        "repo": "https://github.com/ruvnet/claude-flow",
+        "install": "npm install -g claude-flow",
+        "role": "XL grade: multi-agent swarm orchestration via MCP",
+        "required": false,
+        "note": "Only needed for XL grade tasks"
+      },
+      {
+        "name": "spec-kit",
+        "repo": "https://github.com/github/spec-kit",
+        "install": "Reference only — spec-driven development toolkit",
+        "role": "Spec-driven development methodology reference",
+        "required": false
+      }
+    ]
+  }
+}

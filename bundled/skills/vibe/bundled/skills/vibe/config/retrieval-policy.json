@@ -1,0 +1,54 @@
+﻿{
+    "version": 1,
+    "updated": "2026-02-27",
+    "enabled": true,
+    "mode": "soft",
+    "preserve_routing_assignment": true,
+    "routing_integration": "post_route_retrieval_overlay",
+    "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "debug",
+        "research"
+    ],
+    "grade_allow": [
+        "M",
+        "L",
+        "XL"
+    ],
+    "route_mode_allow": [
+        "legacy_fallback",
+        "confirm_required",
+        "pack_overlay"
+    ],
+    "profile_selection": {
+        "min_profile_confidence": 0.42,
+        "ambiguous_gap": 0.08,
+        "fallback_profile": "composite",
+        "max_query_variants_by_mode": {
+            "shadow": 3,
+            "soft": 4,
+            "strict": 5
+        }
+    },
+    "coverage": {
+        "min_sources_hit": 1,
+        "min_evidence_items": 3,
+        "max_retrieve_rounds": 2,
+        "requery_on_low_coverage": true
+    },
+    "enforcement": {
+        "strict_confirm_on_low_coverage": true,
+        "strict_confirm_on_ambiguous_profile": true
+    },
+    "fallback_behavior": {
+        "on_missing_profiles": "continue_advisory",
+        "on_missing_registry": "use_profile_defaults",
+        "on_parser_failure": "continue_advisory"
+    }
+}
+
+
+
+

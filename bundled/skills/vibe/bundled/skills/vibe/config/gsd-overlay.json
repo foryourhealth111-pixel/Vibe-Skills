@@ -1,8 +1,8 @@
-{
+﻿{
     "version":  1,
     "updated":  "2026-02-25",
     "enabled":  true,
-    "mode":  "shadow",
+    "mode": "soft",
     "preserve_routing_assignment":  true,
     "routing_integration":  "protocol_hooks_only",
     "task_allow":  [
@@ -62,3 +62,4 @@
                               "on_hook_failure":  "continue_core_protocol"
                           }
 }
+

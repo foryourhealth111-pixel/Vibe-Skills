@@ -1,0 +1,51 @@
+﻿{
+  "version": 1,
+  "updated": "2026-03-04",
+  "enabled": true,
+  "mode": "shadow",
+  "activation": {
+    "explicit_vibe_only": true
+  },
+  "scope": {
+    "grade_allow": ["M", "L", "XL"],
+    "task_allow": ["planning", "coding", "review", "debug", "research"],
+    "route_mode_allow": ["legacy_fallback", "confirm_required", "pack_overlay"]
+  },
+  "trigger": {
+    "top_k": 3,
+    "always_on_explicit_vibe": true,
+    "max_top1_top2_gap": 0.08,
+    "max_confidence_for_llm": 0.55
+  },
+  "provider": {
+    "type": "openai",
+    "model": "gpt-5.2-codex",
+    "timeout_ms": 2500,
+    "max_output_tokens": 900,
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "store": false,
+    "mock_response_path": ""
+  },
+  "context": {
+    "mode": "diff_snippets_ok",
+    "include_git_status": true,
+    "include_git_diff": true,
+    "max_git_status_lines": 80,
+    "max_diff_chars": 9000
+  },
+  "safety": {
+    "fallback_on_error": true,
+    "require_candidate_in_top_k": true,
+    "min_override_confidence": 0.75,
+    "allow_confirm_escalation": true,
+    "allow_route_override": false
+  },
+  "rollout": {
+    "apply_in_modes": ["soft", "strict"],
+    "max_live_apply_rate": 1.0
+  }
+}
+
+
+

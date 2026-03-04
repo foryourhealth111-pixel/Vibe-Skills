@@ -1,0 +1,95 @@
+{
+    "version": 1,
+    "updated": "2026-03-03",
+    "enabled": true,
+    "mode": "soft",
+    "preserve_routing_assignment": true,
+    "routing_integration": "post_route_closure_overlay",
+    "task_allow": [
+        "coding",
+        "debug",
+        "planning",
+        "research"
+    ],
+    "grade_allow": [
+        "M",
+        "L",
+        "XL"
+    ],
+    "route_mode_allow": [],
+    "contract": {
+        "probe_budget": 2,
+        "verify_budget": 1,
+        "include_repo_shape_probe": true,
+        "keyword_extraction": {
+            "max_keywords": 3,
+            "max_rg_patterns": 2
+        }
+    },
+    "verify_command_candidates": [
+        {
+            "id": "node_pnpm_test",
+            "when_files": [
+                "pnpm-lock.yaml",
+                "package.json"
+            ],
+            "command": "pnpm test",
+            "note": "Node repo (pnpm)"
+        },
+        {
+            "id": "node_yarn_test",
+            "when_files": [
+                "yarn.lock",
+                "package.json"
+            ],
+            "command": "yarn test",
+            "note": "Node repo (yarn)"
+        },
+        {
+            "id": "node_npm_test",
+            "when_files": [
+                "package.json"
+            ],
+            "command": "npm test",
+            "note": "Node repo (npm)"
+        },
+        {
+            "id": "python_pytest",
+            "when_files": [
+                "pyproject.toml",
+                "pytest.ini",
+                "requirements.txt",
+                "setup.py"
+            ],
+            "command": "pytest -q",
+            "note": "Python repo (pytest)"
+        },
+        {
+            "id": "go_test",
+            "when_files": [
+                "go.mod"
+            ],
+            "command": "go test ./...",
+            "note": "Go repo"
+        },
+        {
+            "id": "rust_test",
+            "when_files": [
+                "Cargo.toml"
+            ],
+            "command": "cargo test",
+            "note": "Rust repo"
+        },
+        {
+            "id": "dotnet_test",
+            "when_files": [
+                ".sln",
+                ".csproj",
+                ".fsproj"
+            ],
+            "command": "dotnet test",
+            "note": ".NET repo"
+        }
+    ]
+}
+

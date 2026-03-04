@@ -1,0 +1,101 @@
+﻿{
+    "version":  1,
+    "updated":  "2026-02-26",
+    "enabled":  true,
+    "mode": "soft",
+    "preserve_routing_assignment":  true,
+    "routing_integration":  "prepack_capability_discovery",
+    "scope":  {
+                  "grade_allow":  [
+                                      "M",
+                                      "L",
+                                      "XL"
+                                  ],
+                  "task_allow":  [
+                                     "planning",
+                                     "coding",
+                                     "review",
+                                     "debug",
+                                     "research"
+                                 ]
+              },
+    "trigger":  {
+                    "min_trigger_score":  0.2,
+                    "min_capability_hits":  1,
+                    "ambiguity_keywords":  [
+                                               "improve",
+                                               "optimize",
+                                               "handle end to end",
+                                               "搞一下",
+                                               "帮我搞定",
+                                               "完整做完",
+                                               "黑盒"
+                                           ],
+                    "composite_keywords":  [
+                                               "and",
+                                               "plus",
+                                               "then",
+                                               "同时",
+                                               "并且",
+                                               "再",
+                                               "从",
+                                               "到",
+                                               "规划",
+                                               "实现",
+                                               "design",
+                                               "implement",
+                                               "brainstorm",
+                                               "execute"
+                                           ],
+                    "execution_keywords":  [
+                                               "deliverable",
+                                               "report",
+                                               "script",
+                                               "api",
+                                               "workflow",
+                                               "方案",
+                                               "落地",
+                                               "执行",
+                                               "复现",
+                                               "验证"
+                                           ]
+                },
+    "interview":  {
+                      "max_questions":  3,
+                      "question_templates":  [
+                                                 "你希望这次任务最终交付什么形式（脚本、报告、文档、可运行流程）？",
+                                                 "在这些能力里你最优先哪两项：{capabilities}？",
+                                                 "你希望我先做方案确认，再执行，还是直接按你当前描述执行？"
+                                             ]
+                  },
+    "intent_contract":  {
+                            "required_fields":  [
+                                                    "goal",
+                                                    "deliverable",
+                                                    "constraints",
+                                                    "capabilities"
+                                                ],
+                            "min_completeness_for_filter":  0.6,
+                            "min_completeness_for_confirm_required":  0.45
+                        },
+    "selection":  {
+                      "apply_in_modes":  [
+                                             "soft",
+                                             "strict"
+                                         ],
+                      "require_non_empty_filter_result":  true,
+                      "fallback_on_empty":  "use_full_pack_candidates"
+                  },
+    "runtime_prompt":  {
+                           "include_digest":  true,
+                           "max_capability_count":  8
+                       },
+    "fallback_behavior":  {
+                              "on_missing_catalog":  "bypass_deep_discovery",
+                              "on_error":  "continue_core_routing"
+                          }
+}
+
+
+
+

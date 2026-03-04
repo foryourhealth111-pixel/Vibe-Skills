@@ -48,6 +48,7 @@ check_path "vibe cuda kernel overlay config" "${TARGET_ROOT}/skills/vibe/config/
 check_path "vibe observability policy config" "${TARGET_ROOT}/skills/vibe/config/observability-policy.json"
 check_path "vibe heartbeat policy config" "${TARGET_ROOT}/skills/vibe/config/heartbeat-policy.json"
 check_path "vibe deep discovery policy config" "${TARGET_ROOT}/skills/vibe/config/deep-discovery-policy.json"
+check_path "vibe llm acceleration policy config" "${TARGET_ROOT}/skills/vibe/config/llm-acceleration-policy.json"
 check_path "vibe capability catalog config" "${TARGET_ROOT}/skills/vibe/config/capability-catalog.json"
 check_path "vibe retrieval policy config" "${TARGET_ROOT}/skills/vibe/config/retrieval-policy.json"
 check_path "vibe retrieval intent profiles config" "${TARGET_ROOT}/skills/vibe/config/retrieval-intent-profiles.json"
@@ -62,6 +63,7 @@ check_path "vibe bundled retrieval rerank weights config" "${TARGET_ROOT}/skills
 check_path "vibe bundled exploration policy config" "${TARGET_ROOT}/skills/vibe/bundled/skills/vibe/config/exploration-policy.json"
 check_path "vibe bundled exploration intent profiles config" "${TARGET_ROOT}/skills/vibe/bundled/skills/vibe/config/exploration-intent-profiles.json"
 check_path "vibe bundled exploration domain map config" "${TARGET_ROOT}/skills/vibe/bundled/skills/vibe/config/exploration-domain-map.json"
+check_path "vibe bundled llm acceleration policy config" "${TARGET_ROOT}/skills/vibe/bundled/skills/vibe/config/llm-acceleration-policy.json"
 for n in brainstorming writing-plans subagent-driven-development systematic-debugging; do
   check_path "workflow/${n}" "${TARGET_ROOT}/skills/${n}/SKILL.md"
 done

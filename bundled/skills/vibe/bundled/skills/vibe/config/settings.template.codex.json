@@ -1,0 +1,16 @@
+﻿{
+  "env": {
+    "OPENAI_API_KEY": "<REQUIRED>",
+    "VCO_PROFILE": "full",
+    "VCO_CODEX_MODE": "true"
+  },
+  "vco": {
+    "skill_root": "~/.codex/skills",
+    "rules_root": "~/.codex/rules",
+    "hooks_root": "~/.codex/hooks",
+    "mcp_profile": "full"
+  },
+  "hooks": {
+    "pre_write_guard": "~/.codex/hooks/write-guard.js"
+  }
+}

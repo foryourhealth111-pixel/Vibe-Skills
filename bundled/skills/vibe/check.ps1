@@ -51,6 +51,7 @@ Check-Path -Label "vibe cuda kernel overlay config" -Path (Join-Path $TargetRoot
 Check-Path -Label "vibe observability policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\observability-policy.json")
 Check-Path -Label "vibe heartbeat policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\heartbeat-policy.json")
 Check-Path -Label "vibe deep discovery policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\deep-discovery-policy.json")
+Check-Path -Label "vibe llm acceleration policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\llm-acceleration-policy.json")
 Check-Path -Label "vibe capability catalog config" -Path (Join-Path $TargetRoot "skills\vibe\config\capability-catalog.json")
 Check-Path -Label "vibe retrieval policy config" -Path (Join-Path $TargetRoot "skills\vibe\config\retrieval-policy.json")
 Check-Path -Label "vibe retrieval intent profiles config" -Path (Join-Path $TargetRoot "skills\vibe\config\retrieval-intent-profiles.json")
@@ -65,6 +66,7 @@ Check-Path -Label "vibe bundled retrieval rerank weights config" -Path (Join-Pat
 Check-Path -Label "vibe bundled exploration policy config" -Path (Join-Path $TargetRoot "skills\vibe\bundled\skills\vibe\config\exploration-policy.json")
 Check-Path -Label "vibe bundled exploration intent profiles config" -Path (Join-Path $TargetRoot "skills\vibe\bundled\skills\vibe\config\exploration-intent-profiles.json")
 Check-Path -Label "vibe bundled exploration domain map config" -Path (Join-Path $TargetRoot "skills\vibe\bundled\skills\vibe\config\exploration-domain-map.json")
+Check-Path -Label "vibe bundled llm acceleration policy config" -Path (Join-Path $TargetRoot "skills\vibe\bundled\skills\vibe\config\llm-acceleration-policy.json")
 
 foreach ($name in $requiredWorkflow) {
   Check-Path -Label "workflow skill/$name" -Path (Join-Path $TargetRoot "skills\$name\SKILL.md")

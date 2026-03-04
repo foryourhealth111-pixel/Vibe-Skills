@@ -1,0 +1,218 @@
+{
+    "version": 1,
+    "updated": "2026-02-27",
+    "profiles": [
+        {
+            "id": "literature",
+            "description": "Academic literature and evidence retrieval profile.",
+            "positive_keywords": [
+                "paper",
+                "literature",
+                "arxiv",
+                "pubmed",
+                "crossref",
+                "citation",
+                "journal",
+                "benchmark study",
+                "systematic review",
+                "meta analysis",
+                "evidence synthesis",
+                "论文",
+                "文献",
+                "研究综述"
+            ],
+            "negative_keywords": [
+                "repository issue",
+                "bugfix only",
+                "code refactor only"
+            ],
+            "negative_penalty_weight": 0.65,
+            "decomposition_strategy": "question_cluster",
+            "max_query_variants": 4,
+            "default_sources": [
+                "semantic_scholar",
+                "arxiv",
+                "crossref"
+            ],
+            "query_templates": [
+                "core question + synonyms + domain nouns",
+                "method name + benchmark + limitation keywords",
+                "date-bounded update query for latest evidence"
+            ],
+            "query_expansion_terms": [
+                "state of the art",
+                "limitations",
+                "ablation",
+                "replication",
+                "dataset shift"
+            ],
+            "rerank_mode": "literature",
+            "recommended_packs": [
+                "research-design",
+                "bio-science",
+                "data-ml"
+            ],
+            "recommended_skills": [
+                "research-lookup",
+                "content-research-writer",
+                "scientific-writing"
+            ]
+        },
+        {
+            "id": "repo_code",
+            "description": "Repository/code-centric retrieval profile.",
+            "positive_keywords": [
+                "github",
+                "repository",
+                "repo",
+                "source code",
+                "implementation details",
+                "issue",
+                "pull request",
+                "workflow yaml",
+                "ci logs",
+                "代码仓库",
+                "源码",
+                "实现细节"
+            ],
+            "negative_keywords": [
+                "literature review",
+                "journal only",
+                "meta analysis"
+            ],
+            "negative_penalty_weight": 0.7,
+            "decomposition_strategy": "artifact_first",
+            "max_query_variants": 5,
+            "default_sources": [
+                "github_code_search",
+                "github_repo_search",
+                "local_codebase"
+            ],
+            "query_templates": [
+                "symbol/function exact match + language filter",
+                "error signature + workflow + fix pattern",
+                "config key + integration point + examples"
+            ],
+            "query_expansion_terms": [
+                "breaking change",
+                "migration",
+                "patch",
+                "regression",
+                "compatibility"
+            ],
+            "rerank_mode": "code",
+            "recommended_packs": [
+                "integration-devops",
+                "orchestration-core",
+                "code-quality"
+            ],
+            "recommended_skills": [
+                "documentation-lookup",
+                "gh-fix-ci",
+                "code-reviewer"
+            ]
+        },
+        {
+            "id": "doc_api",
+            "description": "Official documentation/API retrieval profile.",
+            "positive_keywords": [
+                "api docs",
+                "reference",
+                "official docs",
+                "sdk",
+                "endpoint",
+                "rate limit",
+                "schema",
+                "auth flow",
+                "mcp server",
+                "openai docs",
+                "文档",
+                "接口",
+                "官方说明"
+            ],
+            "negative_keywords": [
+                "benchmark paper",
+                "dataset only",
+                "raw corpus mining"
+            ],
+            "negative_penalty_weight": 0.6,
+            "decomposition_strategy": "spec_to_examples",
+            "max_query_variants": 4,
+            "default_sources": [
+                "openai_docs",
+                "microsoft_docs",
+                "tavily_general"
+            ],
+            "query_templates": [
+                "official reference path + exact feature name",
+                "api object field + required/optional semantics",
+                "error code + constraints + mitigation"
+            ],
+            "query_expansion_terms": [
+                "compatibility matrix",
+                "deprecation",
+                "latest version",
+                "official example"
+            ],
+            "rerank_mode": "docs",
+            "recommended_packs": [
+                "ai-llm",
+                "integration-devops",
+                "orchestration-core"
+            ],
+            "recommended_skills": [
+                "openai-docs",
+                "documentation-lookup",
+                "mcp-integration"
+            ]
+        },
+        {
+            "id": "composite",
+            "description": "Composite profile for mixed-domain or ambiguous tasks.",
+            "positive_keywords": [
+                "end to end",
+                "cross domain",
+                "multi-step",
+                "plan and implement",
+                "research then execute",
+                "pipeline",
+                "workflow",
+                "方案并落地",
+                "复合任务",
+                "先规划再执行"
+            ],
+            "negative_keywords": [],
+            "negative_penalty_weight": 0.5,
+            "decomposition_strategy": "two_pass_interview_then_retrieve",
+            "max_query_variants": 5,
+            "default_sources": [
+                "tavily_general",
+                "github_repo_search",
+                "semantic_scholar"
+            ],
+            "query_templates": [
+                "capability interview output -> split into retrieval sub-questions",
+                "per-subtask targeted query with bounded evidence budget",
+                "cross-source triangulation for conflict resolution"
+            ],
+            "query_expansion_terms": [
+                "tradeoff",
+                "operational risk",
+                "verification gate",
+                "production constraints"
+            ],
+            "rerank_mode": "balanced",
+            "recommended_packs": [
+                "orchestration-core",
+                "research-design",
+                "integration-devops"
+            ],
+            "recommended_skills": [
+                "vibe",
+                "brainstorming",
+                "verification-before-completion"
+            ]
+        }
+    ]
+}
+

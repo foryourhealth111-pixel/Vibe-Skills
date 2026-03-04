@@ -1,0 +1,90 @@
+{
+    "version": 1,
+    "updated": "2026-02-26",
+    "default_interview_questions": [
+        {
+            "id": "goal",
+            "prompt": "这次任务的最终目标是什么？请用一句话描述。"
+        },
+        {
+            "id": "deliverable",
+            "prompt": "你希望我交付什么（代码、报告、流程脚本、文档）？"
+        },
+        {
+            "id": "constraints",
+            "prompt": "有哪些必须遵守的约束（时间、格式、工具、质量门槛）？"
+        }
+    ],
+    "capabilities": [
+        {
+            "id": "brainstorm_planning",
+            "display_name": "需求澄清与方案规划",
+            "task_allow": ["planning", "research"],
+            "keywords": ["brainstorm", "idea", "plan", "spec", "需求", "头脑风暴", "规划", "方案", "路线图"],
+            "skills": ["brainstorming", "writing-plans", "create-plan", "vibe"]
+        },
+        {
+            "id": "implementation_execution",
+            "display_name": "工程实现与落地执行",
+            "task_allow": ["coding", "debug", "review"],
+            "keywords": ["implement", "build", "fix", "execute", "落地", "实现", "开发", "修复", "执行"],
+            "skills": ["autonomous-builder", "aios-dev", "tdd-guide", "systematic-debugging"]
+        },
+        {
+            "id": "bio_data_acquisition",
+            "display_name": "生物数据库抓取与注释",
+            "task_allow": ["research", "coding", "planning"],
+            "keywords": ["uniprot", "ensembl", "gene", "protein", "biopython", "生物信息", "基因库", "蛋白质", "数据库抓取"],
+            "skills": ["biopython", "bioservices", "gene-database", "uniprot-database", "gget"]
+        },
+        {
+            "id": "ml_modeling_pipeline",
+            "display_name": "机器学习建模与评估",
+            "task_allow": ["planning", "coding", "research", "review"],
+            "keywords": ["machine learning", "model", "training", "evaluation", "pipeline", "机器学习", "建模", "训练", "评估"],
+            "skills": ["scikit-learn", "ml-pipeline-workflow", "training-machine-learning-models", "evaluating-machine-learning-models", "shap"]
+        },
+        {
+            "id": "data_processing_analysis",
+            "display_name": "数据处理与分析可视化",
+            "task_allow": ["research", "coding", "planning"],
+            "keywords": ["csv", "xlsx", "analysis", "visualization", "etl", "数据处理", "数据分析", "可视化", "报表"],
+            "skills": ["spreadsheet", "xlsx", "xan", "exploratory-data-analysis", "plotly", "matplotlib"]
+        },
+        {
+            "id": "architecture_design",
+            "display_name": "系统架构与技术选型",
+            "task_allow": ["planning", "research", "review"],
+            "keywords": ["architecture", "scalable", "distributed", "trade-off", "架构", "可扩展", "分布式", "技术选型"],
+            "skills": ["aios-architect", "system-design-overlay", "writing-plans", "vibe"]
+        },
+        {
+            "id": "devops_delivery",
+            "display_name": "CI/CD 与交付自动化",
+            "task_allow": ["coding", "debug", "planning", "review"],
+            "keywords": ["github actions", "ci", "cd", "deploy", "pipeline", "发布", "部署", "流水线", "自动化"],
+            "skills": ["aios-devops", "gh-fix-ci", "netlify-deploy", "vercel-deploy", "mcp-integration"]
+        },
+        {
+            "id": "quality_security",
+            "display_name": "质量与安全审查",
+            "task_allow": ["review", "debug", "coding"],
+            "keywords": ["review", "quality", "security", "risk", "code smell", "评审", "质量", "安全", "风险"],
+            "skills": ["code-reviewer", "reviewing-code", "security-reviewer", "verification-before-completion"]
+        },
+        {
+            "id": "prompt_docs",
+            "display_name": "提示词与文档能力",
+            "task_allow": ["planning", "research", "review"],
+            "keywords": ["prompt", "prompts.chat", "docs", "api reference", "提示词", "文档", "官方文档", "接口说明"],
+            "skills": ["prompt-lookup", "documentation-lookup", "openai-docs", "docs-write"]
+        },
+        {
+            "id": "multi_agent_orchestration",
+            "display_name": "多智能体编排",
+            "task_allow": ["planning", "coding", "research"],
+            "keywords": ["multi-agent", "parallel", "orchestrate", "协同", "并行", "多智能体", "编排"],
+            "skills": ["vibe", "subagent-driven-development", "hive-mind-advanced", "local-vco-roles"]
+        }
+    ]
+}

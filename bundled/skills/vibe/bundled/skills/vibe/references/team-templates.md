@@ -85,7 +85,7 @@ Workflow: Planner designs -> Lead approves phases -> Parallel implementation -> 
 ## Template 6: dialectic-design
 
 For multi-perspective design analysis via structured dialectical workflow.
-Use when the user requests dialectical thinking, or multiple viable approaches need evaluation.
+Use only when the user explicitly requests dialectic think-tank mode.
 
 ### Team Structure
 

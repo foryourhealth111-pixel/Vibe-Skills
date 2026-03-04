@@ -2,6 +2,26 @@
 
 Pre-routing analysis and post-routing planning/design/research protocol.
 
+## Closure-First Preflight (2 Probes + 1 Verify)
+
+Even in planning/research, the primary failure mode is **stalling** (dead-air).
+So we run a minimal closed loop early: probe context → locate evidence → verify assumptions.
+
+### Contract (No Code Writing)
+Within the first 3 actions, do:
+1. **Probe #1 (glob, fast):** inspect repo shape / available docs.
+   - Example: `Get-ChildItem -Force | Select-Object Name`
+2. **Probe #2 (rg, targeted):** search for the most relevant keyword(s) and existing plans/specs.
+   - Example: `rg -n -F -e '<keyword>' docs .`
+3. **Verify #1:** before final recommendations, validate at least 1 key assumption against an artifact:
+   - Repo evidence (README/config/code), or
+   - 2 independent external sources for factual claims (research).
+
+### Router Hints (When Available)
+If VCO router output includes:
+- `closure_advice`: follow `closure_advice.contract.probes` + `closure_advice.contract.verify` (prefer verbatim).
+- `exploration_advice`: use `exploration_advice.recommended_execution_mode` to pace analysis, but **still do probes early**.
+
 ## Scope
 
 ### Phase A: Pre-Execution Analysis (L grade, before implementation)
@@ -92,7 +112,7 @@ After generating initial design (via sc:design or brainstorming):
 3. If alternative is equally viable → present both to user with trade-off comparison
 4. If no viable alternative → proceed with original + document failure modes as risks
 
-Note: If user requested dialectical analysis, skip B2 Self-Check and route to
+Note: If user explicitly requested dialectic think-tank mode, skip B2 Self-Check and route to
 team.md Dialectic Mode instead.
 
 ### B3: Plan Documentation

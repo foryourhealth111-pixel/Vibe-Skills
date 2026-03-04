@@ -1,0 +1,27 @@
+{
+  "abstain": false,
+  "confidence": 0.82,
+  "confirm_required": true,
+  "confirm_questions": [
+    "你希望最终交付是什么（代码改动/脚本/文档/报告）？",
+    "目标仓库/目录是哪个？是否需要我先跑现有测试？",
+    "优先级最高的约束是什么（时间/质量/兼容性/风险）？"
+  ],
+  "rerank": {
+    "abstain": false,
+    "suggested_pack_id": "orchestration-core",
+    "suggested_skill": "autonomous-builder",
+    "confidence": 0.82,
+    "reason": "Mock: general coding task likely fits orchestration-core; keep default skill."
+  },
+  "qa": {
+    "recommendations": [
+      "在实现前先列出最小可验证用例（happy path + 1-2 个边界条件）。",
+      "如果有测试框架：新增/补齐单元测试，再跑一次最小测试集。",
+      "如果没有测试：至少提供手工验证步骤（命令 + 预期输出）。"
+    ],
+    "focus": ["unit", "integration", "regression"]
+  },
+  "notes": "mock fixture for vibe-llm-acceleration-overlay-gate"
+}
+

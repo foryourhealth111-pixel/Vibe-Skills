@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "release": {
+    "version": "2.3.24",
+    "updated": "2026-02-27",
+    "channel": "stable",
+    "notes": "Unified version/source-of-truth governance with deterministic packaging and release ledger."
+  },
+  "source_of_truth": {
+    "canonical_root": ".",
+    "bundled_root": "bundled/skills/vibe"
+  },
+  "version_markers": {
+    "maintenance_files": [
+      "SKILL.md",
+      "bundled/skills/vibe/SKILL.md"
+    ],
+    "changelog_path": "references/changelog.md"
+  },
+  "logs": {
+    "release_ledger_jsonl": "references/release-ledger.jsonl",
+    "release_notes_dir": "docs/releases"
+  },
+  "packaging": {
+    "mirror": {
+      "files": [
+        "SKILL.md",
+        "check.ps1",
+        "check.sh",
+        "install.ps1",
+        "install.sh"
+      ],
+      "directories": [
+        "config",
+        "protocols",
+        "references",
+        "docs",
+        "scripts"
+      ]
+    },
+    "allow_bundled_only": [
+      "docs/CODEX_ECOSYSTEM_MAINTENANCE_PRINCIPLES.md"
+    ],
+    "normalized_json_ignore_keys": [
+      "updated",
+      "generated_at"
+    ]
+  }
+}

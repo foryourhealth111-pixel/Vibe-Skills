@@ -1,8 +1,8 @@
-{
+﻿{
   "version": 1,
   "updated": "2026-02-26",
   "enabled": true,
-  "mode": "shadow",
+  "mode": "soft",
   "preserve_routing_assignment": true,
   "routing_integration": "post_route_cuda_kernel_overlay",
   "task_allow": [
@@ -216,3 +216,7 @@
   },
   "license_boundary_note": "LeetCUDA is GPL-3.0 upstream. VCO integrates methodology-level advisory only; no upstream code vendoring."
 }
+
+
+
+

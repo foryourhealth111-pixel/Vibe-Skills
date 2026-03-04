@@ -1,5 +1,275 @@
 # VCO Changelog
 
+## v2.3.27 (2026-02-27)
+
+- 修复 OpenSpec strict 阻断语义漂移（`scripts/governance/invoke-openspec-governance.ps1`）：
+  - `strictPlanningBlocking` 从错误的 `enforcement=="strict"` 修正为基于 `mode=="strict"` 判定。
+  - 增加向后兼容：旧路由载荷若缺少 `mode`，则 `profile=full + enforcement=required` 视为 strict 等价。
+  - strict + planning + full_missing 时，`required_action` 统一输出 `rerun_with_WriteArtifacts_to_*` 明确指引。
+- 更新 OpenSpec 门禁断言（`scripts/verify/vibe-openspec-governance-gate.ps1`）：
+  - strict 缺失场景期望改为 `required_action=rerun_with_WriteArtifacts_to_create_full_spec_change`。
+- 健康检查增强，预防 main/bundled 配置漂移复发：
+  - `check.ps1` / `check.sh` 新增 bundled 层 retrieval/exploration 6 个配置存在性检查。
+
+## v2.3.26 (2026-02-27)
+
+- OpenSpec governance gate 用例更新（`scripts/verify/vibe-openspec-governance-gate.ps1`）：
+  - `M + planning` 期望改为 `profile=full` + `enforcement=required`（Governance-First）。
+  - 新增 strict 缺失阻断断言：`full_missing` 时必须 `enforced=true` 且 `required_action=create_full_spec_change`。
+  - 新增 `requested_skill_whitelist` 断言：白名单请求触发 `reason` 匹配 `requested_skill_bypass*`，并标记 `bypass_due_to_requested_skill=true`。
+- OpenSpec 文档改为 Governance-First 口径：
+  - `docs/openspec-vco-integration.md`
+  - `README.md`（仅 OpenSpec 治理段落）
+
+## v2.3.25 (2026-02-27)
+
+- 修复 `vibe-router-contract-gate.ps1` 在模块化后长期红灯的问题：
+  - 默认 gate 从“full JSON 全等”调整为“分层契约校验”（核心路由字段 + schema + 预期差异白名单）。
+  - 新增 `-StrictFullJson` 取证模式，保留完整载荷全等检查能力（仅用于法证/回归定位，不作为默认阻断）。
+  - 新增 `low-signal + legacy_fallback_guard` 的预期差异识别，避免将反静默兜底设计误判为回归。
+- 文档同步更新：
+  - `docs/router-modularization-governance.md`
+  - `scripts/verify/README.md`
+
+## v2.3.24 (2026-02-27)
+
+- 新增版本与打包治理闭环（main + bundled 同步约束）：
+  - `config/version-governance.json`
+  - `scripts/governance/sync-bundled-vibe.ps1`
+  - `scripts/governance/release-cut.ps1`
+  - `scripts/verify/vibe-version-consistency-gate.ps1`
+  - `scripts/verify/vibe-version-packaging-gate.ps1`
+  - `docs/version-packaging-governance.md`
+  - `references/release-ledger.jsonl`
+- 安装链路加固：
+  - `install.ps1` / `install.sh` 在复制 bundled 后，再按治理契约强制同步 canonical `vibe` 镜像到 runtime 目标目录，降低 main/bundled 漂移风险。
+- 校验链路加固：
+  - `check.ps1` / `check.sh` 新增 `version-governance` 存在性检查。
+  - `check.ps1` / `check.sh` 新增 release ledger 存在性检查。
+  - CI `vco-gates.yml` 新增 `vibe-version-consistency-gate.ps1` 与 `vibe-version-packaging-gate.ps1`。
+  - `scripts/verify/README.md` 与 `references/index.md` 新增治理文档与 gate 入口。
+- 修复 offline skills 锁稳定性问题：
+  - `scripts/verify/vibe-generate-skills-lock.ps1` 与 `scripts/verify/vibe-offline-skills-gate.ps1` 改为跨平台稳定哈希（文本统一 LF 后哈希）。
+  - 重新生成 `config/skills-lock.json`，移除失效条目并与当前 `bundled/skills` 对齐。
+
+## v2.3.23 (2026-02-27)
+
+- 新增 Exploration Overlay（探索型任务增强，默认 `soft`，保持 post-route 非侵入）：
+  - 新增配置（main + bundled）：
+    - `config/exploration-policy.json`
+    - `config/exploration-intent-profiles.json`
+    - `config/exploration-domain-map.json`
+  - 新增模块：
+    - `scripts/router/modules/44-exploration-overlay.ps1`
+  - 路由入口接入：
+    - `scripts/router/resolve-pack-route.ps1`
+    - 新增阶段：`overlay.exploration`
+    - 路由输出新增：`exploration_advice`
+- 可观测与探针联动增强：
+  - `scripts/router/modules/11-route-probe.ps1` 将 exploration 纳入 runtime state prompt 与 final_state 摘要。
+  - `scripts/router/modules/22-intent-contract.ps1` 的 `runtime_state_prompt_digest` 纳入 exploration overlay。
+  - `scripts/router/modules/10-observability.ps1` 纳入 exploration intent/domain/confirm 遥测字段。
+  - `scripts/router/modules/00-core-utils.ps1` 的 `Test-OverlayConfirmRequired` 纳入 exploration confirm 信号。
+- 新增门禁与验证链路：
+  - `scripts/verify/vibe-exploration-overlay-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 exploration 配置 parity
+  - `scripts/verify/vibe-pack-routing-smoke.ps1` 纳入 exploration 配置结构校验
+  - `scripts/verify/vibe-routing-probe-research.ps1` 与 `scripts/verify/vibe-deep-discovery-scenarios.ps1` 更新 stage chain（含 `overlay.exploration`）
+  - `scripts/verify/README.md` 新增 exploration gate 入口
+- 文档与健康检查更新：
+  - `docs/exploration-overlay-integration.md`
+  - `docs/blackbox-probe-and-enhancement-playbook.md`、`docs/deep-discovery-mode-design.md`、`docs/retrieval-overlay-integration.md` 更新路由阶段链
+  - `references/index.md` 新增 exploration 文档入口
+  - `check.ps1` / `check.sh` 新增 exploration 配置存在性检查
+
+## v2.3.22 (2026-02-27)
+
+- 新增 Retrieval Overlay（检索策略增强，默认 `shadow`，保持 post-route 非侵入）：
+  - 新增配置（main + bundled）：
+    - `config/retrieval-policy.json`
+    - `config/retrieval-intent-profiles.json`
+    - `config/retrieval-source-registry.json`
+    - `config/retrieval-rerank-weights.json`
+  - 新增模块：
+    - `scripts/router/modules/43-retrieval-overlay.ps1`
+  - 路由入口接入：
+    - `scripts/router/resolve-pack-route.ps1`
+    - 新增阶段：`overlay.retrieval`
+    - 路由输出新增：`retrieval_advice`
+- 可观测与探针联动增强：
+  - `scripts/router/modules/11-route-probe.ps1` 将 retrieval 纳入 runtime state prompt 与 final_state 摘要。
+  - `scripts/router/modules/22-intent-contract.ps1` 的 `runtime_state_prompt_digest` 纳入 retrieval overlay。
+  - `scripts/router/modules/10-observability.ps1` 纳入 retrieval profile/coverage/confirm 遥测字段。
+  - `scripts/router/modules/00-core-utils.ps1` 的 `Test-OverlayConfirmRequired` 纳入 retrieval confirm 信号。
+- 新增门禁与验证链路：
+  - `scripts/verify/vibe-retrieval-overlay-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 retrieval 配置 parity
+  - `scripts/verify/vibe-pack-routing-smoke.ps1` 纳入 retrieval 配置结构校验
+  - `scripts/verify/vibe-routing-probe-research.ps1` 与 `scripts/verify/vibe-deep-discovery-scenarios.ps1` 更新 stage chain（含 `overlay.retrieval`）
+  - `scripts/verify/README.md` 新增 retrieval gate 入口
+- 文档与健康检查更新：
+  - `docs/retrieval-overlay-integration.md`
+  - `docs/blackbox-probe-and-enhancement-playbook.md`、`docs/deep-discovery-mode-design.md` 更新路由阶段链
+  - `references/index.md` 新增 retrieval 文档入口
+  - `check.ps1` / `check.sh` 新增 retrieval 配置存在性检查
+
+## v2.3.21 (2026-02-27)
+
+- 统一 `$vibe` 入口复检后，将 heartbeat 默认策略固定为可观测但非侵入：
+  - `config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
+  - `bundled/skills/vibe/config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
+- 新增复检报告：
+  - `docs/heartbeat-unified-vibe-entry-recheck-2026-02-27.md`
+  - 覆盖 M/L/XL 与模糊场景的统一入口触发结果、strict 压测触发结果与门禁通过证据。
+
+## v2.3.20 (2026-02-26)
+
+- Heartbeat runtime V1 正式接入路由执行链（默认 `shadow`，非破坏式）：
+  - 新增配置（main + bundled）：
+    - `config/heartbeat-policy.json`
+    - `bundled/skills/vibe/config/heartbeat-policy.json`
+  - 新增模块：
+    - `scripts/router/modules/12-heartbeat.ps1`
+  - 路由入口接入：
+    - `scripts/router/resolve-pack-route.ps1`
+    - 在 `router.init`、`router.prepack`、`router.pack_scoring`、`overlay.*`、`router.final` 写入 heartbeat pulse。
+  - 路由输出新增：
+    - `heartbeat_advice`
+    - `heartbeat_status`
+    - `heartbeat_runtime_digest`
+- 可观测与探针联动：
+  - `scripts/router/modules/10-observability.ps1` 新增 heartbeat telemetry 摘要字段。
+  - `scripts/router/modules/11-route-probe.ps1` 在 runtime state prompt 与 final_state 中加入 heartbeat guard 视图。
+  - `scripts/router/modules/22-intent-contract.ps1` 的 `runtime_state_prompt_digest` 新增 heartbeat 摘要。
+  - `scripts/router/modules/00-core-utils.ps1` 的 `Test-OverlayConfirmRequired` 纳入 heartbeat confirm 信号。
+- 新增门禁与验证链路：
+  - `scripts/verify/vibe-heartbeat-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 heartbeat policy parity
+  - `scripts/verify/vibe-pack-routing-smoke.ps1` 纳入 heartbeat policy 结构校验
+  - `scripts/verify/README.md` 新增 heartbeat gate 入口
+  - `check.ps1` / `check.sh` 新增 heartbeat policy 存在性检查
+
+## v2.3.19 (2026-02-26)
+
+- 新增 Heartbeat Runtime 实现文档：
+  - `docs/heartbeat-runtime-integration.md`
+  - 定义 VCO 执行心跳状态机、软/硬卡住判定、自动诊断动作与用户回显节奏。
+- 将 Error Resolver 五步法嵌入卡住治理：
+  - `CLASSIFY -> PARSE -> MATCH -> ANALYZE -> RESOLVE`
+  - 明确 hard-stall 场景的 replay 记录与预防策略。
+- 新增可观测与门禁建议：
+  - 统一心跳事件协议、`heartbeat-policy` 配置模型、`vibe-heartbeat-gate` 验证建议。
+  - 验收指标：TTFU、silent_time_total、stall_false_positive_rate、diagnosis_coverage。
+- 文档索引更新：
+  - `references/index.md` 新增 heartbeat 文档入口，便于快速复用与检索。
+
+## v2.3.18 (2026-02-26)
+
+- 新增 Deep Discovery Mode（prepack 可观测扩展链）：
+  - 新增路由阶段：`deep_discovery.trigger` / `deep_discovery.interview` / `deep_discovery.contract` / `deep_discovery.filter`
+  - 默认 `shadow`，不改变既有路由分配；`soft/strict` 可按策略提升确认或执行能力过滤。
+- 新增配置（main + bundled）：
+  - `config/deep-discovery-policy.json`
+  - `config/capability-catalog.json`
+- 路由输出新增关键字段：
+  - `deep_discovery_advice`
+  - `intent_contract`
+  - `deep_discovery_filter`
+  - `deep_discovery_route_filter_applied`
+  - `deep_discovery_route_mode_override`
+  - `runtime_state_prompt_digest`
+- 可观测性增强：
+  - `scripts/router/modules/10-observability.ps1` 新增 deep-discovery 遥测字段。
+  - `scripts/router/modules/11-route-probe.ps1` 在 runtime state prompt 与 final_state 中加入 deep-discovery 摘要。
+- 新增验证脚本：
+  - `scripts/verify/vibe-deep-discovery-gate.ps1`
+  - `scripts/verify/vibe-deep-discovery-scenarios.ps1`
+- 验证与文档入口更新：
+  - `scripts/verify/vibe-config-parity-gate.ps1`
+  - `scripts/verify/vibe-pack-routing-smoke.ps1`
+  - `check.ps1` / `check.sh`
+  - `docs/deep-discovery-mode-design.md`
+  - `docs/blackbox-probe-and-enhancement-playbook.md`
+  - `references/index.md`
+  - `scripts/verify/README.md`
+
+## v2.3.17 (2026-02-26)
+
+- 新增统一复用文档：
+  - `docs/blackbox-probe-and-enhancement-playbook.md`
+  - 汇总 blackbox 探测、语义增强、阈值扫描、回归门禁的模块职责、运行顺序、产物路径与常用命令。
+- 语义增强脚本可复用性提升：
+  - `scripts/research/mine-user-semantic-overlay-signals.ps1` 增加 `/vibe` 与 `$vibe` 前缀归一化、redacted prompt 过滤、报告渲染修复。
+  - 支持将用户语义记录转化为 overlay 词汇增量并安全写回 main/bundled 配置。
+- 阈值扫描稳定性与可控性提升：
+  - `scripts/verify/vibe-overlay-threshold-sensitivity-scan.ps1` 修复执行稳定性问题，固定 `0.05` 步长扫描流程可复现。
+  - 并列最优阈值采用保守 tie-break（优先更高阈值）以降低误触发。
+- 路由模块边界修复：
+  - `scripts/router/modules/34-data-scale-overlay.ps1` 在严格模式下将路径解析结果显式数组化，避免 `.Count` 访问异常。
+- 文档入口同步：
+  - `references/index.md`、`SKILL.md`、`scripts/verify/README.md`、`scripts/research/README.md` 增加该模块总览入口，便于下次快速定位。
+
+## v2.3.16 (2026-02-26)
+
+- 路由器模块化重构（零退化拆分）：
+  - `scripts/router/resolve-pack-route.ps1` 从单体函数定义改为模块加载编排入口
+  - 新增函数模块目录：
+    - `scripts/router/modules/*.ps1`
+  - 新增 legacy 基线脚本用于契约对比：
+    - `scripts/router/legacy/resolve-pack-route.legacy.ps1`
+- 新增零退化契约门禁：
+  - `scripts/verify/vibe-router-contract-gate.ps1`
+  - 对 `legacy` vs `modular` 在固定矩阵下做严格 JSON 等价校验
+- 安装与运行完整性增强：
+  - `install.ps1` / `install.sh` 改为同步整个 `scripts/router` 目录（脚本 + modules）
+  - `check.ps1` / `check.sh` 新增 router modules 存在性检查
+  - `check.ps1 -Deep` / `check.sh --deep` 纳入 contract gate
+- CI 门禁升级：
+  - `.github/workflows/vco-gates.yml` 纳入 `vibe-router-contract-gate.ps1`
+- 新增治理文档：
+  - `docs/router-modularization-governance.md`（main + bundled）
+- 文档同步：
+  - `SKILL.md`、`references/index.md`、`scripts/verify/README.md` 更新模块化与契约门禁入口
+
+## v2.3.15 (2026-02-26)
+
+- 新增 AI Rerank Overlay（B+：召回安全双阶段路由，默认 shadow 不改路由）：
+  - 新增配置（main + bundled）：
+    - `config/ai-rerank-policy.json`
+    - `bundled/skills/vibe/config/ai-rerank-policy.json`
+  - 路由器输出新增：
+    - `ai_rerank_advice`
+    - `ai_rerank_route_override`
+  - 核心约束：
+    - Top-K 约束（`require_candidate_in_top_k`）
+    - task 边界约束（`enforce_task_allow`）
+    - 最低置信约束（`min_rerank_confidence`）
+    - rollout 采样约束（`max_live_apply_rate`）
+    - `preserve_routing_assignment` 默认保护（soft/strict 下也可阻断覆盖）
+  - 语义行为：
+    - `shadow`：仅给建议与 `would_override`，不改选中路由
+    - `soft/strict`：仅在硬约束全部通过且允许 apply 时才覆盖
+- 新增验证门禁：
+  - `scripts/verify/vibe-ai-rerank-gate.ps1`
+  - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `ai-rerank-policy` main/bundled parity
+- 健康检查增强：
+  - `check.ps1`、`check.sh` 新增 `ai-rerank-policy` 存在性检查
+  - 新增 deep 模式：
+    - `check.ps1 -Deep`
+    - `check.sh --deep`
+  - deep 模式会串行执行关键 verify gates（含 ai-rerank gate）
+- CI/门禁自动化：
+  - 新增 GitHub Actions：`.github/workflows/vco-gates.yml`
+  - 自动执行回归与治理门禁：
+    - `vibe-pack-regression-matrix`
+    - `vibe-routing-stability-gate -Strict`
+    - `vibe-config-parity-gate`
+    - `vibe-observability-gate`
+    - `vibe-ai-rerank-gate`
+- 新增文档：
+  - `docs/ai-rerank-overlay-integration.md`（main + bundled）
+  - `scripts/verify/README.md`、`references/index.md`、`SKILL.md` 同步更新
+
 ## v2.3.14 (2026-02-26)
 
 - 新增 Observability & Consistency Governance（严格、轻量、低上下文压力）：

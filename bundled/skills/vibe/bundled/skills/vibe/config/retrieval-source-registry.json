@@ -1,0 +1,79 @@
+{
+    "version": 1,
+    "updated": "2026-02-27",
+    "sources": [
+        {
+            "id": "semantic_scholar",
+            "provider": "semantic-scholar",
+            "type": "literature",
+            "quality_weight": 0.9,
+            "latency_tier": "medium",
+            "capability_tags": ["papers", "citations", "academic"]
+        },
+        {
+            "id": "arxiv",
+            "provider": "arxiv",
+            "type": "literature",
+            "quality_weight": 0.86,
+            "latency_tier": "medium",
+            "capability_tags": ["preprint", "cs", "math", "physics"]
+        },
+        {
+            "id": "crossref",
+            "provider": "crossref",
+            "type": "literature",
+            "quality_weight": 0.82,
+            "latency_tier": "medium",
+            "capability_tags": ["doi", "citation-index"]
+        },
+        {
+            "id": "github_code_search",
+            "provider": "github",
+            "type": "code",
+            "quality_weight": 0.88,
+            "latency_tier": "fast",
+            "capability_tags": ["symbol-search", "code-pattern", "repo-scope"]
+        },
+        {
+            "id": "github_repo_search",
+            "provider": "github",
+            "type": "code",
+            "quality_weight": 0.84,
+            "latency_tier": "fast",
+            "capability_tags": ["repo-discovery", "readme", "topics"]
+        },
+        {
+            "id": "local_codebase",
+            "provider": "workspace",
+            "type": "code",
+            "quality_weight": 0.95,
+            "latency_tier": "fast",
+            "capability_tags": ["local-ground-truth", "implementation", "diff"]
+        },
+        {
+            "id": "openai_docs",
+            "provider": "openai",
+            "type": "docs",
+            "quality_weight": 0.93,
+            "latency_tier": "fast",
+            "capability_tags": ["official-docs", "api-reference", "models"]
+        },
+        {
+            "id": "microsoft_docs",
+            "provider": "microsoft",
+            "type": "docs",
+            "quality_weight": 0.9,
+            "latency_tier": "fast",
+            "capability_tags": ["azure", "entra", "platform-docs"]
+        },
+        {
+            "id": "tavily_general",
+            "provider": "tavily",
+            "type": "general",
+            "quality_weight": 0.78,
+            "latency_tier": "fast",
+            "capability_tags": ["broad-web", "news", "multi-domain"]
+        }
+    ]
+}
+

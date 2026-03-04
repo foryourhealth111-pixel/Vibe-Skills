@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "profile": "codex",
+  "core": [
+    {
+      "name": "superpowers",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+      "required": true
+    },
+    {
+      "name": "everything-claude-code",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+      "required": true
+    },
+    {
+      "name": "claude-code-settings",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+      "required": true
+    },
+    {
+      "name": "hookify",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+      "required": true
+    },
+    {
+      "name": "ralph-loop",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
+      "required": true
+    }
+  ],
+  "optional": [
+    {
+      "name": "serena",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command)."
+    },
+    {
+      "name": "context7",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command)."
+    },
+    {
+      "name": "github",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command)."
+    },
+    {
+      "name": "prompts-chat",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision prompts.chat MCP/API integration in Codex runtime; optional, used by prompt-lookup/prompt-overlay."
+    },
+    {
+      "name": "claude-flow",
+      "install_mode": "scripted",
+      "install": "npm install -g claude-flow"
+    },
+    {
+      "name": "xan",
+      "install_mode": "manual-codex",
+      "install_hint": "Provision xan CLI manually (recommended on Windows: scoop install xan) for large CSV acceleration."
+    },
+    {
+      "name": "fuck-u-code",
+      "install_mode": "manual-codex",
+      "install_hint": "Optional quality-debt analyzer for quality-debt-overlay; install manually if you want external analyzer hints beyond built-in risk scoring."
+    },
+    {
+      "name": "ivy",
+      "install_mode": "manual-codex",
+      "install_hint": "Optional framework-interop backend for framework-interop-overlay; install manually in Python environment (for example: pip install ivy)."
+    },
+    {
+      "name": "leetcuda",
+      "install_mode": "manual-codex",
+      "install_hint": "Optional methodology source for cuda-kernel-overlay; no runtime dependency required. Keep GPL-3.0 boundary: do not vendor upstream code."
+    }
+  ],
+  "notes": "Codex compatibility rewrites are bundled in this repository; plugin metadata is advisory and no Claude CLI plugin command is executed."
+}

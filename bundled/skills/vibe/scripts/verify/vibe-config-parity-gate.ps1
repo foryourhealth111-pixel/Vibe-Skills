@@ -203,7 +203,8 @@ $pairs = @(
     [pscustomobject]@{ id = "deep-discovery-policy"; main = "config/deep-discovery-policy.json"; bundled = "bundled/skills/vibe/config/deep-discovery-policy.json" },
     [pscustomobject]@{ id = "capability-catalog"; main = "config/capability-catalog.json"; bundled = "bundled/skills/vibe/config/capability-catalog.json" },
     [pscustomobject]@{ id = "dialectic-team-policy"; main = "config/dialectic-team-policy.json"; bundled = "bundled/skills/vibe/config/dialectic-team-policy.json" },
-    [pscustomobject]@{ id = "daily-dialectic-guard"; main = "config/daily-dialectic-guard.json"; bundled = "bundled/skills/vibe/config/daily-dialectic-guard.json" }
+    [pscustomobject]@{ id = "daily-dialectic-guard"; main = "config/daily-dialectic-guard.json"; bundled = "bundled/skills/vibe/config/daily-dialectic-guard.json" },
+    [pscustomobject]@{ id = "llm-acceleration-policy"; main = "config/llm-acceleration-policy.json"; bundled = "bundled/skills/vibe/config/llm-acceleration-policy.json" }
 )
 
 $results = @()

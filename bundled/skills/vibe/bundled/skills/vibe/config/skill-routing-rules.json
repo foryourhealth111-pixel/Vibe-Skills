@@ -1,6 +1,6 @@
 ﻿{
     "version":  1,
-    "updated":  "2026-02-25",
+    "updated":  "2026-03-03",
     "skills":  {
                    "vibe":  {
                                 "task_allow":  [
@@ -1194,11 +1194,11 @@
 
                                                       ]
                            },
-                   "docx":  {
-                                "task_allow":  [
-                                                   "coding",
-                                                   "research"
-                                               ],
+                    "docx":  {
+                                 "task_allow":  [
+                                                    "coding",
+                                                    "research"
+                                                ],
                                 "positive_keywords":  [
                                                           "docx",
                                                           "tracked changes",
@@ -1210,15 +1210,48 @@
                                                           "screenshot"
                                                       ],
                                 "equivalent_group":  "doc-authoring",
-                                "canonical_for_task":  [
-
-                                                       ]
-                            },
-                   "pdf":  {
-                               "task_allow":  [
-                                                  "coding",
-                                                  "research"
-                                              ],
+                                 "canonical_for_task":  [
+ 
+                                                        ]
+                             },
+                   "docx-comment-reply":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "coding",
+                                                                   "review",
+                                                                   "research"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "批注",
+                                                                          "回复批注",
+                                                                          "word批注",
+                                                                          "评论线程",
+                                                                          "comment reply",
+                                                                          "comment thread",
+                                                                          "comments.xml",
+                                                                          "commentsExtended",
+                                                                          "commentsExtended.xml",
+                                                                          "commentsextended.xml"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "pr",
+                                                                          "pull request",
+                                                                          "github",
+                                                                          "code review",
+                                                                          "review comments",
+                                                                          "代码评审"
+                                                                      ],
+                                                "equivalent_group":  "doc-authoring",
+                                                "canonical_for_task":  [
+                                                                          "review",
+                                                                          "coding"
+                                                                      ]
+                                            },
+                    "pdf":  {
+                                "task_allow":  [
+                                                   "coding",
+                                                   "research"
+                                               ],
                                "positive_keywords":  [
                                                          "pdf",
                                                          "extract text",
@@ -1226,7 +1259,15 @@
                                                          "读取pdf"
                                                      ],
                                "negative_keywords":  [
-                                                         "audio transcription"
+                                                         "audio transcription",
+                                                         "markitdown",
+                                                         "convert to markdown",
+                                                         "pdf to markdown",
+                                                         "docx to markdown",
+                                                         "markdown",
+                                                         "转成markdown",
+                                                         "转成 markdown",
+                                                         "markdown转换"
                                                      ],
                                "equivalent_group":  null,
                                "canonical_for_task":  [
@@ -1843,24 +1884,36 @@
                                                                      ]
                                           },
                    "designing-experiments":  {
-                                                 "task_allow":  [
-                                                                    "planning",
-                                                                    "research"
-                                                                ],
-                                                 "positive_keywords":  [
-                                                                           "did",
-                                                                           "its",
-                                                                           "synthetic control",
-                                                                           "实验设计"
-                                                                       ],
-                                                 "negative_keywords":  [
-                                                                           "deploy"
-                                                                       ],
-                                                 "equivalent_group":  null,
-                                                 "canonical_for_task":  [
-                                                                            "planning"
-                                                                        ]
-                                             },
+                                                  "task_allow":  [
+                                                                     "planning",
+                                                                     "research"
+                                                                 ],
+                                                  "positive_keywords":  [
+                                                                            "did",
+                                                                            "difference-in-differences",
+                                                                            "difference in differences",
+                                                                            "its",
+                                                                            "interrupted time series",
+                                                                            "synthetic control",
+                                                                            "quasi-experimental",
+                                                                            "quasi experimental",
+                                                                            "准实验",
+                                                                            "合成控制",
+                                                                            "中断时间序列",
+                                                                            "差分中的差分",
+                                                                            "断点回归",
+                                                                            "regression discontinuity"
+                                                                        ],
+                                                  "negative_keywords":  [
+                                                                            "hypothesis",
+                                                                            "research hypothesis",
+                                                                            "假设",
+                                                                            "deploy"
+                                                                        ],
+                                                  "equivalent_group":  null,
+                                                  "canonical_for_task":  [
+                                                                         ]
+                                              },
                    "figma":  {
                                  "task_allow":  [
                                                     "planning",
@@ -2012,6 +2065,1833 @@
                                                   "canonical_for_task":  [
 
                                                                          ]
-                                              }
-               }
+                                              },
+                   "pubmed-database":  {
+                                           "task_allow":  [
+                                                              "research",
+                                                              "coding"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "pubmed",
+                                                                     "pmid",
+                                                                     "mesh",
+                                                                     "ncbi",
+                                                                     "文献检索"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "patent",
+                                                                     "docking",
+                                                                     "专利"
+                                                                 ],
+                                           "equivalent_group":  "literature-search",
+                                           "canonical_for_task":  [
+                                                                      "research",
+                                                                      "coding"
+                                                                  ]
+                                       },
+                   "openalex-database":  {
+                                             "task_allow":  [
+                                                                "research",
+                                                                "coding"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "openalex",
+                                                                       "doi",
+                                                                       "citation network",
+                                                                       "works",
+                                                                       "authors",
+                                                                       "引文网络",
+                                                                       "机构"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "pubmed",
+                                                                       "pmid"
+                                                                   ],
+                                             "equivalent_group":  "literature-search",
+                                             "canonical_for_task":  [
+ 
+                                                                    ]
+                                         },
+                   "biorxiv-database":  {
+                                            "task_allow":  [
+                                                               "research",
+                                                               "coding"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "biorxiv",
+                                                                      "preprint",
+                                                                      "rxiv",
+                                                                      "预印本",
+                                                                      "bioRxiv"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "clinical trial",
+                                                                      "nct"
+                                                                  ],
+                                            "equivalent_group":  "literature-search",
+                                            "canonical_for_task":  [
+                                                                       "research"
+                                                                   ]
+                                        },
+                   "bgpt-paper-search":  {
+                                             "task_allow":  [
+                                                                "planning",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "bgpt",
+                                                                       "full-text",
+                                                                       "structured data",
+                                                                       "effect size",
+                                                                       "sample size",
+                                                                       "实验数据",
+                                                                       "方法学"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "zotero",
+                                                                       "bibtex"
+                                                                   ],
+                                             "equivalent_group":  "literature-search",
+                                             "canonical_for_task":  [
+ 
+                                                                    ]
+                                         },
+                   "paper-2-web":  {
+                                       "task_allow":  [
+                                                          "planning",
+                                                          "coding",
+                                                          "research"
+                                                      ],
+                                       "positive_keywords":  [
+                                                                 "paper2web",
+                                                                 "paper2poster",
+                                                                 "paper2video",
+                                                                 "convert paper",
+                                                                 "conference poster",
+                                                                 "论文转网站",
+                                                                 "论文转海报",
+                                                                 "视频摘要"
+                                                             ],
+                                       "negative_keywords":  [
+                                                                 "pubmed",
+                                                                 "pmid"
+                                                             ],
+                                       "equivalent_group":  "paper-transform",
+                                       "canonical_for_task":  [
+ 
+                                                              ]
+                                   },
+                   "open-notebook":  {
+                                         "task_allow":  [
+                                                            "planning",
+                                                            "coding",
+                                                            "research"
+                                                        ],
+                                         "positive_keywords":  [
+                                                                   "open notebook",
+                                                                   "notebooklm",
+                                                                   "self-hosted",
+                                                                   "document chat",
+                                                                   "notebook lm",
+                                                                   "文档对话",
+                                                                   "研究笔记"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "citation style",
+                                                                   "bibtex"
+                                                               ],
+                                         "equivalent_group":  "research-notebook",
+                                         "canonical_for_task":  [
+ 
+                                                                ]
+                                     },
+                   "pyzotero":  {
+                                    "task_allow":  [
+                                                       "planning",
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "zotero",
+                                                              "pyzotero",
+                                                              "bibtex",
+                                                              "citation",
+                                                              "references",
+                                                              "文献管理",
+                                                              "参考文献"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "docking",
+                                                              "smiles"
+                                                          ],
+                                    "equivalent_group":  "citation-tools",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "citation-management":  {
+                                               "task_allow":  [
+                                                                  "planning",
+                                                                  "research",
+                                                                  "review"
+                                                              ],
+                                               "positive_keywords":  [
+                                                                         "citation",
+                                                                         "bibtex",
+                                                                         "references",
+                                                                         "bibliography",
+                                                                         "参考文献",
+                                                                         "引用格式"
+                                                                     ],
+                                               "negative_keywords":  [
+                                                                         "opencv",
+                                                                         "dicom"
+                                                                     ],
+                                               "equivalent_group":  "citation-tools",
+                                               "canonical_for_task":  [
+ 
+                                                                      ]
+                                           },
+                   "literature-review":  {
+                                             "task_allow":  [
+                                                                "planning",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "literature review",
+                                                                       "systematic review",
+                                                                       "meta-analysis",
+                                                                       "evidence table",
+                                                                       "文献综述",
+                                                                       "系统综述",
+                                                                       "荟萃分析"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "smiles",
+                                                                       "docking"
+                                                                   ],
+                                             "equivalent_group":  "literature-synthesis",
+                                             "canonical_for_task":  [
+                                                                        "planning"
+                                                                    ]
+                                         },
+                   "peer-review":  {
+                                       "task_allow":  [
+                                                          "review",
+                                                          "research"
+                                                      ],
+                                       "positive_keywords":  [
+                                                                 "peer review",
+                                                                 "review this paper",
+                                                                 "review my paper",
+                                                                 "审稿",
+                                                                 "reviewer comments",
+                                                                 "匿名评审"
+                                                             ],
+                                       "negative_keywords":  [
+                                                                 "bibtex",
+                                                                 "zotero"
+                                                             ],
+                                       "equivalent_group":  "literature-synthesis",
+                                       "canonical_for_task":  [
+                                                                  "review"
+                                                              ]
+                                   },
+                   "scholar-evaluation":  {
+                                              "task_allow":  [
+                                                                 "review",
+                                                                 "research"
+                                                             ],
+                                              "positive_keywords":  [
+                                                                        "scholareval",
+                                                                        "evaluate paper",
+                                                                        "score paper",
+                                                                        "rubric",
+                                                                        "评分",
+                                                                        "量化评估"
+                                                                    ],
+                                              "negative_keywords":  [
+                                                                        "pubmed api",
+                                                                        "openalex api"
+                                                                    ],
+                                              "equivalent_group":  "literature-synthesis",
+                                              "canonical_for_task":  [
+ 
+                                                                     ]
+                                          },
+                   "scientific-critical-thinking":  {
+                                                        "task_allow":  [
+                                                                           "planning",
+                                                                           "review",
+                                                                           "research"
+                                                                       ],
+                                                        "positive_keywords":  [
+                                                                                  "critical thinking",
+                                                                                  "critique",
+                                                                                  "challenge assumptions",
+                                                                                  "evidence strength",
+                                                                                  "批判性思维",
+                                                                                  "反驳",
+                                                                                  "证据强度"
+                                                                              ],
+                                                        "negative_keywords":  [
+                                                                                  "excel",
+                                                                                  "xlsx"
+                                                                              ],
+                                                        "equivalent_group":  "literature-synthesis",
+                                                        "canonical_for_task":  [
+
+                                                                               ]
+                                                    },
+                   "chembl-database":  {
+                                           "task_allow":  [
+                                                              "research",
+                                                              "coding"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "chembl",
+                                                                     "bioactivity",
+                                                                     "assay",
+                                                                     "target",
+                                                                     "ic50",
+                                                                     "ki",
+                                                                     "活性数据"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "pubmed",
+                                                                     "pmid"
+                                                                 ],
+                                           "equivalent_group":  "chem-db",
+                                           "canonical_for_task":  [
+                                                                      "research"
+                                                                  ]
+                                       },
+                   "drugbank-database":  {
+                                             "task_allow":  [
+                                                                "research",
+                                                                "coding"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "drugbank",
+                                                                       "drug interaction",
+                                                                       "drug target",
+                                                                       "atc",
+                                                                       "药物相互作用",
+                                                                       "药物数据库"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "chembl",
+                                                                       "pubchem"
+                                                                   ],
+                                             "equivalent_group":  "chem-db",
+                                             "canonical_for_task":  [
+ 
+                                                                    ]
+                                         },
+                   "pubchem-database":  {
+                                            "task_allow":  [
+                                                               "research",
+                                                               "coding"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "pubchem",
+                                                                      "cid",
+                                                                      "compound",
+                                                                      "smiles",
+                                                                      "inchi",
+                                                                      "化合物"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "pubmed",
+                                                                      "pmid"
+                                                                  ],
+                                            "equivalent_group":  "chem-db",
+                                            "canonical_for_task":  [
+                                                                       "research"
+                                                                   ]
+                                        },
+                   "brenda-database":  {
+                                           "task_allow":  [
+                                                              "research",
+                                                              "coding"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "brenda",
+                                                                     "enzyme",
+                                                                     "ec number",
+                                                                     "kinetics",
+                                                                     "km",
+                                                                     "kcat",
+                                                                     "酶动力学"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "docking",
+                                                                     "pose"
+                                                                 ],
+                                           "equivalent_group":  "chem-db",
+                                           "canonical_for_task":  [
+                                                                      "research"
+                                                                  ]
+                                       },
+                   "hmdb-database":  {
+                                         "task_allow":  [
+                                                            "research",
+                                                            "coding"
+                                                        ],
+                                         "positive_keywords":  [
+                                                                   "hmdb",
+                                                                   "metabolite",
+                                                                   "metabolomics",
+                                                                   "ms/ms",
+                                                                   "代谢物",
+                                                                   "代谢组"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "patent",
+                                                                   "uspto"
+                                                               ],
+                                         "equivalent_group":  "chem-db",
+                                         "canonical_for_task":  [
+ 
+                                                                ]
+                                     },
+                   "zinc-database":  {
+                                         "task_allow":  [
+                                                            "research",
+                                                            "coding"
+                                                        ],
+                                         "positive_keywords":  [
+                                                                   "zinc",
+                                                                   "virtual screening",
+                                                                   "compound library",
+                                                                   "vendor",
+                                                                   "筛选库",
+                                                                   "化合物库"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "pubmed",
+                                                                   "pmid"
+                                                               ],
+                                         "equivalent_group":  "chem-db",
+                                         "canonical_for_task":  [
+ 
+                                                                ]
+                                     },
+                   "datamol":  {
+                                   "task_allow":  [
+                                                      "coding",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "datamol",
+                                                             "rdkit wrapper",
+                                                             "smiles",
+                                                             "mol",
+                                                             "molecule",
+                                                             "分子处理"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "clinical trial",
+                                                             "dicom"
+                                                         ],
+                                   "equivalent_group":  "chem-toolkit",
+                                   "canonical_for_task":  [
+
+                                                          ]
+                               },
+                   "deepchem":  {
+                                    "task_allow":  [
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "deepchem",
+                                                              "molecular ml",
+                                                              "graphconv",
+                                                              "chemistry model",
+                                                              "分子机器学习"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "excel",
+                                                              "pptx"
+                                                          ],
+                                    "equivalent_group":  "chem-toolkit",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "medchem":  {
+                                   "task_allow":  [
+                                                      "planning",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "medchem",
+                                                             "medicinal chemistry",
+                                                             "sar",
+                                                             "lead optimization",
+                                                             "药物化学",
+                                                             "构效关系"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "dicom",
+                                                             "clinicaltrials"
+                                                         ],
+                                   "equivalent_group":  "chem-strategy",
+                                   "canonical_for_task":  [
+                                                              "planning"
+                                                          ]
+                               },
+                   "rdkit":  {
+                                 "task_allow":  [
+                                                    "coding",
+                                                    "research"
+                                                ],
+                                 "positive_keywords":  [
+                                                           "rdkit",
+                                                           "smiles",
+                                                           "fingerprint",
+                                                           "substructure",
+                                                           "molecule",
+                                                           "分子指纹"
+                                                       ],
+                                 "negative_keywords":  [
+                                                           "pubmed",
+                                                           "pmid"
+                                                       ],
+                                 "equivalent_group":  "chem-toolkit",
+                                 "canonical_for_task":  [
+                                                            "coding"
+                                                        ]
+                             },
+                   "diffdock":  {
+                                    "task_allow":  [
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "diffdock",
+                                                              "docking",
+                                                              "binding pose",
+                                                              "ligand",
+                                                              "pose prediction",
+                                                              "分子对接",
+                                                              "结合构象"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "pubmed",
+                                                              "citation"
+                                                          ],
+                                    "equivalent_group":  "chem-docking",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "molfeat":  {
+                                   "task_allow":  [
+                                                      "coding",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "molfeat",
+                                                             "featurizer",
+                                                             "ecfp",
+                                                             "maccs",
+                                                             "molecular features",
+                                                             "分子特征"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "dicom",
+                                                             "clinical"
+                                                         ],
+                                   "equivalent_group":  "chem-toolkit",
+                                   "canonical_for_task":  [
+ 
+                                                          ]
+                               },
+                   "pytdc":  {
+                                 "task_allow":  [
+                                                    "coding",
+                                                    "research"
+                                                ],
+                                 "positive_keywords":  [
+                                                           "tdc",
+                                                           "therapeutics data commons",
+                                                           "adme",
+                                                           "toxicity",
+                                                           "drug discovery benchmark",
+                                                           "药物发现数据集"
+                                                       ],
+                                 "negative_keywords":  [
+                                                           "pubmed",
+                                                           "pmid"
+                                                       ],
+                                 "equivalent_group":  "chem-datasets",
+                                 "canonical_for_task":  [
+ 
+                                                        ]
+                             },
+                   "clinicaltrials-database":  {
+                                                   "task_allow":  [
+                                                                      "research",
+                                                                      "coding"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "clinicaltrials",
+                                                                             "clinical trial",
+                                                                             "nct",
+                                                                             "eligibility",
+                                                                             "trial phase",
+                                                                             "临床试验",
+                                                                             "入排标准"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "pubmed",
+                                                                             "pmid"
+                                                                         ],
+                                                   "equivalent_group":  "clinical-data",
+                                                   "canonical_for_task":  [
+                                                                              "research",
+                                                                              "coding"
+                                                                          ]
+                                               },
+                   "fda-database":  {
+                                        "task_allow":  [
+                                                           "research",
+                                                           "coding"
+                                                       ],
+                                        "positive_keywords":  [
+                                                                  "fda",
+                                                                  "drug label",
+                                                                  "package insert",
+                                                                  "orange book",
+                                                                  "guidance",
+                                                                  "药品说明书",
+                                                                  "FDA"
+                                                              ],
+                                        "negative_keywords":  [
+                                                                  "pmid",
+                                                                  "pubmed"
+                                                              ],
+                                        "equivalent_group":  "clinical-data",
+                                        "canonical_for_task":  [
+  
+                                                               ]
+                                    },
+                   "clinpgx-database":  {
+                                            "task_allow":  [
+                                                               "research",
+                                                               "coding"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "cpic",
+                                                                      "pharmacogenomics",
+                                                                      "pgx",
+                                                                      "drug-gene",
+                                                                      "genotype",
+                                                                      "药物基因组",
+                                                                      "用药基因"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "docking",
+                                                                      "smiles"
+                                                                  ],
+                                            "equivalent_group":  "clinical-data",
+                                            "canonical_for_task":  [
+                                                                       "research"
+                                                                   ]
+                                        },
+                   "clinical-reports":  {
+                                            "task_allow":  [
+                                                               "planning",
+                                                               "review",
+                                                               "research"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "clinical report",
+                                                                      "cohort",
+                                                                      "outcomes",
+                                                                      "hazard ratio",
+                                                                      "临床报告",
+                                                                      "队列",
+                                                                      "生存分析"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "dicom",
+                                                                      "wsi"
+                                                                  ],
+                                            "equivalent_group":  "clinical-reporting",
+                                            "canonical_for_task":  [
+                                                                       "review"
+                                                                   ]
+                                        },
+                   "treatment-plans":  {
+                                           "task_allow":  [
+                                                              "planning",
+                                                              "research"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "treatment plan",
+                                                                     "guideline",
+                                                                     "therapy",
+                                                                     "recommendation",
+                                                                     "治疗方案",
+                                                                     "用药方案",
+                                                                     "临床路径"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "docking",
+                                                                     "smiles"
+                                                                 ],
+                                           "equivalent_group":  "clinical-reporting",
+                                           "canonical_for_task":  [
+                                                                      "planning"
+                                                                  ]
+                                       },
+                   "iso-13485-certification":  {
+                                                   "task_allow":  [
+                                                                      "planning",
+                                                                      "review",
+                                                                      "research"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "iso 13485",
+                                                                             "qms",
+                                                                             "quality management",
+                                                                             "medical device",
+                                                                             "认证",
+                                                                             "质量体系"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "pubmed",
+                                                                             "pmid"
+                                                                         ],
+                                                   "equivalent_group":  "clinical-regulatory",
+                                                   "canonical_for_task":  [
+  
+                                                                          ]
+                                               },
+                   "clinical-decision-support":  {
+                                                     "task_allow":  [
+                                                                        "planning",
+                                                                        "review",
+                                                                        "research"
+                                                                    ],
+                                                     "positive_keywords":  [
+                                                                               "clinical decision support",
+                                                                               "cds",
+                                                                               "guideline",
+                                                                               "grade",
+                                                                               "evidence",
+                                                                               "临床决策支持",
+                                                                               "循证"
+                                                                           ],
+                                                     "negative_keywords":  [
+                                                                               "smiles",
+                                                                               "docking"
+                                                                           ],
+                                                     "equivalent_group":  "clinical-reporting",
+                                                     "canonical_for_task":  [
+                                                                                "planning"
+                                                                            ]
+                                                 },
+                   "pydicom":  {
+                                   "task_allow":  [
+                                                      "coding",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "dicom",
+                                                             "pydicom",
+                                                             "ct",
+                                                             "mri",
+                                                             "radiology",
+                                                             "医学影像",
+                                                             "dicom文件"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "smiles",
+                                                             "docking"
+                                                         ],
+                                   "equivalent_group":  "medical-imaging",
+                                   "canonical_for_task":  [
+                                                              "coding"
+                                                          ]
+                               },
+                   "imaging-data-commons":  {
+                                                "task_allow":  [
+                                                                   "research",
+                                                                   "coding"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "imaging data commons",
+                                                                          "idc",
+                                                                          "dicomweb",
+                                                                          "tcim",
+                                                                          "dataset",
+                                                                          "影像数据集"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "pubmed",
+                                                                          "pmid"
+                                                                      ],
+                                                "equivalent_group":  "medical-imaging",
+                                                "canonical_for_task":  [
+                                                                           "research"
+                                                                       ]
+                                            },
+                   "histolab":  {
+                                    "task_allow":  [
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "histolab",
+                                                              "whole slide",
+                                                              "wsi",
+                                                              "tiling",
+                                                              "pathology",
+                                                              "病理切片"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "dicomweb",
+                                                              "ct"
+                                                          ],
+                                    "equivalent_group":  "medical-imaging",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "omero-integration":  {
+                                             "task_allow":  [
+                                                                "coding",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "omero",
+                                                                       "microscopy",
+                                                                       "ome-tiff",
+                                                                       "image server",
+                                                                       "显微镜",
+                                                                       "OME"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "pubmed",
+                                                                       "pmid"
+                                                                   ],
+                                             "equivalent_group":  "medical-imaging",
+                                             "canonical_for_task":  [
+                                                                        "coding"
+                                                                    ]
+                                         },
+                   "pathml":  {
+                                  "task_allow":  [
+                                                     "planning",
+                                                     "coding",
+                                                     "research"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "pathml",
+                                                            "digital pathology",
+                                                            "wsi",
+                                                            "tissue",
+                                                            "segmentation",
+                                                            "数字病理",
+                                                            "病理分析"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "pubmed",
+                                                            "pmid"
+                                                        ],
+                                  "equivalent_group":  "medical-imaging",
+                                  "canonical_for_task":  [
+                                                             "planning"
+                                                         ]
+                              },
+                   "opentrons-integration":  {
+                                                 "task_allow":  [
+                                                                    "planning",
+                                                                    "coding"
+                                                                ],
+                                                 "positive_keywords":  [
+                                                                           "opentrons",
+                                                                           "ot-2",
+                                                                           "pipetting",
+                                                                           "protocol",
+                                                                           "liquid handling",
+                                                                           "移液机器人",
+                                                                           "液体处理"
+                                                                       ],
+                                                 "negative_keywords":  [
+                                                                           "dicom",
+                                                                           "pubmed"
+                                                                       ],
+                                                 "equivalent_group":  "lab-automation",
+                                                 "canonical_for_task":  [
+                                                                            "coding"
+                                                                        ]
+                                             },
+                   "pylabrobot":  {
+                                      "task_allow":  [
+                                                         "planning",
+                                                         "coding"
+                                                     ],
+                                      "positive_keywords":  [
+                                                                "pylabrobot",
+                                                                "lab robot",
+                                                                "liquid handling",
+                                                                "automation",
+                                                                "实验室机器人",
+                                                                "移液"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "pubmed",
+                                                                "pmid"
+                                                            ],
+                                      "equivalent_group":  "lab-automation",
+                                      "canonical_for_task":  [
+ 
+                                                             ]
+                                  },
+                   "protocolsio-integration":  {
+                                                   "task_allow":  [
+                                                                      "planning",
+                                                                      "coding",
+                                                                      "research"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "protocols.io",
+                                                                             "protocol",
+                                                                             "methods",
+                                                                             "实验协议",
+                                                                             "实验步骤",
+                                                                             "protocolsio"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "dicom",
+                                                                             "sec"
+                                                                         ],
+                                                   "equivalent_group":  "lab-automation",
+                                                   "canonical_for_task":  [
+                                                                              "planning"
+                                                                          ]
+                                               },
+                   "benchling-integration":  {
+                                                 "task_allow":  [
+                                                                    "planning",
+                                                                    "coding"
+                                                                ],
+                                                 "positive_keywords":  [
+                                                                           "benchling",
+                                                                           "lims",
+                                                                           "eln",
+                                                                           "registry",
+                                                                           "样品管理",
+                                                                           "Benchling"
+                                                                       ],
+                                                 "negative_keywords":  [
+                                                                           "pubmed",
+                                                                           "pmid"
+                                                                       ],
+                                                 "equivalent_group":  "lab-automation",
+                                                 "canonical_for_task":  [
+ 
+                                                                        ]
+                                             },
+                   "labarchive-integration":  {
+                                                  "task_allow":  [
+                                                                     "planning",
+                                                                     "coding"
+                                                                 ],
+                                                  "positive_keywords":  [
+                                                                            "labarchive",
+                                                                            "eln",
+                                                                            "lab notebook",
+                                                                            "实验记录",
+                                                                            "电子实验记录"
+                                                                        ],
+                                                  "negative_keywords":  [
+                                                                            "pubmed",
+                                                                            "pmid"
+                                                                        ],
+                                                  "equivalent_group":  "lab-automation",
+                                                  "canonical_for_task":  [
+ 
+                                                                         ]
+                                              },
+                   "latchbio-integration":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "coding",
+                                                                   "research"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "latchbio",
+                                                                          "workflow",
+                                                                          "pipeline",
+                                                                          "bioinformatics platform",
+                                                                          "生信平台",
+                                                                          "数据管道"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "dicom",
+                                                                          "sec"
+                                                                      ],
+                                                "equivalent_group":  "lab-automation",
+                                                "canonical_for_task":  [
+                                                                           "coding"
+                                                                       ]
+                                            },
+                   "ginkgo-cloud-lab":  {
+                                           "task_allow":  [
+                                                              "planning",
+                                                              "research"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "ginkgo",
+                                                                     "cloud lab",
+                                                                     "lab services",
+                                                                     "云实验室",
+                                                                     "外包实验"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "dicom",
+                                                                     "pubmed"
+                                                                 ],
+                                           "equivalent_group":  "lab-automation",
+                                           "canonical_for_task":  [
+ 
+                                                                  ]
+                                       },
+                   "scientific-slides":  {
+                                             "task_allow":  [
+                                                                "planning",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "slides",
+                                                                       "slide deck",
+                                                                       "pptx",
+                                                                       "presentation",
+                                                                       "talk",
+                                                                       "幻灯片",
+                                                                       "学术报告"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "excel",
+                                                                       "xlsx"
+                                                                   ],
+                                             "equivalent_group":  "science-communication",
+                                             "canonical_for_task":  [
+                                                                        "planning"
+                                                                    ]
+                                         },
+                   "pptx-posters":  {
+                                        "task_allow":  [
+                                                           "planning",
+                                                           "research"
+                                                       ],
+                                        "positive_keywords":  [
+                                                                  "poster",
+                                                                  "pptx",
+                                                                  "powerpoint poster",
+                                                                  "conference poster",
+                                                                  "科研海报",
+                                                                  "学术海报"
+                                                              ],
+                                        "negative_keywords":  [
+                                                                  "dicom",
+                                                                  "clinicaltrials"
+                                                              ],
+                                        "equivalent_group":  "science-communication",
+                                        "canonical_for_task":  [
+ 
+                                                               ]
+                                    },
+                   "infographics":  {
+                                        "task_allow":  [
+                                                           "planning",
+                                                           "research"
+                                                       ],
+                                        "positive_keywords":  [
+                                                                  "infographic",
+                                                                  "visual summary",
+                                                                  "data story",
+                                                                  "信息图",
+                                                                  "可视化总结"
+                                                              ],
+                                        "negative_keywords":  [
+                                                                  "unit test",
+                                                                  "pytest"
+                                                              ],
+                                        "equivalent_group":  "science-communication",
+                                        "canonical_for_task":  [
+ 
+                                                               ]
+                                    },
+                   "markdown-mermaid-writing":  {
+                                                    "task_allow":  [
+                                                                       "planning",
+                                                                       "coding",
+                                                                       "research"
+                                                                   ],
+                                                    "positive_keywords":  [
+                                                                              "mermaid",
+                                                                              "flowchart",
+                                                                              "sequence diagram",
+                                                                              "mindmap",
+                                                                              "流程图",
+                                                                              "时序图"
+                                                                          ],
+                                                    "negative_keywords":  [
+                                                                              "dicom",
+                                                                              "smiles"
+                                                                          ],
+                                                    "equivalent_group":  "science-communication",
+                                                    "canonical_for_task":  [
+                                                                               "coding"
+                                                                           ]
+                                                },
+                   "markitdown":  {
+                                      "task_allow":  [
+                                                         "coding",
+                                                         "research"
+                                                     ],
+                                      "positive_keywords":  [
+                                                                "markitdown",
+                                                                "convert to markdown",
+                                                                "pdf to markdown",
+                                                                "docx to markdown",
+                                                                "pdf转markdown",
+                                                                "转成markdown",
+                                                                "转成 markdown",
+                                                                "markdown转换"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "mermaid",
+                                                                "flowchart"
+                                                            ],
+                                      "equivalent_group":  "document-conversion",
+                                      "canonical_for_task":  [
+                                                                 "coding"
+                                                             ]
+                                  },
+                   "document-skills":  {
+                                            "task_allow":  [
+                                                               "planning",
+                                                               "coding",
+                                                               "review",
+                                                               "research"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "document",
+                                                                      "pdf",
+                                                                      "docx",
+                                                                      "xlsx",
+                                                                      "pptx",
+                                                                      "文档处理",
+                                                                      "报告排版"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "docking",
+                                                                      "smiles"
+                                                                  ],
+                                            "equivalent_group":  "document-meta",
+                                            "canonical_for_task":  [
+                                                                       "planning"
+                                                                   ]
+                                        },
+                   "generate-image":  {
+                                          "task_allow":  [
+                                                             "planning",
+                                                             "coding",
+                                                             "research"
+                                                         ],
+                                          "positive_keywords":  [
+                                                                    "generate image",
+                                                                    "image generation",
+                                                                    "flux",
+                                                                    "gemini image",
+                                                                    "生成图片",
+                                                                    "图片生成",
+                                                                    "出图"
+                                                                ],
+                                          "negative_keywords":  [
+                                                                    "mermaid",
+                                                                    "flowchart"
+                                                                ],
+                                          "equivalent_group":  "image-generation",
+                                          "canonical_for_task":  [
+ 
+                                                                 ]
+                                      },
+                   "edgartools":  {
+                                      "task_allow":  [
+                                                         "research",
+                                                         "coding"
+                                                     ],
+                                      "positive_keywords":  [
+                                                                "edgar",
+                                                                "sec",
+                                                                "10-k",
+                                                                "10q",
+                                                                "13f",
+                                                                "8-k",
+                                                                "财报",
+                                                                "美国证监会"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "pubmed",
+                                                                "pmid"
+                                                            ],
+                                      "equivalent_group":  "finance-data",
+                                      "canonical_for_task":  [
+                                                                 "research",
+                                                                 "coding"
+                                                             ]
+                                  },
+                   "alpha-vantage":  {
+                                         "task_allow":  [
+                                                            "research",
+                                                            "coding"
+                                                        ],
+                                         "positive_keywords":  [
+                                                                   "alpha vantage",
+                                                                   "alphavantage",
+                                                                   "stock price",
+                                                                   "market data",
+                                                                   "美股行情",
+                                                                   "股票数据"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "pubmed",
+                                                                   "pmid"
+                                                               ],
+                                         "equivalent_group":  "finance-data",
+                                         "canonical_for_task":  [
+  
+                                                                ]
+                                     },
+                   "fred-economic-data":  {
+                                              "task_allow":  [
+                                                                 "research",
+                                                                 "coding"
+                                                             ],
+                                              "positive_keywords":  [
+                                                                        "fred",
+                                                                        "economic data",
+                                                                        "interest rate",
+                                                                        "inflation",
+                                                                        "宏观数据",
+                                                                        "经济数据",
+                                                                        "利率"
+                                                                    ],
+                                              "negative_keywords":  [
+                                                                        "pubmed",
+                                                                        "pmid"
+                                                                    ],
+                                              "equivalent_group":  "finance-data",
+                                              "canonical_for_task":  [
+                                                                         "research"
+                                                                     ]
+                                          },
+                   "usfiscaldata":  {
+                                        "task_allow":  [
+                                                           "research",
+                                                           "coding"
+                                                       ],
+                                        "positive_keywords":  [
+                                                                  "us fiscal data",
+                                                                  "treasury",
+                                                                  "budget",
+                                                                  "deficit",
+                                                                  "财政数据",
+                                                                  "国库"
+                                                              ],
+                                        "negative_keywords":  [
+                                                                  "pubmed",
+                                                                  "pmid"
+                                                              ],
+                                        "equivalent_group":  "finance-data",
+                                        "canonical_for_task":  [
+                                                                   "research"
+                                                               ]
+                                    },
+                   "hedgefundmonitor":  {
+                                            "task_allow":  [
+                                                               "research",
+                                                               "coding"
+                                                           ],
+                                            "positive_keywords":  [
+                                                                      "hedge fund monitor",
+                                                                      "ofr",
+                                                                      "hedge fund",
+                                                                      "对冲基金",
+                                                                      "OFR"
+                                                                  ],
+                                            "negative_keywords":  [
+                                                                      "pubmed",
+                                                                      "pmid"
+                                                                  ],
+                                            "equivalent_group":  "finance-data",
+                                            "canonical_for_task":  [
+                                                                       "research"
+                                                                   ]
+                                        },
+                   "market-research-reports":  {
+                                                   "task_allow":  [
+                                                                      "planning",
+                                                                      "research"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "market research",
+                                                                             "industry report",
+                                                                             "competitive analysis",
+                                                                             "市场研究",
+                                                                             "行业报告",
+                                                                             "市场调研"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "pubmed",
+                                                                             "pmid"
+                                                                         ],
+                                                   "equivalent_group":  "finance-strategy",
+                                                   "canonical_for_task":  [
+                                                                              "planning"
+                                                                          ]
+                                               },
+                   "datacommons-client":  {
+                                              "task_allow":  [
+                                                                 "research",
+                                                                 "coding"
+                                                             ],
+                                              "positive_keywords":  [
+                                                                        "data commons",
+                                                                        "datacommons",
+                                                                        "open data",
+                                                                        "public data",
+                                                                        "公共数据",
+                                                                        "开放数据"
+                                                                    ],
+                                              "negative_keywords":  [
+                                                                        "pubmed",
+                                                                        "pmid"
+                                                                    ],
+                                              "equivalent_group":  "public-data",
+                                              "canonical_for_task":  [
+  
+                                                                     ]
+                                          },
+                   "qiskit":  {
+                                  "task_allow":  [
+                                                     "planning",
+                                                     "coding",
+                                                     "research"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "qiskit",
+                                                            "quantum circuit",
+                                                            "ibm quantum",
+                                                            "量子电路",
+                                                            "量子计算"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "pubmed",
+                                                            "pmid"
+                                                        ],
+                                  "equivalent_group":  "quantum",
+                                  "canonical_for_task":  [
+                                                             "coding",
+                                                             "research"
+                                                         ]
+                              },
+                   "cirq":  {
+                                "task_allow":  [
+                                                   "planning",
+                                                   "coding",
+                                                   "research"
+                                               ],
+                                "positive_keywords":  [
+                                                          "cirq",
+                                                          "google quantum",
+                                                          "quantum circuit",
+                                                          "量子电路",
+                                                          "quantum"
+                                                      ],
+                                "negative_keywords":  [
+                                                          "pubmed",
+                                                          "pmid"
+                                                      ],
+                                "equivalent_group":  "quantum",
+                                "canonical_for_task":  [
+   
+                                                       ]
+                            },
+                   "pennylane":  {
+                                     "task_allow":  [
+                                                        "planning",
+                                                        "coding",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "pennylane",
+                                                               "qml",
+                                                               "quantum machine learning",
+                                                               "量子机器学习",
+                                                               "quantum"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "pubmed",
+                                                               "pmid"
+                                                           ],
+                                     "equivalent_group":  "quantum",
+                                     "canonical_for_task":  [
+   
+                                                            ]
+                                 },
+                   "qutip":  {
+                                 "task_allow":  [
+                                                    "planning",
+                                                    "coding",
+                                                    "research"
+                                                ],
+                                 "positive_keywords":  [
+                                                           "qutip",
+                                                           "quantum dynamics",
+                                                           "open quantum system",
+                                                           "量子动力学",
+                                                           "开放量子系统"
+                                                       ],
+                                 "negative_keywords":  [
+                                                           "pubmed",
+                                                           "pmid"
+                                                       ],
+                                 "equivalent_group":  "quantum",
+                                 "canonical_for_task":  [
+                                                            "research"
+                                                        ]
+                             },
+                   "uspto-database":  {
+                                          "task_allow":  [
+                                                             "planning",
+                                                             "coding",
+                                                             "research"
+                                                         ],
+                                          "positive_keywords":  [
+                                                                    "uspto",
+                                                                    "patent",
+                                                                    "patents",
+                                                                    "专利",
+                                                                    "专利检索",
+                                                                    "申请号"
+                                                                ],
+                                          "negative_keywords":  [
+                                                                    "pubmed",
+                                                                    "pmid"
+                                                                ],
+                                          "equivalent_group":  "ip",
+                                          "canonical_for_task":  [
+                                                                     "research"
+                                                                 ]
+                                      },
+                   "astropy":  {
+                                   "task_allow":  [
+                                                      "planning",
+                                                      "coding",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "astropy",
+                                                             "fits",
+                                                             "wcs",
+                                                             "astronomy",
+                                                             "天文",
+                                                             "FITS",
+                                                             "天球坐标"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "pubmed",
+                                                             "pmid"
+                                                         ],
+                                   "equivalent_group":  "astronomy",
+                                   "canonical_for_task":  [
+                                                              "coding"
+                                                          ]
+                               },
+                   "pymatgen":  {
+                                    "task_allow":  [
+                                                       "planning",
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "pymatgen",
+                                                              "materials",
+                                                              "crystal",
+                                                              "structure",
+                                                              "phase diagram",
+                                                              "材料",
+                                                              "晶体"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "pubmed",
+                                                              "pmid"
+                                                          ],
+                                    "equivalent_group":  "materials",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "geopandas":  {
+                                     "task_allow":  [
+                                                        "planning",
+                                                        "coding",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "geopandas",
+                                                               "geojson",
+                                                               "shapefile",
+                                                               "gis",
+                                                               "geospatial",
+                                                               "地图",
+                                                               "空间数据"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "pubmed",
+                                                               "pmid"
+                                                           ],
+                                     "equivalent_group":  "geospatial",
+                                     "canonical_for_task":  [
+                                                                "coding"
+                                                            ]
+                                 },
+                   "geo-database":  {
+                                        "task_allow":  [
+                                                           "research",
+                                                           "coding"
+                                                       ],
+                                        "positive_keywords":  [
+                                                                  "geodatabase",
+                                                                  "geonames",
+                                                                  "spatial database",
+                                                                  "place name",
+                                                                  "地理数据库",
+                                                                  "地名"
+                                                              ],
+                                        "negative_keywords":  [
+                                                                  "pubmed",
+                                                                  "pmid"
+                                                              ],
+                                        "equivalent_group":  "geospatial",
+                                        "canonical_for_task":  [
+                                                                   "research"
+                                                               ]
+                                    },
+                   "geomaster":  {
+                                     "task_allow":  [
+                                                        "planning",
+                                                        "coding",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "coordinate transform",
+                                                               "projection",
+                                                               "epsg",
+                                                               "坐标转换",
+                                                               "投影",
+                                                               "经纬度"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "pubmed",
+                                                               "pmid"
+                                                           ],
+                                     "equivalent_group":  "geospatial",
+                                     "canonical_for_task":  [
+                                                                "coding"
+                                                            ]
+                                 },
+                   "polars":  {
+                                  "task_allow":  [
+                                                     "coding",
+                                                     "research"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "polars",
+                                                            "dataframe",
+                                                            "parquet",
+                                                            "arrow",
+                                                            "rust dataframe",
+                                                            "大表处理"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "pubmed",
+                                                            "pmid"
+                                                        ],
+                                  "equivalent_group":  "tabular-bigdata",
+                                  "canonical_for_task":  [
+                                                             "coding"
+                                                         ]
+                              },
+                   "vaex":  {
+                                "task_allow":  [
+                                                   "coding",
+                                                   "research"
+                                               ],
+                                "positive_keywords":  [
+                                                          "vaex",
+                                                          "out-of-core",
+                                                          "big dataframe",
+                                                          "large data",
+                                                          "磁盘外计算",
+                                                          "大数据df"
+                                                      ],
+                                "negative_keywords":  [
+                                                          "pubmed",
+                                                          "pmid"
+                                                      ],
+                                "equivalent_group":  "tabular-bigdata",
+                                "canonical_for_task":  [
+ 
+                                                       ]
+                            },
+                   "zarr-python":  {
+                                       "task_allow":  [
+                                                          "coding",
+                                                          "research"
+                                                      ],
+                                       "positive_keywords":  [
+                                                                 "zarr",
+                                                                 "chunked array",
+                                                                 "out-of-core",
+                                                                 "chunk",
+                                                                 "分块存储",
+                                                                 "大数组"
+                                                             ],
+                                       "negative_keywords":  [
+                                                                 "pubmed",
+                                                                 "pmid"
+                                                             ],
+                                       "equivalent_group":  "tabular-bigdata",
+                                       "canonical_for_task":  [
+                                                                  "coding"
+                                                              ]
+                                   },
+                   "tiledbvcf":  {
+                                     "task_allow":  [
+                                                        "coding",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "tiledbvcf",
+                                                               "vcf",
+                                                               "variant storage",
+                                                               "genomics storage",
+                                                               "变异存储"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "pubmed",
+                                                               "pmid"
+                                                           ],
+                                     "equivalent_group":  "tabular-bigdata",
+                                     "canonical_for_task":  [
+                                                                "coding"
+                                                            ]
+                                 },
+                   "hypothesis-generation":  {
+                                                  "task_allow":  [
+                                                                     "planning",
+                                                                     "research"
+                                                                 ],
+                                                  "positive_keywords":  [
+                                                                            "hypothesis",
+                                                                            "hypotheses",
+                                                                            "hypothesis generation",
+                                                                            "research hypothesis",
+                                                                            "scientific hypothesis",
+                                                                            "testable",
+                                                                            "falsifiable",
+                                                                            "假设生成",
+                                                                            "研究假设",
+                                                                            "科学假设",
+                                                                            "假设",
+                                                                            "可检验",
+                                                                            "可证伪",
+                                                                            "prediction",
+                                                                            "预测"
+                                                                        ],
+                                                  "negative_keywords":  [
+                                                                            "pytest",
+                                                                            "unit test"
+                                                                       ],
+                                                 "equivalent_group":  "research-ideation",
+                                                 "canonical_for_task":  [
+                                                                            "planning"
+                                                                        ]
+                                             },
+                   "research-grants":  {
+                                           "task_allow":  [
+                                                              "planning",
+                                                              "research"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "grant proposal",
+                                                                     "nih",
+                                                                     "nsf",
+                                                                     "darpa",
+                                                                     "funding",
+                                                                     "科研基金",
+                                                                     "项目申请书"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "docking",
+                                                                     "smiles"
+                                                                 ],
+                                           "equivalent_group":  "research-grants",
+                                           "canonical_for_task":  [
+                                                                      "planning"
+                                                                  ]
+                                       },
+                   "arboreto":  {
+                                    "task_allow":  [
+                                                       "coding",
+                                                       "research"
+                                                   ],
+                                    "positive_keywords":  [
+                                                              "arboreto",
+                                                              "pyscenic",
+                                                              "gene regulatory network",
+                                                              "grn",
+                                                              "转录因子",
+                                                              "基因调控网络"
+                                                          ],
+                                    "negative_keywords":  [
+                                                              "dicom",
+                                                              "patent"
+                                                          ],
+                                    "equivalent_group":  "bio-systems",
+                                    "canonical_for_task":  [
+                                                               "coding"
+                                                           ]
+                                },
+                   "cobrapy":  {
+                                   "task_allow":  [
+                                                      "coding",
+                                                      "research"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "cobrapy",
+                                                             "fba",
+                                                             "flux balance",
+                                                             "metabolic model",
+                                                             "代谢建模",
+                                                             "通量平衡"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "dicom",
+                                                             "patent"
+                                                         ],
+                                   "equivalent_group":  "bio-systems",
+                                   "canonical_for_task":  [
+                                                              "coding"
+                                                          ]
+                               },
+                   "esm":  {
+                               "task_allow":  [
+                                                  "coding",
+                                                  "research"
+                                              ],
+                               "positive_keywords":  [
+                                                         "esm",
+                                                         "protein language model",
+                                                         "protein embedding",
+                                                         "protein lm",
+                                                         "蛋白语言模型",
+                                                         "蛋白嵌入"
+                                                     ],
+                               "negative_keywords":  [
+                                                         "dicom",
+                                                         "patent"
+                                                     ],
+                               "equivalent_group":  "bio-ml",
+                               "canonical_for_task":  [
+                                                          "coding"
+                                                      ]
+                           },
+                   "flowio":  {
+                                  "task_allow":  [
+                                                     "coding",
+                                                     "research"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "flowio",
+                                                            "flow cytometry",
+                                                            "fcs",
+                                                            "cytometry",
+                                                            "流式细胞",
+                                                            "FCS"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "dicom",
+                                                            "patent"
+                                                        ],
+                                  "equivalent_group":  "bio-data-io",
+                                  "canonical_for_task":  [
+                                                             "coding"
+                                                         ]
+                              },
+                   "modal-labs":  {
+                                     "task_allow":  [
+                                                        "planning",
+                                                        "coding",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "modal.com",
+                                                               "modal labs",
+                                                               "modal run",
+                                                               "modal deploy",
+                                                               "modal serve",
+                                                               "serverless gpu",
+                                                               "batch job",
+                                                               "autoscaling"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "react",
+                                                               "vue",
+                                                               "antd",
+                                                               "bootstrap",
+                                                               "dialog",
+                                                               "modal dialog",
+                                                               "弹窗",
+                                                               "对话框",
+                                                               "前端"
+                                                           ],
+                                     "equivalent_group":  "cloud-execution",
+                                     "canonical_for_task":  [
+                                                                "coding"
+                                                            ]
+                                 },
+                   "geniml":  {
+                                  "task_allow":  [
+                                                     "coding",
+                                                     "research"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "geniml",
+                                                            "genomic ml",
+                                                            "genome embedding",
+                                                            "基因组嵌入",
+                                                            "基因组机器学习"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "dicom",
+                                                            "patent"
+                                                        ],
+                                  "equivalent_group":  "bio-ml",
+                                  "canonical_for_task":  [
+                                                             "coding"
+                                                         ]
+                              }
+                }
 }

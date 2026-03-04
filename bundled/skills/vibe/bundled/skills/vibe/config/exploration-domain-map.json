@@ -1,0 +1,82 @@
+﻿{
+    "version": 1,
+    "updated": "2026-02-27",
+    "domains": [
+        {
+            "id": "programming",
+            "default_pack": "code-quality",
+            "default_skill": "systematic-debugging",
+            "keywords": [
+                "code",
+                "bug",
+                "debug",
+                "api",
+                "backend",
+                "frontend",
+                "refactor",
+                "代码",
+                "调试",
+                "后端",
+                "前端",
+                "重构"
+            ]
+        },
+        {
+            "id": "bio_science",
+            "default_pack": "bio-science",
+            "default_skill": "biopython",
+            "keywords": [
+                "protein",
+                "gene",
+                "pathway",
+                "uniprot",
+                "pubmed",
+                "rna",
+                "protein structure",
+                "蛋白",
+                "基因",
+                "通路",
+                "文献",
+                "生物"
+            ]
+        },
+        {
+            "id": "ml_data",
+            "default_pack": "data-ml",
+            "default_skill": "scikit-learn",
+            "keywords": [
+                "machine learning",
+                "model",
+                "feature",
+                "regression",
+                "classification",
+                "validation",
+                "drift",
+                "机器学习",
+                "模型",
+                "特征",
+                "回归",
+                "分类",
+                "验证"
+            ]
+        },
+        {
+            "id": "research_strategy",
+            "default_pack": "research-design",
+            "default_skill": "research-lookup",
+            "keywords": [
+                "paper",
+                "literature",
+                "evidence",
+                "hypothesis",
+                "methodology",
+                "study design",
+                "论文",
+                "文献",
+                "证据",
+                "假设",
+                "方法"
+            ]
+        }
+    ]
+}

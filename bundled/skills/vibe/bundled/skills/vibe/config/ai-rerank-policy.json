@@ -1,0 +1,55 @@
+﻿{
+    "version": 1,
+    "updated": "2026-02-26",
+    "enabled": true,
+    "mode": "soft",
+    "preserve_routing_assignment": true,
+    "routing_integration": "post_route_topk_rerank",
+    "scope": {
+        "grade_allow": ["M", "L", "XL"],
+        "task_allow": ["planning", "coding", "review", "debug", "research"],
+        "route_mode_allow": ["legacy_fallback", "confirm_required", "pack_overlay"]
+    },
+    "trigger": {
+        "top_k": 3,
+        "max_top1_top2_gap": 0.08,
+        "max_confidence_for_rerank": 0.45,
+        "confusion_groups": [
+            {
+                "id": "cross-ml",
+                "preferred_pack": "data-ml",
+                "keywords": ["machine learning", "ml workflow", "model training", "feature engineering", "scikit-learn", "训练模型", "特征工程", "机器学习"]
+            },
+            {
+                "id": "cross-devops",
+                "preferred_pack": "integration-devops",
+                "keywords": ["github actions", "ci pipeline", "deploy", "release", "MCP integration", "流水线", "部署", "集成"]
+            }
+        ]
+    },
+    "provider": {
+        "type": "heuristic",
+        "external_command": "",
+        "timeout_ms": 2000
+    },
+    "safety": {
+        "require_candidate_in_top_k": true,
+        "enforce_task_allow": true,
+        "min_rerank_confidence": 0.55,
+        "allow_abstain": true,
+        "fallback_on_error": true
+    },
+    "rollout": {
+        "apply_in_modes": ["soft", "strict"],
+        "shadow_compare_in_shadow_mode": true,
+        "max_live_apply_rate": 0.15
+    }
+}
+
+
+
+
+
+
+
+

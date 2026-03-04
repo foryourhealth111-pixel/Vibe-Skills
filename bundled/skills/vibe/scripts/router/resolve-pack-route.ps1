@@ -18,6 +18,7 @@ $ErrorActionPreference = "Stop"
 $routerModuleRoot = Join-Path $PSScriptRoot "modules"
 $routerModules = @(
     "00-core-utils.ps1",
+    "01-openai-responses.ps1",
     "10-observability.ps1",
     "11-route-probe.ps1",
     "12-heartbeat.ps1",
@@ -42,7 +43,8 @@ $routerModules = @(
     "44-dialectic-team-gate.ps1",
     "45-daily-dialectic-guard.ps1",
     "46-confirm-ui.ps1",
-    "47-closure-overlay.ps1"
+    "47-closure-overlay.ps1",
+    "48-llm-acceleration-overlay.ps1"
 )
 
 foreach ($routerModule in $routerModules) {
@@ -88,6 +90,7 @@ $capabilityCatalogPath = Join-Path $configRoot "capability-catalog.json"
 $dialecticTeamPolicyPath = Join-Path $configRoot "dialectic-team-policy.json"
 $dailyDialecticPolicyPath = Join-Path $configRoot "daily-dialectic-guard.json"
 $confirmUiPolicyPath = Join-Path $configRoot "confirm-ui-policy.json"
+$llmAccelerationPolicyPath = Join-Path $configRoot "llm-acceleration-policy.json"
 
 $packManifest = Get-Content -LiteralPath $packManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $aliasMap = Get-Content -LiteralPath $aliasMapPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -310,6 +313,15 @@ $confirmUiPolicy = if (Test-Path -LiteralPath $confirmUiPolicyPath) {
 } else {
     $null
 }
+$llmAccelerationPolicy = if (Test-Path -LiteralPath $llmAccelerationPolicyPath) {
+    try {
+        Get-Content -LiteralPath $llmAccelerationPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        $null
+    }
+} else {
+    $null
+}
 
 $weights = $thresholds.weights
 $rules = $thresholds.safety
@@ -373,6 +385,7 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.config" -Note "core ro
         deep_discovery_mode = if ($deepDiscoveryPolicy -and $deepDiscoveryPolicy.mode) { [string]$deepDiscoveryPolicy.mode } else { "off" }
         dialectic_team_mode = if ($dialecticTeamPolicy -and $dialecticTeamPolicy.mode) { [string]$dialecticTeamPolicy.mode } else { "off" }
         daily_dialectic_mode = if ($dailyDialecticPolicy -and $dailyDialecticPolicy.mode) { [string]$dailyDialecticPolicy.mode } else { "off" }
+        llm_acceleration_mode = if ($llmAccelerationPolicy -and $llmAccelerationPolicy.mode) { [string]$llmAccelerationPolicy.mode } else { "off" }
     }
 }
 $null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.config" -Phase "router.config" -Note "router config and policy load completed"
@@ -658,6 +671,51 @@ Add-RouteProbeEvent -Context $probeContext -Stage "overlay.prompt" -Note "prompt
 }
 $null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.prompt" -Phase "overlay" -Note "prompt overlay evaluated" -Data @{
     route_override_applied = [bool]$promptOverlayRouteOverride
+}
+
+$llmAccelerationAdvice = Get-LlmAccelerationAdvice `
+    -PromptText $Prompt `
+    -PromptNormalization $promptNormalization `
+    -Grade $Grade `
+    -TaskType $TaskType `
+    -RouteMode $routeMode `
+    -RouteReason $routeReason `
+    -Ranked $ranked `
+    -TopGap $topGap `
+    -Confidence $confidence `
+    -LlmAccelerationPolicy $llmAccelerationPolicy `
+    -RepoRoot ([string]$repoRoot)
+
+$llmAccelerationConfirmOverride = $false
+if ($routeMode -eq "pack_overlay" -and $llmAccelerationAdvice -and $llmAccelerationAdvice.scope_applicable -and $llmAccelerationAdvice.confirm_required -and ([string]$llmAccelerationAdvice.mode -in @("soft", "strict"))) {
+    $routeMode = "confirm_required"
+    $routeReason = "llm_acceleration_confirm_required"
+    $confidence = [Math]::Max($confidence, [double]$th.confirm_required)
+    $llmAccelerationConfirmOverride = $true
+}
+
+$llmAccelerationRouteOverride = [bool]($llmAccelerationAdvice -and $llmAccelerationAdvice.route_override_applied)
+if ($llmAccelerationRouteOverride -and $llmAccelerationAdvice -and $llmAccelerationAdvice.override_target_pack) {
+    $overridePackId = [string]$llmAccelerationAdvice.override_target_pack
+    $overrideTop = $ranked | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
+    if ($overrideTop) {
+        $effectiveTop = $overrideTop
+        if ($routeMode -eq "pack_overlay") {
+            $routeReason = "llm_acceleration_override"
+        }
+    }
+}
+
+Add-RouteProbeEvent -Context $probeContext -Stage "overlay.llm_acceleration" -Note "llm acceleration overlay evaluated" -Data @{
+    advice = Get-RouteProbeAdviceSummary -Advice $llmAccelerationAdvice
+    route_override_applied = [bool]$llmAccelerationRouteOverride
+    confirm_override_applied = [bool]$llmAccelerationConfirmOverride
+    top_pack_after = if ($effectiveTop) { [string]$effectiveTop.pack_id } else { $null }
+    route_mode_after = $routeMode
+    route_reason_after = $routeReason
+}
+$null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "overlay.llm_acceleration" -Phase "overlay" -Note "llm acceleration overlay evaluated" -Data @{
+    route_override_applied = [bool]$llmAccelerationRouteOverride
 }
 
 $dataScaleAdvice = Get-DataScaleOverlayAdvice `
@@ -1035,6 +1093,8 @@ $result = [pscustomobject]@{
     dialectic_team_advice = $dialecticTeamAdvice
     dialectic_team_route_override = $dialecticTeamRouteOverride
     daily_dialectic_advice = $dailyDialecticAdvice
+    llm_acceleration_advice = $llmAccelerationAdvice
+    llm_acceleration_route_override = $llmAccelerationRouteOverride
     heartbeat_advice = $heartbeatAdvice
     heartbeat_status = $heartbeatStatus
     heartbeat_runtime_digest = $heartbeatRuntimeDigest

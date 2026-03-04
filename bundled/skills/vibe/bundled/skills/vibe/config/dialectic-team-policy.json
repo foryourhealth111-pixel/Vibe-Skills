@@ -1,0 +1,31 @@
+﻿{
+  "version": 1,
+  "updated": "2026-02-27",
+  "enabled": true,
+  "mode": "explicit_only",
+  "preserve_routing_assignment": true,
+  "scope": {
+    "grade_allow": ["L", "XL"],
+    "task_allow": ["planning", "research", "review"]
+  },
+  "explicit_patterns": [
+    "使用辩证智囊团",
+    "启用辩证智囊团",
+    "请启动辩证智囊团",
+    "use dialectic think tank",
+    "enable dialectic think tank",
+    "$vibe dialectic",
+    "dialectic-design"
+  ],
+  "explicit_skill_ids": ["dialectic", "dialectic-design"],
+  "team_skill": "dialectic",
+  "implicit_blocked_skills": ["dialectic", "dialectic-design"],
+  "fallback_skill_by_task": {
+    "planning": "writing-plans",
+    "research": "claude-skills",
+    "review": "vibe",
+    "coding": "autonomous-builder",
+    "debug": "think-harder"
+  },
+  "require_second_confirm": true
+}

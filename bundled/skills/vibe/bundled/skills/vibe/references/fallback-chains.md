@@ -184,6 +184,16 @@ Resolution order for build-specific debugging:
    b. Inform user of limitations
 ```
 
+### Anti-Silent Guard (runtime)
+
+When `config/router-thresholds.json -> safety.enforce_confirm_on_legacy_fallback=true`:
+
+1. Any computed `route_mode=legacy_fallback` is upgraded to `route_mode=confirm_required`.
+2. `route_reason` is set to `legacy_fallback_guard`.
+3. Original fallback reason is preserved in `legacy_fallback_original_reason`.
+
+This makes fallback visible to operators instead of silently continuing.
+
 ## Context Budget Awareness
 
 | Situation | Tool | Source |

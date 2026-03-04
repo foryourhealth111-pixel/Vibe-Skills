@@ -1,0 +1,28 @@
+{
+    "version": 1,
+    "updated": "2026-02-27",
+    "fallback_mode": "balanced",
+    "modes": {
+        "balanced": {
+            "semantic": 0.45,
+            "keyword": 0.35,
+            "authority": 0.2
+        },
+        "literature": {
+            "semantic": 0.5,
+            "keyword": 0.25,
+            "authority": 0.25
+        },
+        "code": {
+            "semantic": 0.32,
+            "keyword": 0.5,
+            "authority": 0.18
+        },
+        "docs": {
+            "semantic": 0.38,
+            "keyword": 0.32,
+            "authority": 0.3
+        }
+    }
+}
+

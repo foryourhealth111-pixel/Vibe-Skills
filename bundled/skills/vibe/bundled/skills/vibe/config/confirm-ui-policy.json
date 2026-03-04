@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "updated": "2026-03-03",
+  "enabled": true,
+  "emit_on_route_modes": [
+    "confirm_required"
+  ],
+  "options": {
+    "max_skill_options": 5,
+    "include_descriptions": true,
+    "include_scores": true,
+    "include_pack_alternatives": true,
+    "max_pack_alternatives": 2
+  },
+  "unattended": {
+    "enabled": true,
+    "sticky": {
+      "enabled": true,
+      "ttl_minutes": 360
+    },
+    "prompt_triggers": {
+      "enable_patterns": [
+        "进入无人值守",
+        "开启无人值守",
+        "无人值守模式",
+        "unattended\\s*(on|true|1)",
+        "auto\\s*-?\\s*route",
+        "自动路由",
+        "跳过确认",
+        "无需确认"
+      ],
+      "disable_patterns": [
+        "退出无人值守",
+        "关闭无人值守",
+        "取消无人值守",
+        "unattended\\s*(off|false|0)"
+      ]
+    },
+    "override_route_mode": true,
+    "override_target_route_mode": "pack_overlay"
+  }
+}

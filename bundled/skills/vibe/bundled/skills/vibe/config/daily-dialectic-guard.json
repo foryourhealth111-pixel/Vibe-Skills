@@ -1,0 +1,26 @@
+﻿{
+  "version": 1,
+  "updated": "2026-02-27",
+  "enabled": true,
+  "mode": "soft",
+  "preserve_routing_assignment": true,
+  "scope": {
+    "grade_allow": ["M", "L", "XL"],
+    "task_allow": ["planning", "research", "review"]
+  },
+  "requirements": {
+    "sections": ["thesis", "antithesis", "synthesis"],
+    "require_antithesis_min": 2,
+    "require_rollback_trigger": true,
+    "require_verification_plan": true
+  },
+  "strict_confirm": {
+    "require_contract_fields": ["goal", "deliverable", "capabilities"],
+    "min_intent_contract_completeness": 0.6
+  },
+  "runtime_prompt": {
+    "include_digest": true,
+    "max_bullets": 6
+  }
+}
+

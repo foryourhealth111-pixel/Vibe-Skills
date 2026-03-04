@@ -340,18 +340,18 @@ Characteristics:
 ## 13. Made-With-ML Lifecycle Patterns (Optional Governance Source)
 
 **Package/Repo**: `GokuMohandas/Made-With-ML`  
-**Type**: Methodology and lifecycle governance reference (no mandatory runtime binary)
+**Integration Type**: methodology and lifecycle policy source (non-executable dependency)
 
-### Key Capabilities
-- ML lifecycle stage framing (`develop`, `evaluate`, `deploy`, `iterate`)
-- Evidence-first release discipline (run/eval/baseline/test/monitoring artifacts)
-- Lifecycle-aware risk gating for deployment and iteration loops
+### Key Capabilities Imported into VCO
+- Lifecycle stage framing: `develop -> evaluate -> deploy -> iterate`
+- Evidence expectations: run/evaluation/baseline/test/monitoring artifacts
+- Production-readiness mindset: promote explicit evidence before release decisions
 
 ### VCO Integration Boundary
 - Integrated through `ml-lifecycle-overlay` as post-route advice only.
-- Does not replace pack routing, training pipeline implementation, or model-serving toolchains.
-- Missing optional analyzer/runtime never blocks routing; status remains advisory.
-- Current default is lifecycle metadata enrichment with mode-gated confirm advice.
+- Does not replace `data-ml` pack routing or ML tool execution.
+- Does not mutate route selection; only emits lifecycle advice metadata.
+- Compatible with `data-scale`, `quality-debt`, and `framework-interop` overlays.
 
 ---
 

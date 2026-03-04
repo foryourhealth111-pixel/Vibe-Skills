@@ -135,13 +135,13 @@ In addition to Core Tier (P5, V2, V7 + task-type-specific from vibe-do):
 
 ## Dialectic Mode
 
-Structured multi-perspective design analysis. Activated when `needs_dialectic = true` in Quick Probe or user explicitly requests dialectical/multi-perspective analysis.
+Structured multi-perspective design analysis. Activated only when user explicitly requests dialectic think-tank mode (`dialectic_team_requested = true`).
 
 ### When to Use
 
 - Multiple viable architectural approaches with unclear trade-offs
 - High-stakes design decisions where blind spots are costly
-- User explicitly requests "辩证", "dialectic", "多视角", "权衡"
+- User explicitly requests "使用辩证智囊团", "启用辩证智囊团", "`$vibe dialectic`", or "dialectic-design"
 
 ### Not For
 
@@ -242,8 +242,8 @@ Limitations vs XL: no intra-group dialogue (only 1 agent per perspective), no Ph
 
 ### Integration with think.md
 
-- If `needs_dialectic = true` AND grade = L/XL → skip think.md B2 Self-Check, use Dialectic Mode instead
-- If `needs_dialectic = true` AND grade = M → use think.md B2 Self-Check (dialectic is overkill for M)
+- If `dialectic_team_requested = true` AND grade = L/XL → skip think.md B2 Self-Check, use Dialectic Mode instead
+- If `dialectic_team_requested = true` AND grade = M → use think.md B2 Self-Check (team dialectic is overkill for M)
 - Dialectic Mode output feeds into writing-plans as the design foundation
 
 ## Conflict Avoidance

@@ -1,0 +1,91 @@
+﻿{
+    "version": 1,
+    "updated": "2026-02-27",
+    "profiles": [
+        {
+            "id": "explore",
+            "execution_mode": "analysis_first",
+            "negative_penalty_weight": 0.65,
+            "positive_keywords": [
+                "why",
+                "what does this mean",
+                "what does it imply",
+                "explain",
+                "interpret",
+                "mechanism",
+                "root cause",
+                "hypothesis",
+                "现象",
+                "为什么",
+                "意味着什么",
+                "代表什么",
+                "机制",
+                "解释",
+                "原因"
+            ],
+            "negative_keywords": [
+                "fix bug",
+                "implement",
+                "write code",
+                "deploy",
+                "commit",
+                "修复",
+                "实现",
+                "写代码",
+                "部署",
+                "提交"
+            ]
+        },
+        {
+            "id": "execute",
+            "execution_mode": "direct_execution",
+            "negative_penalty_weight": 0.6,
+            "positive_keywords": [
+                "implement",
+                "fix",
+                "refactor",
+                "write code",
+                "deploy",
+                "pipeline",
+                "实现",
+                "修复",
+                "重构",
+                "写代码",
+                "部署",
+                "落地"
+            ],
+            "negative_keywords": [
+                "why",
+                "explain",
+                "interpret",
+                "what does this mean",
+                "为什么",
+                "解释",
+                "意味着什么"
+            ]
+        },
+        {
+            "id": "hybrid",
+            "execution_mode": "analyze_then_execute",
+            "negative_penalty_weight": 0.55,
+            "positive_keywords": [
+                "end-to-end",
+                "analyze then implement",
+                "design then execute",
+                "from idea to implementation",
+                "先分析再实现",
+                "先设计再落地",
+                "端到端",
+                "先解释再执行"
+            ],
+            "negative_keywords": [
+                "single typo",
+                "simple answer",
+                "just translate",
+                "单个错别字",
+                "只翻译",
+                "简单回答"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,65 @@
+﻿{
+    "version": 1,
+    "updated": "2026-02-27",
+    "enabled": true,
+    "mode": "soft",
+    "preserve_routing_assignment": true,
+    "routing_integration": "post_route_exploration_overlay",
+    "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "debug",
+        "research"
+    ],
+    "grade_allow": [
+        "M",
+        "L",
+        "XL"
+    ],
+    "route_mode_allow": [
+        "legacy_fallback",
+        "confirm_required",
+        "pack_overlay"
+    ],
+    "intent_selection": {
+        "min_intent_confidence": 0.44,
+        "ambiguous_gap": 0.1,
+        "fallback_intent": "execute",
+        "max_hypotheses_by_mode": {
+            "shadow": 2,
+            "soft": 3,
+            "strict": 4
+        }
+    },
+    "domain_detection": {
+        "min_domain_confidence": 0.28,
+        "multi_domain_gap": 0.09,
+        "max_domains": 3
+    },
+    "interview": {
+        "soft_confirm_on_ambiguous_intent": true,
+        "soft_confirm_on_multidomain": true,
+        "strict_confirm_on_ambiguous_intent": true,
+        "strict_confirm_on_multidomain": true
+    },
+    "output_contract": {
+        "sections": [
+            "phenomenon",
+            "mechanism",
+            "meaning",
+            "next_steps"
+        ],
+        "include_action_plan": true,
+        "include_validation_plan": true
+    },
+    "fallback_behavior": {
+        "on_missing_profiles": "continue_advisory",
+        "on_missing_domain_map": "continue_advisory",
+        "on_parser_failure": "continue_advisory"
+    }
+}
+
+
+
+

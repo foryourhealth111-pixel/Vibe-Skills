@@ -1,8 +1,8 @@
-{
+﻿{
     "version": 1,
     "updated": "2026-02-25",
     "enabled": true,
-    "mode": "shadow",
+    "mode": "soft",
     "preserve_routing_assignment": true,
     "routing_integration": "post_route_ml_lifecycle_overlay",
     "task_allow": [
@@ -236,3 +236,6 @@
         "on_analyzer_failure": "continue_advisory"
     }
 }
+
+
+

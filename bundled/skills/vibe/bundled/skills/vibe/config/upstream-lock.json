@@ -1,0 +1,133 @@
+﻿{
+  "version": 1,
+  "updated_at": "2026-02-26",
+  "dependencies": [
+    {
+      "id": "obra/superpowers",
+      "upstream_repo": "https://github.com/obra/superpowers",
+      "upstream_ref": "main",
+      "integration_mode": "bundled-local",
+      "local_rewrite_required": true,
+      "bundled_paths": [
+        "bundled/superpowers-skills/brainstorming",
+        "bundled/superpowers-skills/writing-plans",
+        "bundled/superpowers-skills/subagent-driven-development",
+        "bundled/superpowers-skills/systematic-debugging",
+        "bundled/superpowers-skills/requesting-code-review",
+        "bundled/superpowers-skills/receiving-code-review",
+        "bundled/superpowers-skills/verification-before-completion"
+      ]
+    },
+    {
+      "id": "frankbria/ralph-claude-code",
+      "upstream_repo": "https://github.com/frankbria/ralph-claude-code",
+      "upstream_ref": "main",
+      "integration_mode": "bundled-local",
+      "local_rewrite_required": true,
+      "bundled_paths": [
+        "bundled/skills/ralph-loop",
+        "bundled/skills/cancel-ralph"
+      ]
+    },
+    {
+      "id": "f/prompts.chat",
+      "upstream_repo": "https://github.com/f/prompts.chat",
+      "upstream_ref": "main",
+      "integration_mode": "optional-external-service",
+      "local_rewrite_required": false,
+      "notes": "Optional prompt asset API/MCP integration used by prompt-lookup and prompt-overlay"
+    },
+    {
+      "id": "SuperClaude-Org/SuperClaude_Framework",
+      "upstream_repo": "https://github.com/SuperClaude-Org/SuperClaude_Framework",
+      "upstream_ref": "master",
+      "integration_mode": "upstream-locked",
+      "local_rewrite_required": true,
+      "notes": "Install script can fetch commands, but codex wrappers in bundled/skills/superclaude-framework-compat are authoritative"
+    },
+    {
+      "id": "feiskyer/claude-code-settings",
+      "upstream_repo": "https://github.com/feiskyer/claude-code-settings",
+      "upstream_ref": "main",
+      "integration_mode": "bundled-local",
+      "local_rewrite_required": true,
+      "bundled_paths": [
+        "bundled/skills/think-harder"
+      ]
+    },
+    {
+      "id": "github/spec-kit",
+      "upstream_repo": "https://github.com/github/spec-kit",
+      "upstream_ref": "main",
+      "integration_mode": "bundled-local",
+      "local_rewrite_required": true,
+      "bundled_paths": [
+        "bundled/skills/spec-kit-vibe-compat"
+      ]
+    },
+    {
+      "id": "ruvnet/claude-flow",
+      "upstream_repo": "https://github.com/ruvnet/claude-flow",
+      "upstream_ref": "main",
+      "integration_mode": "upstream-locked",
+      "local_rewrite_required": false,
+      "notes": "Optional external runtime dependency"
+    },
+    {
+      "id": "medialab/xan",
+      "upstream_repo": "https://github.com/medialab/xan",
+      "upstream_ref": "master",
+      "integration_mode": "optional-external-cli",
+      "local_rewrite_required": false,
+      "notes": "Optional large-CSV CLI backend used by data-scale overlay and xan skill"
+    },
+    {
+      "id": "Done-0/fuck-u-code",
+      "upstream_repo": "https://github.com/Done-0/fuck-u-code",
+      "upstream_ref": "main",
+      "integration_mode": "optional-external-cli",
+      "local_rewrite_required": false,
+      "notes": "Optional quality-debt analyzer backend for quality-debt-overlay (advice-only integration in VCO)"
+    },
+    {
+      "id": "ivy-llc/ivy",
+      "upstream_repo": "https://github.com/ivy-llc/ivy",
+      "upstream_ref": "main",
+      "integration_mode": "optional-external-python-lib",
+      "local_rewrite_required": false,
+      "notes": "Optional framework interop backend used by framework-interop-overlay in advisory mode"
+    },
+    {
+      "id": "GokuMohandas/Made-With-ML",
+      "upstream_repo": "https://github.com/GokuMohandas/Made-With-ML",
+      "upstream_ref": "main",
+      "integration_mode": "methodology-overlay",
+      "local_rewrite_required": false,
+      "notes": "Lifecycle governance methodology source for ml-lifecycle-overlay (post-route advisory integration)"
+    },
+    {
+      "id": "zedr/clean-code-python",
+      "upstream_repo": "https://github.com/zedr/clean-code-python",
+      "upstream_ref": "master",
+      "integration_mode": "methodology-overlay",
+      "local_rewrite_required": false,
+      "notes": "Python clean-code methodology source for python-clean-code-overlay (post-route advisory integration)"
+    },
+    {
+      "id": "donnemartin/system-design-primer",
+      "upstream_repo": "https://github.com/donnemartin/system-design-primer",
+      "upstream_ref": "master",
+      "integration_mode": "methodology-overlay",
+      "local_rewrite_required": false,
+      "notes": "Architecture methodology source for system-design-overlay (post-route advisory integration)"
+    },
+    {
+      "id": "xlite-dev/LeetCUDA",
+      "upstream_repo": "https://github.com/xlite-dev/LeetCUDA",
+      "upstream_ref": "master",
+      "integration_mode": "methodology-overlay",
+      "local_rewrite_required": false,
+      "notes": "CUDA optimization methodology source for cuda-kernel-overlay (post-route advisory integration, no upstream code vendoring)"
+    }
+  ]
+}
