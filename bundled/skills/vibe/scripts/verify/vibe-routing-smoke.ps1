@@ -65,6 +65,9 @@ $mainTeam = Join-Path $skillRoot 'protocols\team.md'
 $mainThink = Join-Path $skillRoot 'protocols\think.md'
 $mainFallback = Join-Path $skillRoot 'references\fallback-chains.md'
 $mainConflict = Join-Path $skillRoot 'references\conflict-rules.md'
+$mainRouter = Join-Path $skillRoot 'scripts\router\resolve-pack-route.ps1'
+$mainClosurePolicy = Join-Path $skillRoot 'config\closure-overlay.json'
+$mainCoreUtils = Join-Path $skillRoot 'scripts\router\modules\00-core-utils.ps1'
 
 $bundleRoot = Join-Path $skillRoot 'bundled\skills\vibe'
 $bundleSkill = Join-Path $bundleRoot 'SKILL.md'
@@ -73,6 +76,9 @@ $bundleTeam = Join-Path $bundleRoot 'protocols\team.md'
 $bundleThink = Join-Path $bundleRoot 'protocols\think.md'
 $bundleFallback = Join-Path $bundleRoot 'references\fallback-chains.md'
 $bundleConflict = Join-Path $bundleRoot 'references\conflict-rules.md'
+$bundleRouter = Join-Path $bundleRoot 'scripts\router\resolve-pack-route.ps1'
+$bundleClosurePolicy = Join-Path $bundleRoot 'config\closure-overlay.json'
+$bundleCoreUtils = Join-Path $bundleRoot 'scripts\router\modules\00-core-utils.ps1'
 
 $targetFiles = @(
     $mainSkill,
@@ -81,12 +87,18 @@ $targetFiles = @(
     $mainThink,
     $mainFallback,
     $mainConflict,
+    $mainRouter,
+    $mainClosurePolicy,
+    $mainCoreUtils,
     $bundleSkill,
     $bundleDo,
     $bundleTeam,
     $bundleThink,
     $bundleFallback,
-    $bundleConflict
+    $bundleConflict,
+    $bundleRouter,
+    $bundleClosurePolicy,
+    $bundleCoreUtils
 )
 
 $results = @()
@@ -134,6 +146,22 @@ $results += Assert-FileContains -Path $mainTeam -Pattern 'Option A: Codex Native
 $results += Assert-FileContains -Path $mainTeam -Pattern 'Store intermediate state via ruflo `memory_store`' -Message '[XL] team protocol includes ruflo collaboration storage'
 $results += Assert-FileContains -Path $mainTeam -Pattern 'Run native lifecycle only: `spawn_agent` → `send_input` → `wait` → `close_agent`' -Message '[XL] degraded path still uses native lifecycle APIs'
 $results += Assert-FileContains -Path $mainTeam -Pattern 'Use runtime-neutral state_store \+ conversation context for milestone state' -Message '[XL] degraded path uses runtime-neutral state_store'
+
+$results += Assert-FileContains -Path $mainDo -Pattern 'Closure-First Contract' -Message '[Closure] do.md includes closure-first contract'
+$results += Assert-FileContains -Path $mainThink -Pattern 'Closure-First Preflight' -Message '[Closure] think.md includes closure-first preflight'
+$results += Assert-FileContains -Path $bundleDo -Pattern 'Closure-First Contract' -Message '[Closure] bundled do.md includes closure-first contract'
+$results += Assert-FileContains -Path $bundleThink -Pattern 'Closure-First Preflight' -Message '[Closure] bundled think.md includes closure-first preflight'
+
+$results += Assert-True -Condition (Test-Path -LiteralPath $mainClosurePolicy) -Message '[Closure] main closure-overlay.json exists'
+$results += Assert-True -Condition (Test-Path -LiteralPath $bundleClosurePolicy) -Message '[Closure] bundled closure-overlay.json exists'
+
+$results += Assert-FileContains -Path $mainRouter -Pattern '44-exploration-overlay\.ps1' -Message '[Router] main router loads exploration overlay'
+$results += Assert-FileContains -Path $mainRouter -Pattern '47-closure-overlay\.ps1' -Message '[Router] main router loads closure overlay'
+$results += Assert-FileContains -Path $bundleRouter -Pattern '44-exploration-overlay\.ps1' -Message '[Router] bundled router loads exploration overlay'
+$results += Assert-FileContains -Path $bundleRouter -Pattern '47-closure-overlay\.ps1' -Message '[Router] bundled router loads closure overlay'
+
+$results += Assert-FileContains -Path $mainCoreUtils -Pattern 'has_control_token' -Message '[Normalization] main prompt normalization exposes has_control_token'
+$results += Assert-FileContains -Path $bundleCoreUtils -Pattern 'has_control_token' -Message '[Normalization] bundled prompt normalization exposes has_control_token'
 
 $passCount = ($results | Where-Object { $_ }).Count
 $failCount = ($results | Where-Object { -not $_ }).Count

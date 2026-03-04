@@ -1,7 +1,13 @@
 {
   "version": 1,
   "updated": "2026-02-24",
-  "aliases": {},
+  "aliases": {
+    "批注回复": "docx-comment-reply",
+    "回复批注": "docx-comment-reply",
+    "word批注回复": "docx-comment-reply",
+    "docx批注回复": "docx-comment-reply",
+    "doc批注回复": "docx-comment-reply"
+  },
   "notes": [
     "Alias targets must resolve to canonical top-level skill names.",
     "Batch E final cleanup completed: deprecated aliases removed; canonical skill names only."

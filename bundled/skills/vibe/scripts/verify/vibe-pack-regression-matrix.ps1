@@ -27,6 +27,10 @@ function Invoke-Route {
 
     $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
     $resolver = Join-Path $repoRoot "scripts\router\resolve-pack-route.ps1"
+    $confirmUiState = Join-Path (Join-Path $repoRoot "outputs\\runtime") "confirm-ui-state.json"
+    if (Test-Path -LiteralPath $confirmUiState) {
+        Remove-Item -LiteralPath $confirmUiState -Force -ErrorAction SilentlyContinue
+    }
 
     $routeArgs = @{
         Prompt = $Prompt
@@ -64,7 +68,7 @@ $cases = @(
 
     [pscustomobject]@{ Name = "aios-core planning"; Prompt = "create PRD and user story backlog with quality gate"; Grade = "L"; TaskType = "planning"; RequestedSkill = $null; ExpectedPack = "aios-core"; AllowedModes = @("pack_overlay", "confirm_required", "legacy_fallback") },
 
-    [pscustomobject]@{ Name = "low-signal fallback"; Prompt = "help me with this"; Grade = "M"; TaskType = "research"; RequestedSkill = $null; ExpectedPack = $null; AllowedModes = @("legacy_fallback") },
+    [pscustomobject]@{ Name = "low-signal fallback"; Prompt = "help me with this"; Grade = "M"; TaskType = "research"; RequestedSkill = $null; ExpectedPack = $null; AllowedModes = @("legacy_fallback", "confirm_required") },
 
     [pscustomobject]@{ Name = "docs-media blocked in XL"; Prompt = "xlsx and docx parallel processing"; Grade = "XL"; TaskType = "coding"; RequestedSkill = "xlsx"; ExpectedPack = $null; AllowedModes = @("legacy_fallback", "confirm_required"); BlockedPack = "docs-media" },
 
@@ -94,7 +98,12 @@ foreach ($case in $cases) {
     $results += Assert-True -Condition ($route.top1_top2_gap -ge 0) -Message "[$($case.Name)] top1_top2_gap is non-negative"
 
     if ($case.Name -eq "low-signal fallback") {
-        $results += Assert-True -Condition ([double]$route.confidence -lt [double]$route.thresholds.fallback_to_legacy_below) -Message "[$($case.Name)] confidence below fallback threshold"
+        if ($route.legacy_fallback_guard_applied) {
+            $results += Assert-True -Condition ($route.route_mode -eq "confirm_required") -Message "[$($case.Name)] legacy fallback guard maps to confirm_required"
+            $results += Assert-True -Condition ($route.legacy_fallback_original_reason -in @("confidence_below_fallback", "no_eligible_pack")) -Message "[$($case.Name)] legacy fallback original reason recorded"
+        } else {
+            $results += Assert-True -Condition ([double]$route.confidence -lt [double]$route.thresholds.fallback_to_legacy_below) -Message "[$($case.Name)] confidence below fallback threshold"
+        }
     }
 }
 

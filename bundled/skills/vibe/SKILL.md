@@ -103,6 +103,44 @@ After grade and task-type are decided, VCO applies a pack overlay:
 5. If confidence is below threshold, fallback to the legacy Grade×Type matrix above
 
 Pack routing MUST respect grade/task boundaries and Rule 3 command priority.
+
+#### `confirm_required` → White-box Skill Choice
+
+When the router returns `route_mode=confirm_required`, do **NOT** proceed with a silent/opaque auto-route.
+Instead, provide a white-box choice so the user can explicitly select the best-fit skill.
+
+Contract:
+
+- `scripts/router/resolve-pack-route.ps1` now emits `confirm_ui` when `route_mode=confirm_required`.
+- `confirm_ui.rendered_text` is a ready-to-show menu containing the top relevant skills (name + description).
+- User may respond with either:
+  - an option number (e.g. `1`), or
+  - an explicit skill command (e.g. `$tdd-guide`, `$systematic-debugging`).
+
+Execution rule:
+
+1. Show `confirm_ui.rendered_text` to the user.
+2. If the user selects a skill, treat it as an explicit command (Rule 3), and/or re-run the router with `-RequestedSkill <skill>` to lock in the selection.
+3. Proceed with the selected skill’s normal workflow (its `SKILL.md`), including quality gates.
+
+Config:
+
+- Policy: `config/confirm-ui-policy.json` (top-k options, descriptions, unattended behavior).
+
+#### Unattended Mode (Skip Confirm)
+
+If the user explicitly requests unattended execution (e.g. “进入无人值守模式”), the router may override `confirm_required` to `pack_overlay` so execution can continue without additional questions.
+
+Supported controls:
+
+- One-shot: call router with `-Unattended`.
+- Sticky (default TTL): user prompt contains “进入无人值守模式” / “退出无人值守”；state is stored at `outputs/runtime/confirm-ui-state.json`.
+
+In unattended mode:
+
+- Do not present the white-box menu.
+- Still emit evidence in the route output (`unattended_decision`, `unattended_override_applied`, and `route_mode_before_unattended_override`) for observability.
+
 When `config/prompt-overlay.json` is enabled, router emits `prompt_overlay_advice` and may elevate ambiguous prompt-vs-doc requests to `confirm_required` without replacing pack selection.
 When `config/data-scale-overlay.json` is enabled, router emits `data_scale_advice` and can adapt spreadsheet skill selection by real file signals (size/rows/format) in a mode-gated, post-route way.
 When `config/quality-debt-overlay.json` is enabled, router emits `quality_debt_advice` to expose quality-debt risk and optional analyzer hints in a post-route, advice-first way.

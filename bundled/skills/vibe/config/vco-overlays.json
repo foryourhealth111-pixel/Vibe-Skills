@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "top_k": 4,
+  "max_select": 2,
+  "providers": [
+    {
+      "id": "gitnexus",
+      "name": "GitNexus (Foundation)",
+      "config_path": "config/gitnexus-overlays.json",
+      "priority_boost": 0.15
+    },
+    {
+      "id": "agency",
+      "name": "agency-agents (Departments)",
+      "config_path": "config/agency-overlays.json",
+      "priority_boost": 0
+    }
+  ],
+  "stage_fallbacks": {
+    "think": ["gitnexus-architecture-map", "agency-product", "agency-design", "gitnexus-foundation"],
+    "do": ["gitnexus-impact", "agency-engineering", "agency-testing", "gitnexus-foundation"],
+    "review": ["gitnexus-detect-changes", "agency-testing", "agency-engineering", "gitnexus-impact"],
+    "team": ["gitnexus-architecture-map", "agency-project-management", "agency-testing", "gitnexus-foundation"],
+    "retro": ["agency-project-management", "agency-testing", "gitnexus-detect-changes", "gitnexus-foundation"],
+    "any": ["gitnexus-foundation", "agency-testing", "agency-engineering", "agency-project-management"]
+  }
+}
+

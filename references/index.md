@@ -26,6 +26,10 @@ Navigation guide for all VCO (Vibe Code Orchestrator) documentation.
 | [../docs/python-clean-code-overlay-integration.md](../docs/python-clean-code-overlay-integration.md) | Python clean-code overlay design (clean-code-python inspired post-route advisory, no route mutation) |
 | [../docs/system-design-overlay-integration.md](../docs/system-design-overlay-integration.md) | System-design overlay design (system-design-primer inspired architecture coverage advisory, no route mutation) |
 | [../docs/cuda-kernel-overlay-integration.md](../docs/cuda-kernel-overlay-integration.md) | CUDA kernel overlay design (LeetCUDA inspired post-route kernel optimization advisory, no route mutation) |
+| [../docs/agency-agents-overlay.md](../docs/agency-agents-overlay.md) | External expert prompt overlays: agency-agents departments (advice-only, auto-suggest → confirm → inject) |
+| [../docs/gitnexus-overlay.md](../docs/gitnexus-overlay.md) | External expert prompt overlays: GitNexus foundation (code understanding / impact / change awareness, advice-only) |
+| [../docs/gitnexus-mcp-integration-draft.md](../docs/gitnexus-mcp-integration-draft.md) | GitNexus MCP integration draft (Codex CLI `codex mcp add`, indexing, governance, fallback) |
+| [../docs/gitnexus-execution-checklist.md](../docs/gitnexus-execution-checklist.md) | GitNexus × Codex CLI × VCO execution checklist (install → index → verify → overlay injection) |
 | [../docs/observability-consistency-governance.md](../docs/observability-consistency-governance.md) | Strict observability/consistency governance (lean telemetry + manual rollback confirmation policy) |
 | [../docs/ai-rerank-overlay-integration.md](../docs/ai-rerank-overlay-integration.md) | AI rerank B+ overlay design (Top-K constrained ambiguity rerank with shadow-safe rollout) |
 | [../docs/retrieval-overlay-integration.md](../docs/retrieval-overlay-integration.md) | Retrieval overlay design (profile-guided query/source/rerank strategy with mode-gated advisory enforcement) |

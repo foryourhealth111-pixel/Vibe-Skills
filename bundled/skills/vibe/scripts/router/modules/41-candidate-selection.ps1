@@ -185,7 +185,7 @@ function Select-PackCandidate {
                 selected = $defaultCandidate
                 score = $defaultScore
                 reason = "fallback_task_default"
-                ranking = @($ranked | Select-Object -First 3)
+                ranking = @($ranked | Select-Object -First 6)
                 top1_top2_gap = $gap
                 filtered_out_by_task = @($blockedByTask)
             }
@@ -195,7 +195,7 @@ function Select-PackCandidate {
             selected = $filteredCandidates[0]
             score = [double]$top.score
             reason = "fallback_first_candidate"
-            ranking = @($ranked | Select-Object -First 3)
+            ranking = @($ranked | Select-Object -First 6)
             top1_top2_gap = $gap
             filtered_out_by_task = @($blockedByTask)
         }
@@ -205,7 +205,7 @@ function Select-PackCandidate {
         selected = [string]$top.skill
         score = [double]$top.score
         reason = "keyword_ranked"
-        ranking = @($ranked | Select-Object -First 3)
+        ranking = @($ranked | Select-Object -First 6)
         top1_top2_gap = $gap
         filtered_out_by_task = @($blockedByTask)
     }
