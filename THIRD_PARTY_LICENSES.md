@@ -18,6 +18,9 @@ This file documents notable upstream sources used in the VCO ecosystem and how t
 | `muratcankoylan/Agent-Skills-for-Context-Engineering` | MIT (upstream) | Advisory knowledge source for Context Retro Advisor and CER-based retrospectives | Attribution and license notice should be preserved when redistributing derived integrations |
 | `SuperClaude-Org/SuperClaude_Framework` | Upstream project license applies | Optional external enhancement (`sc` command compatibility) | Installed optionally; review upstream license before redistribution |
 | `ruvnet/claude-flow` | Upstream project license applies | Optional external runtime enhancement | Installed optionally; review upstream license before redistribution |
+| `RUC-NLPIR/FlashRAG` | MIT (upstream) | Vendored upstream repo (local clone) used as a reference + optional BM25 backend (`bm25s`) for local evidence retrieval | License copy: `third_party/licenses/ruc-nlpir/FlashRAG-LICENSE.txt` |
+| `RUC-NLPIR/WebThinker` | MIT (upstream) | Vendored upstream repo (local clone) used as reference for WebThinker-style deep research deliverables (report + sources + trace) | License copy: `third_party/licenses/ruc-nlpir/WebThinker-LICENSE.txt` |
+| `RUC-NLPIR/DeepAgent` | MIT (upstream) | Vendored upstream repo (local clone) used as reference for toolchain planning + context folding patterns under VCO governance | License copy: `third_party/licenses/ruc-nlpir/DeepAgent-LICENSE.txt` |
 
 ## Policy
 

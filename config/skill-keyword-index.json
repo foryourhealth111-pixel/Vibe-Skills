@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-03-03",
+  "updated": "2026-03-05",
   "selection": {
     "weights": {
       "keyword_match": 0.85,
@@ -17,6 +17,18 @@
     },
     "vibe": {
       "keywords": ["/vibe", "$vibe", "vibe route", "vibe 路由", "vibe内核", "vibe skills", "路由融合", "路由冲突", "命中稳定", "误路由", "权重计算", "阈值计算"]
+    },
+    "flashrag-evidence": {
+      "keywords": ["flashrag", "evidence", "evidence plane", "citation", "cite", "source of truth", "where is this defined", "policy", "protocol", "config", "router config", "vco config", "vibe config", "证据", "引用", "出处", "在哪里定义", "协议", "策略", "配置", "路由器"]
+    },
+    "webthinker-deep-research": {
+      "keywords": ["webthinker", "deep research", "research report", "multi-hop", "browse", "navigate", "extract", "trace", "trace.jsonl", "sources.json", "深度调研", "调研", "调研报告", "网页探索", "可审计", "证据链"]
+    },
+    "deepagent-toolchain-plan": {
+      "keywords": ["deepagent", "tool discovery", "toolchain", "skill chain", "confirm_required", "white-box menu", "capability interview", "route instability", "工具发现", "工具链", "技能链", "选技能", "确认菜单", "能力访谈", "路由不确定"]
+    },
+    "deepagent-memory-fold": {
+      "keywords": ["deepagent", "memory folding", "fold", "context compression", "compress context", "resume prompt", "handoff", "handover", "long-running", "上下文压缩", "记忆折叠", "续跑", "交接", "恢复提示"]
     },
     "subagent-driven-development": {
       "keywords": ["subagent", "parallel tasks", "子代理", "并行执行", "多任务协作"]

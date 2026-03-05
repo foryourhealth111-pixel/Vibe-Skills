@@ -16,6 +16,12 @@
       "priority_boost": 0
     },
     {
+      "id": "ruc-nlpir",
+      "name": "RUC‑NLPIR Agents (FlashRAG / WebThinker / DeepAgent)",
+      "config_path": "config/ruc-nlpir-overlays.json",
+      "priority_boost": 0.05
+    },
+    {
       "id": "agency",
       "name": "agency-agents (Departments)",
       "config_path": "config/agency-overlays.json",

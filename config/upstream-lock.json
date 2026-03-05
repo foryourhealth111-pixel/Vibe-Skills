@@ -1,6 +1,6 @@
 ﻿{
   "version": 1,
-  "updated_at": "2026-02-26",
+  "updated_at": "2026-03-05",
   "dependencies": [
     {
       "id": "obra/superpowers",
@@ -128,6 +128,33 @@
       "integration_mode": "methodology-overlay",
       "local_rewrite_required": false,
       "notes": "CUDA optimization methodology source for cuda-kernel-overlay (post-route advisory integration, no upstream code vendoring)"
+    },
+    {
+      "id": "RUC-NLPIR/FlashRAG",
+      "upstream_repo": "https://github.com/RUC-NLPIR/FlashRAG",
+      "upstream_ref": "6aca76d1325c0eed9e00fba6ec692bf8b8a52b39",
+      "integration_mode": "vendored-external",
+      "local_rewrite_required": false,
+      "vendored_paths": ["~/.codex/_external/ruc-nlpir/FlashRAG"],
+      "notes": "Vendored upstream repo for ruc-nlpir augmentation; optional BM25 backend integration via bm25s in flashrag-evidence."
+    },
+    {
+      "id": "RUC-NLPIR/WebThinker",
+      "upstream_repo": "https://github.com/RUC-NLPIR/WebThinker",
+      "upstream_ref": "db387eb3261de9b5e2db7d2d7fb20af2aceb7882",
+      "integration_mode": "vendored-external",
+      "local_rewrite_required": false,
+      "vendored_paths": ["~/.codex/_external/ruc-nlpir/WebThinker"],
+      "notes": "Vendored upstream repo for WebThinker-style deep research deliverables (report+sourcing+trace); default VCO usage remains tool-orchestrated Lite mode."
+    },
+    {
+      "id": "RUC-NLPIR/DeepAgent",
+      "upstream_repo": "https://github.com/RUC-NLPIR/DeepAgent",
+      "upstream_ref": "d2bf7263c28e5c57f548ad9fe3b2fe9bfba9b310",
+      "integration_mode": "vendored-external",
+      "local_rewrite_required": false,
+      "vendored_paths": ["~/.codex/_external/ruc-nlpir/DeepAgent"],
+      "notes": "Vendored upstream repo for toolchain planning + context folding patterns under VCO memory governance."
     }
   ]
 }

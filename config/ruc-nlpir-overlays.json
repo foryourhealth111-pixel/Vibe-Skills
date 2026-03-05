@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "top_k": 3,
+  "max_select": 1,
+  "defaults": {
+    "stage": "any",
+    "include_overlay_body_in_menu": false,
+    "overlay_body_max_chars": 1200
+  },
+  "stage_fallbacks": {
+    "think": ["ruc-flashrag-evidence", "ruc-webthinker-deep-research", "ruc-deepagent-toolchain"],
+    "do": ["ruc-flashrag-evidence", "ruc-deepagent-toolchain"],
+    "review": ["ruc-flashrag-evidence"],
+    "team": ["ruc-deepagent-toolchain"],
+    "retro": ["ruc-deepagent-memory-fold"],
+    "any": ["ruc-flashrag-evidence"]
+  },
+  "overlays": [
+    {
+      "id": "ruc-flashrag-evidence",
+      "name": "FlashRAG 证据平面（本地可引用片段检索）",
+      "description": "把 VCO/vibe 的协议/配置/技能说明当作语料，快速检索“可引用”的本地证据（path:line + snippet），减少拍脑袋与重复翻文件。",
+      "overlay_path": "references/overlays/ruc-nlpir/flashrag-evidence.md",
+      "preferred_stages": ["think", "do", "review", "any"],
+      "keywords": [
+        "flashrag",
+        "evidence plane",
+        "evidence",
+        "cite",
+        "citation",
+        "where is this defined",
+        "protocol",
+        "policy",
+        "config",
+        "router",
+        "vco config",
+        "vibe config",
+        "证据",
+        "引用",
+        "出处",
+        "协议",
+        "策略",
+        "配置",
+        "路由器"
+      ],
+      "upstream_refs": ["https://github.com/RUC-NLPIR/FlashRAG"]
+    },
+    {
+      "id": "ruc-webthinker-deep-research",
+      "name": "WebThinker 深度调研（可审计 trace + 报告）",
+      "description": "当需要多跳网页探索与调研报告时，用“search→browse→extract→draft”流程输出 report.md + sources.json + trace.jsonl，保证可复核。",
+      "overlay_path": "references/overlays/ruc-nlpir/webthinker-deep-research.md",
+      "preferred_stages": ["think", "research", "team", "any"],
+      "keywords": [
+        "webthinker",
+        "deep research",
+        "research report",
+        "multi-hop",
+        "browse",
+        "navigate",
+        "deep web",
+        "trace",
+        "sources.json",
+        "调研",
+        "深度调研",
+        "调研报告",
+        "网页探索",
+        "可审计",
+        "证据链"
+      ],
+      "upstream_refs": ["https://github.com/RUC-NLPIR/WebThinker"]
+    },
+    {
+      "id": "ruc-deepagent-toolchain",
+      "name": "DeepAgent 工具链规划（tool discovery → skill chain）",
+      "description": "在 confirm_required/复合任务场景，用“工具发现 + 最小技能链 + 验证点”降低选技能成本，并把链条显式化。",
+      "overlay_path": "references/overlays/ruc-nlpir/deepagent-toolchain-plan.md",
+      "preferred_stages": ["think", "do", "team", "any"],
+      "keywords": [
+        "deepagent",
+        "tool discovery",
+        "toolchain",
+        "skill chain",
+        "confirm_required",
+        "route instability",
+        "capability interview",
+        "工具发现",
+        "工具链",
+        "技能链",
+        "选技能",
+        "白盒选择",
+        "路由不确定"
+      ],
+      "upstream_refs": ["https://github.com/RUC-NLPIR/DeepAgent"]
+    },
+    {
+      "id": "ruc-deepagent-memory-fold",
+      "name": "DeepAgent 记忆折叠（长程任务续航）",
+      "description": "把长对话/长任务压缩成结构化 working/tool/evidence memory，便于续跑与交接；遵守 VCO 禁用 episodic-memory 的治理边界。",
+      "overlay_path": "references/overlays/ruc-nlpir/deepagent-memory-fold.md",
+      "preferred_stages": ["retro", "team", "any"],
+      "keywords": [
+        "memory folding",
+        "fold",
+        "compress context",
+        "resume prompt",
+        "handoff",
+        "deepagent",
+        "上下文压缩",
+        "记忆折叠",
+        "续跑",
+        "交接"
+      ],
+      "upstream_refs": ["https://github.com/RUC-NLPIR/DeepAgent"]
+    }
+  ]
+}
+

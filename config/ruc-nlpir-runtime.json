@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-05",
+  "vendor_root": "C:/Users/羽裳/.codex/_external/ruc-nlpir",
+  "repos": {
+    "FlashRAG": {
+      "upstream_repo": "https://github.com/RUC-NLPIR/FlashRAG",
+      "path": "C:/Users/羽裳/.codex/_external/ruc-nlpir/FlashRAG",
+      "expected_commit": "6aca76d1325c0eed9e00fba6ec692bf8b8a52b39",
+      "requirements_relpath": "requirements.txt",
+      "license_relpath": "LICENSE"
+    },
+    "WebThinker": {
+      "upstream_repo": "https://github.com/RUC-NLPIR/WebThinker",
+      "path": "C:/Users/羽裳/.codex/_external/ruc-nlpir/WebThinker",
+      "expected_commit": "db387eb3261de9b5e2db7d2d7fb20af2aceb7882",
+      "requirements_relpath": "requirements.txt",
+      "license_relpath": "LICENSE"
+    },
+    "DeepAgent": {
+      "upstream_repo": "https://github.com/RUC-NLPIR/DeepAgent",
+      "path": "C:/Users/羽裳/.codex/_external/ruc-nlpir/DeepAgent",
+      "expected_commit": "d2bf7263c28e5c57f548ad9fe3b2fe9bfba9b310",
+      "requirements_relpath": "requirements.txt",
+      "license_relpath": "LICENSE"
+    }
+  },
+  "python": {
+    "venv_path": "C:/Users/羽裳/.codex/_external/ruc-nlpir/.venv",
+    "venv_python_win": "C:/Users/羽裳/.codex/_external/ruc-nlpir/.venv/Scripts/python.exe"
+  },
+  "llm": {
+    "base_url_default": "https://right.codes/codex/v1",
+    "model_default": "gpt-5.2-high",
+    "api_key_env": "OPENAI_API_KEY",
+    "base_url_env_candidates": ["OPENAI_BASE_URL", "OPENAI_API_BASE"],
+    "model_env": "VCO_RUCNLPIR_MODEL",
+    "request_timeout_seconds": 120
+  },
+  "web": {
+    "search_keys_env": {
+      "serper": "SERPER_API_KEY",
+      "bing": "BING_SUBSCRIPTION_KEY",
+      "jina": "JINA_API_KEY"
+    },
+    "notes": [
+      "VCO 内置 web.run / playwright 适用于交互式深度调研（Lite 模式）；该部分不需要外部 search key。",
+      "如需在本机脚本中跑“离线/批量”调研（非 tool 环境），才需要 Serper/Bing/Jina 等外部 key。"
+    ]
+  },
+  "engine_defaults": {
+    "flashrag_evidence": "auto",
+    "webthinker_deep_research": "lite",
+    "deepagent_toolchain_plan": "lite",
+    "deepagent_memory_fold": "lite"
+  },
+  "security": {
+    "never_store_api_keys_in_repo": true,
+    "do_not_pass_secrets_via_cli_args": true,
+    "prefer_env_vars": true,
+    "reminder": "不要把 key 写入任何 JSON/脚本/日志；请用环境变量注入。"
+  }
+}
+

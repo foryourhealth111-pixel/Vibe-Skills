@@ -1,19 +1,20 @@
 ﻿{
-  "env": {
-    "OPENAI_API_KEY": "<REQUIRED>",
-    "OPENAI_BASE_URL": "<OPTIONAL e.g. https://right.codes/codex/v1>",
-    "ARK_API_KEY": "<OPTIONAL (TurboMax vector_diff embeddings)>",
-    "ARK_BASE_URL": "<OPTIONAL e.g. https://ark.cn-beijing.volces.com/api/v3>",
-    "VCO_PROFILE": "full",
-    "VCO_CODEX_MODE": "true"
-  },
-  "vco": {
-    "skill_root": "~/.codex/skills",
-    "rules_root": "~/.codex/rules",
-    "hooks_root": "~/.codex/hooks",
-    "mcp_profile": "full"
-  },
-  "hooks": {
-    "pre_write_guard": "~/.codex/hooks/write-guard.js"
-  }
+    "vco":  {
+                "skill_root":  "~/.codex/skills",
+                "rules_root":  "~/.codex/rules",
+                "hooks_root":  "~/.codex/hooks",
+                "mcp_profile":  "full"
+            },
+    "hooks":  {
+                  "pre_write_guard":  "~/.codex/hooks/write-guard.js"
+              },
+    "env":  {
+                "VCO_PROFILE":  "full",
+                "VCO_CODEX_MODE":  "true",
+                "OPENAI_API_KEY":  "\u003cREQUIRED\u003e",
+                "OPENAI_BASE_URL":  "https://right.codes/codex/v1",
+                "ARK_BASE_URL":  "https://ark.cn-beijing.volces.com/api/v3",
+                "ARK_API_KEY":  "\u003cOPTIONAL (TurboMax vector_diff embeddings)\u003e",
+                "VCO_RUCNLPIR_MODEL":  "gpt-5.2-high"
+            }
 }
