@@ -1,6 +1,6 @@
 ﻿{
     "version":  1,
-    "updated":  "2026-03-03",
+    "updated":  "2026-03-05",
     "skills":  {
                    "vibe":  {
                                 "task_allow":  [
@@ -75,6 +75,164 @@
                                                                     "planning"
                                                                 ]
                                      },
+                   "flashrag-evidence":  {
+                                             "task_allow":  [
+                                                                "planning",
+                                                                "review",
+                                                                "debug",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "flashrag",
+                                                                       "evidence",
+                                                                       "evidence plane",
+                                                                       "citation",
+                                                                       "cite",
+                                                                       "source of truth",
+                                                                       "where is this defined",
+                                                                       "policy",
+                                                                       "protocol",
+                                                                       "config",
+                                                                       "router",
+                                                                       "vco config",
+                                                                       "vibe config",
+                                                                       "证据",
+                                                                       "引用",
+                                                                       "出处",
+                                                                       "在哪里定义",
+                                                                       "协议",
+                                                                       "策略",
+                                                                       "配置",
+                                                                       "路由器"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "webthinker",
+                                                                       "deep research",
+                                                                       "multi-hop",
+                                                                       "trace.jsonl",
+                                                                       "sources.json",
+                                                                       "toolchain",
+                                                                       "memory folding",
+                                                                       "记忆折叠",
+                                                                       "技能链"
+                                                                   ],
+                                             "equivalent_group":  "evidence-retrieval",
+                                             "canonical_for_task":  [
+                                                                        "review"
+                                                                    ]
+                                         },
+                   "webthinker-deep-research":  {
+                                                   "task_allow":  [
+                                                                      "planning",
+                                                                      "research"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "webthinker",
+                                                                             "deep research",
+                                                                             "research report",
+                                                                             "multi-hop",
+                                                                             "browse",
+                                                                             "navigate",
+                                                                             "extract",
+                                                                             "trace",
+                                                                             "trace.jsonl",
+                                                                             "sources.json",
+                                                                             "深度调研",
+                                                                             "调研",
+                                                                             "调研报告",
+                                                                             "网页探索",
+                                                                             "可审计",
+                                                                             "证据链"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "tdd",
+                                                                             "unit test",
+                                                                             "bug fix",
+                                                                             "code review",
+                                                                             "flashrag",
+                                                                             "where is this defined",
+                                                                             "工具链",
+                                                                             "记忆折叠"
+                                                                         ],
+                                                   "equivalent_group":  "deep-research",
+                                                   "canonical_for_task":  [
+                                                                              "research"
+                                                                          ]
+                                               },
+                   "deepagent-toolchain-plan":  {
+                                                   "task_allow":  [
+                                                                      "planning",
+                                                                      "research",
+                                                                      "review"
+                                                                  ],
+                                                   "positive_keywords":  [
+                                                                             "deepagent",
+                                                                             "tool discovery",
+                                                                             "toolchain",
+                                                                             "skill chain",
+                                                                             "confirm_required",
+                                                                             "white-box menu",
+                                                                             "capability interview",
+                                                                             "route instability",
+                                                                             "工具发现",
+                                                                             "工具链",
+                                                                             "技能链",
+                                                                             "选技能",
+                                                                             "确认菜单",
+                                                                             "能力访谈",
+                                                                             "路由不确定"
+                                                                         ],
+                                                   "negative_keywords":  [
+                                                                             "webthinker",
+                                                                             "deep research",
+                                                                             "trace.jsonl",
+                                                                             "sources.json",
+                                                                             "memory folding",
+                                                                             "记忆折叠",
+                                                                             "上下文压缩"
+                                                                         ],
+                                                   "equivalent_group":  "orchestration-meta",
+                                                   "canonical_for_task":  [
+                                                                              "planning"
+                                                                          ]
+                                               },
+                   "deepagent-memory-fold":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "review",
+                                                                   "research"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "deepagent",
+                                                                          "memory folding",
+                                                                          "fold",
+                                                                          "context compression",
+                                                                          "compress context",
+                                                                          "resume prompt",
+                                                                          "handoff",
+                                                                          "handover",
+                                                                          "long-running",
+                                                                          "上下文压缩",
+                                                                          "记忆折叠",
+                                                                          "续跑",
+                                                                          "交接",
+                                                                          "恢复提示"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "webthinker",
+                                                                          "deep research",
+                                                                          "trace.jsonl",
+                                                                          "sources.json",
+                                                                          "tool discovery",
+                                                                          "toolchain",
+                                                                          "技能链",
+                                                                          "工具链"
+                                                                      ],
+                                                "equivalent_group":  "memory-management",
+                                                "canonical_for_task":  [
+
+                                                                       ]
+                                            },
                    "create-plan":  {
                                        "task_allow":  [
                                                           "planning"
@@ -1883,6 +2041,419 @@
 
                                                                      ]
                                           },
+                   "scholarly-publishing":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "research",
+                                                                   "review"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "scholarly publishing",
+                                                                          "journal submission workflow",
+                                                                          "投稿流程",
+                                                                          "期刊投稿"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "rebuttal",
+                                                                          "response to reviewers",
+                                                                          "latexmk",
+                                                                          "chktex"
+                                                                      ],
+                                                "equivalent_group":  "scholarly-publishing",
+                                                "canonical_for_task":  [
+                                                                           "planning",
+                                                                           "research"
+                                                                       ]
+                                            },
+                   "submission-checklist":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "research",
+                                                                   "review"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "submission checklist",
+                                                                          "pre-submission",
+                                                                          "rebuttal",
+                                                                          "response to reviewers",
+                                                                          "revision",
+                                                                          "resubmission",
+                                                                          "camera-ready",
+                                                                          "proof",
+                                                                          "cover letter",
+                                                                          "highlights",
+                                                                          "graphical abstract",
+                                                                          "投稿清单",
+                                                                          "返修",
+                                                                          "回复审稿意见",
+                                                                          "相机就绪",
+                                                                          "校样"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "latexmkrc",
+                                                                          "latexmk",
+                                                                          "latexindent",
+                                                                          "chktex",
+                                                                          "github actions",
+                                                                          "ci pipeline"
+                                                                      ],
+                                                "equivalent_group":  "scholarly-publishing",
+                                                "canonical_for_task":  [
+                                                                           "planning"
+                                                                       ]
+                                            },
+                   "manuscript-as-code":  {
+                                              "task_allow":  [
+                                                                 "planning",
+                                                                 "coding",
+                                                                 "research"
+                                                             ],
+                                              "positive_keywords":  [
+                                                                        "manuscript as code",
+                                                                        "manubot",
+                                                                        "reproducible manuscript",
+                                                                        "version control",
+                                                                        "git",
+                                                                        "repository structure",
+                                                                        "论文仓库",
+                                                                        "可复现写作"
+                                                                    ],
+                                              "negative_keywords":  [
+                                                                        "rebuttal",
+                                                                        "cover letter",
+                                                                        "latexindent",
+                                                                        "chktex"
+                                                                    ],
+                                              "equivalent_group":  "scholarly-publishing",
+                                              "canonical_for_task":  [
+                                                                         "planning",
+                                                                         "coding"
+                                                                     ]
+                                          },
+                   "latex-submission-pipeline":  {
+                                                     "task_allow":  [
+                                                                        "planning",
+                                                                        "coding",
+                                                                        "debug",
+                                                                        "research"
+                                                                    ],
+                                                     "positive_keywords":  [
+                                                                               "latex submission pipeline",
+                                                                               "latexmk",
+                                                                               "latexmkrc",
+                                                                               "latexindent",
+                                                                               "chktex",
+                                                                               "biber",
+                                                                               "bibtex",
+                                                                               "pdflatex",
+                                                                               "xelatex",
+                                                                               "lualatex",
+                                                                               "github actions",
+                                                                               "ci pipeline",
+                                                                               "compile latex",
+                                                                               "build pdf",
+                                                                               "自动编译"
+                                                                           ],
+                                                     "negative_keywords":  [
+                                                                               "rebuttal",
+                                                                               "response to reviewers",
+                                                                               "cover letter",
+                                                                               "highlights",
+                                                                               "graphical abstract"
+                                                                           ],
+                                                     "equivalent_group":  "latex-pipeline",
+                                                     "canonical_for_task":  [
+                                                                                "coding"
+                                                                            ]
+                                                 },
+                   "slides-as-code":  {
+                                          "task_allow":  [
+                                                             "planning",
+                                                             "coding",
+                                                             "research"
+                                                         ],
+                                          "positive_keywords":  [
+                                                                    "slides as code",
+                                                                    "slidev",
+                                                                    "marp",
+                                                                    "reveal.js",
+                                                                    "md slides",
+                                                                    "deck",
+                                                                    "speaker notes",
+                                                                    "演示文稿",
+                                                                    "幻灯片",
+                                                                    "组会汇报"
+                                                                ],
+                                          "negative_keywords":  [
+                                                                    "tiff",
+                                                                    "600dpi",
+                                                                    "subplot",
+                                                                    "figure",
+                                                                    "poster",
+                                                                    "beamerposter"
+                                                                ],
+                                          "equivalent_group":  "slides",
+                                          "canonical_for_task":  [
+                                                                     "planning",
+                                                                     "coding"
+                                                                 ]
+                                      },
+                   "scientific-reporting":  {
+                                                "task_allow":  [
+                                                                   "planning",
+                                                                   "coding",
+                                                                   "research",
+                                                                   "review"
+                                                               ],
+                                                "positive_keywords":  [
+                                                                          "scientific reporting",
+                                                                          "technical report",
+                                                                          "research report",
+                                                                          "analysis report",
+                                                                          "whitepaper",
+                                                                          "executive summary",
+                                                                          "appendix",
+                                                                          "reproducible report",
+                                                                          "quarto",
+                                                                          "rmarkdown",
+                                                                          "html report",
+                                                                          "pdf report",
+                                                                          "科研报告",
+                                                                          "技术报告",
+                                                                          "分析报告",
+                                                                          "执行摘要",
+                                                                          "附录"
+                                                                      ],
+                                                "negative_keywords":  [
+                                                                          "rebuttal",
+                                                                          "response to reviewers",
+                                                                          "camera-ready",
+                                                                          "cover letter"
+                                                                      ],
+                                                "equivalent_group":  "science-reporting",
+                                                "canonical_for_task":  [
+                                                                           "planning",
+                                                                           "coding",
+                                                                           "research"
+                                                                       ]
+                                            },
+                   "scientific-visualization":  {
+                                                    "task_allow":  [
+                                                                       "planning",
+                                                                       "coding",
+                                                                       "research",
+                                                                       "review"
+                                                                   ],
+                                                    "positive_keywords":  [
+                                                                              "scientific visualization",
+                                                                              "publication figure",
+                                                                              "journal-ready",
+                                                                              "subplot",
+                                                                              "multi-panel",
+                                                                              "dpi",
+                                                                              "tiff",
+                                                                              "eps",
+                                                                              "svg",
+                                                                              "vector",
+                                                                              "colorblind",
+                                                                              "error bar",
+                                                                              "significance",
+                                                                              "作图",
+                                                                              "画图",
+                                                                              "科研绘图",
+                                                                              "顶刊作图",
+                                                                              "投稿图"
+                                                                          ],
+                                                    "negative_keywords":  [
+                                                                              "flowchart",
+                                                                              "architecture diagram",
+                                                                              "system diagram",
+                                                                              "schematics",
+                                                                              "graphical abstract",
+                                                                              "poster",
+                                                                              "slidev",
+                                                                              "ppt"
+                                                                          ],
+                                                    "equivalent_group":  "science-figures",
+                                                    "canonical_for_task":  [
+                                                                               "planning",
+                                                                               "coding",
+                                                                               "research"
+                                                                           ]
+                                                },
+                   "scientific-schematics":  {
+                                                 "task_allow":  [
+                                                                    "planning",
+                                                                    "coding",
+                                                                    "research"
+                                                                ],
+                                                 "positive_keywords":  [
+                                                                           "schematics",
+                                                                           "diagram",
+                                                                           "flowchart",
+                                                                           "architecture diagram",
+                                                                           "system diagram",
+                                                                           "workflow diagram",
+                                                                           "graphical abstract",
+                                                                           "toc graphic",
+                                                                           "示意图",
+                                                                           "流程图",
+                                                                           "架构图",
+                                                                           "系统图",
+                                                                           "图形摘要"
+                                                                       ],
+                                                 "negative_keywords":  [
+                                                                           "scatter",
+                                                                           "bar chart",
+                                                                           "line chart",
+                                                                           "heatmap",
+                                                                           "subplot",
+                                                                           "tiff",
+                                                                           "600dpi"
+                                                                       ],
+                                                 "equivalent_group":  "science-diagrams",
+                                                 "canonical_for_task":  [
+                                                                            "planning",
+                                                                            "coding",
+                                                                            "research"
+                                                                        ]
+                                             },
+                   "venue-templates":  {
+                                           "task_allow":  [
+                                                              "planning",
+                                                              "research",
+                                                              "coding"
+                                                          ],
+                                           "positive_keywords":  [
+                                                                     "venue template",
+                                                                     "submission guidelines",
+                                                                     "formatting requirements",
+                                                                     "author guidelines",
+                                                                     "camera-ready format",
+                                                                     "neurips",
+                                                                     "icml",
+                                                                     "cvpr",
+                                                                     "chi",
+                                                                     "nature",
+                                                                     "science",
+                                                                     "ieee",
+                                                                     "acm",
+                                                                     "模板",
+                                                                     "投稿模板",
+                                                                     "格式要求",
+                                                                     "版式要求"
+                                                                 ],
+                                           "negative_keywords":  [
+                                                                     "rebuttal",
+                                                                     "response to reviewers",
+                                                                     "latexmk",
+                                                                     "chktex",
+                                                                     "plot",
+                                                                     "作图"
+                                                                 ],
+                                           "equivalent_group":  "venue-format",
+                                           "canonical_for_task":  [
+                                                                      "planning",
+                                                                      "research"
+                                                                  ]
+                                       },
+                   "latex-posters":  {
+                                         "task_allow":  [
+                                                            "planning",
+                                                            "coding",
+                                                            "research"
+                                                        ],
+                                         "positive_keywords":  [
+                                                                   "poster",
+                                                                   "conference poster",
+                                                                   "beamerposter",
+                                                                   "tikzposter",
+                                                                   "baposter",
+                                                                   "学术海报",
+                                                                   "展板"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "slidev",
+                                                                   "marp",
+                                                                   "ppt"
+                                                               ],
+                                         "equivalent_group":  "posters",
+                                         "canonical_for_task":  [
+                                                                    "planning",
+                                                                    "coding"
+                                                                ]
+                                     },
+                   "matplotlib":  {
+                                      "task_allow":  [
+                                                         "coding",
+                                                         "research",
+                                                         "planning"
+                                                     ],
+                                      "positive_keywords":  [
+                                                                "matplotlib",
+                                                                "pyplot",
+                                                                "plt.",
+                                                                "rcParams",
+                                                                "savefig",
+                                                                "axes",
+                                                                "subplot"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "plotly only",
+                                                                "ggplot"
+                                                            ],
+                                      "equivalent_group":  "plotting-lib",
+                                      "canonical_for_task":  [
+
+                                                             ]
+                                  },
+                   "seaborn":  {
+                                   "task_allow":  [
+                                                      "coding",
+                                                      "research",
+                                                      "planning"
+                                                  ],
+                                   "positive_keywords":  [
+                                                             "seaborn",
+                                                             "sns.",
+                                                             "catplot",
+                                                             "displot",
+                                                             "pairplot",
+                                                             "heatmap",
+                                                             "clustermap"
+                                                         ],
+                                   "negative_keywords":  [
+                                                             "matplotlib only",
+                                                             "plotly only"
+                                                         ],
+                                   "equivalent_group":  "plotting-lib",
+                                   "canonical_for_task":  [
+
+                                                          ]
+                               },
+                   "plotly":  {
+                                  "task_allow":  [
+                                                     "coding",
+                                                     "research",
+                                                     "planning"
+                                                 ],
+                                  "positive_keywords":  [
+                                                            "plotly",
+                                                            "plotly express",
+                                                            "interactive",
+                                                            "hover",
+                                                            "dash",
+                                                            "html figure"
+                                                        ],
+                                  "negative_keywords":  [
+                                                            "matplotlib only",
+                                                            "seaborn only"
+                                                        ],
+                                  "equivalent_group":  "plotting-lib",
+                                  "canonical_for_task":  [
+
+                                                         ]
+                              },
                    "designing-experiments":  {
                                                   "task_allow":  [
                                                                      "planning",
@@ -3071,10 +3642,13 @@
                                              "positive_keywords":  [
                                                                        "slides",
                                                                        "slide deck",
+                                                                       "ppt",
                                                                        "pptx",
+                                                                       "powerpoint",
                                                                        "presentation",
                                                                        "talk",
                                                                        "幻灯片",
+                                                                       "演示文稿",
                                                                        "学术报告"
                                                                    ],
                                              "negative_keywords":  [
@@ -3735,15 +4309,28 @@
                                                               "research"
                                                           ],
                                            "positive_keywords":  [
+                                                                     "grant",
+                                                                     "grants",
                                                                      "grant proposal",
+                                                                     "proposal",
+                                                                     "proposals",
                                                                      "nih",
                                                                      "nsf",
+                                                                     "nsfc",
                                                                      "darpa",
                                                                      "funding",
                                                                      "科研基金",
+                                                                     "基金申请",
+                                                                     "基金申请书",
+                                                                     "基金标书",
                                                                      "项目申请书"
                                                                  ],
                                            "negative_keywords":  [
+                                                                     "tender",
+                                                                     "bid",
+                                                                     "招标",
+                                                                     "投标",
+                                                                     "采购",
                                                                      "docking",
                                                                      "smiles"
                                                                  ],

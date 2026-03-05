@@ -1,9 +1,9 @@
 ﻿{
     "version":  1,
-    "generated_at":  "2026-03-05T01:36:23+08:00",
+    "generated_at":  "2026-03-05T21:42:11+08:00",
     "source":  "bundled/skills",
-    "skill_count":  327,
-    "total_bytes":  29449987,
+    "skill_count":  337,
+    "total_bytes":  29789566,
     "skills":  [
                    {
                        "name":  ".system",
@@ -566,6 +566,22 @@
                        "dir_hash":  "b15fdb51b6ec23e974bff5c50b0dd6870a9aa30b08e02905aa65671cd1fc614d"
                    },
                    {
+                       "name":  "deepagent-memory-fold",
+                       "relative_path":  "bundled/skills/deepagent-memory-fold",
+                       "file_count":  1,
+                       "bytes":  2177,
+                       "skill_md_hash":  "7b24995863bc60dae266073f42810340fc17a9e3f7fb8fb646dd115cf05e8b0b",
+                       "dir_hash":  "4a91f55a3a57a5bc5cf89135237bf7d621856860d975d7cf61cec16c740f9a0e"
+                   },
+                   {
+                       "name":  "deepagent-toolchain-plan",
+                       "relative_path":  "bundled/skills/deepagent-toolchain-plan",
+                       "file_count":  1,
+                       "bytes":  3291,
+                       "skill_md_hash":  "e862a0ab344340f4e111bf3e2a31e7cff88fa77706fd52bad0705d29ec9ac23c",
+                       "dir_hash":  "dea8d5209e018909dd6719718eb6a17a922d85ac5fb0ceb4f38403f26a874fc6"
+                   },
+                   {
                        "name":  "deepchem",
                        "relative_path":  "bundled/skills/deepchem",
                        "file_count":  6,
@@ -886,6 +902,14 @@
                        "dir_hash":  "efc080533dc5097464550d3ae961e128f1618189400febaa2f48ebf4150123e6"
                    },
                    {
+                       "name":  "flashrag-evidence",
+                       "relative_path":  "bundled/skills/flashrag-evidence",
+                       "file_count":  2,
+                       "bytes":  15410,
+                       "skill_md_hash":  "295e7c1452b57e3e3e0e7a774acebd73ea221c00d5e55d960a4a77c3bb719a2c",
+                       "dir_hash":  "6a209a1db2d30c1c746460f950fab5df22ea96ce9a29c68724c382d1c2c21ef9"
+                   },
+                   {
                        "name":  "flowio",
                        "relative_path":  "bundled/skills/flowio",
                        "file_count":  2,
@@ -1182,6 +1206,14 @@
                        "dir_hash":  "541cef7042b7dbe95425f3e5fcf8adffade0eba73ef61214d7630bc4e9e641dc"
                    },
                    {
+                       "name":  "latex-submission-pipeline",
+                       "relative_path":  "bundled/skills/latex-submission-pipeline",
+                       "file_count":  3,
+                       "bytes":  2629,
+                       "skill_md_hash":  "9205d96656a535c8c6fa65664edb344d1a209babb7d16745e513c21ae2aff5c6",
+                       "dir_hash":  "aa34e21b71260c1bdd98496e54b95dfc0b73482a03bd21bac35fb779cca343fc"
+                   },
+                   {
                        "name":  "literature-matrix",
                        "relative_path":  "bundled/skills/literature-matrix",
                        "file_count":  10,
@@ -1212,6 +1244,14 @@
                        "bytes":  65120,
                        "skill_md_hash":  "ecfa45a63c3504987dc767d6a4db20114f4defce86eea4b8bd316c0b284d5602",
                        "dir_hash":  "649813e230726c6a70d4499f9aa61c78c93abba1bc34f58bae51fef68c4ab197"
+                   },
+                   {
+                       "name":  "manuscript-as-code",
+                       "relative_path":  "bundled/skills/manuscript-as-code",
+                       "file_count":  2,
+                       "bytes":  2717,
+                       "skill_md_hash":  "81de88373ee73c17f829b217fc19efaa702bfee8c7b9772d31c81614a2d84180",
+                       "dir_hash":  "b4df086f8e1f389fd96ce51fe212ae1a12a8afc0b036a08f2adbced4e98d66be"
                    },
                    {
                        "name":  "markdown-mermaid-writing",
@@ -1894,6 +1934,14 @@
                        "dir_hash":  "b5db45c526864663279e4348d218cb7bdc9e8c2d83d1bacb2710247a93900032"
                    },
                    {
+                       "name":  "scholarly-publishing",
+                       "relative_path":  "bundled/skills/scholarly-publishing",
+                       "file_count":  3,
+                       "bytes":  10387,
+                       "skill_md_hash":  "7e530b610f370c5c671bb45cf96a6ef97a1cec30a8cfd4dab0d7f8bb5ed758c8",
+                       "dir_hash":  "0d395942b1bbfe9506447677421e61a257c3bdce3c8a5934163964c289340a90"
+                   },
+                   {
                        "name":  "scientific-brainstorming",
                        "relative_path":  "bundled/skills/scientific-brainstorming",
                        "file_count":  2,
@@ -1916,6 +1964,14 @@
                        "bytes":  110362,
                        "skill_md_hash":  "659d073666eade183d7280a85f7dbd772d394ac43f250bf82f9b159c0b695428",
                        "dir_hash":  "9d4abe736a271af82fc586b9e52ba92514bb34a75d4c178317fa23b751eb1204"
+                   },
+                   {
+                       "name":  "scientific-reporting",
+                       "relative_path":  "bundled/skills/scientific-reporting",
+                       "file_count":  2,
+                       "bytes":  3892,
+                       "skill_md_hash":  "5fdffa8479701847aefab07c01e1639df7e80bf3588ee686ae81c38be9710434",
+                       "dir_hash":  "b512a1c4e1a7dc07eee5370a9812f9ec34198ceb8bae6d0853b1660de28f9255"
                    },
                    {
                        "name":  "scientific-schematics",
@@ -2126,6 +2182,14 @@
                        "dir_hash":  "f55df3941de45dc2a5fe853207bd2fe9cca3c3427b25c25afadd7da67bf40327"
                    },
                    {
+                       "name":  "slides-as-code",
+                       "relative_path":  "bundled/skills/slides-as-code",
+                       "file_count":  2,
+                       "bytes":  2065,
+                       "skill_md_hash":  "cb8768c3d4feafaf2277b8e52e2acc1c1b66288892cb6fee7fb47fa7ce7ad40f",
+                       "dir_hash":  "40efd398419db38951e714eafe68497d86dfb2182e723742d0ab0e38f7040a6e"
+                   },
+                   {
                        "name":  "smart-file-writer",
                        "relative_path":  "bundled/skills/smart-file-writer",
                        "file_count":  8,
@@ -2300,6 +2364,14 @@
                        "bytes":  15201,
                        "skill_md_hash":  "994b89a5d294eadd6a1611edb51377bac748d5f5fb7f4139d3c736b616b3a46a",
                        "dir_hash":  "2e75a7264668a9438733f288891da9c2f8600cc58005b4b016c3892ac32d2239"
+                   },
+                   {
+                       "name":  "submission-checklist",
+                       "relative_path":  "bundled/skills/submission-checklist",
+                       "file_count":  5,
+                       "bytes":  6781,
+                       "skill_md_hash":  "81aef5a1169fc26dfd779e23da8e3bb038bca034037315af28622dc9613d1461",
+                       "dir_hash":  "a669f7ba9781b2e3412a01a49d52e8c8b08e8f48abe2f2542fc3fd9dd7b1dd7b"
                    },
                    {
                        "name":  "superclaude-framework-compat",
@@ -2528,10 +2600,10 @@
                    {
                        "name":  "vibe",
                        "relative_path":  "bundled/skills/vibe",
-                       "file_count":  472,
-                       "bytes":  4632582,
-                       "skill_md_hash":  "1c76a76365049ad5aa63b11276ec4861c56a53820deb0c75f4c59c017307ac2d",
-                       "dir_hash":  "f818759a0a132f9e046fa928eb0d0c89df492321def5b1943098900c5a340779"
+                       "file_count":  508,
+                       "bytes":  4916546,
+                       "skill_md_hash":  "78c62e29b6072320fcee893b456e59145a8e2892b547564190a0cc30069cdef8",
+                       "dir_hash":  "e2c0a9f934c7e2cf4361591a7390d5afb8c274f5e8a6cbb987c8fdabc87b4551"
                    },
                    {
                        "name":  "visualization-best-practices",
@@ -2548,6 +2620,14 @@
                        "bytes":  151429,
                        "skill_md_hash":  "3114d89e03a121880deada5acaa3a7c39a90683e800b0b0058b25c58ace2d07c",
                        "dir_hash":  "be02907f7ae3bee73afd4ffd5a83dce190fe231ab6e64ab84ff982159e85ce5c"
+                   },
+                   {
+                       "name":  "webthinker-deep-research",
+                       "relative_path":  "bundled/skills/webthinker-deep-research",
+                       "file_count":  2,
+                       "bytes":  6266,
+                       "skill_md_hash":  "7246fece38b5572b956ea449842395d43977aee60e3a9c5d3443a0683929b55a",
+                       "dir_hash":  "32323678f0e9676dec8df3f16d9a7e2b7e492d567a09deb3366b3995a229f0c2"
                    },
                    {
                        "name":  "weights-and-biases",

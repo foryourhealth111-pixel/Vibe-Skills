@@ -14,6 +14,7 @@
   - 新增 Skills：`scholarly-publishing`、`submission-checklist`、`manuscript-as-code`、`latex-submission-pipeline`、`slides-as-code`、`scientific-reporting`（含模板与案例库索引）。
   - 路由规则补齐：学术场景正/负关键词、技能 keyword index、回归用例（grant proposal、PPT/Slidev slides-as-code）。
   - 可靠性：开启 legacy fallback 的 confirm guard，避免低信号误自动路由。
+  - 详细说明（release notes）：`docs/releases/v2.3.28.md`。
 - 新增 TuriX‑CUA Computer Use Overlay（advice-only）：
   - UI/浏览器流程任务提供 CUA vs Playwright vs API 决策树与 runbook（自动建议 → 你确认 → 注入）。
 - 可靠性修复：

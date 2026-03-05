@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "updated": "2026-02-26",
+    "updated": "2026-03-05",
     "default_interview_questions": [
         {
             "id": "goal",
@@ -85,6 +85,34 @@
             "task_allow": ["planning", "coding", "research"],
             "keywords": ["multi-agent", "parallel", "orchestrate", "协同", "并行", "多智能体", "编排"],
             "skills": ["vibe", "subagent-driven-development", "hive-mind-advanced", "local-vco-roles"]
+        },
+        {
+            "id": "local_evidence_retrieval",
+            "display_name": "本地证据检索（FlashRAG-style）",
+            "task_allow": ["planning", "review", "debug", "research"],
+            "keywords": ["flashrag", "evidence", "citation", "cite", "policy", "protocol", "config", "router config", "证据", "引用", "出处", "协议", "配置", "路由器"],
+            "skills": ["flashrag-evidence", "verification-quality-assurance", "context-hunter"]
+        },
+        {
+            "id": "deep_web_research",
+            "display_name": "深度网页调研（WebThinker-style）",
+            "task_allow": ["research", "planning"],
+            "keywords": ["webthinker", "deep research", "research report", "multi-hop", "browse", "trace.jsonl", "sources.json", "深度调研", "调研报告", "网页探索", "可审计"],
+            "skills": ["webthinker-deep-research", "research-lookup", "playwright"]
+        },
+        {
+            "id": "toolchain_planning",
+            "display_name": "工具链规划（DeepAgent-style）",
+            "task_allow": ["planning", "research", "review"],
+            "keywords": ["deepagent", "tool discovery", "toolchain", "skill chain", "confirm_required", "工具发现", "工具链", "技能链", "选技能", "路由不确定"],
+            "skills": ["deepagent-toolchain-plan", "vibe", "mcp-integration"]
+        },
+        {
+            "id": "memory_folding",
+            "display_name": "长程上下文压缩与交接（DeepAgent-style）",
+            "task_allow": ["planning", "review", "research"],
+            "keywords": ["memory folding", "context compression", "resume prompt", "handoff", "上下文压缩", "记忆折叠", "交接", "续跑", "恢复提示"],
+            "skills": ["deepagent-memory-fold", "knowledge-steward"]
         }
     ]
 }

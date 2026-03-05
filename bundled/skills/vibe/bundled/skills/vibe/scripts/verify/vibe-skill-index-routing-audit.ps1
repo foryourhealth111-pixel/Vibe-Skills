@@ -66,6 +66,15 @@ $cases = @(
     [pscustomobject]@{ Name = "writing plans route"; Prompt = "请输出实施计划并做任务拆解"; Grade = "L"; TaskType = "planning"; ExpectedPack = "orchestration-core"; ExpectedSkill = "writing-plans" },
     [pscustomobject]@{ Name = "subagent route"; Prompt = "把任务拆成多个子代理并行执行"; Grade = "XL"; TaskType = "planning"; ExpectedPack = "orchestration-core"; ExpectedSkill = "subagent-driven-development" },
 
+    [pscustomobject]@{ Name = "top journal figures"; Prompt = "顶级期刊作图：多面板figure，导出TIFF 600dpi，色盲友好配色，误差棒和显著性标注"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-figures-visualization"; ExpectedSkill = "scientific-visualization" },
+    [pscustomobject]@{ Name = "scientific report"; Prompt = "科研技术报告：包含方法/结果/讨论，输出HTML+PDF，附录写清复现步骤"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-reporting"; ExpectedSkill = "scientific-reporting" },
+    [pscustomobject]@{ Name = "rebuttal matrix"; Prompt = "回复审稿意见：生成rebuttal逐条回应矩阵，提供返修清单，并起草cover letter"; Grade = "L"; TaskType = "planning"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "submission-checklist" },
+
+    [pscustomobject]@{ Name = "grant proposal"; Prompt = "请帮我写NSFC科研基金申请书（基金申请书），需要结构化标书与评审点对齐"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "research-grants" },
+
+    [pscustomobject]@{ Name = "top ppt deck"; Prompt = "顶级PPT制作：组会汇报slide deck，需要讲述结构与视觉规范"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "scientific-slides" },
+    [pscustomobject]@{ Name = "slidev slides as code"; Prompt = "用Slidev做组会汇报：slides as code，要求可复现导出PDF"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "slides-as-code" },
+
     [pscustomobject]@{ Name = "scientific writing"; Prompt = "请按IMRAD结构写科研论文正文"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "scientific-writing" },
     [pscustomobject]@{ Name = "figma implementation"; Prompt = "把这个Figma设计稿还原为可运行代码"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "figma-implement-design" },
     [pscustomobject]@{ Name = "experiment design"; Prompt = "帮我设计准实验方法，比较DiD和ITS"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "designing-experiments" }

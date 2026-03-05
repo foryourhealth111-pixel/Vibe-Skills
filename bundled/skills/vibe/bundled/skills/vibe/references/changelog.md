@@ -9,6 +9,12 @@
   - `diff_digest` / `committee` / `confirm_question_booster` 三件套加速（advice-first，失败自动退化）。
 - prompts.chat Prompt Asset Boost：
   - 输出 prompts.chat 搜索策略 + 可注入 overlay candidates（不改路由，仅 advice）。
+- 学术写作/投稿/作图/报告路由增强（解决“写报告/作图误入 docs-media”的漏触发问题）：
+  - 新增 Packs：`scholarly-publishing-workflow`（投稿/返修/校样）、`science-figures-visualization`（顶刊作图）、`science-reporting`（科研/技术报告）。
+  - 新增 Skills：`scholarly-publishing`、`submission-checklist`、`manuscript-as-code`、`latex-submission-pipeline`、`slides-as-code`、`scientific-reporting`（含模板与案例库索引）。
+  - 路由规则补齐：学术场景正/负关键词、技能 keyword index、回归用例（grant proposal、PPT/Slidev slides-as-code）。
+  - 可靠性：开启 legacy fallback 的 confirm guard，避免低信号误自动路由。
+  - 详细说明（release notes）：`docs/releases/v2.3.28.md`。
 - 新增 TuriX‑CUA Computer Use Overlay（advice-only）：
   - UI/浏览器流程任务提供 CUA vs Playwright vs API 决策树与 runbook（自动建议 → 你确认 → 注入）。
 - 可靠性修复：

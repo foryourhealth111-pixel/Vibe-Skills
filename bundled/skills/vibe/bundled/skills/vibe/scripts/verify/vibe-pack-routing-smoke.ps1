@@ -183,11 +183,27 @@ foreach ($pair in $aliasPairs) {
     }
 }
 
-$skillsRoot = Resolve-Path (Join-Path $repoRoot "..")
-$topLevelSkillFiles = Get-ChildItem -Path $skillsRoot -Directory |
-    ForEach-Object { Join-Path $_.FullName "SKILL.md" } |
-    Where-Object { Test-Path -LiteralPath $_ }
-$topLevelSkillNames = $topLevelSkillFiles | ForEach-Object { Split-Path (Split-Path $_ -Parent) -Leaf }
+$skillRootCandidates = @()
+$bundledSkillsRoot = Join-Path $repoRoot "bundled\skills"
+if (Test-Path -LiteralPath $bundledSkillsRoot) {
+    $skillRootCandidates += $bundledSkillsRoot
+}
+$skillsRootSibling = Resolve-Path (Join-Path $repoRoot "..")
+if ($skillsRootSibling) {
+    $skillRootCandidates += [string]$skillsRootSibling
+}
+
+$topLevelSkillNames = @()
+foreach ($root in @($skillRootCandidates | Select-Object -Unique)) {
+    if (-not (Test-Path -LiteralPath $root)) { continue }
+
+    $skillFiles = Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName "SKILL.md" } |
+        Where-Object { Test-Path -LiteralPath $_ }
+
+    $topLevelSkillNames += $skillFiles | ForEach-Object { Split-Path (Split-Path $_ -Parent) -Leaf }
+}
+$topLevelSkillNames = @($topLevelSkillNames | Select-Object -Unique)
 
 foreach ($pair in $aliasPairs) {
     $target = [string]$pair.Value

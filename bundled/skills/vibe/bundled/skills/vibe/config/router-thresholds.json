@@ -21,7 +21,7 @@
                    "enforce_task_boundary":  true,
                    "max_skill_candidates_per_pack":  80,
                    "allow_pack_override_by_explicit_user_command":  true,
-                   "enforce_confirm_on_legacy_fallback":  false
+                   "enforce_confirm_on_legacy_fallback":  true
                },
     "candidate_selection":  {
                                 "rule_positive_keyword_bonus":  0.2,

@@ -1,6 +1,6 @@
 ﻿{
     "version":  1,
-    "updated":  "2026-03-03",
+    "updated":  "2026-03-05",
     "legacy_matrix_fallback":  true,
     "packs":  [
                   {
@@ -8,7 +8,8 @@
                       "priority":  100,
                         "grade_allow":  [
                                             "M",
-                                            "L"
+                                            "L",
+                                            "XL"
                                         ],
                       "task_allow":  [
                                          "planning",
@@ -240,6 +241,53 @@
                                                "coding":  "pubmed-database",
                                                "review":  "peer-review",
                                                "research":  "pubmed-database"
+                                           }
+                  },
+                  {
+                      "id":  "ruc-nlpir-augmentation",
+                      "priority":  91,
+                      "grade_allow":  [
+                                          "M",
+                                          "L",
+                                          "XL"
+                                      ],
+                      "task_allow":  [
+                                         "planning",
+                                         "review",
+                                         "debug",
+                                         "research"
+                                     ],
+                      "trigger_keywords":  [
+                                               "flashrag",
+                                               "webthinker",
+                                               "deepagent",
+                                               "ruc-nlpir",
+                                               "RUC-NLPIR",
+                                               "evidence plane",
+                                               "deep research",
+                                               "trace.jsonl",
+                                               "sources.json",
+                                               "toolchain",
+                                               "skill chain",
+                                               "memory folding",
+                                               "证据平面",
+                                               "深度调研",
+                                               "工具链",
+                                               "技能链",
+                                               "记忆折叠",
+                                               "可审计"
+                                           ],
+                      "skill_candidates":  [
+                                               "flashrag-evidence",
+                                               "webthinker-deep-research",
+                                               "deepagent-toolchain-plan",
+                                               "deepagent-memory-fold"
+                                           ],
+                      "defaults_by_task":  {
+                                               "planning":  "deepagent-toolchain-plan",
+                                               "review":  "flashrag-evidence",
+                                               "debug":  "flashrag-evidence",
+                                               "research":  "webthinker-deep-research"
                                            }
                   },
                   {
@@ -629,13 +677,19 @@
                       "trigger_keywords":  [
                                                "slides",
                                                "slide deck",
+                                               "ppt",
                                                "pptx",
+                                               "powerpoint",
                                                "poster",
                                                "infographic",
                                                "mermaid",
                                                "diagram",
                                                "flowchart",
+                                               "slidev",
+                                               "marp",
+                                               "reveal.js",
                                                "幻灯片",
+                                               "演示文稿",
                                                "海报",
                                                "信息图",
                                                "流程图",
@@ -643,11 +697,12 @@
                                            ],
                       "skill_candidates":  [
                                                "scientific-slides",
+                                               "slides-as-code",
                                                "pptx-posters",
                                                "infographics",
                                                "markdown-mermaid-writing",
                                                "markitdown",
-                                               "document-skills",
+                                                "document-skills",
                                                "generate-image"
                                            ],
                       "defaults_by_task":  {
@@ -1485,12 +1540,24 @@
                                                "experimental design",
                                                "literature",
                                                "scientific writing",
+                                               "grant",
+                                               "grants",
+                                               "proposal",
+                                               "proposals",
+                                               "nsfc",
+                                               "nsf",
+                                               "nih",
+                                               "darpa",
+                                               "funding",
                                                "研究",
                                                "假设",
                                                "方法学",
                                                "实验设计",
                                                "文献",
                                                "科研写作",
+                                               "科研基金",
+                                               "基金申请",
+                                               "基金申请书",
                                                "可视化",
                                                "因果分析",
                                                "统计建模",
@@ -1532,6 +1599,159 @@
                                                "planning":  "designing-experiments",
                                                "review":  "verification-quality-assurance",
                                                "research":  "research-lookup"
+                                           }
+                  },
+                  {
+                      "id":  "scholarly-publishing-workflow",
+                      "priority":  97,
+                      "grade_allow":  [
+                                          "M",
+                                          "L",
+                                          "XL"
+                                      ],
+                      "task_allow":  [
+                                         "planning",
+                                         "coding",
+                                         "research"
+                                     ],
+                      "trigger_keywords":  [
+                                               "submission",
+                                               "rebuttal",
+                                               "revision",
+                                               "resubmission",
+                                               "camera-ready",
+                                               "proof",
+                                               "cover letter",
+                                               "highlights",
+                                               "graphical abstract",
+                                               "response to reviewers",
+                                               "回复审稿意见",
+                                               "返修",
+                                               "投稿",
+                                               "相机就绪",
+                                               "校样",
+                                               "latexmk",
+                                               "overleaf",
+                                               "latexindent",
+                                               "chktex"
+                                           ],
+                      "skill_candidates":  [
+                                               "scholarly-publishing",
+                                               "submission-checklist",
+                                               "manuscript-as-code",
+                                               "latex-submission-pipeline",
+                                               "slides-as-code",
+                                               "scientific-writing",
+                                               "scientific-visualization",
+                                               "scientific-schematics",
+                                               "venue-templates",
+                                               "citation-management",
+                                               "paper-2-web",
+                                               "latex-posters",
+                                               "scientific-slides"
+                                           ],
+                      "defaults_by_task":  {
+                                               "planning":  "scholarly-publishing",
+                                               "coding":  "latex-submission-pipeline",
+                                               "research":  "scholarly-publishing"
+                                           }
+                  },
+                  {
+                      "id":  "science-figures-visualization",
+                      "priority":  91,
+                      "grade_allow":  [
+                                          "M",
+                                          "L",
+                                          "XL"
+                                      ],
+                      "task_allow":  [
+                                         "planning",
+                                         "coding",
+                                         "research"
+                                     ],
+                      "trigger_keywords":  [
+                                               "作图",
+                                               "画图",
+                                               "科研绘图",
+                                               "顶刊作图",
+                                               "投稿图",
+                                               "figure",
+                                               "subplot",
+                                               "multi-panel",
+                                               "panel",
+                                               "matplotlib",
+                                               "seaborn",
+                                               "plotly",
+                                               "tiff",
+                                               "dpi",
+                                               "600dpi",
+                                               "vector",
+                                               "eps",
+                                               "svg",
+                                               "colorblind",
+                                               "色盲",
+                                               "配色",
+                                               "误差棒",
+                                               "显著性"
+                                           ],
+                      "skill_candidates":  [
+                                               "scientific-visualization",
+                                               "matplotlib",
+                                               "seaborn",
+                                               "plotly",
+                                               "scientific-schematics"
+                                           ],
+                      "defaults_by_task":  {
+                                               "planning":  "scientific-visualization",
+                                               "coding":  "scientific-visualization",
+                                               "research":  "scientific-visualization"
+                                           }
+                  },
+                  {
+                      "id":  "science-reporting",
+                      "priority":  88,
+                      "grade_allow":  [
+                                          "M",
+                                          "L",
+                                          "XL"
+                                      ],
+                      "task_allow":  [
+                                         "planning",
+                                         "coding",
+                                         "research"
+                                     ],
+                      "trigger_keywords":  [
+                                               "科研报告",
+                                               "技术报告",
+                                               "项目报告",
+                                               "实验报告",
+                                               "分析报告",
+                                               "HTML报告",
+                                               "PDF报告",
+                                               "执行摘要",
+                                               "附录",
+                                               "复现",
+                                               "technical report",
+                                               "research report",
+                                               "analysis report",
+                                               "executive summary",
+                                               "appendix",
+                                               "reproducible",
+                                               "quarto",
+                                               "rmarkdown",
+                                               "whitepaper"
+                                           ],
+                      "skill_candidates":  [
+                                               "scientific-reporting",
+                                               "scientific-writing",
+                                               "scientific-visualization",
+                                               "scientific-schematics",
+                                               "markdown-mermaid-writing"
+                                           ],
+                      "defaults_by_task":  {
+                                               "planning":  "scientific-reporting",
+                                               "coding":  "scientific-reporting",
+                                               "research":  "scientific-reporting"
                                            }
                   }
               ]
