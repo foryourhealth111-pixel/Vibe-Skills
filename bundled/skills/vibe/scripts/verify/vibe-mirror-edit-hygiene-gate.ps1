@@ -24,7 +24,7 @@ function Get-GitStatusEntries {
         [Parameter(Mandatory)] [string]$RepoRoot
     )
 
-    $lines = & git -C $RepoRoot -c core.quotePath=false status --porcelain=v1 --untracked-files=all
+    $lines = @(& git -C $RepoRoot -c core.quotePath=false status --porcelain=v1 --untracked-files=all)
     if ($LASTEXITCODE -ne 0) {
         throw 'git status failed while computing mirror edit hygiene.'
     }
@@ -167,7 +167,7 @@ $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecution
 $packaging = $context.packaging
 $allowBundledOnly = @($packaging.allow_bundled_only)
 $mirrorTargets = @($context.mirrorTargets | Where-Object { -not $_.isCanonical } | Sort-Object { $_.path.Length } -Descending)
-$gitEntries = Get-GitStatusEntries -RepoRoot $context.repoRoot
+$gitEntries = @(Get-GitStatusEntries -RepoRoot $context.repoRoot)
 $mirrorPaths = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
 $canonicalPaths = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
 $results = [ordered]@{

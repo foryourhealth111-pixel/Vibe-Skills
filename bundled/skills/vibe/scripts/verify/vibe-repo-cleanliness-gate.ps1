@@ -26,7 +26,7 @@ function Get-GitStatusEntries {
         [Parameter(Mandatory)] [string]$RepoRoot
     )
 
-    $lines = & git -C $RepoRoot -c core.quotePath=false status --porcelain=v1 --untracked-files=all
+    $lines = @(& git -C $RepoRoot -c core.quotePath=false status --porcelain=v1 --untracked-files=all)
     if ($LASTEXITCODE -ne 0) {
         throw 'git status failed while computing repo cleanliness.'
     }
@@ -164,7 +164,7 @@ if (-not (Test-Path -LiteralPath $policyPath)) {
 }
 
 $policy = Get-Content -LiteralPath $policyPath -Raw | ConvertFrom-Json
-$entries = Get-GitStatusEntries -RepoRoot $context.repoRoot
+$entries = @(Get-GitStatusEntries -RepoRoot $context.repoRoot)
 $classified = @{
     local_noise = @()
     runtime_generated = @()
