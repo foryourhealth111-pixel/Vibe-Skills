@@ -77,6 +77,12 @@ This repository is organized around a single control plane, `VCO`, and includes:
 The point is not to pile components together.
 The point is to make them work under one governed execution surface.
 
+## Manifesto
+
+If you want the full statement of what this ecosystem is trying to build, what it rejects, and what it publicly commits to, start here:
+
+- [`docs/manifesto.en.md`](./docs/manifesto.en.md)
+
 ## Start Here
 
 If you are:
@@ -140,6 +146,7 @@ turning skills from scattered plugins into reliable infrastructure for general-p
 
 ## Key Entry Points
 
+- [`docs/manifesto.en.md`](./docs/manifesto.en.md): the public manifesto and technical commitments of VibeSkills
 - [`docs/ecosystem-absorption-dedup-governance.md`](./docs/ecosystem-absorption-dedup-governance.md): ecosystem absorption, deduplication, and layered governance
 - [`docs/observability-consistency-governance.md`](./docs/observability-consistency-governance.md): observability, consistency, and manual rollback governance
 - [`docs/memory-governance-integration.md`](./docs/memory-governance-integration.md): memory boundaries and role separation

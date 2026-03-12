@@ -4,15 +4,19 @@
 
 ## Start Here
 
+- [`manifesto.md`](manifesto.md)：VibeSkills 对外宣言与技术承诺；说明我们为什么做这件事、反对什么、建设什么。
 - [`docs-information-architecture.md`](docs-information-architecture.md)：`docs/` 的正式信息架构、命名约定与导航规则。
 - [`repo-cleanliness-governance.md`](repo-cleanliness-governance.md)：cleanup-first 基线，定义 local noise / governed workset / mirror pressure 的边界。
 - [`output-artifact-boundary-governance.md`](output-artifact-boundary-governance.md)：`outputs/**` 的长期资产 / 运行产物分层规则。
 - [`runtime-freshness-install-sop.md`](runtime-freshness-install-sop.md)：canonical -> installed runtime 的 freshness/install SOP。
 - [`../references/index.md`](../references/index.md)：reference 资产导航入口。
-- [../scripts/README.md](../scripts/README.md)：scripts 根入口；统一跳转到 governance / verify / common surfaces.
-- [../scripts/verify/README.md](../scripts/verify/README.md)：gate 运行入口；[../scripts/verify/gate-family-index.md](../scripts/verify/gate-family-index.md) 提供 verify family 索引。
+- [`../scripts/README.md`](../scripts/README.md)：scripts 根入口；统一跳转到 governance / verify / common surfaces.
+- [`../scripts/verify/README.md`](../scripts/verify/README.md)：gate 运行入口；[`../scripts/verify/gate-family-index.md`](../scripts/verify/gate-family-index.md) 提供 verify family 索引。
 - [`../scripts/governance/README.md`](../scripts/governance/README.md)：governance operator surface（sync / rollout / release / audit）。
-- [`../config/index.md`](../config/index.md)：machine-readable policy / routing / release / cleanliness 配置入口。`n- [`plans/2026-03-08-repo-full-cleanup-master-plan.md`](plans/2026-03-08-repo-full-cleanup-master-plan.md)：repo cleanup umbrella plan；统一 Batch0-9 的收口顺序与 definition of done。`n- [`external-tooling/README.md`](external-tooling/README.md)：MCP / skill / manual 边界与外部工具职责说明。`n- [`../scripts/common/README.md`](../scripts/common/README.md)：shared helpers / wave runner / UTF-8 no BOM 写入约束。
+- [`../config/index.md`](../config/index.md)：machine-readable policy / routing / release / cleanliness 配置入口。
+- [`plans/2026-03-08-repo-full-cleanup-master-plan.md`](plans/2026-03-08-repo-full-cleanup-master-plan.md)：repo cleanup umbrella plan；统一 Batch0-9 的收口顺序与 definition of done。
+- [`external-tooling/README.md`](external-tooling/README.md)：MCP / skill / manual 边界与外部工具职责说明。
+- [`../scripts/common/README.md`](../scripts/common/README.md)：shared helpers / wave runner / UTF-8 no BOM 写入约束。
 
 ## Governance Spine
 
@@ -50,6 +54,7 @@
   - [`plans/2026-03-07-vco-wave83-100-execution-plan.md`](plans/2026-03-07-vco-wave83-100-execution-plan.md)
   - [`plans/2026-03-07-vco-wave83-100-execution-status.md`](plans/2026-03-07-vco-wave83-100-execution-status.md)
   - [`plans/2026-03-08-repo-cleanliness-batch2-4-triage.md`](plans/2026-03-08-repo-cleanliness-batch2-4-triage.md)
+
 ## Cleanup-First Rules
 
 - 不通过 mass rename 制造新漂移；优先补索引、taxonomy、README 锚点。

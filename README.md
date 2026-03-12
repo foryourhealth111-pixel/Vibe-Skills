@@ -77,6 +77,12 @@ VibeSkills 更关心的是：
 VibeSkills 的目标不是把这些组件堆在一起。
 而是让它们在一个统一治理面下协同工作。
 
+## Manifesto
+
+如果你想先理解这套生态的理念、反对什么、建设什么，以及我们对技术和开源做出的承诺，请先读：
+
+- [`docs/manifesto.md`](./docs/manifesto.md)
+
 ## 先来用
 
 如果你是：
@@ -140,6 +146,7 @@ Star 它，不只是收藏一个仓库。
 
 ## 项目入口
 
+- [`docs/manifesto.md`](./docs/manifesto.md)：VibeSkills 对外宣言与技术承诺
 - [`docs/ecosystem-absorption-dedup-governance.md`](./docs/ecosystem-absorption-dedup-governance.md)：VibeSkills 生态吸收、去冗余与分层治理总纲
 - [`docs/observability-consistency-governance.md`](./docs/observability-consistency-governance.md)：可观测性、一致性与手动回退治理
 - [`docs/memory-governance-integration.md`](./docs/memory-governance-integration.md)：记忆边界与角色分工
