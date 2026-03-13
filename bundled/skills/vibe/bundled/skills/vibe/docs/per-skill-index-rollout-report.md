@@ -1,6 +1,6 @@
 # Per-Skill Index Rollout Report
 
-Date: 2026-02-24
+Date: 2026-02-24  
 Scope: `$vibe` pack router + per-skill keyword index refinement
 
 ## 1. Goal

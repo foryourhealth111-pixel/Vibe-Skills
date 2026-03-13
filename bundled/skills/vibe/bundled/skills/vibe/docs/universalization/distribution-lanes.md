@@ -1,6 +1,6 @@
 # Distribution Lanes (Truth Contract)
 
-> Status baseline: 2026-03-13
+> Status baseline: 2026-03-13  
 > Scope: distribution descriptors and capability promises, not runtime takeover.
 
 ## Purpose
@@ -75,3 +75,4 @@ This gate checks:
 - the dist manifests exist and are structurally complete
 - the manifests do not overclaim relative to platform/host truth docs
 - the docs referenced by manifests exist and contain the required lane vocabulary
+

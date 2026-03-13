@@ -74,3 +74,4 @@ Conclusion:
 - No critical misroute introduced.
 - Pack routing and per-skill routing remain stable.
 - Hard migration cleanup completed with rollback backup in place.
+

@@ -68,3 +68,4 @@ bash ./check.sh
 
 - `docs/install/recommended-full-path.md`
 - `docs/install/enterprise-governed-path.md`
+

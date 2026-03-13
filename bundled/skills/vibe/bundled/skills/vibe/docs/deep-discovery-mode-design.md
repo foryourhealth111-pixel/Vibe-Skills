@@ -2,7 +2,7 @@
 
 ## 1. Goal
 
-Deep Discovery Mode solves a common VCO routing blind spot: prompts that are ambiguous, composite, or cross-domain can look valid at logic level but behave like a blackbox in runtime.
+Deep Discovery Mode solves a common VCO routing blind spot: prompts that are ambiguous, composite, or cross-domain can look valid at logic level but behave like a blackbox in runtime.  
 This mode adds a deterministic prepack inspection chain to expose:
 
 - what capability signals were detected,
@@ -121,3 +121,4 @@ Recommended regression chain:
 & ".\scripts\verify\vibe-routing-smoke.ps1"
 & ".\scripts\verify\vibe-routing-probe-research.ps1" -DefaultIncludePrompt
 ```
+

@@ -1,6 +1,6 @@
 # Governance Family Map
 
-> Baseline snapshot: 2026-03-13
+> Baseline snapshot: 2026-03-13  
 > Purpose: compress human-facing entry without deleting machine-useful governance assets.
 
 ## Why This Exists

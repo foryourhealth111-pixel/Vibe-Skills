@@ -194,3 +194,4 @@ if ($WriteArtifacts) {
 }
 
 if ($failures.Count -gt 0) { exit 1 }
+

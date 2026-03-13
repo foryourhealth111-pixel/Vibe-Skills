@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-ConfirmUiPolicyDefaults {
     return [pscustomobject]@{
@@ -417,3 +417,5 @@ function Build-ConfirmUiText {
 
     return ($lines -join "`n")
 }
+
+

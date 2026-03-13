@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-OpenSpecTaskId {
     param(
@@ -225,3 +225,5 @@ function Get-OpenSpecGovernanceAdvice {
         upgrade_trigger_matches = @($upgradeMatches)
     }
 }
+
+

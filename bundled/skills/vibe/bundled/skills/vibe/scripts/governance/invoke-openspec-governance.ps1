@@ -79,10 +79,10 @@ Stable requirement truths should be stored here.
 $Prompt
 
 ## Scope
--
+- 
 
 ## Tasks
-- [ ]
+- [ ] 
 "@ },
         @{ Name = "tasks.md"; Content = @"
 # Tasks for $TaskId

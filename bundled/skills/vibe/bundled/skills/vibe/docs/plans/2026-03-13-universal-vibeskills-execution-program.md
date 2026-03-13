@@ -654,3 +654,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\verify\vibe-developer-entry-u
 5. governance family 入口已收敛，开发者不会被文件海淹没。
 6. replay harness 已建立，零退化可以被脚本证明。
 7. 任何 preview adapter 和 dist pack 都不会污染官方运行时主链。
+

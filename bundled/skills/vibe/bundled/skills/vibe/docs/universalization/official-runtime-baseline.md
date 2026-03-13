@@ -1,6 +1,6 @@
 # Official Runtime Baseline
 
-> Baseline frozen on: 2026-03-13
+> Baseline frozen on: 2026-03-13  
 > Scope: protect the current official `vco-skills-codex` runtime from silent regression during universalization.
 >
 > This is a runtime baseline, not a roadmap. It is intentionally conservative.

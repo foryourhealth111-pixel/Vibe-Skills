@@ -79,3 +79,4 @@ pwsh -File .\scripts\verify\vibe-prompt-asset-boost-gate.ps1
 
 - `pwsh -File .\scripts\verify\vibe-config-parity-gate.ps1`
 - `pwsh -File .\scripts\verify\vibe-version-packaging-gate.ps1`
+

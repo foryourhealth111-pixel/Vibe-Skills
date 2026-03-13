@@ -32,3 +32,4 @@
 - `product/product-sprint-prioritizer.md`
 - `product/product-feedback-synthesizer.md`
 - `product/product-trend-researcher.md`
+

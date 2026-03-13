@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-PathCandidatesFromPrompt {
     param(
@@ -686,3 +686,5 @@ function Get-DataScaleOverlayAdvice {
         override_candidate_allowed = $overrideCandidateAllowed
     }
 }
+
+

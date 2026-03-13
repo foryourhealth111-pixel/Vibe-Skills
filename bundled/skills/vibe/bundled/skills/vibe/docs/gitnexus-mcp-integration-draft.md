@@ -84,14 +84,14 @@
 
 ### 4.1 分层原则
 
-- **Layer 0：索引（Index）**
+- **Layer 0：索引（Index）**  
   - 每个 repo 需要 `gitnexus analyze`（首次 + 更新）才能产生可用数据。
-- **Layer 1：工具暴露（MCP）**
+- **Layer 1：工具暴露（MCP）**  
   - 通过 MCP 把 GitNexus 变成工具集合（list_repos/query/context/impact/detect_changes/rename/cypher）。
-- **Layer 2：VCO 使用策略（Policy）**
+- **Layer 2：VCO 使用策略（Policy）**  
   - 定义什么时候建议调用哪些工具（例如 review 用 detect_changes，重构用 impact）。
   - 失败 fallback（rg + git diff）。
-- **Layer 3：overlay（Prompt Guidance）**
+- **Layer 3：overlay（Prompt Guidance）**  
   - 我们已经有 GitNexus prompt overlay，作为“如何产出证据”的模板（advice-only）。
 
 ## 5. 运行时模式（Modes）
@@ -180,7 +180,7 @@ npx -y gitnexus@<PINNED_VERSION> analyze
 ```
 
 > 现实提示：`gitnexus analyze` 可能会创建一个较大的 `.gitnexus/` 目录（几百 MB 量级），并且在某些项目里会写入/更新
-> `AGENTS.md` / `CLAUDE.md` / `.gitignore` / `.claude/skills/gitnexus/` 等“运行时上下文文件”。
+> `AGENTS.md` / `CLAUDE.md` / `.gitignore` / `.claude/skills/gitnexus/` 等“运行时上下文文件”。  
 > 建议在一个工作分支里执行，确认 diff 后再决定是否提交这些改动（不提交也不影响 MCP 查询能力）。
 
 ### 7.2 验证 MCP server 可用（最小探针）

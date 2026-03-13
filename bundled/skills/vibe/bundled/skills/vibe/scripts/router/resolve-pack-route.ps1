@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)]
     [string]$Prompt,
     [ValidateSet("M", "L", "XL")]
@@ -1226,3 +1226,5 @@ if ($probeArtifact) {
 }
 
 $result | ConvertTo-Json -Depth 12
+
+

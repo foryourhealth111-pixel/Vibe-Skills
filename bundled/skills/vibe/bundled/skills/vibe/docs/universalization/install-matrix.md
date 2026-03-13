@@ -1,6 +1,6 @@
 # Install Matrix (No-Regression, No-Overclaim)
 
-> Status baseline: 2026-03-13
+> Status baseline: 2026-03-13  
 > Scope: installation and bootstrap entrypoints by lane, without changing official runtime ownership.
 
 ## Purpose
@@ -36,3 +36,4 @@ These are not bugs. They are truth boundaries.
 - Platform status: `docs/universalization/platform-support-matrix.md`
 - Host status: `docs/universalization/host-capability-matrix.md`
 - Official runtime baseline: `docs/universalization/official-runtime-baseline.md`
+

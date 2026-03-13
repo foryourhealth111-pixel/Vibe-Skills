@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-PythonCleanCodeAdvice {
     param(
@@ -412,3 +412,5 @@ function Get-PythonCleanCodeAdvice {
 
     return [pscustomobject]$base
 }
+
+

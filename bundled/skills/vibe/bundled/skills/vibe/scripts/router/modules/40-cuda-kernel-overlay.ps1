@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-CudaKernelOverlayAdvice {
     param(
@@ -433,3 +433,5 @@ function Get-CudaKernelOverlayAdvice {
 
     return [pscustomobject]$base
 }
+
+

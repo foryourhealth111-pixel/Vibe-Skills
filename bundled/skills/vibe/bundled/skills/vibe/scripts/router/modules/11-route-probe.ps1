@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-RouteProbeAdviceSummary {
     param([object]$Advice)
@@ -428,3 +428,4 @@ function Write-RouteProbeArtifact {
         runtime_state_prompt = $runtimeStatePrompt
     }
 }
+

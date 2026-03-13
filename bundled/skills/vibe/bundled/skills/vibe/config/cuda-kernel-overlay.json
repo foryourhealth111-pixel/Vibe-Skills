@@ -1,4 +1,4 @@
-{
+﻿{
   "version": 1,
   "updated": "2026-02-26",
   "enabled": true,
@@ -216,3 +216,7 @@
   },
   "license_boundary_note": "LeetCUDA is GPL-3.0 upstream. VCO integrates methodology-level advisory only; no upstream code vendoring."
 }
+
+
+
+

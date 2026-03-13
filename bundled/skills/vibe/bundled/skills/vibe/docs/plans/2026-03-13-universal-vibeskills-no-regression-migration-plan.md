@@ -1,6 +1,6 @@
 # Universal VibeSkills No-Regression Migration Plan
 
-> Goal: 在严格保证当前 `vco-skills-codex` 官方满血运行时不退化的前提下，把项目演进为一个面向 Claude Code、Codex、OpenCode 以及其他宿主可消费的通用 `VibeSkills` 生态包。
+> Goal: 在严格保证当前 `vco-skills-codex` 官方满血运行时不退化的前提下，把项目演进为一个面向 Claude Code、Codex、OpenCode 以及其他宿主可消费的通用 `VibeSkills` 生态包。  
 > Core position: **可以做，但只能采用“官方运行时冻结 + 宿主无关 core 抽象 + 宿主适配器分层 + 证据驱动晋级”的并轨迁移路线，不能采用原地大一统替换。**
 
 > Baseline proof bundle: `docs/universalization/official-runtime-baseline.md`, `references/proof-bundles/official-runtime-baseline/baseline-manifest.json`
@@ -9,10 +9,10 @@
 
 ### Final Judgment
 
-**结论一：目标合理。**
+**结论一：目标合理。**  
 把 `VibeSkills` 从当前偏 `Codex/Claude` 官方运行时，升级为一个“通用 skills 基座”，从产品方向、生态方向和治理方向上都是合理且必要的。
 
-**结论二：不退化迁移是可实现的，但有严格前提。**
+**结论二：不退化迁移是可实现的，但有严格前提。**  
 只有在下面四条前提同时成立时，才可以宣称“通用化不会导致当前功能退化”：
 
 1. 当前官方运行时继续作为 `Tier-1 Official Runtime` 保留，不被通用化改造直接替换。
@@ -20,7 +20,7 @@
 3. 所有宿主差异必须显式建模为 `capabilities + degrade contract`，不能靠 prompt 约定隐式兼容。
 4. 任意通用化产物要提升到默认分发面之前，必须通过跨宿主 replay、route parity、install parity、safety parity 的验证链。
 
-**结论三：错误的做法会造成真实退化。**
+**结论三：错误的做法会造成真实退化。**  
 如果采用“把现有官方运行时直接改造成所有宿主共用的一套逻辑”这种方式，极大概率退化在以下区域：
 
 - Router 精度
@@ -32,7 +32,7 @@
 
 ### Strategic Translation
 
-本计划不追求“一份宿主无差别运行时”。
+本计划不追求“一份宿主无差别运行时”。  
 本计划追求的是：
 
 - **一份宿主无关的 skill 真相层**
@@ -629,7 +629,7 @@ Windows 与 Linux/macOS 的支持等级不能靠 README 段落暗示，必须进
 
 ### Rule
 
-现有 `SKILL.md` 不删除，不替换，不改变运行面语义。
+现有 `SKILL.md` 不删除，不替换，不改变运行面语义。  
 只建立 canonical 映射关系，例如：
 
 - `SKILL.md` -> `core/skills/vibe/instruction.md`
@@ -1016,12 +1016,12 @@ Windows 与 Linux/macOS 的支持等级不能靠 README 段落暗示，必须进
 
 ## Final Position
 
-**不退化通用化是可以做到的。**
+**不退化通用化是可以做到的。**  
 但前提不是“把现有系统统一掉”，而是“把现有官方系统保护住，然后在它旁边长出一个宿主无关 core 和多宿主 adapter 体系”。
 
 换句话说：
 
-不是把 `vco-skills-codex` 改没。
+不是把 `vco-skills-codex` 改没。  
 而是让它从“唯一运行时”升级成“官方参考运行时 + 通用技能基座的治理真源”。
 
 这才是既不退化、又能真正通用的迁移路线。

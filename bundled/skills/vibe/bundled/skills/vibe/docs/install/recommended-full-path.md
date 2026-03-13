@@ -57,3 +57,4 @@ bash ./check.sh --profile full --deep
 
 - 你在 Claude Code / Generic Host 上，并期望本仓库提供与 Codex 等价的安装闭环：目前不成立（参见对应 dist manifest 的 `status` 与 `anti_overclaim`）
 - 你在 Linux/macOS 上但无法 provision `pwsh`，却希望拿到“权威 gate 全量通过”的结论：这会被平台合同视为过度承诺
+

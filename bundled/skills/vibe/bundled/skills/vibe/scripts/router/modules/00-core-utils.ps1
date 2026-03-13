@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Normalize-Key {
     param([string]$InputText)
@@ -327,3 +327,6 @@ function Test-OverlayConfirmRequired {
     if ($Result.daily_dialectic_advice -and [bool]$Result.daily_dialectic_advice.confirm_required) { return $true }
     return $false
 }
+
+
+

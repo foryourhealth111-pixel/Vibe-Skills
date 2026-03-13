@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-SystemDesignOverlayAdvice {
     param(
@@ -395,3 +395,5 @@ function Get-SystemDesignOverlayAdvice {
 
     return [pscustomobject]$base
 }
+
+

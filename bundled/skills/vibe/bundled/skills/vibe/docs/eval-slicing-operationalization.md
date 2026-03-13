@@ -1,4 +1,4 @@
-# Eval Slicing Operationalization
+﻿# Eval Slicing Operationalization
 
 ## 1. Why Wave16 Exists
 
@@ -77,3 +77,4 @@ Wave16 完成后，最少要看到：
 - 不产生默认面扩张。
 
 如果做不到，允许继续 research，但不得进入 promotion prep。
+

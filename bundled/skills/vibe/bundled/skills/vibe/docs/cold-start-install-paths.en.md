@@ -11,8 +11,8 @@ The goal is not to force everyone into one install mode. The goal is to answer f
 
 If you only remember one thing:
 
-`minimum viable` is about getting the system running quickly.
-`recommended full-featured` is about closing the repo-governed surface.
+`minimum viable` is about getting the system running quickly.  
+`recommended full-featured` is about closing the repo-governed surface.  
 `enterprise-governed` is about repeatable, auditable, rollback-safe delivery.
 
 ## Path 1: Minimum Viable

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$OutputDirectory,
     [switch]$DefaultIncludePrompt,
     [switch]$KeepFixtures
@@ -771,3 +771,4 @@ if (-not $KeepFixtures) {
         Remove-Item -LiteralPath $fixtureDir -Recurse -Force
     }
 }
+

@@ -1,6 +1,6 @@
 # Router Model Neutrality
 
-> Status baseline: 2026-03-13
+> Status baseline: 2026-03-13  
 > Goal: include GPT-backed routing intelligence in universalization governance without turning GPT into the ecosystem's hidden single point of truth.
 
 ## Executive Position

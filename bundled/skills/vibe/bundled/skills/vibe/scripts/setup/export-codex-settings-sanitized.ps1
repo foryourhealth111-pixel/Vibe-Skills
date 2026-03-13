@@ -85,3 +85,4 @@ $json | Set-Content -LiteralPath $outPath -Encoding UTF8
 Write-Host "Wrote sanitized settings template:" -ForegroundColor Green
 Write-Host ("- {0}" -f $outPath)
 Write-Host "Note: secrets were redacted; safe to commit/push." -ForegroundColor Green
+

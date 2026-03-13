@@ -124,3 +124,4 @@ if ($failCount -gt 0) {
 
 Write-Host "LLM acceleration overlay gate passed."
 exit 0
+

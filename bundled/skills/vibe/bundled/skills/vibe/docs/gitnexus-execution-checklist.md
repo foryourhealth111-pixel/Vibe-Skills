@@ -1,6 +1,6 @@
 # GitNexus × Codex CLI × VCO：执行清单（可复制）
 
-> 目标：把 GitNexus 作为“代码理解/变更感知底座”接入你的 VCO 生态：
+> 目标：把 GitNexus 作为“代码理解/变更感知底座”接入你的 VCO 生态：  
 > 1) Codex CLI 运行时可调用（MCP）；2) VCO 侧可用 advice-only overlay（自动建议 → 你确认 → 输出可注入片段）。
 
 ## 0) 先决条件（一次性确认）

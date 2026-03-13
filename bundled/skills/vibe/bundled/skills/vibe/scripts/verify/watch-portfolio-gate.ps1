@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$WriteArtifacts,
     [string]$ConfigPath,
     [string]$DocPath,
@@ -109,3 +109,4 @@ if ($WriteArtifacts) {
 if (@($script:checks | Where-Object { -not $_.passed }).Count -gt 0) {
     exit 1
 }
+

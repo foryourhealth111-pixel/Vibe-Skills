@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet("shadow", "soft", "strict")]
     [string]$Mode = "shadow",
     [string]$OutputDirectory,
@@ -250,3 +250,5 @@ Write-ScenarioMarkdown -Path $mdPath -Summary $summary
 Write-Host "Deep discovery scenario run complete."
 Write-Host ("Summary JSON: {0}" -f $jsonPath)
 Write-Host ("Summary Markdown: {0}" -f $mdPath)
+
+

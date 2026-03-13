@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Test-DeepDiscoveryScope {
     param(
@@ -264,3 +264,5 @@ function Get-DeepDiscoveryInterviewAdvice {
         should_apply_hook = [bool]$interviewRequired
     }
 }
+
+

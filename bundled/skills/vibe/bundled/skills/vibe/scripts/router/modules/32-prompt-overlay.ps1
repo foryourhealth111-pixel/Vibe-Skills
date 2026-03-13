@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-PromptOverlayAdvice {
     param(
@@ -219,3 +219,5 @@ function Get-PromptOverlayAdvice {
         doc_surface_matches = @($docSurfaceMatches)
     }
 }
+
+

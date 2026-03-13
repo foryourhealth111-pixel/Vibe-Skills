@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-GsdOverlayAdvice {
     param(
@@ -161,3 +161,5 @@ function Get-GsdOverlayAdvice {
         }
     }
 }
+
+

@@ -66,3 +66,4 @@ $settings | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $settingsPath -E
 Write-Host "Updated Codex settings.json env:" -ForegroundColor Green
 if ($resolvedBaseUrl) { Write-Host "- ARK_BASE_URL set" }
 Write-Host "- ARK_API_KEY set"
+

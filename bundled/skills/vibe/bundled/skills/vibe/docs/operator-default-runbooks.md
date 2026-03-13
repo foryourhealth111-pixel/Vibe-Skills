@@ -1,6 +1,6 @@
 # Operator Default Runbooks
 
-> Baseline: 2026-03-13
+> Baseline: 2026-03-13  
 > Scope: human entry compression for maintainers/operators. This is a runbook, not a new governance structure.
 
 ## Start Here (Compressed Entry)
@@ -48,3 +48,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-wa
 - Do not invent a second “docs/governance/*” tree while the repo already uses `scripts/verify/gate-family-index.md` as the family index.
 - Treat verify gates as the evidence-running surface; docs are the contract and interpretation.
 - When in doubt: prefer additive docs and new gates over mass refactors.
+

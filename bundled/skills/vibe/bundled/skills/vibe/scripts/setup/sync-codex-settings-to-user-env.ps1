@@ -81,3 +81,4 @@ if ($Target -eq "Ark" -or $Target -eq "All") {
 }
 
 Write-Host "Done. Note: a new shell may be required to pick up User-scope variables." -ForegroundColor Cyan
+

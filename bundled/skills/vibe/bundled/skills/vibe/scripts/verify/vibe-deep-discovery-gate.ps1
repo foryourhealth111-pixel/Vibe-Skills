@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 $ErrorActionPreference = "Stop"
 
@@ -134,3 +134,5 @@ if ($failCount -gt 0) {
 
 Write-Host "Deep discovery gate passed."
 exit 0
+
+

@@ -1,6 +1,6 @@
 # Contributor Default Runbooks
 
-> Baseline: 2026-03-13
+> Baseline: 2026-03-13  
 > Scope: a safe, compressed “where do I start” path for contributors. Keep it additive and evidence-driven.
 
 ## Start Here (Compressed Entry)
@@ -53,3 +53,4 @@ If you must touch a frozen zone, require:
 - a written reason (what contract is broken)
 - a replayable proof (which gate detects it)
 - a rollback plan
+

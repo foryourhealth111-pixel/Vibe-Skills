@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-QualityDebtOverlayAdvice {
     param(
@@ -362,3 +362,5 @@ function Get-QualityDebtOverlayAdvice {
         }
     }
 }
+
+

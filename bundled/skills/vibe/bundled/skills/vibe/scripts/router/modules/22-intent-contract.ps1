@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-DeepDiscoveryDeliverableHint {
     param([string]$PromptLower)
@@ -359,3 +359,5 @@ function Get-RouteRuntimeStatePromptDigest {
         }
     }
 }
+
+

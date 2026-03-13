@@ -1,4 +1,4 @@
-{
+﻿{
     "version":  1,
     "updated":  "2026-03-05",
     "skills":  {
@@ -1431,7 +1431,7 @@
                                                       ],
                                 "equivalent_group":  "doc-authoring",
                                  "canonical_for_task":  [
-
+ 
                                                         ]
                              },
                    "docx-comment-reply":  {
@@ -2842,7 +2842,7 @@
                                                                    ],
                                              "equivalent_group":  "literature-search",
                                              "canonical_for_task":  [
-
+ 
                                                                     ]
                                          },
                    "biorxiv-database":  {
@@ -2886,7 +2886,7 @@
                                                                    ],
                                              "equivalent_group":  "literature-search",
                                              "canonical_for_task":  [
-
+ 
                                                                     ]
                                          },
                    "paper-2-web":  {
@@ -2911,7 +2911,7 @@
                                                              ],
                                        "equivalent_group":  "paper-transform",
                                        "canonical_for_task":  [
-
+ 
                                                               ]
                                    },
                    "open-notebook":  {
@@ -2935,7 +2935,7 @@
                                                                ],
                                          "equivalent_group":  "research-notebook",
                                          "canonical_for_task":  [
-
+ 
                                                                 ]
                                      },
                    "pyzotero":  {
@@ -2982,7 +2982,7 @@
                                                                      ],
                                                "equivalent_group":  "citation-tools",
                                                "canonical_for_task":  [
-
+ 
                                                                       ]
                                            },
                    "literature-review":  {
@@ -3049,7 +3049,7 @@
                                                                     ],
                                               "equivalent_group":  "literature-synthesis",
                                               "canonical_for_task":  [
-
+ 
                                                                      ]
                                           },
                    "scientific-critical-thinking":  {
@@ -3118,7 +3118,7 @@
                                                                    ],
                                              "equivalent_group":  "chem-db",
                                              "canonical_for_task":  [
-
+ 
                                                                     ]
                                          },
                    "pubchem-database":  {
@@ -3185,7 +3185,7 @@
                                                                ],
                                          "equivalent_group":  "chem-db",
                                          "canonical_for_task":  [
-
+ 
                                                                 ]
                                      },
                    "zinc-database":  {
@@ -3207,7 +3207,7 @@
                                                                ],
                                          "equivalent_group":  "chem-db",
                                          "canonical_for_task":  [
-
+ 
                                                                 ]
                                      },
                    "datamol":  {
@@ -3339,7 +3339,7 @@
                                                          ],
                                    "equivalent_group":  "chem-toolkit",
                                    "canonical_for_task":  [
-
+ 
                                                           ]
                                },
                    "pytdc":  {
@@ -3361,7 +3361,7 @@
                                                        ],
                                  "equivalent_group":  "chem-datasets",
                                  "canonical_for_task":  [
-
+ 
                                                         ]
                              },
                    "clinicaltrials-database":  {
@@ -3408,7 +3408,7 @@
                                                               ],
                                         "equivalent_group":  "clinical-data",
                                         "canonical_for_task":  [
-
+  
                                                                ]
                                     },
                    "clinpgx-database":  {
@@ -3501,7 +3501,7 @@
                                                                          ],
                                                    "equivalent_group":  "clinical-regulatory",
                                                    "canonical_for_task":  [
-
+  
                                                                           ]
                                                },
                    "clinical-decision-support":  {
@@ -3683,7 +3683,7 @@
                                                             ],
                                       "equivalent_group":  "lab-automation",
                                       "canonical_for_task":  [
-
+ 
                                                              ]
                                   },
                    "protocolsio-integration":  {
@@ -3728,7 +3728,7 @@
                                                                        ],
                                                  "equivalent_group":  "lab-automation",
                                                  "canonical_for_task":  [
-
+ 
                                                                         ]
                                              },
                    "labarchive-integration":  {
@@ -3749,7 +3749,7 @@
                                                                         ],
                                                   "equivalent_group":  "lab-automation",
                                                   "canonical_for_task":  [
-
+ 
                                                                          ]
                                               },
                    "latchbio-integration":  {
@@ -3793,7 +3793,7 @@
                                                                  ],
                                            "equivalent_group":  "lab-automation",
                                            "canonical_for_task":  [
-
+ 
                                                                   ]
                                        },
                    "scientific-slides":  {
@@ -3841,7 +3841,7 @@
                                                               ],
                                         "equivalent_group":  "science-communication",
                                         "canonical_for_task":  [
-
+ 
                                                                ]
                                     },
                    "infographics":  {
@@ -3862,7 +3862,7 @@
                                                               ],
                                         "equivalent_group":  "science-communication",
                                         "canonical_for_task":  [
-
+ 
                                                                ]
                                     },
                    "markdown-mermaid-writing":  {
@@ -3959,7 +3959,7 @@
                                                                 ],
                                           "equivalent_group":  "image-generation",
                                           "canonical_for_task":  [
-
+ 
                                                                  ]
                                       },
                    "edgartools":  {
@@ -4006,7 +4006,7 @@
                                                                ],
                                          "equivalent_group":  "finance-data",
                                          "canonical_for_task":  [
-
+  
                                                                 ]
                                      },
                    "fred-economic-data":  {
@@ -4116,7 +4116,7 @@
                                                                     ],
                                               "equivalent_group":  "public-data",
                                               "canonical_for_task":  [
-
+  
                                                                      ]
                                           },
                    "qiskit":  {
@@ -4161,7 +4161,7 @@
                                                       ],
                                 "equivalent_group":  "quantum",
                                 "canonical_for_task":  [
-
+   
                                                        ]
                             },
                    "pennylane":  {
@@ -4183,7 +4183,7 @@
                                                            ],
                                      "equivalent_group":  "quantum",
                                      "canonical_for_task":  [
-
+   
                                                             ]
                                  },
                    "qutip":  {
@@ -4389,7 +4389,7 @@
                                                       ],
                                 "equivalent_group":  "tabular-bigdata",
                                 "canonical_for_task":  [
-
+ 
                                                        ]
                             },
                    "zarr-python":  {

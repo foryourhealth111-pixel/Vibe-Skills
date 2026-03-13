@@ -1,5 +1,11 @@
 # VCO Changelog
 
+## v2.3.35 (2026-03-13)
+
+- Release cut by `scripts/governance/release-cut.ps1`.
+- Fill in detailed release notes before merge.
+
+
 ## v2.3.34 (2026-03-13)
 
 - Reframed the README install narrative so “full-featured” now means governed closure of the repo-owned surface, not a fake claim that the whole ecosystem is automatically ready.

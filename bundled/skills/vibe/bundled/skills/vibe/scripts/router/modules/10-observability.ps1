@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Write-ObservabilityRouteEvent {
     param(
@@ -178,3 +178,6 @@ function Write-ObservabilityRouteEvent {
         throw
     }
 }
+
+
+

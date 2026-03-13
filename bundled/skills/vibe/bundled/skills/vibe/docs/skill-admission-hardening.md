@@ -1,4 +1,4 @@
-# Skill Admission Hardening
+﻿# Skill Admission Hardening
 
 本文件定义 VCO 在 `P2` 阶段对 skill / subagent 生态的硬化原则。目标不是继续批量吸收外部 skills，而是把 **VCO 已经会路由的能力面** 变成一个有元数据边界、可验证、可去重、可维护的受管集合。
 
@@ -125,3 +125,4 @@ P2.5 建议跑完整验证链：
 ```
 
 这样既能验证 expanded metadata 规则，也能验证 pack / alias safety 与 bundled 同步状态。
+

@@ -68,3 +68,4 @@ Key observation:
 
 Batch C/D hard-migration candidate pruning completed and validated.
 System remains in stable soft-fallback-capable mode while reducing candidate noise.
+

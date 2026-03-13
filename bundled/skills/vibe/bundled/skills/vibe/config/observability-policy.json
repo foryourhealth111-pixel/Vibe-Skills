@@ -1,4 +1,4 @@
-{
+﻿{
     "version":  1,
     "updated":  "2026-02-26",
     "enabled":  true,
@@ -58,3 +58,8 @@
                               "on_write_error":  "continue_without_telemetry"
                           }
 }
+
+
+
+
+

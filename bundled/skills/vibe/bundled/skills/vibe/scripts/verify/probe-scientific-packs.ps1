@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$OutputDirectory,
     [switch]$DefaultIncludePrompt,
     [switch]$Unattended
@@ -565,3 +565,4 @@ Write-MarkdownReport -Path $reportPath -Rows $rows -GroupSummary $groupSummary -
 
 Write-Host ("Probe complete: {0}" -f $reportPath)
 Write-Host ("Summary JSON: {0}" -f $summaryPath)
+

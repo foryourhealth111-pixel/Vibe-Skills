@@ -1,6 +1,6 @@
 # Soft Migration Batch B Expansion Report
 
-Date: 2026-02-24
+Date: 2026-02-24  
 Scope: `$vibe` pack 路由扩容（保持 soft migration，不删除 canonical skill）
 
 ## 1. Change Summary
@@ -23,8 +23,8 @@ Scope: `$vibe` pack 路由扩容（保持 soft migration，不删除 canonical s
 - `ai-llm`: 13
 - `research-design`: 45
 
-Total candidate entries: 223
-Unique candidate entries: 223
+Total candidate entries: 223  
+Unique candidate entries: 223  
 Cross-pack duplicate entries: 0
 
 ## 3. Coverage Check
@@ -46,24 +46,24 @@ Two measurement baselines were used:
 
 All core verification scripts passed after expansion:
 
-- `skills/vibe/scripts/verify/vibe-routing-smoke.ps1`
-  - assertions: 38
-  - passed: 38
+- `skills/vibe/scripts/verify/vibe-routing-smoke.ps1`  
+  - assertions: 38  
+  - passed: 38  
   - failed: 0
 
-- `skills/vibe/scripts/verify/vibe-pack-routing-smoke.ps1`
-  - assertions: 98
-  - passed: 98
+- `skills/vibe/scripts/verify/vibe-pack-routing-smoke.ps1`  
+  - assertions: 98  
+  - passed: 98  
   - failed: 0
 
-- `skills/vibe/scripts/verify/vibe-soft-migration-practice.ps1`
-  - assertions: 11
-  - passed: 11
+- `skills/vibe/scripts/verify/vibe-soft-migration-practice.ps1`  
+  - assertions: 11  
+  - passed: 11  
   - failed: 0
 
-- `skills/vibe/scripts/verify/vibe-pack-regression-matrix.ps1`
-  - assertions: 23
-  - passed: 23
+- `skills/vibe/scripts/verify/vibe-pack-regression-matrix.ps1`  
+  - assertions: 23  
+  - passed: 23  
   - failed: 0
 
 ## 5. Risk and Gate to Hard Migration

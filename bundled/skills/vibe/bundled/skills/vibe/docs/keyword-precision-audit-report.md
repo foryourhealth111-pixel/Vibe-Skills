@@ -1,6 +1,6 @@
 # Keyword Precision Audit Report
 
-Date: 2026-02-24
+Date: 2026-02-24  
 Scope: `$vibe` soft migration keywords (accuracy, interference, bilingual hit)
 
 ## 1. Objective
@@ -53,7 +53,7 @@ Also revalidated core suites after keyword changes:
 
 ## 5. Notes on Fallback vs Overlay
 
-For some generic prompts, route mode may still be `legacy_fallback` because confidence is intentionally threshold-gated.
+For some generic prompts, route mode may still be `legacy_fallback` because confidence is intentionally threshold-gated.  
 This behavior is expected and acts as safety. In these cases, pack ranking remains correct (top pack preserved), and explicit skill requests still route stably via `pack_overlay`.
 
 ## 6. Conclusion

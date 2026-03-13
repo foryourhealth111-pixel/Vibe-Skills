@@ -1,6 +1,6 @@
 # No-Regression Proof Standard (Task 6 / Replay Harness)
 
-> Status baseline: 2026-03-13
+> Status baseline: 2026-03-13  
 > Scope: Task 6 of `docs/plans/2026-03-13-universal-vibeskills-execution-program.md`
 
 This document defines the **minimum, conservative, replay-based proof standard** used by

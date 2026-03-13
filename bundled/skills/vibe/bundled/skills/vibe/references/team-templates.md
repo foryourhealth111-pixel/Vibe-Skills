@@ -143,11 +143,11 @@ If the question does not fit any type, use "General".
 
 ### Workflow (per group, 6 phases)
 
-Phase 1 - Propose: Each agent independently proposes a solution.
-Phase 2 - Reflect: Each agent critiques own proposal (3 weaknesses with failure scenarios).
-Phase 3 - Synthesize: Each agent improves proposal based on self-critique -> `send_input` to partner.
-Phase 4 - Compare: After receiving partner synthesis, analyze differences.
-Phase 5 - Reflect on comparison: Why did we diverge? What did partner see that I missed?
+Phase 1 - Propose: Each agent independently proposes a solution.  
+Phase 2 - Reflect: Each agent critiques own proposal (3 weaknesses with failure scenarios).  
+Phase 3 - Synthesize: Each agent improves proposal based on self-critique -> `send_input` to partner.  
+Phase 4 - Compare: After receiving partner synthesis, analyze differences.  
+Phase 5 - Reflect on comparison: Why did we diverge? What did partner see that I missed?  
 Phase 6 - Final synthesis: Produce final proposal incorporating partner insights -> `send_input` to Lead.
 
 ### Communication Rules

@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Select-PackCandidate {
     param(
@@ -210,3 +210,5 @@ function Select-PackCandidate {
         filtered_out_by_task = @($blockedByTask)
     }
 }
+
+

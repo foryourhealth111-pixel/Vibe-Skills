@@ -87,3 +87,4 @@ Updated checks:
 - `scripts/verify/vibe-pack-routing-smoke.ps1`
 - `scripts/verify/vibe-routing-probe-research.ps1`
 - `scripts/verify/vibe-deep-discovery-scenarios.ps1`
+

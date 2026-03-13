@@ -73,3 +73,4 @@ pwsh -File .\scripts\verify\vibe-version-packaging-gate.ps1
 - 出现 `core_install_incomplete`：立即停止推广
 - 版本一致性 / 离线闭包 / 打包治理 gate 失败：立即停止升级并回滚
 - 文档或对外口径把 `supported-with-constraints` / `preview` 说成 `full-authoritative`：立即撤回承诺并修订发布说明
+

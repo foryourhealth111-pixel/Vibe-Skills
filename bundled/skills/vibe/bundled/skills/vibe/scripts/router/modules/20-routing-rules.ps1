@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-RoutingRuleForCandidate {
     param(
@@ -68,3 +68,5 @@ function Get-PackDefaultCandidate {
 
     return $null
 }
+
+

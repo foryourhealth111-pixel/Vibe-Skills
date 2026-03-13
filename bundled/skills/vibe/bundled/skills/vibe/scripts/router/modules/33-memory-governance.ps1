@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-MemoryGovernanceAdvice {
     param(
@@ -151,3 +151,5 @@ function Get-MemoryGovernanceAdvice {
         role_boundaries = $roleBoundaries
     }
 }
+
+

@@ -1,4 +1,4 @@
-# Auto-extracted router module. Keep function bodies behavior-identical.
+﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
 function Get-DeterministicSampleValue {
     param([string]$SeedText)
@@ -349,3 +349,5 @@ function Get-AiRerankAdvice {
         would_override = [bool]$wouldOverride
     }
 }
+
+

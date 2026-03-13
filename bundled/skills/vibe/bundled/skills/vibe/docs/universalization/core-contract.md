@@ -42,3 +42,4 @@ The first contract version intentionally enforces only invariants that are:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-skill-contract-schema-gate.ps1 -WriteArtifacts
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-skill-contract-parity-gate.ps1 -WriteArtifacts
 ```
+

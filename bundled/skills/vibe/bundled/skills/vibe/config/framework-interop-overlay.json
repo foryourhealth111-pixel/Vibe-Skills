@@ -1,4 +1,4 @@
-{
+﻿{
     "version": 1,
     "updated": "2026-02-25",
     "enabled": true,
@@ -124,3 +124,6 @@
         "on_analyzer_failure": "continue_advisory"
     }
 }
+
+
+

@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 $ErrorActionPreference = "Stop"
 
@@ -114,3 +114,4 @@ if ($failCount -gt 0) {
 
 Write-Host "Skill-index routing audit passed."
 exit 0
+
