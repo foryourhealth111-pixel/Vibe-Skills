@@ -10,7 +10,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ### Current Release Surface
 
-- [`v2.3.31.md`](v2.3.31.md): post-upstream governance closure, disclosure parity fix, and runtime alignment
+- [`v2.3.36.md`](v2.3.36.md): install-surface messaging hardening, host-plugin boundary disclosure, and governed version alignment
 
 ### Release Runtime / Proof Handoff
 
@@ -21,10 +21,11 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
+- [`v2.3.36.md`](v2.3.36.md) - 2026-03-13 - install-surface messaging hardening / host-plugin policy / version alignment
+- [`v2.3.34.md`](v2.3.34.md) - 2026-03-13 - full-feature framing correction / cold-start onboarding / readiness boundary disclosure
+- [`v2.3.33.md`](v2.3.33.md) - 2026-03-13 - provider seeding fix / slow-install expectation hardening / bundled config sync repair
+- [`v2.3.32.md`](v2.3.32.md) - 2026-03-13 - dual-platform one-shot setup / Linux shell bootstrap / install boundary disclosure
 - [`v2.3.31.md`](v2.3.31.md) - 2026-03-13 - post-upstream governance closure / disclosure parity / runtime alignment
-- [`v2.3.30.md`](v2.3.30.md) - 2026-03-07 - Wave31-39 deep extraction / drift closure
-- [`v2.3.29.md`](v2.3.29.md) - 2026-03-07 - Wave19-30 memory / browser / desktop / prompt / release cut closure
-- [`v2.3.28.md`](v2.3.28.md) - 2026-03-05 - TurboMax / vector-first context / CUA / prompt asset boost / academic deliverable routing
 
 Older release notes remain in this directory as historical version records, but they are not part of the active release surface.
 

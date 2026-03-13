@@ -5,7 +5,7 @@
   "host_id": "claude-code",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.34",
+    "version": "2.3.36",
     "updated": "2026-03-13"
   },
   "summary": "Claude Code host adapter preview. Configuration intent exists, but no governed install/check closure is claimed by this lane yet.",
@@ -61,4 +61,3 @@
     }
   }
 }
-

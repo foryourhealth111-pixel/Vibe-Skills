@@ -4,7 +4,7 @@
   "lane_kind": "tier-1-official-runtime",
   "stability": "tier-1",
   "source_release": {
-    "version": "2.3.34",
+    "version": "2.3.36",
     "updated": "2026-03-13"
   },
   "summary": "Reference lane for the current governed official runtime. This dist pack points to it and must not rewrite it.",
@@ -98,4 +98,3 @@
     }
   }
 }
-

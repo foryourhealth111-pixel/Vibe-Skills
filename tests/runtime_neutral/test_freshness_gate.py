@@ -43,7 +43,7 @@ class FreshnessGateTests(unittest.TestCase):
     def make_governance(self) -> dict:
         return {
             "release": {
-                "version": "2.3.34",
+                "version": "2.3.36",
                 "updated": "2026-03-13",
             },
             "source_of_truth": {
@@ -146,7 +146,7 @@ class FreshnessGateTests(unittest.TestCase):
         self.assertTrue(receipt_path.exists())
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         self.assertEqual("PASS", receipt["gate_result"])
-        self.assertEqual("2.3.34", receipt["release"]["version"])
+        self.assertEqual("2.3.36", receipt["release"]["version"])
 
         artifact_path = self.root / "outputs" / "verify" / "vibe-installed-runtime-freshness-gate.json"
         self.assertTrue(artifact_path.exists())

@@ -227,5 +227,6 @@ That framing is more important than "it looked mostly fine".
 
 - [`../README.en.md`](../README.en.md)
 - [`one-shot-setup.md`](./one-shot-setup.md)
+- [`install/host-plugin-policy.en.md`](./install/host-plugin-policy.en.md)
 - [`runtime-freshness-install-sop.md`](./runtime-freshness-install-sop.md)
 - [`external-tooling/README.md`](./external-tooling/README.md)

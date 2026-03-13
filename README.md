@@ -185,9 +185,21 @@ bash ./check.sh --profile full --deep
 
 这些部分不会被仓库伪装成“自动完成”，必须在宿主环境里自己 provision：
 
-- 必需 host plugins：`superpowers`、`everything-claude-code`、`claude-code-settings`、`hookify`、`ralph-loop`
+- 宿主插件面：当前 doctor / manifest 仍会跟踪 `superpowers`、`everything-claude-code`、`claude-code-settings`、`hookify`、`ralph-loop`
 - plugin-backed MCP surfaces：`github`、`context7`、`serena`
 - 需要在线能力时的 provider secrets：`OPENAI_API_KEY`，以及你实际使用的其他 provider keys
+
+但默认策略不是“第一次就把这 5 个宿主插件全装上”。
+
+我建议：
+
+- 第一次安装：先不把这 5 个插件都当成前置必装项，先跑 one-shot + deep doctor
+- 作者级 / 参考 Windows Codex 环境：优先补 `superpowers`、`hookify`
+- `everything-claude-code`、`claude-code-settings`、`ralph-loop`：只有在 doctor 仍然指向明确缺口时再补
+
+完整决策与安装说明见：
+
+- [`docs/install/host-plugin-policy.md`](./docs/install/host-plugin-policy.md)
 
 如果这些还没有 provision，doctor 的正确结果应该是 `manual_actions_pending`，而不是虚假的“everything ready”。
 
@@ -198,6 +210,7 @@ bash ./check.sh --profile full --deep
 先看这份冷启动演练文档：
 
 - [`docs/cold-start-install-paths.md`](./docs/cold-start-install-paths.md)：最小可用 / 推荐满血 / 企业治理 三条安装路径、适用人群、命令、验收方式与 stop rules
+- [`docs/install/full-featured-install-prompts.md`](./docs/install/full-featured-install-prompts.md)：可直接复制给 AI 助手的一键安装提示词，覆盖 Windows / Linux
 
 ### 路由与治理验证
 

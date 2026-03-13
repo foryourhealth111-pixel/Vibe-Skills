@@ -181,9 +181,21 @@ bash ./check.sh --profile full --deep
 
 These surfaces are intentionally not faked by the repo and must be provisioned on the host:
 
-- Required host plugins: `superpowers`, `everything-claude-code`, `claude-code-settings`, `hookify`, `ralph-loop`
+- Host plugin surfaces still tracked by the current doctor / manifest: `superpowers`, `everything-claude-code`, `claude-code-settings`, `hookify`, `ralph-loop`
 - Plugin-backed MCP surfaces: `github`, `context7`, `serena`
 - Provider secrets when you want online execution: `OPENAI_API_KEY` and any optional provider keys you actually use
+
+But the default policy is not "install all five host plugins on day one".
+
+Recommended policy:
+
+- first install: do not treat all five as up-front prerequisites; run one-shot + deep doctor first
+- author/reference Windows Codex lane: provision `superpowers` and `hookify` first
+- `everything-claude-code`, `claude-code-settings`, and `ralph-loop`: add them only when doctor still points to a concrete remaining gap
+
+Full decision rules and install guidance:
+
+- [`docs/install/host-plugin-policy.en.md`](./docs/install/host-plugin-policy.en.md)
 
 If those are not provisioned yet, the doctor should end in `manual_actions_pending`, not in a false "everything is ready" state.
 
@@ -194,6 +206,7 @@ If this is your first time with the repo, do not guess.
 Start with:
 
 - [`docs/cold-start-install-paths.en.md`](./docs/cold-start-install-paths.en.md): three onboarding paths for `minimum viable`, `recommended full-featured`, and `enterprise-governed` installs, including who each path is for, commands, acceptance criteria, and stop rules
+- [`docs/install/full-featured-install-prompts.en.md`](./docs/install/full-featured-install-prompts.en.md): copy-paste install prompts for AI assistants, covering Windows and Linux
 
 ### Routing and Governance Checks
 

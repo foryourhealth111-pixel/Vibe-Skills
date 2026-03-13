@@ -105,6 +105,16 @@ bash ./check.sh --profile full --deep
 
 当前 `full` profile 最重要的人工补齐项是：
 
-- required host plugins: `superpowers`、`everything-claude-code`、`claude-code-settings`、`hookify`、`ralph-loop`
+- host plugin surfaces still tracked by doctor / manifest: `superpowers`、`everything-claude-code`、`claude-code-settings`、`hookify`、`ralph-loop`
 - plugin-backed MCP surfaces: `github`、`context7`、`serena`
 - 你实际要在线使用的 provider secrets，尤其是 `OPENAI_API_KEY`
+
+但默认策略不是“第一次就把 5 个 host plugin 全部装上”。
+
+推荐：
+
+- 第一次安装：先跑 one-shot + deep doctor，允许 `manual_actions_pending`
+- Windows / Codex 参考 lane：优先补 `superpowers` 和 `hookify`
+- `everything-claude-code`、`claude-code-settings`、`ralph-loop`：只在 doctor 仍指向明确缺口时再补
+
+完整决策与安装说明见：[`docs/install/host-plugin-policy.md`](./install/host-plugin-policy.md)

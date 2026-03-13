@@ -1,7 +1,7 @@
 {
     "schema_version":  2,
     "release":  {
-                    "version":  "2.3.35",
+                    "version":  "2.3.36",
                     "updated":  "2026-03-13",
                     "channel":  "stable",
                     "notes":  "Install-surface messaging hardening: governed full-feature framing, cold-start path onboarding, and explicit host-managed readiness boundaries."

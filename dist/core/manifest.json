@@ -4,7 +4,7 @@
   "lane_kind": "universal-core",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.34",
+    "version": "2.3.36",
     "updated": "2026-03-13"
   },
   "summary": "Universal contracts only. No install/check runtime closure is promised by this lane.",
@@ -53,4 +53,3 @@
     }
   }
 }
-

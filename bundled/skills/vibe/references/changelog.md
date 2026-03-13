@@ -1,9 +1,18 @@
 # VCO Changelog
 
+## v2.3.36 (2026-03-13)
+
+- Hardened the install-facing narrative so `full-featured` now means governed closure of the repository-owned surface, not fake automatic readiness for all host plugins or MCP providers.
+- Added bilingual host-plugin policy docs and reusable Windows/Linux full-featured install prompt bundles for operator onboarding.
+- Updated `README.md`, `README.en.md`, `docs/one-shot-setup.md`, and cold-start install guides to clearly separate `minimum viable`, `recommended full-featured`, and `enterprise-governed` entry paths.
+- Aligned the governed release surface to `2.3.36` across version governance, dist manifests, release notes, and runtime-neutral freshness tests.
+- Detailed release notes: `docs/releases/v2.3.36.md`.
+
+
 ## v2.3.35 (2026-03-13)
 
-- Release cut by `scripts/governance/release-cut.ps1`.
-- Fill in detailed release notes before merge.
+- Reserved release cut created during release-surface iteration and superseded by `v2.3.36` before merge.
+- No separate user-facing delta should be treated as shipped for `v2.3.35`.
 
 
 ## v2.3.34 (2026-03-13)

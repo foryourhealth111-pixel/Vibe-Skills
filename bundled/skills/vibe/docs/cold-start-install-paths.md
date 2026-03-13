@@ -227,5 +227,6 @@ bash ./check.sh --profile full --deep
 
 - [`../README.md`](../README.md)
 - [`one-shot-setup.md`](./one-shot-setup.md)
+- [`install/host-plugin-policy.md`](./install/host-plugin-policy.md)
 - [`runtime-freshness-install-sop.md`](./runtime-freshness-install-sop.md)
 - [`external-tooling/README.md`](./external-tooling/README.md)
