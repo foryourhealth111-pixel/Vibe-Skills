@@ -300,13 +300,14 @@ function Invoke-VgoPowerShellFile {
 
     $invocation = Get-VgoPowerShellFileInvocation -ScriptPath $ScriptPath -ArgumentList $ArgumentList -NoProfile:$NoProfile
     $global:LASTEXITCODE = 0
-    & $invocation.host_path @($invocation.arguments)
+    $scriptOutput = @(& $invocation.host_path @($invocation.arguments))
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
 
     return [pscustomobject]@{
         host_path = [string]$invocation.host_path
         arguments = @($invocation.arguments)
         exit_code = $exitCode
+        output = @($scriptOutput)
     }
 }
 
@@ -341,7 +342,7 @@ function Remove-VgoIgnoredKeys {
         return $null
     }
 
-    if ($Node -is [System.Management.Automation.PSCustomObject] -or ($Node -isnot [string] -and $Node.PSObject -and @($Node.PSObject.Properties).Count -gt 0 -and $Node -isnot [System.Collections.IEnumerable])) {
+    if ($Node -is [System.Management.Automation.PSCustomObject]) {
         $ordered = [ordered]@{}
         foreach ($prop in @($Node.PSObject.Properties) | Sort-Object -Property Name) {
             $key = [string]$prop.Name

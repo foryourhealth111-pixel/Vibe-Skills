@@ -84,13 +84,21 @@ function Get-OpenSpecGovernanceAdvice {
     }
 
     $requestedSkillWhitelist = @()
-    if ($OpenSpecPolicy.exemptions -and $OpenSpecPolicy.exemptions.requested_skill_whitelist) {
+    if (
+        $OpenSpecPolicy.exemptions -and
+        $OpenSpecPolicy.exemptions.PSObject.Properties.Name -contains 'requested_skill_whitelist' -and
+        $null -ne $OpenSpecPolicy.exemptions.requested_skill_whitelist
+    ) {
         $requestedSkillWhitelist = @($OpenSpecPolicy.exemptions.requested_skill_whitelist)
     }
 
     # requested skill bypass only applies when explicitly whitelisted
     $requestedSkillBypassEnabled = $false
-    if ($OpenSpecPolicy.exemptions -and $OpenSpecPolicy.exemptions.requested_skill_bypass) {
+    if (
+        $OpenSpecPolicy.exemptions -and
+        $OpenSpecPolicy.exemptions.PSObject.Properties.Name -contains 'requested_skill_bypass' -and
+        $null -ne $OpenSpecPolicy.exemptions.requested_skill_bypass
+    ) {
         $requestedSkillBypassEnabled = [bool]$OpenSpecPolicy.exemptions.requested_skill_bypass
     }
 
@@ -225,5 +233,4 @@ function Get-OpenSpecGovernanceAdvice {
         upgrade_trigger_matches = @($upgradeMatches)
     }
 }
-
 

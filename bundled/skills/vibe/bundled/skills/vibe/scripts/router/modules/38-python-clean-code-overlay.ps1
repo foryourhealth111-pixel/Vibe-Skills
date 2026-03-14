@@ -142,7 +142,7 @@ function Get-PythonCleanCodeAdvice {
 
     $base.paths_detected = @($pathsDetected)
     $base.paths_existing = @($pathsExisting)
-    $pythonFileSignal = (($pathsDetected.Count -gt 0) -or ($pathsExisting.Count -gt 0))
+    $pythonFileSignal = ((@($pathsDetected).Count -gt 0) -or (@($pathsExisting).Count -gt 0))
     $base.python_file_signal = $pythonFileSignal
 
     $languageKeywords = @(

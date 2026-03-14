@@ -81,7 +81,7 @@ function Get-DailyDialecticAdvice {
     }
 
     $contractCompleteness = if ($IntentContract -and $IntentContract.completeness -ne $null) { [double]$IntentContract.completeness } else { 0.0 }
-    $contractMissingFields = if ($IntentContract -and $IntentContract.missing_fields) { @($IntentContract.missing_fields) } else { @() }
+    $contractMissingFields = if ($IntentContract -and $IntentContract.missing_fields) { Get-ArraySafe -Value $IntentContract.missing_fields } else { Get-ArraySafe -Value $null }
 
     $teamModeActive = [bool]($DialecticTeamAdvice -and $DialecticTeamAdvice.should_apply_team_mode)
 

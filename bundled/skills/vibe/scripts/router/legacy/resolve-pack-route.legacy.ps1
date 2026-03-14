@@ -263,7 +263,7 @@ function Get-CpuBucket {
 function Test-ExplicitCommandHint {
     param([string]$PromptText)
     if (-not $PromptText) { return $false }
-    return [Regex]::IsMatch($PromptText, "^\s*(/|sc:|\$vibe\b|vibe\b)", [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    return [Regex]::IsMatch($PromptText, '^\s*(/|sc:|\$vibe\b|vibe\b)', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 }
 
 function Test-OverlayConfirmRequired {

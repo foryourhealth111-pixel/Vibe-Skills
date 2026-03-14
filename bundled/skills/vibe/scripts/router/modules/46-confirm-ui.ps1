@@ -351,7 +351,7 @@ function Build-ConfirmSkillOptions {
         if (-not $packRow) { $packRow = @($Result.ranked | Select-Object -First 1) }
     }
 
-    $ranking = if ($packRow -and $packRow.candidate_ranking) { @($packRow.candidate_ranking) } else { @() }
+    $ranking = if ($packRow -and $packRow.candidate_ranking) { Get-ArraySafe -Value $packRow.candidate_ranking } else { Get-ArraySafe -Value $null }
     if ($ranking.Count -eq 0 -and $selectedSkill) {
         $ranking = @(
             [pscustomobject]@{

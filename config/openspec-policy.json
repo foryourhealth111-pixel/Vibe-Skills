@@ -72,6 +72,11 @@
                          ],
     "exemptions":  {
                        "requested_skill_bypass":  true,
+                       "requested_skill_whitelist":  [
+                                                         "sc:design",
+                                                         "brainstorming",
+                                                         "writing-plans"
+                                                     ],
                        "trivial_prompt_patterns":  [
                                                        "typo",
                                                        "single-line change",

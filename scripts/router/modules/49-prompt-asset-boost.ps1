@@ -697,7 +697,7 @@ function Get-PromptAssetBoostAdvice {
             role = if ($c.role) { [string]$c.role } else { "system" }
             prompt = $prompt.Trim()
             when_to_use = if ($c.when_to_use) { [string]$c.when_to_use } else { "" }
-            variables = if ($c.variables) { @($c.variables) } else { @() }
+            variables = if ($c.variables) { Get-ArraySafe -Value $c.variables } else { Get-ArraySafe -Value $null }
             confidence = if ($c.confidence -ne $null) { [double]$c.confidence } else { 0.55 }
         }
     }

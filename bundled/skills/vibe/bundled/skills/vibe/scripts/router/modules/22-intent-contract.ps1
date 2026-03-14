@@ -56,7 +56,7 @@ function Get-DeepDiscoveryIntentContract {
     $goalText = if ($normalization -and $normalization.normalized) { [string]$normalization.normalized } else { [string]$PromptText }
 
     $deliverable = Get-DeepDiscoveryDeliverableHint -PromptLower $PromptLower
-    $constraints = Get-DeepDiscoveryConstraintHints -PromptLower $PromptLower
+    $constraints = @(Get-DeepDiscoveryConstraintHints -PromptLower $PromptLower)
     $executionMode = Get-DeepDiscoveryExecutionModeHint -PromptLower $PromptLower
 
     $capabilities = @()
@@ -72,8 +72,8 @@ function Get-DeepDiscoveryIntentContract {
     $fieldPresence = [ordered]@{
         goal = [bool]($goalText -and $goalText.Length -ge 8)
         deliverable = ($deliverable -ne "unknown")
-        constraints = ($constraints.Count -gt 0)
-        capabilities = ($capabilities.Count -gt 0)
+        constraints = (@($constraints).Count -gt 0)
+        capabilities = (@($capabilities).Count -gt 0)
     }
 
     $presentRequiredCount = 0
@@ -132,8 +132,8 @@ function Get-DeepDiscoveryCandidateFilter {
     }
     $completenessPassed = ($contractCompleteness -ge $minCompleteness)
 
-    $requiredCapabilities = if ($DeepDiscoveryAdvice -and $DeepDiscoveryAdvice.recommended_capabilities) { @($DeepDiscoveryAdvice.recommended_capabilities | Select-Object -Unique) } else { @() }
-    $requiredSkills = if ($DeepDiscoveryAdvice -and $DeepDiscoveryAdvice.recommended_skills) { @($DeepDiscoveryAdvice.recommended_skills | Select-Object -Unique) } else { @() }
+    $requiredCapabilities = if ($DeepDiscoveryAdvice -and $DeepDiscoveryAdvice.recommended_capabilities) { Get-ArraySafe -Value (@($DeepDiscoveryAdvice.recommended_capabilities | Select-Object -Unique)) } else { Get-ArraySafe -Value $null }
+    $requiredSkills = if ($DeepDiscoveryAdvice -and $DeepDiscoveryAdvice.recommended_skills) { Get-ArraySafe -Value (@($DeepDiscoveryAdvice.recommended_skills | Select-Object -Unique)) } else { Get-ArraySafe -Value $null }
 
     $shouldConsiderFilter = $scopeApplicable -and $triggerActive -and ($requiredSkills.Count -gt 0)
     $candidatePacksCount = if ($Packs) { @($Packs).Count } else { 0 }

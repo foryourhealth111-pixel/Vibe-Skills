@@ -10,7 +10,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ### Current Release Surface
 
-- [`v2.3.38.md`](v2.3.38.md): author-machine path leakage removal across governed config surfaces, mirrored runtime parity refresh, and Linux validation handoff readiness
+- [`v2.3.39.md`](v2.3.39.md): Linux regression-closure wave for OpenSpec routing, freshness recursion, and installed-runtime smoke proof
 
 ### Release Runtime / Proof Handoff
 
@@ -21,6 +21,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
+- [`v2.3.39.md`](v2.3.39.md) - 2026-03-14 - Linux regression closure / router contract hardening / freshness recursion fix
 - [`v2.3.38.md`](v2.3.38.md) - 2026-03-14 - config path de-leak / tokenized runtime roots / smoke installed-runtime refresh
 - [`v2.3.37.md`](v2.3.37.md) - 2026-03-13 - scrapling default full-lane promotion / doctor surface split / install-surface version closure
 - [`v2.3.36.md`](v2.3.36.md) - 2026-03-13 - install-surface messaging hardening / host-plugin policy / version alignment

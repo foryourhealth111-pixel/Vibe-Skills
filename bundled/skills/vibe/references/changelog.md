@@ -1,5 +1,14 @@
 # VCO Changelog
 
+## v2.3.39 (2026-03-14)
+
+- Closed the Linux retest regression around OpenSpec routing by adding the missing `requested_skill_whitelist` contract and hardening the router against missing-policy fields.
+- Fixed the installed-runtime freshness recursion failure so default `install.ps1` and `check.ps1` can complete their freshness closure instead of blowing up through call-depth overflow.
+- Stabilized governed sub-gate invocation so the no-regression umbrella gate now receives deterministic `exit_code` objects instead of leaking child output shapes.
+- Hardened multiple router overlays for strict-mode safety and re-proved installed-runtime routing through a fresh isolated smoke runtime.
+- Registered the regression-closure router file set in the official-runtime main-chain policy so governance can distinguish this bounded fix wave from unrelated protected-surface drift.
+- Detailed release notes: `docs/releases/v2.3.39.md`.
+
 ## v2.3.38 (2026-03-14)
 
 - Removed author-machine path leakage from governed runtime JSON surfaces by replacing hard-coded user paths in `config/dependency-map.json`, `config/upstream-corpus-manifest.json`, `config/ruc-nlpir-runtime.json`, and `config/batch-e-alias-whitelist.json` with `${CODEX_HOME}` / `${VCO_EXTERNAL_ROOT}` forms.

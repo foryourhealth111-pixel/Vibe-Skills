@@ -186,7 +186,7 @@ function Get-RetrievalRerankPlan {
     $profileRerankMode = if ($Profile -and $Profile.rerank_mode) { [string]$Profile.rerank_mode } else { "balanced" }
     $fallbackMode = if ($RerankWeights -and $RerankWeights.fallback_mode) { [string]$RerankWeights.fallback_mode } else { "balanced" }
     $modes = if ($RerankWeights -and $RerankWeights.modes) { $RerankWeights.modes } else { $null }
-    $availableModeKeys = if ($modes) { @($modes.PSObject.Properties.Name) } else { @() }
+    $availableModeKeys = if ($modes) { Get-ArraySafe -Value $modes.PSObject.Properties.Name } else { Get-ArraySafe -Value $null }
 
     $selectedMode = if ($availableModeKeys -contains $profileRerankMode) { $profileRerankMode } else { $fallbackMode }
     if (-not ($availableModeKeys -contains $selectedMode)) {
@@ -319,7 +319,7 @@ function Get-RetrievalOverlayAdvice {
         }
     }
 
-    $profiles = if ($RetrievalIntentProfiles -and $RetrievalIntentProfiles.profiles) { @($RetrievalIntentProfiles.profiles) } else { @() }
+    $profiles = if ($RetrievalIntentProfiles -and $RetrievalIntentProfiles.profiles) { Get-ArraySafe -Value $RetrievalIntentProfiles.profiles } else { Get-ArraySafe -Value $null }
     if ($profiles.Count -eq 0) {
         return [pscustomobject]@{
             enabled = $true
@@ -364,8 +364,8 @@ function Get-RetrievalOverlayAdvice {
 
     $profileRows = @($profileChoice.profile_rows)
     $selectedProfileRow = @($profileRows | Where-Object { [string]$_.id -eq [string]$selectedProfile.id } | Select-Object -First 1)
-    $selectedPositiveHits = if ($selectedProfileRow) { @($selectedProfileRow.positive_hits) } else { @() }
-    $selectedNegativeHits = if ($selectedProfileRow) { @($selectedProfileRow.negative_hits) } else { @() }
+    $selectedPositiveHits = if ($selectedProfileRow -and $selectedProfileRow.PSObject.Properties.Name -contains 'positive_hits') { Get-ArraySafe -Value $selectedProfileRow.positive_hits } else { Get-ArraySafe -Value $null }
+    $selectedNegativeHits = if ($selectedProfileRow -and $selectedProfileRow.PSObject.Properties.Name -contains 'negative_hits') { Get-ArraySafe -Value $selectedProfileRow.negative_hits } else { Get-ArraySafe -Value $null }
 
     $modeBudget = 3
     if ($profileSelection -and $profileSelection.max_query_variants_by_mode) {

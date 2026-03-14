@@ -277,7 +277,7 @@ function Get-ExplorationOverlayAdvice {
         }
     }
 
-    $profiles = if ($ExplorationIntentProfiles -and $ExplorationIntentProfiles.profiles) { @($ExplorationIntentProfiles.profiles) } else { @() }
+    $profiles = if ($ExplorationIntentProfiles -and $ExplorationIntentProfiles.profiles) { Get-ArraySafe -Value $ExplorationIntentProfiles.profiles } else { Get-ArraySafe -Value $null }
     if ($profiles.Count -eq 0) {
         return [pscustomobject]@{
             enabled = $true
@@ -328,7 +328,7 @@ function Get-ExplorationOverlayAdvice {
     $multiDomainGap = if ($domainDetection -and $domainDetection.multi_domain_gap -ne $null) { [double]$domainDetection.multi_domain_gap } else { 0.09 }
     $maxDomains = if ($domainDetection -and $domainDetection.max_domains -ne $null) { [int]$domainDetection.max_domains } else { 3 }
 
-    $domains = if ($ExplorationDomainMap -and $ExplorationDomainMap.domains) { @($ExplorationDomainMap.domains) } else { @() }
+    $domains = if ($ExplorationDomainMap -and $ExplorationDomainMap.domains) { Get-ArraySafe -Value $ExplorationDomainMap.domains } else { Get-ArraySafe -Value $null }
     $domainRows = @(Get-ExplorationDomainRows -PromptLower $PromptLower -Domains $domains -MinDomainConfidence $minDomainConfidence -MaxDomains $maxDomains)
 
     $dominantDomain = if ($domainRows.Count -gt 0) { [string]$domainRows[0].id } else { "none" }

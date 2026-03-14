@@ -27,7 +27,7 @@ function Remove-IgnoredKeys {
         [string[]]$IgnoreKeys
     )
     if ($null -eq $Node) { return $null }
-    if ($Node -is [System.Management.Automation.PSCustomObject] -or ($Node -isnot [string] -and $Node.PSObject -and @($Node.PSObject.Properties).Count -gt 0 -and $Node -isnot [System.Collections.IEnumerable])) {
+    if ($Node -is [System.Management.Automation.PSCustomObject]) {
         $ordered = [ordered]@{}
         foreach ($prop in @($Node.PSObject.Properties) | Sort-Object -Property Name) {
             $key = [string]$prop.Name

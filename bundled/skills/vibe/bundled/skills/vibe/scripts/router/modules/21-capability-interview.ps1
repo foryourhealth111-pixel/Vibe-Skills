@@ -112,9 +112,9 @@ function Get-DeepDiscoveryTrigger {
     $minTriggerScore = if ($triggerPolicy -and $triggerPolicy.min_trigger_score -ne $null) { [double]$triggerPolicy.min_trigger_score } else { 0.2 }
     $minCapabilityHits = if ($triggerPolicy -and $triggerPolicy.min_capability_hits -ne $null) { [int]$triggerPolicy.min_capability_hits } else { 1 }
 
-    $ambiguityKeywords = if ($triggerPolicy -and $triggerPolicy.ambiguity_keywords) { @($triggerPolicy.ambiguity_keywords) } else { @() }
-    $compositeKeywords = if ($triggerPolicy -and $triggerPolicy.composite_keywords) { @($triggerPolicy.composite_keywords) } else { @() }
-    $executionKeywords = if ($triggerPolicy -and $triggerPolicy.execution_keywords) { @($triggerPolicy.execution_keywords) } else { @() }
+    $ambiguityKeywords = if ($triggerPolicy -and $triggerPolicy.ambiguity_keywords) { Get-ArraySafe -Value $triggerPolicy.ambiguity_keywords } else { Get-ArraySafe -Value $null }
+    $compositeKeywords = if ($triggerPolicy -and $triggerPolicy.composite_keywords) { Get-ArraySafe -Value $triggerPolicy.composite_keywords } else { Get-ArraySafe -Value $null }
+    $executionKeywords = if ($triggerPolicy -and $triggerPolicy.execution_keywords) { Get-ArraySafe -Value $triggerPolicy.execution_keywords } else { Get-ArraySafe -Value $null }
 
     $ambiguityScore = [double](Get-KeywordRatio -PromptLower $PromptLower -Keywords $ambiguityKeywords)
     $compositeScore = [double](Get-KeywordRatio -PromptLower $PromptLower -Keywords $compositeKeywords)

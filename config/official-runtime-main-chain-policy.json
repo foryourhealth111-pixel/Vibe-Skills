@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-13",
+  "updated_at": "2026-03-14",
   "default_mode": "frozen",
   "protected_prefixes": [
     "scripts/router/",
@@ -32,6 +32,37 @@
       "notes": [
         "This is a file-scoped exception, not a blanket thaw of the official runtime main chain.",
         "Promotion claims remain blocked until the platform truth and proof bundle are updated from fresh evidence."
+      ]
+    },
+    {
+      "id": "linux-router-regression-closure-wave",
+      "status": "active",
+      "plan": "docs/plans/2026-03-13-linux-full-authoritative-migration-plan.md",
+      "scope": "Allow the Linux regression-closure wave to repair runtime router strict-mode and OpenSpec contract regressions without reopening unrelated official-runtime surfaces.",
+      "allowed_paths": [
+        "config/version-governance.json",
+        "scripts/router/legacy/resolve-pack-route.legacy.ps1",
+        "scripts/router/modules/00-core-utils.ps1",
+        "scripts/router/modules/21-capability-interview.ps1",
+        "scripts/router/modules/22-intent-contract.ps1",
+        "scripts/router/modules/30-openspec.ps1",
+        "scripts/router/modules/38-python-clean-code-overlay.ps1",
+        "scripts/router/modules/43-retrieval-overlay.ps1",
+        "scripts/router/modules/44-exploration-overlay.ps1",
+        "scripts/router/modules/45-daily-dialectic-guard.ps1",
+        "scripts/router/modules/46-confirm-ui.ps1",
+        "scripts/router/modules/47-closure-overlay.ps1",
+        "scripts/router/modules/49-prompt-asset-boost.ps1"
+      ],
+      "required_evidence": [
+        "docs/universalization/no-regression-proof-standard.md",
+        "tests/runtime_neutral/test_freshness_gate.py",
+        "tests/runtime_neutral/test_bootstrap_doctor.py",
+        "tests/runtime_neutral/test_coherence_gate.py"
+      ],
+      "notes": [
+        "This window is limited to the router files touched by the Linux regression closure wave.",
+        "It authorizes bug-fix deltas only; Linux full-authoritative promotion still requires fresh proof bundle evidence."
       ]
     }
   ]

@@ -123,7 +123,7 @@ function Get-ClosureOverlayAdvice {
 
     $taskAllow = if ($ClosureOverlayPolicy.task_allow) { @($ClosureOverlayPolicy.task_allow) } else { @("coding", "debug", "planning", "research") }
     $gradeAllow = if ($ClosureOverlayPolicy.grade_allow) { @($ClosureOverlayPolicy.grade_allow) } else { @("M", "L", "XL") }
-    $routeModeAllow = if ($ClosureOverlayPolicy.route_mode_allow) { @($ClosureOverlayPolicy.route_mode_allow) } else { @() }
+    $routeModeAllow = if ($ClosureOverlayPolicy.route_mode_allow) { Get-ArraySafe -Value $ClosureOverlayPolicy.route_mode_allow } else { Get-ArraySafe -Value $null }
 
     $taskApplicable = ($taskAllow -contains $TaskType)
     $gradeApplicable = ($gradeAllow -contains $Grade)
@@ -192,7 +192,7 @@ function Get-ClosureOverlayAdvice {
             if (-not $c) { continue }
             $verifyCandidates += [pscustomobject]@{
                 id = if ($c.id) { [string]$c.id } else { "unknown" }
-                when_files = if ($c.when_files) { @($c.when_files | ForEach-Object { [string]$_ }) } else { @() }
+                when_files = if ($c.when_files) { Get-ArraySafe -Value (@($c.when_files | ForEach-Object { [string]$_ })) } else { Get-ArraySafe -Value $null }
                 command = if ($c.command) { [string]$c.command } else { $null }
                 note = if ($c.note) { [string]$c.note } else { $null }
             }
