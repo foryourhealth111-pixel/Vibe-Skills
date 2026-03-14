@@ -1,5 +1,13 @@
 # VCO Changelog
 
+## v2.3.40 (2026-03-14)
+
+- Closed the cross-shell runtime-freshness validation gap so a receipt written by Windows PowerShell install flow can be validated correctly by `check.sh` under bash / WSL.
+- Added explicit installed-runtime upgrade hints to `check.ps1` and `check.sh` so repo pulls are no longer silently confused with installed runtime upgrades.
+- Kept Linux platform truth conservative while preserving green router, routing-stability, platform-support, mirror-hygiene, and proof-bundle gates.
+- Aligned the governed release surface to `2.3.40` across version governance, maintenance markers, release navigation, and public install copy.
+- Detailed release notes: `docs/releases/v2.3.40.md`.
+
 ## v2.3.39 (2026-03-14)
 
 - Closed the Linux retest regression around OpenSpec routing by adding the missing `requested_skill_whitelist` contract and hardening the router against missing-policy fields.

@@ -2,7 +2,7 @@
 
 这份文档是给普通用户、围观用户、社区帖、README 首屏、发布帖直接复用的。
 
-当前对外推荐版本：[`v2.3.37`](../releases/v2.3.37.md)
+当前对外推荐版本：[`v2.3.40`](../releases/v2.3.40.md)
 
 它比 operator 文档更短、更适合传播，但不会夸大能力边界。
 
@@ -14,11 +14,11 @@
 
 ## 一句话版本
 
-`VibeSkills v2.3.37` 是当前推荐的对外版本。它不是另一个 skills 列表，而是一套把 skills 路由、治理、组合、验证起来的通用基座，让通用大模型更稳定地完成任务。先来用，先来围观，觉得方向对就先 Star。
+`VibeSkills v2.3.40` 是当前推荐的对外版本。它不是另一个 skills 列表，而是一套把 skills 路由、治理、组合、验证起来的通用基座，让通用大模型更稳定地完成任务。先来用，先来围观，觉得方向对就先 Star。
 
 ## 社区短版文案
 
-VibeSkills `v2.3.37` 现在是当前推荐的公开版本。
+VibeSkills `v2.3.40` 现在是当前推荐的公开版本。
 
 如果你是重度 AI 用户，这是现在最适合上手的一版：
 
@@ -34,7 +34,7 @@ VibeSkills `v2.3.37` 现在是当前推荐的公开版本。
 
 ## 发布长版文案
 
-VibeSkills `v2.3.37` 是当前对外推荐版本。
+VibeSkills `v2.3.40` 是当前对外推荐版本。
 
 这一版的重点不是再堆更多零散 skills，而是把“普通用户如何真正开始用”这件事讲清楚：
 
@@ -54,7 +54,7 @@ VibeSkills `v2.3.37` 是当前对外推荐版本。
 - 明明缺 host plugins / provider secrets，还被包装成 fully ready
 - 所有外部 MCP 和宿主插件都被静默自动装好
 
-如果你要的不是另一个 skills 仓库，而是一套更稳定、更可治理、更适合长期演进的 skills 基座，就从 `v2.3.37` 开始。
+如果你要的不是另一个 skills 仓库，而是一套更稳定、更可治理、更适合长期演进的 skills 基座，就从 `v2.3.40` 开始。
 
 ## 复制给 AI 助手的一键安装提示词
 
@@ -97,7 +97,7 @@ bash ./check.sh --profile full --deep
 
 对外传播时，最重要的一句边界说明是：
 
-- `v2.3.37` 是当前推荐的受治理安装面
+- `v2.3.40` 是当前推荐的受治理安装面
 - 它尽可能闭环 repo 自己负责交付的安装链路
 - 它不会假装替你自动完成所有宿主插件、provider secrets、外部 MCP 集成
 
@@ -115,4 +115,4 @@ bash ./check.sh --profile full --deep
 - [`recommended-full-path.md`](./recommended-full-path.md)
 - [`full-featured-install-prompts.md`](./full-featured-install-prompts.md)
 - [`../cold-start-install-paths.md`](../cold-start-install-paths.md)
-- [`../releases/v2.3.37.md`](../releases/v2.3.37.md)
+- [`../releases/v2.3.40.md`](../releases/v2.3.40.md)

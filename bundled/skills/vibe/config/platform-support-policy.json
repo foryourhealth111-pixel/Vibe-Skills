@@ -31,7 +31,7 @@
   "current_baseline": {
     "official-runtime": {
       "windows": "full-authoritative",
-      "linux": "full-authoritative",
+      "linux": "supported-with-constraints",
       "macos": "not-yet-proven"
     }
   },

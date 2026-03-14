@@ -75,16 +75,16 @@
       "lane_id": "codex/linux",
       "adapter_id": "codex",
       "platform": "linux",
-      "expected_platform_status": "full-authoritative",
+      "expected_platform_status": "supported-with-constraints",
       "platform_contract": "adapters/codex/platform-linux.json",
       "promotion_bundle": {
         "manifest": "references/proof-bundles/linux-full-authoritative-candidate/manifest.json",
         "required_gate": "scripts/verify/vibe-linux-pwsh-proof-gate.ps1",
         "bundle_gate": "scripts/verify/vibe-platform-promotion-bundle.ps1",
-        "current_evidence_state": "complete"
+        "current_evidence_state": "fresh-machine-proof-complete-pending-promotion-sync"
       },
       "closure_truth": {
-        "authoritative_lane": true,
+        "authoritative_lane": false,
         "requires": [
           "pwsh"
         ],
@@ -139,8 +139,7 @@
   ],
   "hard_no_overclaim_rules": {
     "only_allowed_full_authoritative_lanes": [
-      "codex/windows",
-      "codex/linux"
+      "codex/windows"
     ],
     "platform_parity_requires_evidence": true,
     "linux_full_authoritative_requires_bundle": "references/proof-bundles/linux-full-authoritative-candidate/manifest.json",

@@ -29,4 +29,4 @@ Each frozen run captures:
 Two independent fresh-machine Linux proof runs are now frozen into the repository.
 
 That means Linux is no longer blocked on missing proof capture.
-Replay sync, public wording sync, and promotion-state sync are now complete, so `codex/linux` is formally promoted to `full-authoritative` when `pwsh` is available.
+The frozen evidence is ready for a future promotion decision, but current release truth still keeps `codex/linux` at `supported-with-constraints` when `pwsh` is available.

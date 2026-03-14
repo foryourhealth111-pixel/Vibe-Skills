@@ -95,6 +95,6 @@ For Linux-specific review, pair it with:
 As of this baseline:
 
 - `codex/windows` remains a `full-authoritative` lane
-- `codex/linux` is now a promoted `full-authoritative` lane when `pwsh` is available
+- `codex/linux` remains `supported-with-constraints` in current release truth even though fresh-machine Linux proof has been frozen
 - `codex/linux without pwsh` remains explicitly `degraded-but-supported`
 - `codex/macos` remains `not-yet-proven`

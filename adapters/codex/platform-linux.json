@@ -1,7 +1,7 @@
 {
   "adapter_id": "codex",
   "platform": "linux",
-  "status": "full-authoritative",
+  "status": "supported-with-constraints",
   "install_surface": [
     "install.sh",
     "scripts/bootstrap/one-shot-setup.sh"
@@ -22,7 +22,7 @@
     "manifest": "references/proof-bundles/linux-full-authoritative-candidate/manifest.json",
     "gate": "scripts/verify/vibe-linux-pwsh-proof-gate.ps1",
     "bundle_gate": "scripts/verify/vibe-platform-promotion-bundle.ps1",
-    "current_evidence_state": "complete"
+    "current_evidence_state": "fresh-machine-proof-complete-pending-promotion-sync"
   },
   "promotion_requirements": [
     "two independent fresh-machine Linux runs",
@@ -32,7 +32,7 @@
   ],
   "notes": [
     "Linux has a runtime-neutral authoritative-core migration in progress.",
-    "Linux now has two frozen fresh-machine proof bundles when pwsh is available, and the promotion sync is complete.",
+    "Linux has two frozen fresh-machine proof bundles when pwsh is available, but the release truth still remains below full-authoritative promotion.",
     "Without pwsh, the lane remains degraded-but-supported and must not be marketed as full-authoritative."
   ]
 }

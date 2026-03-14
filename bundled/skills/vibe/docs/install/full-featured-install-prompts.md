@@ -37,7 +37,7 @@
 3. 如果是 Linux：
    - 先检查是否有 `pwsh`
    - 如果有 `pwsh`，执行 `bash ./scripts/bootstrap/one-shot-setup.sh`，然后执行 `bash ./check.sh --profile full --deep`
-   - 并额外说明当前是 Linux 满血权威路径
+   - 并额外说明当前是 Linux 最强可用路径，但对外口径仍是 `supported-with-constraints`
    - 如果没有 `pwsh`，仍执行 `bash ./scripts/bootstrap/one-shot-setup.sh` 和 `bash ./check.sh --profile full --deep`
    - 但必须明确告诉我：当前结果属于 degraded-but-supported，不要宣称等价满血
 4. 安装完成后，给我一个简洁结论：
@@ -45,7 +45,7 @@
    - 执行过的命令
    - 最终 readiness_state
    - 还缺哪些 host-managed surfaces
-   - 是否已经达到当前平台可宣称的“推荐满血”
+   - 是否已经达到当前平台可宣称的“当前最强支持路径”
 5. 不要把宿主插件、外部 MCP、provider secrets 伪装成已经自动装好。
 6. 如果结果是 `manual_actions_pending`，请继续列出剩余人工动作，不要把它说成失败。
 7. 如果需要补宿主插件，遵守当前默认策略：

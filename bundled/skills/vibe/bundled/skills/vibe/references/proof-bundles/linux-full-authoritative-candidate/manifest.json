@@ -7,9 +7,9 @@
     "updated": "2026-03-13"
   },
   "lane_id": "codex/linux",
-  "current_status": "full-authoritative",
+  "current_status": "supported-with-constraints",
   "target_status": "full-authoritative",
-  "evidence_state": "complete",
+  "evidence_state": "fresh-machine-proof-complete-pending-promotion-sync",
   "contracts": [
     "docs/universalization/linux-full-authoritative-contract.md",
     "docs/universalization/platform-promotion-criteria.md",
@@ -79,7 +79,7 @@
     "promotion_requires_fresh_machine_evidence": true
   },
   "notes": [
-    "The current bundle is the canonical proof bundle for the promoted codex/linux lane.",
-    "Fresh-machine Linux proof is frozen, replay sync is complete, and the platform lane is now formally full-authoritative."
+    "The current bundle is the canonical proof bundle for the codex/linux promotion candidate lane.",
+    "Fresh-machine Linux proof is frozen, but replay/status/release truth remains intentionally below formal full-authoritative promotion."
   ]
 }

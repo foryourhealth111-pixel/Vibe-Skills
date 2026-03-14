@@ -15,7 +15,7 @@ A platform only earns a stronger support label when the repository can show:
 ## Current Rules
 
 - Windows remains the authoritative official-runtime reference lane.
-- Linux is now a promoted full-authoritative lane when `pwsh` is provisioned and relevant PowerShell gates can run.
+- Linux + `pwsh` is the strongest current Linux path, but it remains `supported-with-constraints` until promotion truth is deliberately reopened and synchronized.
 - Linux without `pwsh` is degraded, not secretly full.
 - macOS remains `not-yet-proven` until a separate evidence lane exists.
 

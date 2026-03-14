@@ -50,10 +50,44 @@ function New-TestCase {
     }
 }
 
+function Get-SelectedRouteInfo {
+    param([object]$Route)
+
+    $selected = $null
+    if ($Route -and ($Route.PSObject.Properties.Name -contains "selected")) {
+        $selected = @($Route.selected)[0]
+    }
+
+    $packId = $null
+    $skill = $null
+    $selectionReason = $null
+    if ($selected) {
+        if ($selected.PSObject.Properties.Name -contains "pack_id") {
+            $packId = [string]$selected.pack_id
+        }
+        if ($selected.PSObject.Properties.Name -contains "skill") {
+            $skill = [string]$selected.skill
+        }
+        if ($selected.PSObject.Properties.Name -contains "selection_reason") {
+            $selectionReason = [string]$selected.selection_reason
+        }
+    }
+
+    return [pscustomobject]@{
+        pack_id = $packId
+        skill = $skill
+        selection_reason = $selectionReason
+    }
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $thresholdPath = Join-Path $repoRoot "config\router-thresholds.json"
 $thresholds = Get-Content -LiteralPath $thresholdPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$minGapBaseline = [double]$thresholds.thresholds.min_top1_top2_gap
+$minGapBaseline = if ($thresholds -and ($thresholds.PSObject.Properties.Name -contains "thresholds") -and $thresholds.thresholds -and ($thresholds.thresholds.PSObject.Properties.Name -contains "min_top1_top2_gap")) {
+    [double]$thresholds.thresholds.min_top1_top2_gap
+} else {
+    0.06
+}
 
 $testCases = @(
     # Synonym groups (same task/grade)
@@ -114,14 +148,10 @@ $testCases = @(
 $results = @()
 foreach ($case in $testCases) {
     $route = Invoke-Route -Prompt $case.prompt -Grade $case.grade -TaskType $case.task_type -RequestedSkill $case.requested_skill
-    $selectedPack = $null
-    $selectedSkill = $null
-    $selectionReason = $null
-    if ($route.selected) {
-        $selectedPack = [string]$route.selected.pack_id
-        $selectedSkill = [string]$route.selected.skill
-        $selectionReason = [string]$route.selected.selection_reason
-    }
+    $selected = Get-SelectedRouteInfo -Route $route
+    $selectedPack = $selected.pack_id
+    $selectedSkill = $selected.skill
+    $selectionReason = $selected.selection_reason
 
     $isMisroute = $false
     if ($case.expected_pack) {
@@ -159,9 +189,9 @@ foreach ($group in $groups) {
         continue
     }
 
-    $labels = $groupRows | ForEach-Object { "$($_.selected_pack)|$($_.selected_skill)" }
-    $labelCounts = $labels | Group-Object | Sort-Object -Property Count -Descending
-    $dominant = $labelCounts | Select-Object -First 1
+    $labels = @($groupRows | ForEach-Object { "$($_.selected_pack)|$($_.selected_skill)" })
+    $labelCounts = @($labels | Group-Object | Sort-Object -Property Count -Descending)
+    $dominant = @($labelCounts | Select-Object -First 1)[0]
     $stability = if ($groupRows.Count -gt 0) { [double]$dominant.Count / [double]$groupRows.Count } else { 0.0 }
 
     $groupStabilityRows += [pscustomobject]@{
@@ -173,10 +203,12 @@ foreach ($group in $groups) {
     $stabilityValues += $stability
 }
 
-$routeStability = if ($stabilityValues.Count -gt 0) { ($stabilityValues | Measure-Object -Average).Average } else { 1.0 }
+$routeStability = if (@($stabilityValues).Count -gt 0) { (@($stabilityValues) | Measure-Object -Average).Average } else { 1.0 }
 $avgGap = ($results | Measure-Object -Property top1_top2_gap -Average).Average
-$fallbackRate = (($results | Where-Object { $_.is_fallback }).Count) / [double]$results.Count
-$misrouteRate = (($results | Where-Object { $_.is_misroute }).Count) / [double]$results.Count
+$fallbackCases = @($results | Where-Object { $_.is_fallback })
+$misrouteCases = @($results | Where-Object { $_.is_misroute })
+$fallbackRate = $fallbackCases.Count / [double]$results.Count
+$misrouteRate = $misrouteCases.Count / [double]$results.Count
 
 $defaultGate = [pscustomobject]@{
     route_stability_min = 0.75

@@ -85,7 +85,7 @@ VibeSkills 的目标不是把这些组件堆在一起。
 
 ## 当前推荐版本
 
-- 当前对外推荐版本：[`v2.3.37`](./docs/releases/v2.3.37.md)
+- 当前对外推荐版本：[`v2.3.40`](./docs/releases/v2.3.40.md)
 - 面向普通用户的一键安装发布文案：[`docs/install/one-click-install-release-copy.md`](./docs/install/one-click-install-release-copy.md)
 - 面向操作者的标准推荐安装路径：[`docs/install/recommended-full-path.md`](./docs/install/recommended-full-path.md)
 
@@ -157,9 +157,10 @@ VibeSkills 的“满血版”承诺是治理完成，不是神奇自动化。
 - `python3` 或 `python`
 - Windows：`powershell` 或 `pwsh`
 - Linux / macOS：`bash`
-- 推荐 Linux / macOS 额外安装：`pwsh`（PowerShell 7），这样可以进入权威的 full doctor / gate 路径
+- 推荐 Linux / macOS 额外安装：`pwsh`（PowerShell 7），这样可以进入当前最强的受治理验证路径
 
-如果 Linux / macOS 没有 `pwsh`，依然可以安装完整仓库内容并物化 MCP active profile，但 PowerShell 侧的权威 doctor gates 会退化为 shell warning。
+如果 Linux 具备 `pwsh`，当前可以进入 Linux 最强验证路径，但对外口径仍然只是 `supported-with-constraints`，而不是 `full-authoritative`。
+如果 Linux / macOS 没有 `pwsh`，依然可以安装完整仓库内容并物化 MCP active profile，但 PowerShell 侧 doctor gates 会退化为 shell warning。
 
 #### Operator Notes
 
@@ -229,6 +230,11 @@ Linux / macOS：
 ```bash
 bash ./check.sh --profile full --deep
 ```
+
+升级提示：
+
+- 仅仅拉取仓库并不会自动刷新 `${TARGET_ROOT}/skills/vibe`
+- 仓库版本升级后，请先对同一个 target root 重新执行 `install.ps1` / `install.sh` 或对应 one-shot bootstrap，再去判断 freshness 失败是不是单纯的 receipt 问题
 
 #### 想进入真正的满血 MCP 体验，还需要手工补齐这些项
 

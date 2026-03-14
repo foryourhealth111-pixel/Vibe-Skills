@@ -1,8 +1,8 @@
 # Linux Full-Authoritative Candidate Proof Bundle
 
-This proof bundle now contains the frozen fresh-machine Linux evidence that backs the promoted `codex/linux` `full-authoritative` lane.
+This proof bundle contains the frozen fresh-machine Linux evidence for the `codex/linux` promotion candidate lane.
 
-It is both the canonical promotion bundle and the continuing proof anchor for future no-regression checks.
+It is the canonical proof anchor for future no-regression checks and for any later promotion decision.
 
 ## Included Artifacts
 
@@ -33,4 +33,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-linux-
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-platform-promotion-bundle.ps1 -WriteArtifacts
 ```
 
-The gates are now expected to pass in promoted mode, which means the proof artifacts must remain complete and the replay/docs state must stay synchronized.
+The gates are expected to pass in pre-promotion mode, which means the proof artifacts must remain complete while replay/docs/release truth stays synchronized to `supported-with-constraints`.

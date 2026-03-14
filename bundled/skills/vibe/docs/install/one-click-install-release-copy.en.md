@@ -2,7 +2,7 @@
 
 Use this page when you want outward-facing install copy for ordinary users.
 
-Current recommended public version: [`v2.3.37`](../releases/v2.3.37.md)
+Current recommended public version: [`v2.3.40`](../releases/v2.3.40.md)
 
 This page is intentionally simpler than the operator docs. It is built for:
 
@@ -12,11 +12,11 @@ This page is intentionally simpler than the operator docs. It is built for:
 
 ## One-line release copy
 
-`VibeSkills v2.3.37` is the current recommended public version. It is not another skill list. It is a governed skills substrate that routes, composes, and verifies skills so general-purpose AI can complete tasks more reliably. Try it first, look around first, and star the repo if the direction resonates.
+`VibeSkills v2.3.40` is the current recommended public version. It is not another skill list. It is a governed skills substrate that routes, composes, and verifies skills so general-purpose AI can complete tasks more reliably. Try it first, look around first, and star the repo if the direction resonates.
 
 ## Short community version
 
-VibeSkills `v2.3.37` is now the recommended public version.
+VibeSkills `v2.3.40` is now the recommended public version.
 
 If you are a heavy AI user, this is the easiest place to start:
 
@@ -32,7 +32,7 @@ Try it first. Look around first. Star first if you want to help build the univer
 
 ## Longer release-post version
 
-VibeSkills `v2.3.37` is the current outward-facing recommended version.
+VibeSkills `v2.3.40` is the current outward-facing recommended version.
 
 The point of this release is not to add more random skills. The point is to make the install surface clearer and more usable for ordinary people:
 
@@ -52,7 +52,7 @@ What you should not expect:
 - fake "fully ready" claims when host plugins or provider secrets are still missing
 - silent auto-provisioning of every external MCP or host plugin
 
-If you want a practical governed AI setup instead of another loose pile of skills, start with `v2.3.37`.
+If you want a practical governed AI setup instead of another loose pile of skills, start with `v2.3.40`.
 
 ## Copy this to your AI assistant
 
@@ -95,7 +95,7 @@ bash ./check.sh --profile full --deep
 
 This is the important line to keep honest in public:
 
-- `v2.3.37` is the current recommended governed install surface
+- `v2.3.40` is the current recommended governed install surface
 - it closes the repo-owned install lane as far as the repo can own it
 - it does not auto-complete every host plugin, provider secret, or external MCP integration
 
@@ -113,4 +113,4 @@ That is why `manual_actions_pending` is a valid outcome for ordinary users. It m
 - [`recommended-full-path.en.md`](./recommended-full-path.en.md)
 - [`full-featured-install-prompts.en.md`](./full-featured-install-prompts.en.md)
 - [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
-- [`../releases/v2.3.37.md`](../releases/v2.3.37.md)
+- [`../releases/v2.3.40.md`](../releases/v2.3.40.md)

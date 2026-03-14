@@ -34,7 +34,7 @@ Please install the current repository using the VibeSkills recommended full-feat
 3. If it is Linux:
    - first check whether `pwsh` is available
    - if `pwsh` is available, run `bash ./scripts/bootstrap/one-shot-setup.sh` and then `bash ./check.sh --profile full --deep`
-   - and explicitly state that this is the Linux authoritative full-featured lane
+   - and explicitly state that this is the strongest Linux path currently available, but it still ships as `supported-with-constraints`
    - if `pwsh` is not available, still run `bash ./scripts/bootstrap/one-shot-setup.sh` and `bash ./check.sh --profile full --deep`
    - but explicitly state that the result is only degraded-but-supported, and do not claim it is equivalent to full-featured Windows
 4. After installation, give me a concise conclusion:
@@ -42,7 +42,7 @@ Please install the current repository using the VibeSkills recommended full-feat
    - commands executed
    - final readiness_state
    - remaining host-managed surfaces
-   - whether this platform has reached the strongest "recommended full-featured" state currently available
+   - whether this platform has reached the strongest currently supported state available for this lane
 5. Do not pretend that host plugins, external MCP surfaces, or provider secrets were auto-installed.
 6. Treat `scrapling` as part of the default full lane:
    - if Python packaging is available, allow the installer to attempt `scrapling[ai]`

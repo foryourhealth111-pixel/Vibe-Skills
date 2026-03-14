@@ -58,6 +58,40 @@ warn_note() {
 
 normalize_path() {
   local value="${1:-}"
+  if [[ -z "$value" ]]; then
+    return 0
+  fi
+
+  local python_bin=""
+  if python_bin="$(pick_python 2>/dev/null)"; then
+    "${python_bin}" - "$value" "$PWD" <<'PY'
+import os
+import re
+import sys
+
+value = (sys.argv[1] or "").strip()
+cwd = sys.argv[2]
+normalized = value.replace("\\", "/")
+
+if re.match(r"^[A-Za-z]:/", normalized):
+    drive = normalized[0].lower()
+    rest = normalized[2:].lstrip("/")
+    candidate = f"/mnt/{drive}/{rest}"
+elif re.match(r"^/[A-Za-z]/", normalized):
+    drive = normalized[1].lower()
+    rest = normalized[3:].lstrip("/")
+    candidate = f"/mnt/{drive}/{rest}"
+elif os.path.isabs(normalized):
+    candidate = normalized
+else:
+    candidate = os.path.abspath(os.path.join(cwd, normalized))
+
+candidate = re.sub(r"/+", "/", candidate).rstrip("/")
+print(candidate.lower() if candidate else candidate)
+PY
+    return 0
+  fi
+
   printf '%s' "$value" | tr '\\' '/' | sed 's#//*#/#g; s#/$##' | tr '[:upper:]' '[:lower:]'
 }
 
@@ -289,6 +323,31 @@ validate_runtime_receipt() {
   fi
 }
 
+show_installed_runtime_upgrade_hint() {
+  local repo_governance="${SCRIPT_DIR}/config/version-governance.json"
+  [[ -f "$repo_governance" ]] || return
+
+  local target_rel='skills/vibe'
+  local configured_target_rel
+  configured_target_rel="$(json_query_scalar_from_file "$repo_governance" 'runtime.installed_runtime.target_relpath' 2>/dev/null || true)"
+  if [[ -n "$configured_target_rel" ]]; then
+    target_rel="$configured_target_rel"
+  fi
+
+  local installed_governance="${TARGET_ROOT}/${target_rel}/config/version-governance.json"
+  [[ -f "$installed_governance" ]] || return
+
+  local repo_version repo_updated installed_version installed_updated
+  repo_version="$(json_query_scalar_from_file "$repo_governance" 'release.version' 2>/dev/null || true)"
+  repo_updated="$(json_query_scalar_from_file "$repo_governance" 'release.updated' 2>/dev/null || true)"
+  installed_version="$(json_query_scalar_from_file "$installed_governance" 'release.version' 2>/dev/null || true)"
+  installed_updated="$(json_query_scalar_from_file "$installed_governance" 'release.updated' 2>/dev/null || true)"
+
+  if [[ -n "$repo_version" && "$repo_version" != "$installed_version" ]] || [[ -n "$repo_updated" && "$repo_updated" != "$installed_updated" ]]; then
+    warn_note "installed runtime release differs from canonical repo release (installed=${installed_version:-<missing>}/${installed_updated:-<missing>}, repo=${repo_version:-<missing>}/${repo_updated:-<missing>}). Re-run install.sh or one-shot-setup.sh for TARGET_ROOT=${TARGET_ROOT} before treating freshness failures as receipt-only issues."
+  fi
+}
+
 run_runtime_freshness_gate() {
   if [[ "$SKIP_RUNTIME_FRESHNESS_GATE" == "true" ]]; then
     warn_note 'runtime freshness gate skipped by request.'
@@ -445,6 +504,7 @@ check_path "rules/common" "${TARGET_ROOT}/rules/common/agents.md"
 check_path "hooks/write-guard" "${TARGET_ROOT}/hooks/write-guard.js"
 check_path "mcp template" "${TARGET_ROOT}/mcp/servers.template.json"
 
+show_installed_runtime_upgrade_hint
 run_runtime_freshness_gate
 validate_runtime_receipt
 run_runtime_coherence_gate

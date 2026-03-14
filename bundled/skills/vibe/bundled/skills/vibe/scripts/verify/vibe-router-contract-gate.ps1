@@ -53,6 +53,31 @@ function Compare-Float {
     return ([Math]::Abs($Left - $Right) -le $Tolerance)
 }
 
+function Get-SelectedRouteInfo {
+    param([object]$Route)
+
+    $selected = $null
+    if ($Route -and ($Route.PSObject.Properties.Name -contains "selected")) {
+        $selected = @($Route.selected)[0]
+    }
+
+    $packId = ""
+    $skill = ""
+    if ($selected) {
+        if ($selected.PSObject.Properties.Name -contains "pack_id") {
+            $packId = [string]$selected.pack_id
+        }
+        if ($selected.PSObject.Properties.Name -contains "skill") {
+            $skill = [string]$selected.skill
+        }
+    }
+
+    return [pscustomobject]@{
+        pack_id = $packId
+        skill = $skill
+    }
+}
+
 function Test-LegacyFallbackGuardEquivalence {
     param(
         [object]$Legacy,
@@ -60,11 +85,13 @@ function Test-LegacyFallbackGuardEquivalence {
         [double]$Tolerance
     )
 
-    $legacyPack = if ($Legacy.selected) { [string]$Legacy.selected.pack_id } else { "" }
-    $modularPack = if ($Modular.selected) { [string]$Modular.selected.pack_id } else { "" }
-    $legacySkill = if ($Legacy.selected) { [string]$Legacy.selected.skill } else { "" }
-    $modularSkill = if ($Modular.selected) { [string]$Modular.selected.skill } else { "" }
-    $confirmThreshold = if ($Modular.thresholds -and ($Modular.thresholds.confirm_required -ne $null)) {
+    $legacySelected = Get-SelectedRouteInfo -Route $Legacy
+    $modularSelected = Get-SelectedRouteInfo -Route $Modular
+    $legacyPack = $legacySelected.pack_id
+    $modularPack = $modularSelected.pack_id
+    $legacySkill = $legacySelected.skill
+    $modularSkill = $modularSelected.skill
+    $confirmThreshold = if ($Modular.thresholds -and ($Modular.thresholds.PSObject.Properties.Name -contains "confirm_required") -and ($Modular.thresholds.confirm_required -ne $null)) {
         [double]$Modular.thresholds.confirm_required
     } else {
         0.45
@@ -105,7 +132,8 @@ $assertions = @()
 
 $assertions += Assert-True -Condition (Test-Path -LiteralPath $modularScript) -Message "modular router script exists"
 $assertions += Assert-True -Condition (Test-Path -LiteralPath $legacyScript) -Message "legacy router script exists"
-if (($assertions | Where-Object { -not $_ }).Count -gt 0) {
+$failedAssertions = @($assertions | Where-Object { -not $_ })
+if ($failedAssertions.Count -gt 0) {
     exit 1
 }
 
@@ -132,12 +160,14 @@ foreach ($case in $cases) {
     if ([string]$legacy.route_mode -ne [string]$modular.route_mode -and -not ($equivalence.allowed_mismatches -contains "route_mode")) { $mismatches += "route_mode" }
     if ([string]$legacy.route_reason -ne [string]$modular.route_reason -and -not ($equivalence.allowed_mismatches -contains "route_reason")) { $mismatches += "route_reason" }
 
-    $legacyPack = if ($legacy.selected) { [string]$legacy.selected.pack_id } else { "" }
-    $modularPack = if ($modular.selected) { [string]$modular.selected.pack_id } else { "" }
+    $legacySelected = Get-SelectedRouteInfo -Route $legacy
+    $modularSelected = Get-SelectedRouteInfo -Route $modular
+    $legacyPack = $legacySelected.pack_id
+    $modularPack = $modularSelected.pack_id
     if ($legacyPack -ne $modularPack) { $mismatches += "selected.pack_id" }
 
-    $legacySkill = if ($legacy.selected) { [string]$legacy.selected.skill } else { "" }
-    $modularSkill = if ($modular.selected) { [string]$modular.selected.skill } else { "" }
+    $legacySkill = $legacySelected.skill
+    $modularSkill = $modularSelected.skill
     if ($legacySkill -ne $modularSkill) { $mismatches += "selected.skill" }
 
     if (-not (Compare-Float -Left ([double]$legacy.confidence) -Right ([double]$modular.confidence) -Tolerance $FloatTolerance) -and -not ($equivalence.allowed_mismatches -contains "confidence")) { $mismatches += "confidence" }

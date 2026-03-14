@@ -16,7 +16,7 @@ Canonical promotion criteria remain:
 ## Baseline Decision
 
 - `codex/windows` remains a `full-authoritative` lane.
-- `codex/linux` is now a promoted `full-authoritative` lane backed by a frozen Linux proof bundle.
+- `codex/linux` remains `supported-with-constraints` while being backed by a frozen Linux proof bundle.
 - `codex/linux without pwsh` remains an honest degraded lane.
 - `codex/macos` remains `not-yet-proven`.
 
@@ -25,7 +25,7 @@ Canonical promotion criteria remain:
 | Lane | Current Status | Promotion State | Reason |
 | --- | --- | --- | --- |
 | `codex/windows` | `full-authoritative` | frozen baseline | current reference closure lane |
-| `codex/linux` | `full-authoritative` | promoted and frozen | fresh-machine bundle, replay sync, adapter status, and public wording are aligned |
+| `codex/linux` | `supported-with-constraints` | proof frozen, promotion withheld | fresh-machine bundle is frozen, but release truth intentionally stays below formal promotion |
 | `codex/linux without pwsh` | `degraded-but-supported` | not promotable in this wave | degraded contract must remain explicit |
 | `codex/macos` | `not-yet-proven` | out of scope | no frozen proof lane yet |
 

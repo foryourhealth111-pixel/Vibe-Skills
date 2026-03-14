@@ -47,7 +47,7 @@ Those layers are now satisfied together for `codex/linux` when `pwsh` is present
 | Platform | Install Surface | Check Surface | Governance / Doctor Surface | Current Rating | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Windows | `install.ps1`, `one-shot-setup.ps1` | `check.ps1` | strongest current path for PowerShell-first gates | `full-authoritative` | this is the current reference closure lane |
-| Linux + `pwsh` | `install.sh`, `one-shot-setup.sh` | `check.sh` plus PowerShell-capable follow-up | promoted authoritative lane when `pwsh` is provisioned | `full-authoritative` | fresh-machine proof is frozen and replay/status/doc sync is complete |
+| Linux + `pwsh` | `install.sh`, `one-shot-setup.sh` | `check.sh` plus PowerShell-capable follow-up | strongest Linux path when `pwsh` is provisioned | `supported-with-constraints` | fresh-machine proof is frozen, but formal promotion is still intentionally withheld |
 | Linux without `pwsh` | `install.sh`, `one-shot-setup.sh` | `check.sh` | PowerShell authority gates may be skipped with warnings | `degraded-but-supported` | usable, but not equal to official Windows closure |
 | macOS + `pwsh` | shell path inferred from bash tooling | partial | likely similar to Linux + `pwsh`, but not frozen | `not-yet-proven` | must not be marketed as full until proved |
 | macOS without `pwsh` | shell path inferred from bash tooling | partial | likely degraded like Linux without `pwsh` | `not-yet-proven` | must first be measured and recorded |

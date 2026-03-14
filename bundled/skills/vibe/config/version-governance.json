@@ -1,10 +1,10 @@
 {
     "schema_version":  2,
     "release":  {
-                    "version":  "2.3.39",
+                    "version":  "2.3.40",
                     "updated":  "2026-03-14",
                     "channel":  "stable",
-                    "notes":  "Closes the Linux retest regression wave by hardening OpenSpec router contracts, stabilizing installed-runtime freshness normalization, and re-proving default install/check plus installed router smoke without claiming Linux proof promotion yet."
+                    "notes":  "Closes the cross-shell install-check closure wave by hardening router contract gates, keeping Linux truth conservative, and normalizing installed-runtime freshness receipt validation across PowerShell and bash/WSL."
                 },
     "source_of_truth":  {
                             "canonical_root":  ".",

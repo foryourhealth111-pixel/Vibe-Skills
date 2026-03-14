@@ -21,7 +21,7 @@ This document only maps that truth into the install entrypoints.
 | Platform | Primary Install | Primary Check | Support Rating (Truth) | Notes |
 | --- | --- | --- | --- | --- |
 | Windows | `install.ps1` | `check.ps1` | `full-authoritative` | current reference closure lane |
-| Linux + `pwsh` | `install.sh` | `check.sh` (+ PowerShell follow-up) | `full-authoritative` | proof is frozen and promotion sync is complete |
+| Linux + `pwsh` | `install.sh` | `check.sh` (+ PowerShell follow-up) | `supported-with-constraints` | proof is frozen, but release truth remains below formal promotion |
 | Linux without `pwsh` | `install.sh` | `check.sh` (degraded) | `degraded-but-supported` | must not be marketed as full |
 | macOS + `pwsh` | shell path inferred | partial | `not-yet-proven` | must be measured and recorded |
 | macOS without `pwsh` | shell path inferred | partial | `not-yet-proven` | must be measured and recorded |

@@ -110,6 +110,17 @@ Treat these as stop-ship failures:
 
 ## Routine Troubleshooting
 
+### Upgrading an existing install
+
+Use this sequence whenever the repo release moved forward but `${TARGET_ROOT}/skills/vibe` may still be older:
+
+1. update the canonical repo tree
+2. re-run `install.ps1` / `install.sh` or the corresponding one-shot bootstrap for the same `TARGET_ROOT`
+3. re-run `check.ps1 -Deep` / `check.sh --profile full --deep`
+4. only treat a remaining mismatch as receipt-only after the installed runtime itself has been refreshed
+
+Pulling the repo alone does not refresh the installed runtime copy.
+
 ### Fresh install failed
 
 1. re-run `sync-bundled-vibe.ps1 -PruneBundledExtras`
@@ -125,7 +136,8 @@ Treat these as stop-ship failures:
 
 ### Receipt exists but check fails
 
-1. compare `receipt_version` to `runtime.installed_runtime.receipt_contract_version`
-2. compare receipt `target_root` / `installed_root` to the actual target
-3. inspect release metadata inside the installed copy
-4. re-run the freshness gate to refresh the receipt
+1. compare installed runtime `release.version` / `release.updated` to the canonical repo release
+2. if they differ, re-run install or one-shot for the same `TARGET_ROOT` before doing anything else
+3. compare `receipt_version` to `runtime.installed_runtime.receipt_contract_version`
+4. compare receipt `target_root` / `installed_root` to the actual target
+5. if the installed runtime already matches the repo release, re-run the freshness gate to refresh the receipt

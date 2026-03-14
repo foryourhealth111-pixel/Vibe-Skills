@@ -437,9 +437,9 @@ function Get-DataScaleOverlayAdvice {
 
     $pathsDetected = @()
     if ($extractFromPrompt) {
-        $pathsDetected = Get-PathCandidatesFromPrompt -Prompt $Prompt -SupportedExtensions $supportedExt
+        $pathsDetected = @(Get-PathCandidatesFromPrompt -Prompt $Prompt -SupportedExtensions $supportedExt)
     }
-    $pathsExisting = Resolve-ExistingPathCandidates -PathCandidates $pathsDetected -WorkspaceProbeEnabled $workspaceProbeWhenNoPath -WorkspaceProbeLimit $workspaceProbeLimit -WorkspaceProbeExtensions $workspaceProbeExtensions
+    $pathsExisting = @(Resolve-ExistingPathCandidates -PathCandidates $pathsDetected -WorkspaceProbeEnabled $workspaceProbeWhenNoPath -WorkspaceProbeLimit $workspaceProbeLimit -WorkspaceProbeExtensions $workspaceProbeExtensions)
 
     if ($pathsExisting.Count -eq 0) {
         return [pscustomobject]@{
@@ -545,7 +545,7 @@ function Get-DataScaleOverlayAdvice {
         }
     }
 
-    $primary = $fileAnalysis | Sort-Object -Property @{ Expression = "size_bytes"; Descending = $true } | Select-Object -First 1
+    $primary = @($fileAnalysis | Sort-Object -Property @{ Expression = "size_bytes"; Descending = $true } | Select-Object -First 1)[0]
     $sizeBytes = [int64]$primary.size_bytes
     $estimatedRows = if ($primary.estimated_rows -ne $null) { [int64]$primary.estimated_rows } else { $null }
     $columnCount = if ($primary.columns -ne $null) { [int]$primary.columns } else { $null }

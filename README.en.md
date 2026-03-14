@@ -85,7 +85,7 @@ If you want the full statement of what this ecosystem is trying to build, what i
 
 ## Current Recommended Release
 
-- Current outward-facing recommended version: [`v2.3.37`](./docs/releases/v2.3.37.md)
+- Current outward-facing recommended version: [`v2.3.40`](./docs/releases/v2.3.40.md)
 - Ordinary-user one-click release copy: [`docs/install/one-click-install-release-copy.en.md`](./docs/install/one-click-install-release-copy.en.md)
 - Operator-grade install path: [`docs/install/recommended-full-path.en.md`](./docs/install/recommended-full-path.en.md)
 
@@ -107,7 +107,7 @@ If you want the simplest public-facing onboarding path for ordinary users, commu
 
 - [`docs/install/one-click-install-release-copy.en.md`](./docs/install/one-click-install-release-copy.en.md)
 
-This is the current public install copy for `v2.3.37`.
+This is the current public install copy for `v2.3.40`.
 
 #### Start with the standard recommended install
 
@@ -161,9 +161,10 @@ We make the closure boundary explicit so operators know what is already governed
 - `python3` or `python`
 - Windows: `powershell` or `pwsh`
 - Linux/macOS: `bash`
-- Recommended on Linux/macOS for authoritative full verification: `pwsh` (PowerShell 7)
+- Recommended on Linux/macOS for the strongest governed verification path: `pwsh` (PowerShell 7)
 
-Without `pwsh`, Linux/macOS still gets the full shipped content and the MCP active profile, but the authoritative PowerShell doctor gates are downgraded to shell-safe warnings.
+With `pwsh`, Linux gets the strongest currently supported path, but it still ships as `supported-with-constraints` rather than `full-authoritative`.
+Without `pwsh`, Linux/macOS still gets the full shipped content and the MCP active profile, but the PowerShell doctor gates are downgraded to shell-safe warnings.
 
 Operator notes:
 
@@ -232,6 +233,11 @@ Linux / macOS:
 ```bash
 bash ./check.sh --profile full --deep
 ```
+
+Upgrade note:
+
+- pulling the repo does not refresh `${TARGET_ROOT}/skills/vibe`
+- after a repo upgrade, re-run `install.ps1` / `install.sh` or the matching one-shot bootstrap for the same target root before treating freshness failures as receipt-only issues
 
 #### Manual follow-up required for a true full MCP experience
 

@@ -1,42 +1,39 @@
-# Linux Full-Authoritative Contract
+# Linux Full-Authoritative Promotion Boundary
 
-> Status baseline: 2026-03-13  
-> Scope: define what must remain true now that Linux has been promoted to `full-authoritative` when `pwsh` is available.
+> Status baseline: 2026-03-14  
+> Scope: define the boundary between frozen Linux proof and any future promotion to `full-authoritative` when `pwsh` is available.
 
 ## Purpose
 
-This contract freezes the acceptance standard for Linux promotion.
+This document exists to prevent two opposite mistakes:
 
-It exists to prevent two failure modes:
+1. treating frozen fresh-machine proof as if formal promotion has already shipped
+2. throwing away Linux proof simply because release truth remains conservative
 
-1. documentation upgrades that run ahead of proof
-2. shell-path convenience improvements being misread as authoritative closure
-
-Linux is now `full-authoritative` when `pwsh` is available.
-This document now acts as the contract that must remain true to preserve that claim.
+Linux proof is real. Promotion is not yet claimed in current release truth.
 
 ## Current Truth
 
 As of this baseline:
 
-- Windows remains a proven `full-authoritative` lane.
-- `Codex on Linux + pwsh` is now `full-authoritative`.
+- Windows remains the proven `full-authoritative` lane.
+- `Codex on Linux + pwsh` remains `supported-with-constraints`.
 - `Codex on Linux without pwsh` remains `degraded-but-supported`.
-- Runtime-neutral freshness, coherence, and bootstrap-doctor cores now exist as part of a finished promotion proof for the Linux + `pwsh` lane.
+- Fresh-machine Linux proof is frozen and kept ready for a future promotion decision.
 
 ## Promotion Target
 
-Linux may remain promoted to `full-authoritative` only while **all** of the following remain simultaneously true:
+Linux may move from `supported-with-constraints` to `full-authoritative` only when **all** of the following remain true at the same time:
 
-1. `install.sh` completes the authoritative validation path without requiring `pwsh`.
-2. `check.sh --profile full --deep` runs freshness, coherence, and bootstrap-doctor semantics on Linux without silent skips.
-3. The runtime-neutral path emits machine-readable receipts with stable schema and stable pass/fail meaning.
-4. Windows PowerShell remains green on the original authority lane.
-5. Replay fixtures, platform contracts, and public support docs remain synchronized to the frozen evidence.
+1. the frozen fresh-machine Linux proof bundle is still complete
+2. replay fixtures, adapter contracts, and public docs are synchronized in the same batch
+3. the release note explicitly re-opens and ships the promotion claim
+4. Windows remains green on the reference authority lane
+5. Linux without `pwsh` still stays explicitly degraded rather than silently upgraded
 
 ## Required Entry Points
 
-Linux promotion depends on these surfaces:
+Future Linux promotion depends on these governed surfaces:
 
 - `install.sh`
 - `check.sh`
@@ -45,59 +42,28 @@ Linux promotion depends on these surfaces:
 - `scripts/verify/runtime_neutral/coherence_gate.py`
 - `scripts/verify/runtime_neutral/bootstrap_doctor.py`
 
-These are allowed to evolve only inside the governed migration window recorded in:
+## Required Evidence
 
-- `config/official-runtime-main-chain-policy.json`
+Any future promotion batch must preserve evidence for:
 
-## Required Receipts and Evidence
-
-Promotion requires fresh evidence for:
-
-- runtime freshness result
-- release/install/runtime coherence result
-- bootstrap doctor result
-- Linux degraded-lane honesty when `pwsh` is absent
-- Windows baseline preservation during the same migration batch
-
-The minimum proof commands are:
-
-```powershell
-python tests/runtime_neutral/test_freshness_gate.py
-python tests/runtime_neutral/test_bootstrap_doctor.py
-python tests/runtime_neutral/test_coherence_gate.py
-bash -n install.sh
-bash -n check.sh
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-cross-host-install-isolation-gate.ps1 -WriteArtifacts
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-universalization-no-regression-gate.ps1 -WriteArtifacts
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-platform-support-contract-gate.ps1 -WriteArtifacts
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-release-install-runtime-coherence-gate.ps1 -WriteArtifacts
-```
-
-Fresh-machine Linux proof is frozen and promotion is now closed, but any future drift must be treated as a promotion regression.
+- runtime freshness
+- release/install/runtime coherence
+- bootstrap doctor parity
+- honest degraded behavior when `pwsh` is absent
+- Windows baseline preservation in the same batch
 
 ## Stop Rules
 
-The migration must stop and stay below `full-authoritative` if any of the following happens:
+Promotion must stop and remain below `full-authoritative` if any of the following happens:
 
-1. Windows baseline regresses.
-2. Runtime-neutral receipts drift from existing contract semantics.
-3. Linux without `pwsh` becomes a silent skip instead of an explicit degraded result.
-4. Public docs claim promotion before replay fixtures and platform contracts are updated.
-5. The install-isolation gate detects unapproved main-chain edits outside the active change window.
-
-## Current Closure State
-
-The original blockers are now closed:
-
-1. `adapters/codex/platform-linux.json` now declares `full-authoritative`.
-2. `tests/replay/fixtures/host-capability-matrix.json` now allows `codex/linux` as `full-authoritative`.
-3. `docs/universalization/platform-support-matrix.md` and `docs/universalization/platform-parity-contract.md` now describe Linux + `pwsh` as promoted while preserving the degraded `without_pwsh` lane.
-4. Replay fixtures, manifest state, adapter state, and public wording are synchronized to the promoted Linux lane.
+1. Windows baseline regresses
+2. runtime-neutral receipts drift from the existing contract
+3. Linux without `pwsh` becomes a silent skip instead of an explicit degraded result
+4. public docs or adapter contracts claim promotion before release truth and replay fixtures are synchronized
+5. proof bundle completeness drifts below the frozen evidence baseline
 
 ## Allowed Current Claim
 
 The strongest truthful claim today is:
 
-`Codex on Linux + pwsh` is now a formally promoted `full-authoritative` lane. `Codex on Linux without pwsh` remains explicitly `degraded-but-supported`.
-
-Anything stronger is overclaim until the blockers above are closed.
+`Codex on Linux + pwsh` has frozen fresh-machine proof and is the strongest Linux lane currently available, but it still ships as `supported-with-constraints`. `Codex on Linux without pwsh` remains explicitly `degraded-but-supported`.

@@ -90,9 +90,31 @@ This writes the selected profile into `~/.codex\mcp\servers.active.json`. It doe
 
 ## Safe Update Flow
 
+This flow has two separate scopes:
+
+1. repo maintenance sync
+2. installed runtime upgrade
+
+Pulling the repo does **not** upgrade `${TARGET_ROOT}/skills/vibe` by itself.
+
+### Repo maintenance sync
+
 1. Pull latest `vco-skills-codex`
 2. Run `scripts/bootstrap/sync-local-compat.ps1`
 3. Run `scripts/verify/vibe-generate-skills-lock.ps1`
 4. Review diff
 5. Run `check.ps1 -Deep` and `scripts/verify/vibe-offline-skills-gate.ps1`
 6. Commit + push
+
+### Installed runtime upgrade
+
+After the repo tree is updated, re-materialize the governed runtime for the same target root before trusting any freshness output:
+
+- Windows:
+  - `pwsh -File .\install.ps1 -TargetRoot "$env:USERPROFILE\.codex"`
+  - or `pwsh -File .\scripts\bootstrap\one-shot-setup.ps1`
+- Linux / macOS:
+  - `bash ./install.sh --target-root "$HOME/.codex"`
+  - or `bash ./scripts/bootstrap/one-shot-setup.sh`
+
+Then re-run the deep check for that target root.

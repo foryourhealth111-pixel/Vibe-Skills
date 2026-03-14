@@ -197,6 +197,50 @@ function Test-ReceiptTargetFreshness {
   }
 }
 
+function Show-InstalledRuntimeUpgradeHint {
+  param(
+    [psobject]$Governance,
+    [string]$TargetRoot,
+    [psobject]$RuntimeConfig
+  )
+
+  if ($null -eq $Governance -or $null -eq $RuntimeConfig) {
+    return
+  }
+
+  $targetRel = [string]$RuntimeConfig.target_relpath
+  if ([string]::IsNullOrWhiteSpace($targetRel)) {
+    $targetRel = 'skills/vibe'
+  }
+
+  $installedGovernancePath = Join-Path $TargetRoot (Join-Path $targetRel 'config\version-governance.json')
+  if (-not (Test-Path -LiteralPath $installedGovernancePath)) {
+    return
+  }
+
+  $installedGovernance = Get-JsonObject -Path $installedGovernancePath -Label 'installed vibe governance'
+  if ($null -eq $installedGovernance) {
+    return
+  }
+
+  $repoRelease = if ($Governance.PSObject.Properties.Name -contains 'release') { $Governance.release } else { $null }
+  $installedRelease = if ($installedGovernance.PSObject.Properties.Name -contains 'release') { $installedGovernance.release } else { $null }
+  if ($null -eq $repoRelease -or $null -eq $installedRelease) {
+    return
+  }
+
+  $repoVersion = if ($repoRelease.PSObject.Properties.Name -contains 'version') { [string]$repoRelease.version } else { $null }
+  $repoUpdated = if ($repoRelease.PSObject.Properties.Name -contains 'updated') { [string]$repoRelease.updated } else { $null }
+  $installedVersion = if ($installedRelease.PSObject.Properties.Name -contains 'version') { [string]$installedRelease.version } else { $null }
+  $installedUpdated = if ($installedRelease.PSObject.Properties.Name -contains 'updated') { [string]$installedRelease.updated } else { $null }
+
+  $versionMismatch = (-not [string]::IsNullOrWhiteSpace($repoVersion)) -and ($repoVersion -ne $installedVersion)
+  $updatedMismatch = (-not [string]::IsNullOrWhiteSpace($repoUpdated)) -and ($repoUpdated -ne $installedUpdated)
+  if ($versionMismatch -or $updatedMismatch) {
+    Write-Host ("[INFO] installed runtime release differs from canonical repo release (installed={0}/{1}, repo={2}/{3}). Re-run install.ps1 or one-shot-setup.ps1 for TargetRoot={4} before treating freshness failures as receipt-only issues." -f (Format-OptionalValue -Value $installedVersion), (Format-OptionalValue -Value $installedUpdated), (Format-OptionalValue -Value $repoVersion), (Format-OptionalValue -Value $repoUpdated), $TargetRoot) -ForegroundColor Yellow
+  }
+}
+
 function Invoke-RuntimeFreshnessCheck {
   param(
     [string]$RepoRoot,
@@ -206,6 +250,7 @@ function Invoke-RuntimeFreshnessCheck {
 
   $governance = Get-CheckGovernance -RepoRoot $RepoRoot
   $runtimeConfig = Get-InstalledRuntimeConfig -Governance $governance
+  Show-InstalledRuntimeUpgradeHint -Governance $governance -TargetRoot $TargetRoot -RuntimeConfig $runtimeConfig
   $receiptRel = [string]$runtimeConfig.receipt_relpath
   if (-not [string]::IsNullOrWhiteSpace($receiptRel)) {
     Check-Path -Label 'vibe runtime freshness receipt' -Path (Join-Path $TargetRoot $receiptRel)
