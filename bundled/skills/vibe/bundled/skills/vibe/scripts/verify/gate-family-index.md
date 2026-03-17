@@ -60,6 +60,7 @@ The authoritative requirement set for closure remains [`../../docs/status/non-re
 | Release / Promotion / Observability | `vibe-promotion-board-gate.ps1`, `vibe-release-evidence-bundle-gate.ps1`, `vibe-release-train-v2-gate.ps1`, `vibe-release-truth-consistency-gate.ps1`, `vibe-ops-cockpit-gate.ps1` | release, promotion, observability, and cockpit updates |
 | Operator Preview / Apply Safety | `vibe-operator-preview-contract-gate.ps1`, `vibe-manual-apply-policy-gate.ps1` | preview or apply contract changes for write-capable governance scripts |
 | Execution-Context / Wave Runner | `vibe-wave121-upstream-mapping-gate.ps1`, `vibe-wave124-ops-cockpit-v2-gate.ps1`, `vibe-wave125-gate-family-convergence-gate.ps1` | manifest families, wave-runner coverage, and execution-context lock hardening |
+| Remediation Foundation / Proof Classes | `vibe-remediation-foundation-gate.ps1`, `vibe-benchmark-autonomous-proof-gate.ps1` | remediation baseline, proof-class honesty, shadow executor presence, cleanup taxonomy |
 
 ## Cross-Layer Handoff
 

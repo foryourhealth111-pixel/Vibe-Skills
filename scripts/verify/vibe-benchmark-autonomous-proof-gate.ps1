@@ -57,21 +57,31 @@ $executeReceiptPath = [string]$summary.summary.artifacts.execute_receipt
 $executionManifestPath = [string]$summary.summary.artifacts.execution_manifest
 $proofManifestPath = [string]$summary.summary.artifacts.benchmark_proof_manifest
 $cleanupReceiptPath = [string]$summary.summary.artifacts.cleanup_receipt
+$runtimeInputPacketPath = [string]$summary.summary.artifacts.runtime_input_packet
 
-foreach ($path in @($executeReceiptPath, $executionManifestPath, $proofManifestPath, $cleanupReceiptPath)) {
+foreach ($path in @($runtimeInputPacketPath, $executeReceiptPath, $executionManifestPath, $proofManifestPath, $cleanupReceiptPath)) {
     Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $path) -Message ("benchmark artifact exists: {0}" -f ([System.IO.Path]::GetFileName($path))) -Details $path
 }
 
+$runtimeInputPacket = Get-Content -LiteralPath $runtimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executeReceipt = Get-Content -LiteralPath $executeReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executionManifest = Get-Content -LiteralPath $executionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $proofManifest = Get-Content -LiteralPath $proofManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$cleanupReceipt = Get-Content -LiteralPath $cleanupReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'benchmark_autonomous') -Message 'benchmark proof summary preserves benchmark_autonomous mode'
+Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.stage -eq 'runtime_input_freeze') -Message 'runtime input packet is frozen before execution'
+Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.provenance.proof_class -eq 'structure') -Message 'runtime input packet carries structure proof class'
 Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -ne 'execution-contract-prepared') -Message 'execute receipt is no longer receipt-only'
 Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'completed') -Message 'execution manifest status is completed' -Details $executionManifest.status
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.executed_unit_count -ge 2) -Message 'benchmark executed at least two real units' -Details $executionManifest.executed_unit_count
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.failed_unit_count -eq 0) -Message 'benchmark execution has zero failed units' -Details $executionManifest.failed_unit_count
+Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.proof_class -eq 'runtime') -Message 'execution manifest carries runtime proof class'
+Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$executeReceipt.plan_shadow_path)) -Message 'plan-derived shadow manifest exists' -Details ([string]$executeReceipt.plan_shadow_path)
 Add-Assertion -Results ([ref]$results) -Condition ([bool]$proofManifest.proof_passed) -Message 'benchmark proof manifest marks proof_passed=true'
+Add-Assertion -Results ([ref]$results) -Condition ($proofManifest.proof_class -eq 'runtime') -Message 'benchmark proof manifest carries runtime proof class'
+Add-Assertion -Results ([ref]$results) -Condition ($cleanupReceipt.cleanup_mode -eq 'bounded_cleanup_executed') -Message 'benchmark cleanup is materially executed by default'
+Add-Assertion -Results ([ref]$results) -Condition ($cleanupReceipt.proof_class -eq 'runtime') -Message 'cleanup receipt carries runtime proof class'
 
 foreach ($resultPath in @($proofManifest.result_paths)) {
     Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $resultPath) -Message ("result receipt exists: {0}" -f ([System.IO.Path]::GetFileName($resultPath))) -Details $resultPath

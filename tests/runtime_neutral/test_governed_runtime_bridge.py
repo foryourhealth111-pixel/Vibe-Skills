@@ -92,10 +92,13 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         required_markers = set(runtime["required_runtime_markers"])
         self.assertIn("scripts/runtime/VibeRuntime.Common.ps1", required_markers)
+        self.assertIn("scripts/runtime/Freeze-RuntimeInputPacket.ps1", required_markers)
         self.assertIn("scripts/runtime/invoke-vibe-runtime.ps1", required_markers)
         self.assertIn("scripts/verify/vibe-governed-runtime-contract-gate.ps1", required_markers)
         self.assertIn("config/runtime-contract.json", required_markers)
         self.assertIn("config/runtime-modes.json", required_markers)
+        self.assertIn("config/runtime-input-packet-policy.json", required_markers)
+        self.assertIn("config/proof-class-registry.json", required_markers)
         self.assertIn("config/requirement-doc-policy.json", required_markers)
         self.assertIn("config/plan-execution-policy.json", required_markers)
         self.assertIn("config/phase-cleanup-policy.json", required_markers)
@@ -188,6 +191,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
             for key in (
                 "skeleton_receipt",
+                "runtime_input_packet",
                 "intent_contract",
                 "requirement_doc",
                 "requirement_receipt",
@@ -209,26 +213,43 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             execute_receipt_path = resolve_artifact_path("execute_receipt")
             execution_manifest_path = resolve_artifact_path("execution_manifest")
             benchmark_proof_path = resolve_artifact_path("benchmark_proof_manifest")
+            runtime_input_packet_path = resolve_artifact_path("runtime_input_packet")
 
             if requirement_doc_path.exists():
                 requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
                 self.assertIn("## Acceptance Criteria", requirement_doc)
                 self.assertIn("## Assumptions", requirement_doc)
+                self.assertIn("## Runtime Input Truth", requirement_doc)
             self.assertEqual("requirements", requirement_doc_path.parent.name)
             self.assertEqual("plans", execution_plan_path.parent.name)
 
+            runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
             execute_receipt = json.loads(execute_receipt_path.read_text(encoding="utf-8"))
             execution_manifest = json.loads(execution_manifest_path.read_text(encoding="utf-8"))
             benchmark_proof = json.loads(benchmark_proof_path.read_text(encoding="utf-8"))
 
+            self.assertEqual("runtime_input_freeze", runtime_input_packet["stage"])
+            self.assertEqual("structure", runtime_input_packet["provenance"]["proof_class"])
+            self.assertEqual("vibe", runtime_input_packet["authority_flags"]["explicit_runtime_skill"])
             self.assertNotEqual("execution-contract-prepared", execute_receipt["status"])
             self.assertGreaterEqual(execute_receipt["executed_unit_count"], 2)
+            self.assertTrue(Path(execute_receipt["plan_shadow_path"]).exists())
+            self.assertEqual("runtime", execute_receipt["proof_class"])
             self.assertEqual(execute_receipt["executed_unit_count"], execution_manifest["executed_unit_count"])
             self.assertEqual("completed", execution_manifest["status"])
             self.assertGreaterEqual(execution_manifest["successful_unit_count"], 2)
             self.assertEqual(0, execution_manifest["failed_unit_count"])
+            self.assertEqual("runtime", execution_manifest["proof_class"])
+            self.assertTrue(Path(execution_manifest["plan_shadow"]["path"]).exists())
             self.assertTrue(benchmark_proof["proof_passed"])
             self.assertGreaterEqual(benchmark_proof["executed_unit_count"], 2)
+            self.assertEqual("runtime", benchmark_proof["proof_class"])
+            self.assertTrue(Path(benchmark_proof["plan_shadow_path"]).exists())
+
+            cleanup_receipt = json.loads(resolve_artifact_path("cleanup_receipt").read_text(encoding="utf-8"))
+            self.assertEqual("bounded_cleanup_executed", cleanup_receipt["cleanup_mode"])
+            self.assertEqual("runtime", cleanup_receipt["proof_class"])
+            self.assertTrue(cleanup_receipt["default_bounded_cleanup_applied"])
 
             for result_path in benchmark_proof["result_paths"]:
                 result = json.loads(Path(result_path).read_text(encoding="utf-8"))

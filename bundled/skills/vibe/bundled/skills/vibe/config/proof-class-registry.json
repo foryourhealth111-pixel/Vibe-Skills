@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-17",
+  "classes": [
+    {
+      "id": "structure",
+      "description": "Existence, schema, and declared contract proof only. Does not prove the runtime actually performed the claimed behavior."
+    },
+    {
+      "id": "fixture",
+      "description": "Deterministic gate or replay proof against controlled fixtures or curated local cases."
+    },
+    {
+      "id": "runtime",
+      "description": "The canonical runtime actually executed and emitted artifacts that reflect the frozen input truth."
+    },
+    {
+      "id": "field",
+      "description": "Messy, cross-surface, field-relevant evidence with operator burden and completion-state honesty captured."
+    }
+  ],
+  "artifact_class_defaults": {
+    "runtime_input_packet": "structure",
+    "requirement_doc": "structure",
+    "execution_plan": "structure",
+    "verification_gate": "fixture",
+    "execution_manifest": "runtime",
+    "benchmark_proof_manifest": "runtime",
+    "cleanup_receipt": "runtime",
+    "messy_task_corpus_report": "field",
+    "simulated_usability_report": "field",
+    "path_ecology_board": "structure",
+    "promotion_board": "structure"
+  },
+  "promotion_suitability": {
+    "structure": false,
+    "fixture": false,
+    "runtime": "bounded",
+    "field": true
+  },
+  "gate_family_defaults": {
+    "Runtime Integrity / Packaging": "fixture",
+    "Fallback Governance / Truth Honesty": "fixture",
+    "Managed Runtime / Process Hygiene": "runtime",
+    "Cleanliness / Outputs / Mirror Hygiene": "fixture",
+    "Plane Governance": "fixture",
+    "Capability / Role / Upstream Value Ops": "fixture",
+    "Release / Promotion / Observability": "fixture",
+    "Operator Preview / Apply Safety": "fixture",
+    "Execution-Context / Wave Runner": "fixture"
+  }
+}

@@ -1,9 +1,18 @@
 {
   "version": 1,
-  "updated_at": "2026-03-15",
+  "updated_at": "2026-03-17",
   "enabled": true,
   "required_after_each_phase": true,
   "receipt_path": "outputs/runtime/vibe-sessions/{run_id}/cleanup-receipt.json",
+  "bounded_default_modes": [
+    "benchmark_autonomous"
+  ],
+  "cleanup_mode_taxonomy": [
+    "receipt_only",
+    "bounded_cleanup_executed",
+    "destructive_cleanup_applied",
+    "cleanup_degraded"
+  ],
   "cleanup_steps": [
     "remove_temp_artifacts",
     "write_phase_cleanup_receipt",

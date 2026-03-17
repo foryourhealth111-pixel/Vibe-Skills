@@ -3,6 +3,7 @@ param(
     [string]$Mode = 'interactive_governed',
     [string]$RunId = '',
     [string]$IntentContractPath = '',
+    [string]$RuntimeInputPacketPath = '',
     [string]$ArtifactRoot = ''
 )
 
@@ -26,6 +27,11 @@ if (-not [string]::IsNullOrWhiteSpace($IntentContractPath) -and (Test-Path -Lite
 
 $docPath = Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 $antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
+$runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath) -and (Test-Path -LiteralPath $RuntimeInputPacketPath)) {
+    Get-Content -LiteralPath $RuntimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} else {
+    $null
+}
 $lines = @(
     "# $($intentContract.title)",
     '',
@@ -69,8 +75,22 @@ $lines += @(
     '',
     '## Evidence Inputs',
     "- Source task: $Task",
-    "- Intent contract: $([System.IO.Path]::GetFileName((Join-Path $sessionRoot 'intent-contract.json')))"
+    "- Intent contract: $([System.IO.Path]::GetFileName((Join-Path $sessionRoot 'intent-contract.json')))",
+    "- Runtime input packet: $([System.IO.Path]::GetFileName($RuntimeInputPacketPath))"
 )
+
+if ($runtimeInputPacket) {
+    $lines += @(
+        '',
+        '## Runtime Input Truth',
+        "- Selected pack: $([string]$runtimeInputPacket.route_snapshot.selected_pack)",
+        "- Router-selected skill: $([string]$runtimeInputPacket.route_snapshot.selected_skill)",
+        "- Runtime-selected skill: $([string]$runtimeInputPacket.authority_flags.explicit_runtime_skill)",
+        "- Route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
+        "- Route reason: $([string]$runtimeInputPacket.route_snapshot.route_reason)",
+        "- Confirm required: $([bool]$runtimeInputPacket.route_snapshot.confirm_required)"
+    )
+}
 
 Write-VibeMarkdownArtifact -Path $docPath -Lines $lines
 
@@ -79,6 +99,7 @@ $receipt = [pscustomobject]@{
     run_id = $RunId
     mode = $Mode
     requirement_doc_path = $docPath
+    runtime_input_packet_path = $RuntimeInputPacketPath
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
 $receiptPath = Join-Path $sessionRoot 'requirement-doc-receipt.json'

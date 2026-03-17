@@ -3,6 +3,7 @@ param(
     [string]$Mode = 'interactive_governed',
     [string]$RunId = '',
     [string]$RequirementDocPath = '',
+    [string]$RuntimeInputPacketPath = '',
     [string]$ArtifactRoot = ''
 )
 
@@ -22,6 +23,11 @@ $grade = Get-VibeInternalGrade -Task $Task
 $planPath = Get-VibeExecutionPlanPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 $requirementPath = if (-not [string]::IsNullOrWhiteSpace($RequirementDocPath)) { $RequirementDocPath } else { Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot }
 $antiDriftDraft = Get-VgoAntiProxyGoalDriftPacketFromRequirementDoc -RequirementDocPath $requirementPath
+$runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath) -and (Test-Path -LiteralPath $RuntimeInputPacketPath)) {
+    Get-Content -LiteralPath $RuntimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} else {
+    $null
+}
 
 $waveLines = switch ($grade) {
     'XL' {
@@ -54,9 +60,18 @@ $lines = @(
     '',
     '## Frozen Inputs',
     "- Requirement doc: $([System.IO.Path]::GetFullPath($requirementPath))",
+    "- Runtime input packet: $RuntimeInputPacketPath",
     "- Source task: $Task"
 )
 $lines += @('')
+if ($runtimeInputPacket) {
+    $lines += @(
+        "- Frozen route pack: $([string]$runtimeInputPacket.route_snapshot.selected_pack)",
+        "- Frozen route skill: $([string]$runtimeInputPacket.route_snapshot.selected_skill)",
+        "- Frozen route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
+        "- Router/runtime skill mismatch: $([bool]$runtimeInputPacket.divergence_shadow.skill_mismatch)"
+    )
+}
 $lines += @(Get-VgoAntiProxyGoalDriftPlanLines -Packet $antiDriftDraft)
 $lines += @(
     '',
@@ -98,6 +113,7 @@ $receipt = [pscustomobject]@{
     internal_grade = $grade
     requirement_doc_path = $requirementPath
     execution_plan_path = $planPath
+    runtime_input_packet_path = $RuntimeInputPacketPath
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
 $receiptPath = Join-Path $sessionRoot 'execution-plan-receipt.json'

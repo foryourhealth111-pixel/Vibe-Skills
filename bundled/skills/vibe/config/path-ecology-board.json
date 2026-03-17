@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-17",
+  "lanes": [
+    {
+      "lane_id": "governed-runtime-main-chain",
+      "heat": "hot",
+      "proof_depth": "runtime",
+      "operational_value": "high",
+      "maintenance_burden": "high",
+      "risk_if_wrong": "high",
+      "owner_status": "explicit",
+      "notes": "Canonical runtime entry and closure surface."
+    },
+    {
+      "lane_id": "benchmark-autonomous-harness",
+      "heat": "hot",
+      "proof_depth": "runtime",
+      "operational_value": "medium",
+      "maintenance_burden": "medium",
+      "risk_if_wrong": "medium",
+      "owner_status": "explicit",
+      "notes": "Still the authoritative executor while plan-derived execution remains shadow-only."
+    },
+    {
+      "lane_id": "plan-derived-execution-shadow",
+      "heat": "shadow",
+      "proof_depth": "structure",
+      "operational_value": "high",
+      "maintenance_burden": "medium",
+      "risk_if_wrong": "high",
+      "owner_status": "explicit",
+      "notes": "Shadow executor candidate. Not yet authoritative."
+    },
+    {
+      "lane_id": "messy-real-task-evidence",
+      "heat": "cold",
+      "proof_depth": "field",
+      "operational_value": "high",
+      "maintenance_burden": "medium",
+      "risk_if_wrong": "high",
+      "owner_status": "explicit",
+      "notes": "Corpus defined; needs continuing runtime runs to deepen proof."
+    },
+    {
+      "lane_id": "connector-runtime-surfaces",
+      "heat": "cold",
+      "proof_depth": "fixture",
+      "operational_value": "medium",
+      "maintenance_burden": "medium",
+      "risk_if_wrong": "high",
+      "owner_status": "explicit",
+      "notes": "No default owner widening. Admission remains governance-first."
+    },
+    {
+      "lane_id": "replacement-lane",
+      "heat": "missing-proof",
+      "proof_depth": "structure",
+      "operational_value": "high",
+      "maintenance_burden": "high",
+      "risk_if_wrong": "high",
+      "owner_status": "explicit",
+      "notes": "Recognized as necessary but not yet operationalized."
+    }
+  ]
+}

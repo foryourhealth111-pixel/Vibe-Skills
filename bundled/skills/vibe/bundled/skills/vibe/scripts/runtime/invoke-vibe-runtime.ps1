@@ -69,14 +69,16 @@ if ([string]::IsNullOrWhiteSpace($RunId)) {
 $artifactBaseRoot = Get-VibeArtifactRoot -RepoRoot $runtime.repo_root -ArtifactRoot $ArtifactRoot
 
 $skeleton = & (Join-Path $PSScriptRoot 'Invoke-SkeletonCheck.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot
+$runtimeInput = & (Join-Path $PSScriptRoot 'Freeze-RuntimeInputPacket.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot
 $interview = & (Join-Path $PSScriptRoot 'Invoke-DeepInterview.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot
-$requirement = & (Join-Path $PSScriptRoot 'Write-RequirementDoc.ps1') -Task $Task -Mode $Mode -RunId $RunId -IntentContractPath $interview.receipt_path -ArtifactRoot $ArtifactRoot
-$plan = & (Join-Path $PSScriptRoot 'Write-XlPlan.ps1') -Task $Task -Mode $Mode -RunId $RunId -RequirementDocPath $requirement.requirement_doc_path -ArtifactRoot $ArtifactRoot
-$execute = & (Join-Path $PSScriptRoot 'Invoke-PlanExecute.ps1') -Task $Task -Mode $Mode -RunId $RunId -RequirementDocPath $requirement.requirement_doc_path -ExecutionPlanPath $plan.execution_plan_path -ArtifactRoot $ArtifactRoot
+$requirement = & (Join-Path $PSScriptRoot 'Write-RequirementDoc.ps1') -Task $Task -Mode $Mode -RunId $RunId -IntentContractPath $interview.receipt_path -RuntimeInputPacketPath $runtimeInput.packet_path -ArtifactRoot $ArtifactRoot
+$plan = & (Join-Path $PSScriptRoot 'Write-XlPlan.ps1') -Task $Task -Mode $Mode -RunId $RunId -RequirementDocPath $requirement.requirement_doc_path -RuntimeInputPacketPath $runtimeInput.packet_path -ArtifactRoot $ArtifactRoot
+$execute = & (Join-Path $PSScriptRoot 'Invoke-PlanExecute.ps1') -Task $Task -Mode $Mode -RunId $RunId -RequirementDocPath $requirement.requirement_doc_path -ExecutionPlanPath $plan.execution_plan_path -RuntimeInputPacketPath $runtimeInput.packet_path -ArtifactRoot $ArtifactRoot
 $cleanup = & (Join-Path $PSScriptRoot 'Invoke-PhaseCleanup.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot -ExecuteGovernanceCleanup:$ExecuteGovernanceCleanup -ApplyManagedNodeCleanup:$ApplyManagedNodeCleanup
 
 $artifactReadiness = Wait-VibeArtifactSet -Paths @(
     [string]$skeleton.receipt_path,
+    [string]$runtimeInput.packet_path,
     [string]$interview.receipt_path,
     [string]$requirement.requirement_doc_path,
     [string]$requirement.receipt_path,
@@ -94,6 +96,7 @@ if (-not $artifactReadiness.ready) {
 
 $relativeArtifacts = [ordered]@{
     skeleton_receipt = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$skeleton.receipt_path)
+    runtime_input_packet = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$runtimeInput.packet_path)
     intent_contract = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$interview.receipt_path)
     requirement_doc = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$requirement.requirement_doc_path)
     requirement_receipt = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$requirement.receipt_path)
@@ -123,6 +126,7 @@ $summary = [pscustomobject]@{
     )
     artifacts = [pscustomobject]@{
         skeleton_receipt = $skeleton.receipt_path
+        runtime_input_packet = $runtimeInput.packet_path
         intent_contract = $interview.receipt_path
         requirement_doc = $requirement.requirement_doc_path
         requirement_receipt = $requirement.receipt_path

@@ -72,6 +72,8 @@ pwsh -NoProfile -File .\..\governance\phase-end-cleanup.ps1 -WriteArtifacts -Inc
 
 **Fallback Governance / Truth Honesty**: `vibe-no-silent-fallback-contract-gate.ps1`, `vibe-no-self-introduced-fallback-gate.ps1`, and `vibe-release-truth-consistency-gate.ps1` prove that degraded paths stay explicit, requirement-backed, and non-authoritative.
 
+**Remediation Foundation / Proof Classes**: `vibe-remediation-foundation-gate.ps1` validates the remediation baseline: frozen runtime input packet, proof-class registry, shadow executor artifact, cleanup taxonomy, messy-task corpus, path ecology board, and promotion board.
+
 ## Fixture Taxonomy
 
 - **Wave28 canonical pilot fixtures**: `fixtures/pilot-memory.json`, `fixtures/pilot-prompt.json`, `fixtures/pilot-browserops.json`, `fixtures/pilot-desktopops.json`. These are the only pilot inputs consumed by `vibe-pilot-scenarios.ps1` and referenced by `config/promotion-board.json`.
