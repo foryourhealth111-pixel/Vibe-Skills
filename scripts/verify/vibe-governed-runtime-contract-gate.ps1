@@ -62,6 +62,7 @@ $requiredFiles = @(
     'scripts/runtime/Invoke-DeepInterview.ps1',
     'scripts/runtime/Write-RequirementDoc.ps1',
     'scripts/runtime/Write-XlPlan.ps1',
+    'scripts/runtime/Invoke-AntiProxyGoalDriftCompaction.ps1',
     'scripts/runtime/Invoke-PlanExecute.ps1',
     'scripts/runtime/Invoke-PhaseCleanup.ps1',
     'scripts/verify/vibe-benchmark-autonomous-proof-gate.ps1',
@@ -119,11 +120,17 @@ foreach ($artifactPath in $artifactPaths) {
 $executeReceipt = Get-Content -LiteralPath $summary.summary.artifacts.execute_receipt -Raw -Encoding UTF8 | ConvertFrom-Json
 $executionManifest = Get-Content -LiteralPath $summary.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
 $proofManifest = Get-Content -LiteralPath $summary.summary.artifacts.benchmark_proof_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+$generatedRequirement = Get-Content -LiteralPath $summary.summary.artifacts.requirement_doc -Raw -Encoding UTF8
+$generatedPlan = Get-Content -LiteralPath $summary.summary.artifacts.execution_plan -Raw -Encoding UTF8
 
 Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -ne 'execution-contract-prepared') -Message 'runtime smoke execute receipt is not receipt-only'
 Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'completed') -Message 'runtime smoke execution manifest completed' -Details $executionManifest.status
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.executed_unit_count -ge 2) -Message 'runtime smoke executes at least two benchmark units' -Details $executionManifest.executed_unit_count
 Add-Assertion -Results ([ref]$results) -Condition ([bool]$proofManifest.proof_passed) -Message 'runtime smoke benchmark proof manifest is green'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Primary Objective')) -Message 'runtime smoke requirement doc includes anti-drift primary objective section'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Completion State')) -Message 'runtime smoke requirement doc includes anti-drift completion section'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Anti-Proxy-Goal-Drift Controls')) -Message 'runtime smoke execution plan includes anti-drift controls section'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('### Primary Objective')) -Message 'runtime smoke execution plan includes anti-drift primary objective control'
 
 $failureCount = @($results | Where-Object { -not $_.passed }).Count
 $gatePassed = ($failureCount -eq 0)

@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
+. (Join-Path $PSScriptRoot '..\common\AntiProxyGoalDrift.ps1')
 
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
 if ([string]::IsNullOrWhiteSpace($RunId)) {
@@ -20,6 +21,7 @@ $sessionRoot = Ensure-VibeSessionRoot -RepoRoot $runtime.repo_root -RunId $RunId
 $grade = Get-VibeInternalGrade -Task $Task
 $planPath = Get-VibeExecutionPlanPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 $requirementPath = if (-not [string]::IsNullOrWhiteSpace($RequirementDocPath)) { $RequirementDocPath } else { Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot }
+$antiDriftDraft = Get-VgoAntiProxyGoalDriftPacketFromRequirementDoc -RequirementDocPath $requirementPath
 
 $waveLines = switch ($grade) {
     'XL' {
@@ -52,7 +54,11 @@ $lines = @(
     '',
     '## Frozen Inputs',
     "- Requirement doc: $([System.IO.Path]::GetFullPath($requirementPath))",
-    "- Source task: $Task",
+    "- Source task: $Task"
+)
+$lines += @('')
+$lines += @(Get-VgoAntiProxyGoalDriftPlanLines -Packet $antiDriftDraft)
+$lines += @(
     '',
     '## Internal Grade Decision',
     "- Grade: $grade",

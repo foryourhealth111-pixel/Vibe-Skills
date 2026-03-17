@@ -10,6 +10,8 @@
 
 ## Acceptance Criteria
 
+> Fill the anti-drift fields once here. Downstream governed plan and completion surfaces should reuse them rather than restate them.
+
 ## Primary Objective
 
 ## Non-Objective Proxy Signals

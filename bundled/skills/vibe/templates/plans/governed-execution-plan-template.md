@@ -6,6 +6,8 @@
 
 ## Anti-Proxy-Goal-Drift Controls
 
+Prefill from the frozen requirement doc where available. Only diverge with explicit justification.
+
 ### Primary Objective
 
 ### Non-Objective Proxy Signals

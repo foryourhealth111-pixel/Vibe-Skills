@@ -203,3 +203,249 @@ function Get-VgoAntiProxyGoalDriftAssessment {
         scenario_specific_scope = [bool](Test-VgoScenarioSpecificScope -IntendedScope $intendedScope)
     }
 }
+
+function ConvertFrom-VgoMarkdownValue {
+    param([AllowNull()] [string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return ''
+    }
+
+    $value = $Text.Trim()
+    if ($value.StartsWith('-')) {
+        $value = $value.Substring(1).Trim()
+    }
+    if ($value.StartsWith('`') -and $value.EndsWith('`') -and $value.Length -ge 2) {
+        $value = $value.Substring(1, $value.Length - 2)
+    }
+    if ($value -eq '_author_to_declare_') {
+        return ''
+    }
+
+    return $value.Trim()
+}
+
+function Get-VgoMarkdownSectionMap {
+    param([Parameter(Mandatory)] [AllowEmptyCollection()] [AllowEmptyString()] [string[]]$Lines)
+
+    $sections = @{}
+    $currentHeading = $null
+    $buffer = New-Object System.Collections.Generic.List[string]
+
+    foreach ($line in $Lines) {
+        if ($line -match '^##\s+(.+?)\s*$') {
+            if ($null -ne $currentHeading) {
+                $sections[$currentHeading] = @($buffer)
+                $buffer.Clear()
+            }
+            $currentHeading = $Matches[1].Trim()
+            continue
+        }
+
+        if ($null -ne $currentHeading) {
+            [void]$buffer.Add($line)
+        }
+    }
+
+    if ($null -ne $currentHeading) {
+        $sections[$currentHeading] = @($buffer)
+    }
+
+    return $sections
+}
+
+function Get-VgoMarkdownSectionScalar {
+    param(
+        [Parameter(Mandatory)] [hashtable]$Sections,
+        [Parameter(Mandatory)] [string]$Heading
+    )
+
+    if (-not $Sections.ContainsKey($Heading)) {
+        return ''
+    }
+
+    foreach ($line in @($Sections[$Heading])) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
+        if ($trimmed.StartsWith('_')) { continue }
+        return (ConvertFrom-VgoMarkdownValue -Text $trimmed)
+    }
+
+    return ''
+}
+
+function Get-VgoMarkdownSectionList {
+    param(
+        [Parameter(Mandatory)] [hashtable]$Sections,
+        [Parameter(Mandatory)] [string]$Heading
+    )
+
+    if (-not $Sections.ContainsKey($Heading)) {
+        return @()
+    }
+
+    $items = New-Object System.Collections.Generic.List[string]
+    foreach ($line in @($Sections[$Heading])) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
+        if ($trimmed.StartsWith('_')) { continue }
+        if ($trimmed.StartsWith('-')) {
+            $value = ConvertFrom-VgoMarkdownValue -Text $trimmed
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                [void]$items.Add($value)
+            }
+        }
+    }
+
+    if ($items.Count -gt 0) {
+        return @($items)
+    }
+
+    $scalar = Get-VgoMarkdownSectionScalar -Sections $Sections -Heading $Heading
+    if (-not [string]::IsNullOrWhiteSpace($scalar)) {
+        return @($scalar)
+    }
+
+    return @()
+}
+
+function New-VgoAntiProxyGoalDriftDraft {
+    param([AllowNull()] [string]$PrimaryObjective = '')
+
+    $objective = if ([string]::IsNullOrWhiteSpace($PrimaryObjective)) {
+        '_author_to_declare_'
+    } else {
+        $PrimaryObjective.Trim()
+    }
+
+    return [pscustomobject]@{
+        primary_objective = $objective
+        non_objective_proxy_signals = @(
+            'single sample pass only',
+            'current test green only',
+            'demo success only'
+        )
+        validation_material_role = 'validation_only'
+        anti_proxy_goal_drift_tier = 'Tier C'
+        intended_scope = 'scenario_specific'
+        abstraction_layer_target = '_author_to_declare_'
+        completion_state = 'partial'
+        generalization_evidence_bundle = @(
+            'cases: []',
+            'note: add independent evidence before generalized completion claims'
+        )
+    }
+}
+
+function Get-VgoAntiProxyGoalDriftPacketFromRequirementDoc {
+    param([Parameter(Mandatory)] [string]$RequirementDocPath)
+
+    if (-not (Test-Path -LiteralPath $RequirementDocPath)) {
+        throw "Requirement doc not found: $RequirementDocPath"
+    }
+
+    $lines = Get-Content -LiteralPath $RequirementDocPath -Encoding UTF8
+    $sections = Get-VgoMarkdownSectionMap -Lines $lines
+    $goal = Get-VgoMarkdownSectionScalar -Sections $sections -Heading 'Goal'
+    $draft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $goal
+
+    $primaryObjective = Get-VgoMarkdownSectionScalar -Sections $sections -Heading 'Primary Objective'
+    if (-not [string]::IsNullOrWhiteSpace($primaryObjective)) {
+        $draft.primary_objective = $primaryObjective
+    }
+
+    $signals = @(Get-VgoMarkdownSectionList -Sections $sections -Heading 'Non-Objective Proxy Signals')
+    if ($signals.Count -gt 0) {
+        $draft.non_objective_proxy_signals = $signals
+    }
+
+    foreach ($pair in @(
+            @{ heading = 'Validation Material Role'; property = 'validation_material_role' },
+            @{ heading = 'Anti-Proxy-Goal-Drift Tier'; property = 'anti_proxy_goal_drift_tier' },
+            @{ heading = 'Intended Scope'; property = 'intended_scope' },
+            @{ heading = 'Abstraction Layer Target'; property = 'abstraction_layer_target' },
+            @{ heading = 'Completion State'; property = 'completion_state' }
+        )) {
+        $value = Get-VgoMarkdownSectionScalar -Sections $sections -Heading $pair.heading
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            $draft.($pair.property) = $value
+        }
+    }
+
+    $bundle = @(Get-VgoMarkdownSectionList -Sections $sections -Heading 'Generalization Evidence Bundle')
+    if ($bundle.Count -gt 0) {
+        $draft.generalization_evidence_bundle = $bundle
+    }
+
+    return $draft
+}
+
+function Get-VgoAntiProxyGoalDriftRequirementLines {
+    param([Parameter(Mandatory)] [psobject]$Packet)
+
+    $lines = @(
+        '## Primary Objective',
+        $Packet.primary_objective,
+        '',
+        '## Non-Objective Proxy Signals'
+    )
+    $lines += @($Packet.non_objective_proxy_signals | ForEach-Object { "- $_" })
+    $lines += @(
+        '',
+        '## Validation Material Role',
+        $Packet.validation_material_role,
+        '',
+        '## Anti-Proxy-Goal-Drift Tier',
+        $Packet.anti_proxy_goal_drift_tier,
+        '',
+        '## Intended Scope',
+        $Packet.intended_scope,
+        '',
+        '## Abstraction Layer Target',
+        $Packet.abstraction_layer_target,
+        '',
+        '## Completion State',
+        $Packet.completion_state,
+        '',
+        '## Generalization Evidence Bundle'
+    )
+    $lines += @($Packet.generalization_evidence_bundle | ForEach-Object { "- $_" })
+    return $lines
+}
+
+function Get-VgoAntiProxyGoalDriftPlanLines {
+    param([Parameter(Mandatory)] [psobject]$Packet)
+
+    $lines = @(
+        '## Anti-Proxy-Goal-Drift Controls',
+        'Prefill from the frozen requirement doc where available. Only diverge with explicit justification.',
+        '',
+        '### Primary Objective',
+        $Packet.primary_objective,
+        '',
+        '### Non-Objective Proxy Signals'
+    )
+    $lines += @($Packet.non_objective_proxy_signals | ForEach-Object { "- $_" })
+    $lines += @(
+        '',
+        '### Validation Material Role',
+        $Packet.validation_material_role,
+        '',
+        '### Declared Tier',
+        $Packet.anti_proxy_goal_drift_tier,
+        '',
+        '### Intended Scope',
+        $Packet.intended_scope,
+        '',
+        '### Abstraction Layer Target',
+        $Packet.abstraction_layer_target,
+        '',
+        '### Completion State Target',
+        $Packet.completion_state,
+        '',
+        '### Generalization Evidence Plan',
+        '- Reuse the requirement-declared proof boundary as the starting point.'
+    )
+    $lines += @($Packet.generalization_evidence_bundle | ForEach-Object { "- $_" })
+    return $lines
+}

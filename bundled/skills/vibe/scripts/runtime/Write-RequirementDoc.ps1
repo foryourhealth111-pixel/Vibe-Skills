@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
+. (Join-Path $PSScriptRoot '..\common\AntiProxyGoalDrift.ps1')
 
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
 if ([string]::IsNullOrWhiteSpace($RunId)) {
@@ -24,6 +25,7 @@ if (-not [string]::IsNullOrWhiteSpace($IntentContractPath) -and (Test-Path -Lite
 }
 
 $docPath = Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
+$antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
 $lines = @(
     "# $($intentContract.title)",
     '',
@@ -44,6 +46,12 @@ $lines += @(
     '## Acceptance Criteria'
 )
 $lines += @($intentContract.acceptance_criteria | ForEach-Object { "- $_" })
+$lines += @(
+    '',
+    '> Fill the anti-drift fields once here. Downstream governed plan and completion surfaces should reuse them rather than restate them.',
+    ''
+)
+$lines += @(Get-VgoAntiProxyGoalDriftRequirementLines -Packet $antiDriftDraft)
 $lines += @(
     '',
     '## Non-Goals'
