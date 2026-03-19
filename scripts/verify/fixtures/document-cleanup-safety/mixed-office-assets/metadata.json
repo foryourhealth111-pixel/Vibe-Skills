@@ -1,0 +1,5 @@
+{
+  "expected_tmp_protected": 2,
+  "expected_retained_outside_tmp": 1,
+  "expected_quarantined": 2
+}
