@@ -19,6 +19,8 @@ Primary policy:
 
 ## Current Entry
 
+- [`2026-03-19-commit-and-rename-repo-to-vibe-skills.md`](./2026-03-19-commit-and-rename-repo-to-vibe-skills.md): 冻结“先提交当前改动、再把仓库改名为 `Vibe-Skills`”的执行需求；聚焦隔离 worktree 发布、GitHub rename 与 remote 更新验证。
+- [`2026-03-19-repo-rename-to-vibe-skills.md`](./2026-03-19-repo-rename-to-vibe-skills.md): 冻结仓库更名为 `Vibe-Skills` 的规划需求；聚焦 GitHub rename 风险、路径影响评估与安全执行顺序。
 - [`2026-03-19-public-readme-skill-activation-pain-point.md`](./2026-03-19-public-readme-skill-activation-pain-point.md): 冻结 README 的 skills 激活率低痛点补充；聚焦说明 `VCO` 生态如何通过路由与工作流治理提高能力激活率，并发布当前版本。
 - [`2026-03-19-public-readme-capability-first-opening.md`](./2026-03-19-public-readme-capability-first-opening.md): 冻结 README 的 capability-first 开场重排；聚焦先展示整合规模、能力资源与覆盖领域，再在末尾收束到规范化理念。
 - [`2026-03-19-public-readme-philosophy-and-source-image.md`](./2026-03-19-public-readme-philosophy-and-source-image.md): 冻结 README 的规范化哲学开场与作者原始 Gemini SVG 首屏展示；聚焦更直接的项目表达与更易懂的能力说明。

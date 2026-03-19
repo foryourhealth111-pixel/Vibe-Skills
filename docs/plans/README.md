@@ -24,6 +24,8 @@ Those surfaces live under [`../status/README.md`](../status/README.md).
 
 ### Current Entry
 
+- [`2026-03-19-commit-and-rename-repo-to-vibe-skills-plan.md`](./2026-03-19-commit-and-rename-repo-to-vibe-skills-plan.md): “先提交再改名”执行计划；聚焦隔离 worktree 提交、远端发布、GitHub rename 与本地 remote 更新。
+- [`2026-03-19-repo-rename-to-vibe-skills-plan.md`](./2026-03-19-repo-rename-to-vibe-skills-plan.md): 仓库更名为 `Vibe-Skills` 的执行规划；聚焦 GitHub rename 风险分层、阶段顺序与更名后的链接/路径清理。
 - [`2026-03-19-public-readme-skill-activation-pain-point-plan.md`](./2026-03-19-public-readme-skill-activation-pain-point-plan.md): README skills 激活率低痛点执行计划；聚焦补充 `VCO` 生态提高能力激活率的表达并发布当前版本。
 - [`2026-03-19-public-readme-capability-first-opening-plan.md`](./2026-03-19-public-readme-capability-first-opening-plan.md): README capability-first 开场执行计划；聚焦前置整合能力与覆盖领域，并在末尾收束到规范化理念。
 - [`2026-03-19-public-readme-philosophy-and-source-image-plan.md`](./2026-03-19-public-readme-philosophy-and-source-image-plan.md): README 规范化哲学与原始 Gemini SVG 执行计划；聚焦直接展示作者原图、白话能力快照与上游整合说明。
