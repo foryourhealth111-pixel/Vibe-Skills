@@ -24,6 +24,7 @@ Those surfaces live under [`../status/README.md`](../status/README.md).
 
 ### Current Entry
 
+- [`2026-03-20-readme-en-detail-and-github-branding-copy-plan.md`](./2026-03-20-readme-en-detail-and-github-branding-copy-plan.md): README 英文版细化与 GitHub 品牌文案执行计划；聚焦补齐英文首页细节，并整理 `About / Topics / social preview` 设置文案。
 - [`2026-03-20-readme-emoji-layout-polish-plan.md`](./2026-03-20-readme-emoji-layout-polish-plan.md): README 中文视觉润色执行计划；聚焦少量 emoji 点缀、区块节奏优化与 GitHub-safe 的版式打磨。
 - [`2026-03-20-readme-differentiated-science-ai-strengths-plan.md`](./2026-03-20-readme-differentiated-science-ai-strengths-plan.md): README 中文差异化强化执行计划；聚焦把生命科学、科研、AI 工程三块写得更有辨识度。
 - [`2026-03-20-readme-capability-subdomain-expansion-plan.md`](./2026-03-20-readme-capability-subdomain-expansion-plan.md): README 中文能力矩阵第二轮细化执行计划；聚焦在总表后补充更细的子领域展开说明。

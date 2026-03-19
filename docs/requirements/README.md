@@ -19,6 +19,7 @@ Primary policy:
 
 ## Current Entry
 
+- [`2026-03-20-readme-en-detail-and-github-branding-copy.md`](./2026-03-20-readme-en-detail-and-github-branding-copy.md): 冻结英文 README 细化与 GitHub 品牌文案补充；聚焦让 `README.en.md` 与中文版接近同等细节层级，并产出 `About / Topics / social preview` 可复用文案。
 - [`2026-03-20-readme-emoji-layout-polish.md`](./2026-03-20-readme-emoji-layout-polish.md): 冻结 README 中文视觉润色；聚焦用少量 emoji 和版式节奏优化，让首页更精致、更有设计感但仍保持克制。
 - [`2026-03-20-readme-differentiated-science-ai-strengths.md`](./2026-03-20-readme-differentiated-science-ai-strengths.md): 冻结 README 中文差异化强化；聚焦把生命科学、科研、AI 工程三块写得更有冲击力，更能体现仓库强势能力区。
 - [`2026-03-20-readme-capability-subdomain-expansion.md`](./2026-03-20-readme-capability-subdomain-expansion.md): 冻结 README 中文能力矩阵第二轮细化；聚焦把 20 个能力域继续拆成更细的子领域说明，提升公开介绍的完整度与可读性。
