@@ -1,175 +1,128 @@
-<div align="right">
-  <a href="./README.en.md">🇬🇧 English</a> | <b>🇨🇳 中文</b>
-</div>
-
 <div align="center">
-  <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&pause=1000&color=7B61FF&center=true&vCenter=true&width=600&height=100&lines=Vibe+Skills;Your+AI+OS" alt="VibeSkills Logo" />
-  </a>
 
-  <p align="center">
-    <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">
-      <img src="https://img.shields.io/github/stars/foryourhealth111-pixel/Vibe-Skills?style=for-the-badge&logo=github&color=7B61FF&label=STARS" alt="stars">
-    </a>
-    <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/network/members">
-      <img src="https://img.shields.io/github/forks/foryourhealth111-pixel/Vibe-Skills?style=for-the-badge&logo=git&color=45a1ff&label=FORKS" alt="forks">
-    </a>
-    <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/pulse">
-      <img src="https://img.shields.io/github/last-commit/foryourhealth111-pixel/Vibe-Skills?style=for-the-badge&logo=git-lfs&color=32CD32&label=MOMENTUM" alt="last commit">
-    </a>
-  </p>
-  
-  
-  
-  <p align="center">
-    <img src="https://komarev.com/ghpvc/?username=vibe-skills-foryourhealth&label=NODES%20ACTIVE&color=0078d7&style=flat-square" alt="Visitors">
-    <img src="https://img.shields.io/badge/Architecture-VCO_Runtime-orange?style=flat-square" alt="Arch">
-    <img src="https://img.shields.io/badge/Skills-340%2B-blueviolet?style=flat-square" alt="Skills Count">
-  </p>
+# 🌊 Vibe-Skills: 全能型 AI 操作系统 (VCO Runtime)
 
-  <br/>
-<img src="./logo.png" width="300px" alt="VibeSkills Logo">
-  <h3 align="center"><b>不只是技能集合，更是你的个人 AI 操作系统</b></h3>
-  <p align="center">
-    集成数百个 Skills、MCP 入口与治理规则的工业级运行时框架。
-  </p>
+<!-- 动态打字效果：展示核心价值 -->
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=24&pause=1000&color=2196F3&center=true&vCenter=true&width=800&lines=编排+340%2B+自主智能体技能;强制+129+条全局治理规则;原生兼容+模型上下文协议+(MCP);终结+LLM+幻觉，开启确定的+Vibe+Coding." alt="Typing SVG" />
 
-  <p align="center">
-    <sub>🧠 规划 · 🛠️ 工程 · 🤖 AI · 🔬 科研 · 🧬 生命科学 · 🎨 可视化 · 🎬 多媒体</sub>
-  </p>
+**集 340+ 技能矩阵、MCP 入口与受管工作流于一体的 AI 核心能力栈。**
+
+[![License: MIT](https://img.shields.io/badge/许可证-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Stars](https://img.shields.io/github/stars/foryourhealth111-pixel/Vibe-Skills?style=flat-square&color=ffd700)](https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers)
+[![MCP](https://img.shields.io/badge/MCP-原生支持-00C7B7?logo=quicklook)](https://modelcontextprotocol.io)
+[![PRs Welcome](https://img.shields.io/badge/贡献-欢迎提交PR-brightgreen.svg)](http://makeapullrequest.com)
+
+[**⚡ 快速开始**](#-快速开始-ttv--1-分钟) • [**🧠 340+ 技能矩阵**](#-全谱系能力全景图-340-skills) • [**🛡️ 治理体系**](#-治理即特性-governance-as-a-feature) • [**🔌 生态集成**](#-mcp--生态融合-19-ecosystems)
+
 </div>
 
 ---
 
-<br/>
+## 💡 核心叙事：为什么要用 Vibe-Skills？
 
-> [!IMPORTANT]  
-> **🎯 我们的核心愿景**
-> 消除面对新技术的认知焦虑与高昂的学习成本。在这里，无论你是否具备深厚的编程基础，都能以极低的门槛，直接调用当今最前沿的 AI 技术集合。**让每个人都能享受 AI 带来的生产力飞跃。**
+在 **"Vibe Coding"** 范式下，开发者通过意图指挥 AI。但当前的 AI Agent 往往处于“野蛮生长”状态：
+- ❌ **上下文污染**：LLM 在复杂任务中容易迷失，陷入幻觉死循环。
+- ❌ **执行发散**：缺乏约束的 Agent 会做出非预期的破坏性操作。
+- ❌ **提示词地狱**：为了稳定输出，开发者被迫维护数千行的 Prompt。
 
-### 📊 为什么说它强大？
-**VibeSkills** 背后的运行时核心是 **VCO**。它绝不仅仅是一个单点工具或只会“补代码”的脚本，而是一个已经完成高度整合与治理的**超级能力网络**：
-
-| 🧩 技能模块 | 🌍 生态融合 | ⚖️ 治理规则 |
-| :---: | :---: | :---: |
-| **340+** | **19+** | **129 条** |
-| 可直接调用的 Skills，覆盖从需求规划到生命科学的完整链路 | 吸收与借鉴高价值上游开源项目与最佳实践来源 | 基于配置的策略与契约，确保执行稳定、可溯源、防发散 |
+**Vibe-Skills (VCO 运行时)** 将 AI 的灵性与工程的确定性完美融合。它不仅是工具箱，更是您的 **AI 操作系统内核**。只需一条指令 `/vibe`，系统将自动路由至最合适的技能，并在 129 条治理规则的护栏内完成任务。
 
 ---
 
-## ✦ 全景能力地图：你的全能工作台
+## 🏗️ 架构设计：受管工作流 (Managed Workflow)
 
-如果把这 340 个 skills 按“真实工作流”展开，VibeSkills 已经为你铺设好了一条端到端的能力链。
+我们拒绝“黑盒执行”。Vibe-Skills 严格执行 `澄清 ➔ 规划 ➔ 执行 ➔ 验证` 的有向无环图 (DAG) 架构。
 
-| 能力域 | 覆盖工作面 | 代表能力引擎 |
+```mermaid
+graph LR
+    A[自然语言意图] --> B(VCO 智能路由)
+    B --> C{129条规则校验}
+    C -- 通过 --> D[speckit-澄清需求]
+    C -- 拦截 --> X[报错并请求介入]
+    D --> E[aios-架构规划]
+    E --> F[执行层: 340+ 技能]
+    F --> G[QA 自动化验证]
+    G --> H((高质量交付))
+    
+    style B fill:#2196F3,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#FF9800,stroke:#fff,stroke-width:2px,color:#fff
+    style X fill:#F44336,stroke:#fff,stroke-width:2px,color:#fff
+```
+
+---
+
+## 🧠 全谱系能力全景图 (340+ Skills)
+
+这里展示了 Vibe-Skills 扎实的能力底座。我们将其划分为针对不同专业领域的“能力域”：
+
+| 能力域 | 核心技能示例 | 适用人群 |
 | :--- | :--- | :--- |
-| **💡 需求与澄清** | 拒绝黑盒开局：把模糊想法转为边界清晰、可验收的问题定义 | `brainstorming`, `speckit-clarify` |
-| **📋 规划与拆解** | 将宏大目标拆解为 spec、plan、tasks、里程碑与执行流 | `writing-plans`, `speckit-specify`, `aios-po` |
-| **🏗️ 架构与选型** | 设计前后端边界、接口、数据层、部署层与技术路线对比 | `aios-architect`, `architecture-patterns` |
-| **💻 开发与实现** | 新功能开发、脚手架搭建、工程化集成和跨文件精准落地 | `autonomous-builder`, `speckit-implement` |
-| **🔧 调试与重构** | 告别表面缝补：定位报错、分析根因、恢复项目级可维护性 | `error-resolver`, `systematic-debugging` |
-| **🛡️ 测试与品控** | 单元测试、回归验证、质量门禁，实现“完成前强制核验” | `tdd-guide`, `aios-qa`, `code-review` |
-| **🚀 协作与发布** | 接管 Issue/PR、CI 修复、Review 处理与自动化部署 | `aios-devops`, `gh-fix-ci`, `vercel-deploy` |
-| **🤖 复合工作流** | 冻结需求、任务分派、多 Agent 协同、执行留痕与环境清理 | `vibe`, `swarm_*`, `hive-mind-advanced` |
-| **🔌 外部生态接入** | 打通浏览器、网页抓取、设计稿、第三方服务与上下文记忆 | `mcp-integration`, `playwright`, `scrapling` |
-| **📊 数据与 AI 工程** | 涵盖 EDA、清洗统计，到模型训练、RAG 检索与实验跟踪 | `senior-ml-engineer`, `statistical-analysis` |
-| **🔬 科研与生命科学** | **强势领域**：文献检索综述、生信分析、单细胞、药物发现 | `literature-review`, `biopython`, `scanpy` |
-| **📐 数学与专业计算** | 符号推导、贝叶斯建模、多目标优化、仿真乃至量子计算 | `sympy`, `pymc-bayesian-modeling`, `qiskit` |
-| **🎨 多媒体与展示** | 交互图表、科研绘图、图片生成、语音合成与视频素材生产 | `plotly`, `generate-image`, `video-studio` |
-
----
-
-## 🧭 能力簇深入拆解：拒绝“孤立的点”
-
-VibeSkills 最大的优势在于**系统性的治理与规范化**。这里不是零散技能的堆砌，而是紧密衔接的上下游工作链。
-
-* **🧩 规划、架构与工程实现**
-    从需求访谈、约束收集开始，经过 tasks 拆解与架构选型，最终落实到跨文件修改；同时严守质量门禁，涵盖根因级重构修复与长期可维护性代码评审。
-* **🔗 协作治理与能力激活**
-    解决“能力沉睡”痛点。通过**智能路由**与**受管工作流**，在正确阶段唤起正确的 MCP/插件。执行过程完整留痕，并自动沉淀为高质量知识文档。
-* **🔬 数据、科研与高门槛专业计算**
-    跨越常规编码边界，提供链路完整的**科研学术写作闭环**、深度集成的**生命科学工具链**，以及支撑复杂建模的科学计算引擎。
-
----
-
-## 📦 集众家之所长：资源整合与全量矩阵
-
-我们深知，闭门造车无法适应飞速演进的 AI 时代。VibeSkills 的核心底气，来自于持续吸收开源社区最成熟的方法与架构，并将它们纳入同一套统一治理的调度系统中。
-
-> 🙏 **特别鸣谢与致敬** > 本项目持续整合、吸收并治理了以下优秀开源项目的核心优势：
-> 
-> `superpower` · `claude-scientific-skills` · `get-shit-done` · `aios-core` · `OpenSpec` · `ralph-claude-code` · `SuperClaude_Framework` · `spec-kit` · `Agent-S` · `mem0` · `scrapling` · `claude-flow` · `serena` · `everything-claude-code` · `DeepAgent` 等等
-> 
-> *感谢各位作者的无私奉献，没有这些璀璨的星光，就没有 VibeSkills 的诞生。在吸纳众多优秀仓库的过程中，我们已竭尽全力做好版权的分发与署名。若百密一疏出现纰漏，请在 Issue 中向我们提出，我们将第一时间进行修正与补充！*
-
-<br/>
+| **💻 软件工程** | `autonomous-builder`, `gh-fix-ci`, `tdd-guide`, `error-resolver` | 架构师、全栈工程师 |
+| **👔 产品与增长** | `speckit-clarify`, `aios-pm`, `market-research-reports` | 产品经理、增长黑客 |
+| **🧬 生命科学** | `biopython`, `scanpy`, `literature-review`, `protein-folding` | 科研人员、生物信息学者 |
+| **📊 数据与 AI** | `senior-ml-engineer`, `statistical-analysis`, `rag-evaluation` | 数据科学家、算法工程师 |
+| **⚙️ 自动化/系统** | `playwright-browser`, `mcp-bridge`, `system-orchestrator` | DevOps、自动化专家 |
 
 <details>
-<summary><b>👉 点击展开：探索 VibeSkills 完整的 340+ 全栈能力矩阵详解</b></summary>
+<summary><b>🔍 查看 340+ 技能全量注册表</b></summary>
 <br/>
-<blockquote>
-<i>💡 <b>治理的意义</b>：以下庞大的技能库不是孤立的脚本死水，而是一个被 VCO 运行时接管的生态。通过领域矩阵分类，系统会在正确的上下文节点自动唤起正确的工具，无需你手动遍历调用。</i>
-</blockquote>
-
-| 领域分类 | 涵盖的 Skills 矩阵 (全量归档) | 核心能力说明 |
-| :--- | :--- | :--- |
-| **🧠 需求、规划与产品管理** | `.system`, `aios-pm`, `aios-po`, `aios-sm`, `aios-squad-creator`, `aios-ux-design-expert`, `brainstorming`, `create-plan`, `designing-experiments`, `planning-with-files`, `shared-templates`, `speckit-analyze`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `subagent-driven-development`, `think-harder`, `treatment-plans`, `ux-researcher-designer`, `writing-plans` | **让大想法变得可落地**。负责需求洞察、问题定义、Sprint 规划、任务切分与约束收集。确保在写下第一行代码前，方向清晰、边界明确且具有可验收的里程碑。 |
-| **🛠️ 软件工程与架构设计** | `aios-architect`, `aios-dev`, `aios-master`, `architecture-patterns`, `autonomous-builder`, `cancel-ralph`, `coding-tutor`, `context-fundamentals`, `context-hunter`, `cs-foundations`, `deepagent-memory-fold`, `deepagent-toolchain-plan`, `evaluating-code-models`, `get-available-resources`, `hive-mind-advanced`, `local-vco-roles`, `node-zombie-guardian`, `nowait-reasoning-optimizer`, `prompt-lookup`, `ralph-loop`, `skill-creator`, `skill-lookup`, `spec-kit-vibe-compat`, `speckit-implement`, `superclaude-framework-compat`, `theme-factory`, `vibe`, `webthinker-deep-research` | **真正的工程化构建底座**。从脚手架搭建、跨文件修改、API 接口设计到微服务架构评估。不仅产出代码，更负责上下文记忆、工具链编排与智能 Agent 的多阶段协同执行。 |
-| **🔧 调试、测试与质量保证** | `aios-qa`, `build-error-resolver`, `code-review`, `code-review-excellence`, `code-reviewer`, `data-quality-checker`, `data-quality-frameworks`, `debugging-strategies`, `deslop`, `detecting-performance-regressions`, `error-resolver`, `evals-context`, `experiment-failure-analysis`, `generating-test-reports`, `ml-data-leakage-guard`, `performance-testing`, `property-based-testing`, `providing-performance-optimization-advice`, `receiving-code-review`, `requesting-code-review`, `reviewing-code`, `security-best-practices`, `security-ownership-map`, `security-reviewer`, `security-threat-model`, `systematic-debugging`, `tdd-guide`, `verification-before-completion`, `verification-quality-assurance`, `windows-hook-debugging` | **守住代码和系统的生命线**。涵盖单元测试、根因分析、依赖冲突解决、安全漏洞审查与全套 TDD 测试驱动指南，确保系统告别“改完就崩”的黑盒状态。 |
-| **📊 数据分析与统计建模** | `aios-data-engineer`, `anomaly-detector`, `correlation-analyzer`, `dask`, `data-artist`, `data-exploration-visualization`, `data-normalization-tool`, `detecting-data-anomalies`, `excel-analysis`, `exploratory-data-analysis`, `feature-importance-analyzer`, `geopandas`, `hypothesis-testing`, `metric-calculator`, `networkx`, `performing-causal-analysis`, `performing-regression-analysis`, `polars`, `preprocessing-data-with-automated-pipelines`, `regression-analysis-helper`, `running-clustering-algorithms`, `scientific-data-preprocessing`, `splitting-datasets`, `spreadsheet`, `statistical-analysis`, `statistics-math`, `statsmodels`, `usfiscaldata`, `vaex`, `xlsx` | **让数据讲述事实**。提供从数据清洗、缺失值处理、探索性分析（EDA）到高级统计检验、回归模型、时序预测的一站式数据处理引擎。 |
-| **🤖 机器学习与 AI 工程** | `LQF_Machine_Learning_Expert_Guide`, `aeon`, `datamol`, `deepchem`, `embedding-strategies`, `engineering-features-for-machine-learning`, `evaluating-llms-harness`, `evaluating-machine-learning-models`, `explaining-machine-learning-models`, `geniml`, `ml-pipeline-workflow`, `openai-knowledge`, `pufferlib`, `pytorch-lightning`, `scikit-learn`, `scikit-survival`, `senior-computer-vision`, `senior-data-scientist`, `senior-ml-engineer`, `senior-prompt-engineer`, `shap`, `similarity-search-patterns`, `sparse-autoencoder-training`, `stable-baselines3`, `tensorboard`, `timesfm-forecasting`, `torch-geometric`, `torch_geometric`, `torchdrug`, `training-machine-learning-models`, `transformer-lens-interpretability`, `transformers`, `umap-learn`, `unsloth`, `weights-and-biases` | **全链路 AI 模型开发栈**。不止于调用 API，更深入特征工程、模型训练、微调（Fine-tuning）、可解释性分析（SHAP）、大模型评估（Evals）与强化学习训练工作流。 |
-| **🧬 生命科学与生信计算** | `adaptyv`, `alphafold-database`, `anndata`, `arboreto`, `benchling-integration`, `biopython`, `bioservices`, `cellxgene-census`, `cobrapy`, `deeptools`, `diffdock`, `dnanexus-integration`, `esm`, `etetoolkit`, `flowio`, `gene-database`, `gget`, `ginkgo-cloud-lab`, `gtars`, `histolab`, `imaging-data-commons`, `labarchive-integration`, `lamindb`, `latchbio-integration`, `matchms`, `medchem`, `molfeat`, `neurokit2`, `neuropixels-analysis`, `omero-integration`, `opentrons-integration`, `pathml`, `protocolsio-integration`, `pydeseq2`, `pydicom`, `pyhealth`, `pylabrobot`, `pyopenms`, `pysam`, `pytdc`, `rdkit`, `scanpy`, `scikit-bio`, `scvi-tools`, `tiledbvcf` | **极其强悍的跨学科硬核利器**。深度集成单细胞测序分析、蛋白质结构折叠、药物分子发现、基因组学比对，并无缝对接各类云端生物实验室系统。 |
-| **🔬 科学计算与数学逻辑** | `astropy`, `cirq`, `dialectic`, `fluidsim`, `gradient-methods`, `math`, `math-model-selector`, `math-tools`, `mathematical-logic-expert`, `matlab`, `pennylane`, `pymatgen`, `pymc`, `pymc-bayesian-modeling`, `pymoo`, `propositional-logic`, `qiskit`, `qutip`, `rowan`, `simpy`, `sympy`, `xan` | **精确推导与复杂系统仿真**。提供符号数学演算、贝叶斯概率编程、量子计算模拟、多目标优化计算以及严格的命题逻辑与数理证明辅助。 |
-| **📚 科研文献与学术写作** | `bgpt-paper-search`, `biorxiv-database`, `brenda-database`, `chembl-database`, `citation-management`, `clinical-decision-support`, `clinical-reports`, `clinicaltrials-database`, `clinpgx-database`, `clinvar-database`, `comprehensive-research-agent`, `content-research-writer`, `cosmic-database`, `datacommons-client`, `documentation-lookup`, `drugbank-database`, `ena-database`, `ensembl-database`, `fda-database`, `geo-database`, `gwas-database`, `hmdb-database`, `hypothesis-generation`, `kegg-database`, `literature-matrix`, `literature-review`, `manuscript-as-code`, `market-research-reports`, `metabolomics-workbench-database`, `open-notebook`, `openalex-database`, `opentargets-database`, `paper-2-web`, `pdb-database`, `peer-review`, `pubchem-database`, `pubmed-database`, `pyzotero`, `reactome-database`, `research-grants`, `research-lookup`, `scholar-evaluation`, `scholarly-publishing`, `scientific-brainstorming`, `scientific-critical-thinking`, `scientific-reporting`, `scientific-writing`, `string-database`, `submission-checklist`, `uniprot-database`, `uspto-database`, `zinc-database` | **学术生产力的高速公路**。横跨 PubMed/arXiv 等数十个科研数据库的精准检索、综述矩阵整理、引文管理系统，以及从论文起草、修改到同行评审的完整出版物流程。 |
-| **🎨 多媒体、可视化与文档** | `algorithmic-art`, `creating-data-visualizations`, `data-storytelling`, `datavis`, `doc`, `docs-review`, `docs-write`, `document-skills`, `docx`, `docx-comment-reply`, `figma`, `figma-implement-design`, `file-organizer`, `g2-legend-expert`, `generate-image`, `imagegen`, `infographics`, `latex-posters`, `latex-submission-pipeline`, `markdown-mermaid-writing`, `markitdown`, `matplotlib`, `pdf`, `plotly`, `pptx-posters`, `report-generator`, `scientific-schematics`, `scientific-slides`, `scientific-visualization`, `screenshot`, `seaborn`, `slides-as-code`, `smart-file-writer`, `speech`, `structured-content-storage`, `transcribe`, `venue-templates`, `video-studio`, `visualization-best-practices`, `vscode-release-notes-writer`, `writing-docs` | **让知识与数据变得“可看见”**。涵盖交互式图表生成、科研出版级绘图、幻灯片生成、音视频生产，以及对 Word、PDF 等办公文档的深度读写与解析。 |
-| **🔌 外部集成、自动化与部署** | `aios-devops`, `alpha-vantage`, `claude-skills`, `commit-with-reflection`, `denario`, `digital-brain`, `edgartools`, `flashrag-evidence`, `fred-economic-data`, `geomaster`, `gh-address-comments`, `gh-fix-ci`, `hedgefundmonitor`, `hypogenic`, `iso-13485-certification`, `jupyter-notebook`, `knowledge-steward`, `mcp-integration`, `modal`, `modal-labs`, `netlify-deploy`, `openai-docs`, `perplexity-search`, `playwright`, `prowler-docs`, `scrapling`, `sentry`, `skypilot-multi-cloud-orchestration`, `vercel-deploy` | **打破运行时的局限**。通过 MCP 协议、Playwright 自动化框架无缝对接外部浏览器、设计平台与云端服务，并支持 CI/CD 流水线与一键自动化部署。 |
-
+您可以访问 <a href="./docs/skills-registry.md">/docs/skills-registry.md</a> 查看包含 YAML/JSON 定义的完整字典。涵盖从需求分析到生产落地的端到端全链路工具。
 </details>
 
 ---
 
-## ✨ 为什么它与众不同？
+## 🛡️ 治理即特性 (Governance-as-a-Feature)
 
-传统的 Skills 仓库在回答：*“我这里有什么工具？”* 而 VibeSkills 正面迎击的是重度 AI 用户的核心痛点：*“我该怎么稳定地完成工作？”*
+Vibe-Skills 拥有 **129 条严格治理规则**，确保 AI 代理在安全、合规、确定的轨道上运行。
 
-| ❌ 传统痛点（你可能经历过） | ✅ VibeSkills 解法（我们正在做） |
-| :--- | :--- |
-| **技能沉睡**：仓库里几百个能力，真实场景下 AI 根本想不起来用，激活率极低。 | **🧠 智能路由**：现在该调什么，系统会根据上下文和逻辑自动路由拉起，无需你翻背技能表。 |
-| **黑盒狂奔**：AI 不澄清需求就直接开做，速度快但方向偏，项目逐渐变成黑盒。 | **🧭 受管工作流**：先做什么再做什么被严格约束。将澄清、验证、留痕收进统一流程，每步可溯源。 |
-| **互相冲突**：不同插件和工作流之间缺乏统筹，导致环境污染或死循环。 | **🧩 全局治理**：通过 129 条契约规则，设定安全边界与回退机制，保障整个运行时的长期稳定性。 |
-
----
-
-## 👥 适用人群
-
-* 🎯 **追求稳定交付的普通用户**：想让 AI 成为可靠的帮手，而不是脱缰的野马。
-* ⚡ **重度依赖 AI/Agent 的进阶极客**：需要一个能承载庞大工作流的统一底座。
-* 🏢 **规范化要求高的小型团队**：希望把 AI 工作流变得更具可维护性和传承性。
-* 😩 **被“技能堆砌”折磨的实践者**：已经厌倦了找工具，只想要一套开箱即用的解决方案。
-
-*如果你只想找个单一的小脚本，它可能过于庞大；但如果你想把 AI 用得更稳、更顺、更长远，它将是你不可或缺的利器。*
+- **确定性退出**：强制执行预算上限与死循环检测，防止 Token 资源枯竭。
+- **环境隔离**：每个 Skill 执行环境互不干扰，防止上下文污染。
+- **人类在环 (HITL)**：关键节点（如删除操作、代码部署）强制触发用户确认。
+- **执行留痕**：所有 Agent 操作均可追溯、可复现、可审计。
 
 ---
 
-## 🚀 开启你的 Vibe 体验
+## 🔌 MCP & 生态融合 (19+ Ecosystems)
 
-⚠️ **调用说明**：为保证通用代理的适配性，本项目采用 **Skills 格式架构**。请通过宿主环境的 Skills 调用方式唤起，**不要**将其作为独立命令行程序直接运行。
-* 在 **Claude Code** 中，输入：`/vibe`
-* 在 **Codex** 中，输入：`$vibe`
+Vibe-Skills 原生支持 **Model Context Protocol (MCP)**，作为跨生态的超级粘合剂。
 
-### 📚 导航与指引
+- **跨域调用**：让 AI 直接读取您的 Notion 需求，通过 Slack 讨论，并在 GitHub 上提交 PR。
+- **深度整合**：集成了 `superpower`, `spec-kit`, `DeepAgent` 等 19+ 顶级开源项目的最佳实践。
 
-**快速了解系统**
-* 📖 [了解系统架构与理念](./docs/quick-start.md)
-* 📜 [VibeSkills 宣言](./docs/manifesto.md)
+---
 
-**安装与配置指南**
-* ⚡️ [一步式快速安装 (Release 版推荐) ](./docs/install/one-click-install-release-copy.md)
-* 🛠 [推荐的完整安装路径](./docs/install/recommended-full-path.md)
-* 🧊 [冷启动与其他环境安装路径](./docs/cold-start-install-paths.md)
+## ⚡ 快速开始 (TTV < 1 分钟)
+
+**1. 准备环境**
+```bash
+git clone https://github.com/foryourhealth111-pixel/Vibe-Skills.git
+cd Vibe-Skills
+# 支持 PowerShell (60.7%) 与 Python (31.3%) 混合运行时
+```
+
+**2. 见证奇迹 (Aha! Moment)**
+在支持的主机环境（如 Claude Code 或 Codex）中输入：
+```bash
+/vibe "帮我规划一个 Next.js SaaS 架构，自动生成脚手架，并依据 governance 规则执行安全扫描。"
+```
+
+> **🎥 演示：**
+> <br>
+> <img src="https://via.placeholder.com/800x400?text=这里未来可以放置高保真终端操作录屏+(vhs/gif)" alt="Vibe-Skills Demo" width="100%">
+
+---
+
+## 🤝 贡献与共建
+
+Vibe-Skills 的强大源于社区。通过我们内置的 `skill-creator` 工具，您可以在几分钟内封装自己的技能。
+
+1. 运行 `skill-creator "My Tool Name"`
+2. 按提示填写 YAML 定义
+3. 提交 PR，加入全球 AI OS 贡献者行列！
 
 ---
 
 <div align="center">
-  <p><i>把真实工作里最容易失控的部分，变成一个更可调用、更可治理、也更可长期维护的系统。</i></p>
+<b>加入 Vibe 生态，定义下一代自主开发范式。</b><br>
+<sub>标签：<code>ai-agents</code> <code>mcp-server</code> <code>vibe-coding</code> <code>ai-governance</code> <code>devsecops</code></sub>
 </div>
