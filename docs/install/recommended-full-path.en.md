@@ -1,6 +1,10 @@
-# Install Path: Standard Recommended Full-Featured
+# Install Path: Advanced Host / Lane Reference
 
-This path is the **default recommendation for most users**.
+> Most users should start with the two main install paths:
+> - [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md)
+> - [`manual-copy-install.en.md`](./manual-copy-install.en.md)
+
+This path is now an **advanced reference for host and lane truth**.
 
 Its goal is not "pretend everything is fully ready". Its goal is:
 

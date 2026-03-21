@@ -281,9 +281,12 @@ We know that building in isolation cannot keep up with the speed of the AI era. 
 * 📜 [VibeSkills manifesto](./docs/manifesto.md)
 
 **Installation and configuration guide**
-* ⚡️ [One-click quick install (recommended for release builds)](./docs/install/one-click-install-release-copy.md)
-* 🛠 [Recommended full installation path](./docs/install/recommended-full-path.md)
-* 🧊 [Cold-start and other environment installation paths](./docs/cold-start-install-paths.md)
+* ⚡️ [Prompt-based install (recommended default)](./docs/install/one-click-install-release-copy.en.md)
+* 📁 [Manual copy install (offline / no-admin / other agents)](./docs/install/manual-copy-install.en.md)
+
+**Advanced references**
+* 🛠 [Advanced host and lane reference](./docs/install/recommended-full-path.en.md)
+* 🧊 [Cold-start and other environment notes](./docs/cold-start-install-paths.md)
 
 ---
 Welcome everyone to try it out and experience it for yourselves! I'd love to hear your thoughts, so please feel free to start discussions and share your feedback or suggestions. I know I'm far from perfect, so if you spot any issues or areas for improvement, please don't hesitate to point them out—I'm all ears and will definitely make the necessary fixes.

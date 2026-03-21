@@ -286,9 +286,12 @@ graph LR
 * 📜 [VibeSkills 宣言](./docs/manifesto.md)
 
 **安装与配置指南**
-* ⚡️ [一步式快速安装 (Release 版推荐) ](./docs/install/one-click-install-release-copy.md)
-* 🛠 [推荐的完整安装路径](./docs/install/recommended-full-path.md)
-* 🧊 [冷启动与其他环境安装路径](./docs/cold-start-install-paths.md)
+* ⚡️ [提示词安装（默认推荐）](./docs/install/one-click-install-release-copy.md)
+* 📁 [手动复制安装（离线 / 无管理员权限 / 其他代理）](./docs/install/manual-copy-install.md)
+
+**高级参考**
+* 🛠 [高级 host / lane 参考](./docs/install/recommended-full-path.md)
+* 🧊 [冷启动与其他环境说明](./docs/cold-start-install-paths.md)
 
 欢迎大家来尝试和体验啦 :heart_eyes:！欢迎大家讨论，并且向我提出建议和意见 :kissing_face_with_closed_eyes:。鄙人不才，可能有些地方有问题烦请大家指出，我一定会认真听取和修改。
 

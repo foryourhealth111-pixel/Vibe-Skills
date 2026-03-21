@@ -1,4 +1,8 @@
-# 安装路径：推荐满血（标准推荐安装）
+# 安装路径：高级 host / lane 参考
+
+> 大多数用户现在先看两条主路径：
+> - [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)
+> - [`manual-copy-install.md`](./manual-copy-install.md)
 
 这条路的默认答案仍然是：**先走 `codex` lane**。
 

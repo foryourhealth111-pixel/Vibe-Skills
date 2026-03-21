@@ -1,8 +1,7 @@
 param(
     [ValidateSet('minimal', 'full')]
     [string]$Profile = 'full',
-    [ValidateSet('codex', 'claude-code', 'generic', 'opencode')]
-    [string]$HostId = 'codex',
+    [string]$HostId = '',
     [string]$TargetRoot = '',
     [switch]$SkipExternalInstall,
     [switch]$StrictOffline,
@@ -16,18 +15,62 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Test-NonEmptyString {
+    param([AllowNull()][string]$Value)
+    return (-not [string]::IsNullOrWhiteSpace($Value))
+}
+
+function Test-IsInteractiveBootstrap {
+    try {
+        return [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+    } catch {
+        return $true
+    }
+}
+
+function Prompt-VgoHostId {
+    while ($true) {
+        Write-Host 'Select the install target before bootstrap:'
+        Write-Host '  1) codex        - strongest governed lane'
+        Write-Host '  2) claude-code  - preview scaffold lane'
+        Write-Host '  3) generic      - runtime-core for other agents'
+        Write-Host '  4) opencode     - runtime-core for OpenCode'
+        $choice = [string](Read-Host 'Install into which agent? [1-4]')
+        $normalized = $choice.Trim().ToLowerInvariant()
+        switch ($normalized) {
+            '1' { return 'codex' }
+            'codex' { return 'codex' }
+            '2' { return 'claude-code' }
+            'claude' { return 'claude-code' }
+            'claude-code' { return 'claude-code' }
+            '3' { return 'generic' }
+            'generic' { return 'generic' }
+            'other' { return 'generic' }
+            'other-agent' { return 'generic' }
+            'other-agents' { return 'generic' }
+            '4' { return 'opencode' }
+            'opencode' { return 'opencode' }
+            default { Write-Warning "Unsupported choice: $choice. Enter 1, 2, 3, 4, or a host name." }
+        }
+    }
+}
+
 . (Join-Path $PSScriptRoot '..\common\vibe-governance-helpers.ps1')
 . (Join-Path $PSScriptRoot '..\common\Resolve-VgoAdapter.ps1')
+if (-not (Test-NonEmptyString -Value $HostId)) {
+    if (Test-NonEmptyString -Value $env:VCO_HOST_ID) {
+        $HostId = $env:VCO_HOST_ID
+    } elseif (Test-IsInteractiveBootstrap) {
+        $HostId = Prompt-VgoHostId
+    } else {
+        throw 'No host was provided for one-shot bootstrap. Pass -HostId codex|claude-code|generic|opencode when running non-interactively.'
+    }
+}
 $HostId = Resolve-VgoHostId -HostId $HostId
 $TargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $HostId
 Assert-VgoTargetRootMatchesHostIntent -TargetRoot $TargetRoot -HostId $HostId
 $repoRoot = Resolve-VgoRepoRoot -StartPath $PSCommandPath
 $Adapter = Resolve-VgoAdapterDescriptor -RepoRoot $repoRoot -HostId $HostId
-
-function Test-NonEmptyString {
-    param([AllowNull()][string]$Value)
-    return (-not [string]::IsNullOrWhiteSpace($Value))
-}
 
 function Get-ExistingSettingEnvValue {
     param(
@@ -142,14 +185,14 @@ switch ([string]$Adapter.bootstrap_mode) {
     'preview-scaffold' {
         Write-Host '[2/5] Writing Claude preview scaffold...' -ForegroundColor Yellow
         & $claudeScaffoldPath -RepoRoot $repoRoot -TargetRoot $TargetRoot -Force | Out-Null
-        Write-Host '[3/5] Provider/API seeding is host-managed for Claude preview; skipping.' -ForegroundColor DarkGray
+        Write-Host '[3/5] Claude preview keeps provider settings host-managed. You must supply url, apikey, and model yourself before claiming online readiness.' -ForegroundColor DarkGray
         Write-Host '[4/5] User environment sync is skipped for Claude preview.' -ForegroundColor DarkGray
         Write-Host '[5/5] Running preview health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'runtime-core' {
         Write-Host '[2/5] Runtime-core lane does not materialize host settings.' -ForegroundColor DarkGray
-        Write-Host '[3/5] Provider/API seeding skipped for runtime-core lane.' -ForegroundColor DarkGray
+        Write-Host '[3/5] Runtime-core lane does not seed provider settings. Configure url, apikey, and model in the target agent yourself.' -ForegroundColor DarkGray
         Write-Host '[4/5] User environment sync skipped for runtime-core lane.' -ForegroundColor DarkGray
         Write-Host '[5/5] Running runtime-core health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep

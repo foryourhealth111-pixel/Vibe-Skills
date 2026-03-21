@@ -2,7 +2,8 @@
 set -euo pipefail
 
 PROFILE="full"
-HOST_ID="codex"
+HOST_ID=""
+HOST_ID_EXPLICIT="false"
 TARGET_ROOT=""
 SKIP_EXTERNAL_INSTALL="false"
 STRICT_OFFLINE="false"
@@ -14,7 +15,7 @@ ARK_API_KEY_INPUT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --profile) PROFILE="$2"; shift 2 ;;
-    --host) HOST_ID="$2"; shift 2 ;;
+    --host) HOST_ID="$2"; HOST_ID_EXPLICIT="true"; shift 2 ;;
     --target-root) TARGET_ROOT="$2"; shift 2 ;;
     --skip-external-install) SKIP_EXTERNAL_INSTALL="true"; shift ;;
     --strict-offline) STRICT_OFFLINE="true"; shift ;;
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+is_interactive_shell() {
+  [[ -t 0 && -t 1 ]]
+}
+
 resolve_host_id() {
   local host_id="${1:-${VCO_HOST_ID:-codex}}"
   host_id="$(printf '%s' "${host_id}" | tr '[:upper:]' '[:lower:]')"
@@ -42,6 +47,45 @@ resolve_host_id() {
       exit 1
       ;;
   esac
+}
+
+prompt_for_host_id() {
+  local choice normalized
+  echo "Select the install target before bootstrap:"
+  echo "  1) codex        - strongest governed lane"
+  echo "  2) claude-code  - preview scaffold lane"
+  echo "  3) generic      - runtime-core for other agents"
+  echo "  4) opencode     - runtime-core for OpenCode"
+  while true; do
+    read -r -p "Install into which agent? [1-4]: " choice
+    normalized="$(printf '%s' "${choice}" | tr '[:upper:]' '[:lower:]' | xargs)"
+    case "${normalized}" in
+      1|codex) HOST_ID='codex'; return 0 ;;
+      2|claude|claude-code) HOST_ID='claude-code'; return 0 ;;
+      3|generic|other|other-agent|other-agents) HOST_ID='generic'; return 0 ;;
+      4|opencode) HOST_ID='opencode'; return 0 ;;
+      *)
+        echo "[WARN] Unsupported choice: ${choice}. Enter 1, 2, 3, 4, or a host name." >&2
+        ;;
+    esac
+  done
+}
+
+ensure_requested_host_id() {
+  if [[ "${HOST_ID_EXPLICIT}" == "true" && -n "${HOST_ID}" ]]; then
+    return 0
+  fi
+  if [[ -n "${VCO_HOST_ID:-}" ]]; then
+    HOST_ID="${VCO_HOST_ID}"
+    return 0
+  fi
+  if is_interactive_shell; then
+    prompt_for_host_id
+    return 0
+  fi
+  echo "[FAIL] No host was provided for one-shot bootstrap." >&2
+  echo "[FAIL] Pass --host codex|claude-code|generic|opencode when running non-interactively." >&2
+  return 1
 }
 
 resolve_default_target_root() {
@@ -84,6 +128,9 @@ assert_target_root_matches_host_intent() {
   fi
 }
 
+if ! ensure_requested_host_id; then
+  exit 1
+fi
 HOST_ID="$(resolve_host_id "${HOST_ID}")"
 if [[ -z "${TARGET_ROOT}" ]]; then
   TARGET_ROOT="$(resolve_default_target_root "${HOST_ID}")"
@@ -370,13 +417,13 @@ if [[ "${ADAPTER_BOOTSTRAP_MODE}" == "governed" ]]; then
 elif [[ "${ADAPTER_BOOTSTRAP_MODE}" == "preview-scaffold" ]]; then
   echo "[2/5] Writing Claude preview scaffold..."
   bash "${CLAUDE_SCAFFOLD_SH}" --repo-root "${REPO_ROOT}" --target-root "${TARGET_ROOT}" --force >/dev/null
-  echo "[3/5] Provider/API seeding is host-managed for Claude preview; skipping."
+  echo "[3/5] Claude preview keeps provider settings host-managed. You must supply url, apikey, and model yourself before claiming online readiness."
   echo "[4/5] MCP materialization is skipped for Claude preview."
   echo "[5/5] Running preview health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 else
   echo "[2/5] Runtime-core lane does not materialize host settings."
-  echo "[3/5] Provider/API seeding skipped for runtime-core lane."
+  echo "[3/5] Runtime-core lane does not seed provider settings. Configure url, apikey, and model in the target agent yourself."
   echo "[4/5] MCP materialization skipped for runtime-core lane."
   echo "[5/5] Running runtime-core health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
