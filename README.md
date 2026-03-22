@@ -17,6 +17,9 @@
     <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/pulse">
       <img src="https://img.shields.io/github/last-commit/foryourhealth111-pixel/Vibe-Skills?style=for-the-badge&logo=git-lfs&color=32CD32&label=MOMENTUM" alt="last commit">
     </a>
+    <a href="https://gitcgr.com/foryourhealth111-pixel/Vibe-Skills">
+      <img src="https://gitcgr.com/badge/foryourhealth111-pixel/Vibe-Skills.svg" alt="gitcgr" />
+    </a>
   </p>
   
   
