@@ -296,12 +296,16 @@ graph LR
 
 欢迎大家来尝试和体验啦 :heart_eyes:！欢迎大家讨论，并且向我提出建议和意见 :kissing_face_with_closed_eyes:。鄙人不才，可能有些地方有问题烦请大家指出，我一定会认真听取和修改。
 
+本项目是开源的，欢迎所有人贡献！无论您是想修复 bug、提升性能、添加新功能还是完善文档，您的意见都弥足珍贵。只需 fork 本仓库，进行修改，然后提交 pull request 即可。我们感谢所有级别的贡献，您的努力将有助于改进此工具，造福所有人。
+
 如果您喜欢可以加个star :smiling_face_with_three_hearts:，我会持续更新这个项目的！您的支持也是我这个核动力驴的浓缩U-235 :blush:！
 
 感谢你的观看！
 
 感谢LinuxDo各位佬的支持！欢迎大家加入 https://linux.do/ 各种技术交流，AI前沿资讯，AI经验分享，尽在Linuxdo！
 
+---
+[![Star History Chart](https://api.star-history.com/svg?repos=foryourhealth111-pixel/Vibe-Skills&type=Date)](https://star-history.com/#foryourhealth111-pixel/Vibe-Skills&Date)
 ---
 
 <div align="center">
