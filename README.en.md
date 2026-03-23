@@ -293,76 +293,20 @@ _If all you want is one tiny script, this may be too much. But if you want to us
 
 ---
 
-## 🧭 Deep dive into capability clusters: reject isolated dots
+## 🎯 Workflow: From Requirements to Delivery
 
-The biggest advantage of VibeSkills is its **systematic governance and standardization**. This is not a pile of scattered skills. It is an upstream-to-downstream work chain with tight handoffs.
+VibeSkills follows a governed workflow of `Clarify ➔ Plan ➔ Execute ➔ Verify`, ensuring every task goes through complete quality control:
 
-- **🧩 Planning, architecture, and engineering implementation**
-  Start with requirement interviews and constraint collection, move through task breakdown and architecture selection, and land in precise cross-file changes. At the same time, quality gates stay enforced, covering root-cause-level refactors and maintainability-oriented review.
-- **🔗 Collaborative governance and capability activation**
-  Solve the "sleeping capability" problem. Through **intelligent routing** and **governed workflows**, the right MCP or plugin is activated at the right stage. The execution trail is fully recorded and can be turned into high-quality knowledge artifacts automatically.
-- **🔬 Data, research, and high-bar professional computing**
-  Go beyond ordinary coding. VibeSkills provides a complete **research and academic writing loop**, a deeply integrated **life-sciences toolchain**, and scientific-computing engines that support complex modeling.
+- **Requirement Clarification**: Use skills like `speckit-clarify` to define boundaries and acceptance criteria
+- **Architecture Planning**: Use skills like `aios-architect` to design implementation paths
+- **Execution Layer**: 340+ skills invoked as needed to complete specific work
+- **Quality Verification**: Use skills like `tdd-guide`, `code-review` to ensure delivery quality
 
-We reject black-box execution. Vibe-Skills strictly follows a `clarify ➔ plan ➔ execute ➔ verify` directed acyclic graph (DAG) architecture.
+**Typical Scenario Examples**:
 
-```mermaid
-graph LR
-    A[Natural Language Intent] --> B(VCO Intelligent Routing)
-    B --> C{129-Rule Validation}
-    C -- Pass --> D[speckit - Requirement Clarification]
-    C -- Blocked --> X[Error Alert & Request Intervention]
-    D --> E[aios - Architecture Planning]
-    E --> F[Execution Layer: 340+ Skills]
-    F --> G[Automated QA Validation]
-    G --> H((High-Quality Delivery))
-
-    style B fill:#2196F3,stroke:#fff,stroke-width:2px,color:#fff
-    style C fill:#FF9800,stroke:#fff,stroke-width:2px,color:#fff
-    style X fill:#F44336,stroke:#fff,stroke-width:2px,color:#fff
-```
-
----
-
-## 🎯 If you state a need directly, how does VibeSkills take over?
-
-These examples are not abstract capability descriptions. They are much closer to real usage. You do not need to memorize the whole skills table first. If you can state the goal clearly, VibeSkills will try to decompose the task in the right order, activate the right capabilities, and turn the result into a deliverable that can keep being used.
-
-### 🛠️ For engineering teams
-
-- **If a user asks:** "Help me refactor this old project and fix the red CI checks while you're at it."
-  **VibeSkills will:** clarify the boundary of the refactor first, map the affected modules, locate the failing checks, and then move through edits and verification in a governed sequence.
-  **It will activate:** `speckit-clarify`, `aios-dev`, `aios-devops`, `gh-fix-ci`, `verification-before-completion`
-  **Final deliverable:** a reviewable set of code changes, a repaired check pipeline, and verification evidence you can audit later.
-
-- **If a user asks:** "I don't understand this error. Help me find the root cause and fix it."
-  **VibeSkills will:** reproduce the issue first, run systematic debugging, narrow the root-cause range, and add the smallest valid fix plus regression verification instead of changing code blindly.
-  **It will activate:** `error-resolver`, `systematic-debugging`, `debugging-strategies`, `tdd-guide`
-  **Final deliverable:** a root-cause explanation, a targeted fix, and verification evidence proving the problem is resolved.
-
-### 📈 For product and growth teams
-
-- **If a user asks:** "Help me do competitor research and see how people in this space have been approaching the problem lately."
-  **VibeSkills will:** clarify the scope and comparison dimensions first, gather public information, organize a structured comparison, and generate an analysis artifact that looks like a real working document instead of a loose note dump.
-  **It will activate:** `speckit-clarify`, `scrapling`, `playwright`, `aios-analyst`, `market-research-reports`
-  **Final deliverable:** a competitor summary, a comparison framework, key judgments, and a research report that can be used directly.
-
-- **If a user asks:** "I only have one fuzzy idea. Help me turn it into an executable growth plan."
-  **VibeSkills will:** clarify the target audience, constraints, and success criteria first, then break the work into a requirement frame, analysis path, and implementation advice instead of throwing out vague ideas.
-  **It will activate:** `brainstorming`, `aios-pm`, `aios-analyst`, `report-generator`
-  **Final deliverable:** a clearer problem definition, structured strategy recommendations, and a plan document that is easy to continue executing.
-
-### 🔬 For research and bioinformatics users
-
-- **If a user asks:** "Help me write a literature review in this area and organize it into a framework I can continue researching."
-  **VibeSkills will:** define the search boundary and question focus first, then handle literature search, organization, citation management, and review structure design.
-  **It will activate:** `literature-review`, `research-lookup`, `citation-management`, `scientific-writing`
-  **Final deliverable:** a review framework you can continue expanding, a citation list, and follow-on research entry points.
-
-- **If a user asks:** "I have a batch of single-cell data. I want a quick analysis and I want to find signals worth following up on."
-  **VibeSkills will:** confirm the data shape and analysis goals first, enter the single-cell analysis workflow, and then organize the results, visualizations, and first-pass interpretation.
-  **It will activate:** `scanpy`, `scvi-tools`, `anndata`, `scientific-visualization`
-  **Final deliverable:** an analysis workflow, key figure outputs, and preliminary conclusions you can continue digging into.
+- 🛠️ **"Refactor project and fix CI"** → Clarify scope → Map modules → Modify & verify → Deliver reviewable code and verification results
+- 📈 **"Competitor research"** → Define scope → Gather info → Structured comparison → Deliver research report and analysis framework
+- 🔬 **"Literature review"** → Define focus → Search & organize → Citation management → Deliver review framework and research entry points
 
 ---
 
