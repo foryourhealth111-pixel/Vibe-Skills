@@ -1,0 +1,44 @@
+{
+  "adapter_id": "cursor",
+  "host_name": "Cursor",
+  "status": "preview",
+  "runtime_role": "host-adapter-preview",
+  "source_evidence": [
+    "adapters/cursor/closure.json",
+    "install.ps1",
+    "check.ps1"
+  ],
+  "settings_surface": {
+    "path": "~/.cursor/settings.json",
+    "managed_by_repo": false,
+    "notes": "The repository currently provides preview guidance only. Real Cursor host settings remain host-managed."
+  },
+  "host_managed_surfaces": [
+    "plugin enablement",
+    "hook installation",
+    "MCP registration",
+    "provider credentials"
+  ],
+  "capabilities": {
+    "fs.read": "expected",
+    "fs.write": "expected",
+    "shell.exec": "expected",
+    "mcp.client": "supported-with-constraints",
+    "settings.materialize": "preview-guidance",
+    "plugin.provision": "manual-host-managed",
+    "agent.spawn": "supported-with-constraints",
+    "route.provider_call": "supported-with-constraints",
+    "route.offline_fallback": "expected",
+    "release.verify": "preview-guidance"
+  },
+  "degrade_contract": {
+    "missing_plugins": "degraded-but-supported",
+    "missing_provider_credentials": "degraded-but-supported",
+    "unverified_platform_lane": "not-yet-proven"
+  },
+  "supported_platform_contracts": [
+    "adapters/cursor/platform-windows.json",
+    "adapters/cursor/platform-linux.json",
+    "adapters/cursor/platform-macos.json"
+  ]
+}

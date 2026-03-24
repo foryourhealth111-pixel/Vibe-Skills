@@ -1,0 +1,10 @@
+{
+  "adapter_id": "cursor",
+  "template": null,
+  "target": "~/.cursor/settings.json",
+  "semantics": {},
+  "notes": [
+    "Cursor mapping is currently guidance-only and host-managed.",
+    "No repository-managed hook installation is promised in this preview lane."
+  ]
+}

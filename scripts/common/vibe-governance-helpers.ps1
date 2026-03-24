@@ -226,8 +226,9 @@ function Resolve-VgoHostId {
         'codex' { return 'codex' }
         'claude' { return 'claude-code' }
         'claude-code' { return 'claude-code' }
+        'cursor' { return 'cursor' }
         default {
-            throw "Unsupported VCO host id: $resolved. Supported values: codex, claude-code"
+            throw "Unsupported VCO host id: $resolved. Supported values: codex, claude-code, cursor"
         }
     }
 }
@@ -251,6 +252,12 @@ function Resolve-VgoDefaultTargetRoot {
                 return [System.IO.Path]::GetFullPath($env:CLAUDE_HOME)
             }
             return [System.IO.Path]::GetFullPath((Join-Path $homeDir '.claude'))
+        }
+        'cursor' {
+            if (-not [string]::IsNullOrWhiteSpace($env:CURSOR_HOME)) {
+                return [System.IO.Path]::GetFullPath($env:CURSOR_HOME)
+            }
+            return [System.IO.Path]::GetFullPath((Join-Path $homeDir '.cursor'))
         }
         default {
             throw "Unsupported VCO host id: $resolvedHostId"
@@ -303,11 +310,37 @@ function Assert-VgoTargetRootMatchesHostIntent {
                     $TargetRoot
                 ))
             }
+            if ($normalizedLeaf -eq '.cursor') {
+                throw ([string]::Format(
+                    "TargetRoot '{0}' looks like a Cursor home, but HostId resolved to 'codex'. Pass -HostId cursor for preview guidance or use a Codex target root.",
+                    $TargetRoot
+                ))
+            }
         }
         'claude-code' {
             if ($normalizedLeaf -eq '.codex') {
                 throw ([string]::Format(
                     "TargetRoot '{0}' looks like a Codex home, but HostId resolved to 'claude-code'. Use -HostId codex for the official closure lane or choose a Claude Code target root.",
+                    $TargetRoot
+                ))
+            }
+            if ($normalizedLeaf -eq '.cursor') {
+                throw ([string]::Format(
+                    "TargetRoot '{0}' looks like a Cursor home, but HostId resolved to 'claude-code'. Pass -HostId cursor for preview guidance or choose a Claude Code target root.",
+                    $TargetRoot
+                ))
+            }
+        }
+        'cursor' {
+            if ($normalizedLeaf -eq '.codex') {
+                throw ([string]::Format(
+                    "TargetRoot '{0}' looks like a Codex home, but HostId resolved to 'cursor'. Use -HostId codex for the official closure lane or choose a Cursor target root.",
+                    $TargetRoot
+                ))
+            }
+            if ($normalizedLeaf -eq '.claude') {
+                throw ([string]::Format(
+                    "TargetRoot '{0}' looks like a Claude Code home, but HostId resolved to 'cursor'. Use -HostId claude-code for Claude preview guidance or choose a Cursor target root.",
                     $TargetRoot
                 ))
             }

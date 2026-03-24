@@ -40,8 +40,9 @@ resolve_host_id() {
   case "${host_id}" in
     codex) printf '%s' 'codex' ;;
     claude|claude-code) printf '%s' 'claude-code' ;;
+    cursor) printf '%s' 'cursor' ;;
     *)
-      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code" >&2
+      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code, cursor" >&2
       exit 1
       ;;
   esac
@@ -52,14 +53,16 @@ prompt_for_host_id() {
   echo "Select the install target before bootstrap:"
   echo "  1) codex        - strongest governed lane"
   echo "  2) claude-code  - preview scaffold lane"
+  echo "  3) cursor       - preview scaffold lane"
   while true; do
-    read -r -p "Install into which agent? [1-2]: " choice
+    read -r -p "Install into which agent? [1-3]: " choice
     normalized="$(printf '%s' "${choice}" | tr '[:upper:]' '[:lower:]' | xargs)"
     case "${normalized}" in
       1|codex) HOST_ID='codex'; return 0 ;;
       2|claude|claude-code) HOST_ID='claude-code'; return 0 ;;
+      3|cursor) HOST_ID='cursor'; return 0 ;;
       *)
-        echo "[WARN] Unsupported choice: ${choice}. Enter 1, 2, or a supported host name." >&2
+        echo "[WARN] Unsupported choice: ${choice}. Enter 1, 2, 3, or a supported host name." >&2
         ;;
     esac
   done
@@ -78,7 +81,7 @@ ensure_requested_host_id() {
     return 0
   fi
   echo "[FAIL] No host was provided for one-shot bootstrap." >&2
-  echo "[FAIL] Pass --host codex|claude-code when running non-interactively." >&2
+  echo "[FAIL] Pass --host codex|claude-code|cursor when running non-interactively." >&2
   return 1
 }
 
@@ -87,6 +90,7 @@ resolve_default_target_root() {
   case "${host_id}" in
     codex) printf '%s' "${CODEX_HOME:-${HOME}/.codex}" ;;
     claude-code) printf '%s' "${CLAUDE_HOME:-${HOME}/.claude}" ;;
+    cursor) printf '%s' "${CURSOR_HOME:-${HOME}/.cursor}" ;;
     *)
       echo "[FAIL] Unsupported VCO host id for target-root resolution: ${host_id}" >&2
       exit 1
@@ -105,9 +109,29 @@ assert_target_root_matches_host_intent() {
     echo "[FAIL] Pass --host claude-code for preview guidance or use a Codex target root." >&2
     exit 1
   fi
+  if [[ "${host_id}" == "codex" && "${leaf}" == ".cursor" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='codex'." >&2
+    echo "[FAIL] Pass --host cursor for preview guidance or use a Codex target root." >&2
+    exit 1
+  fi
   if [[ "${host_id}" == "claude-code" && "${leaf}" == ".codex" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='claude-code'." >&2
     echo "[FAIL] Use --host codex for the official closure lane or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && "${leaf}" == ".cursor" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='claude-code'." >&2
+    echo "[FAIL] Pass --host cursor for Cursor preview guidance or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${leaf}" == ".codex" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='cursor'." >&2
+    echo "[FAIL] Use --host codex for the official closure lane or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${leaf}" == ".claude" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Claude Code home, but host='cursor'." >&2
+    echo "[FAIL] Pass --host claude-code for Claude preview guidance or choose a Cursor target root." >&2
     exit 1
   fi
 }
@@ -399,10 +423,14 @@ if [[ "${ADAPTER_BOOTSTRAP_MODE}" == "governed" ]]; then
   echo "[5/5] Running deep health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 elif [[ "${ADAPTER_BOOTSTRAP_MODE}" == "preview-guidance" ]]; then
-  echo "[2/5] Hook installation is frozen for Claude Code because of compatibility issues."
-  bash "${CLAUDE_SCAFFOLD_SH}" --repo-root "${REPO_ROOT}" --target-root "${TARGET_ROOT}" --force >/dev/null
+  if [[ "${HOST_ID}" == "claude-code" ]]; then
+    echo "[2/5] Hook installation is frozen for Claude Code because of compatibility issues."
+    bash "${CLAUDE_SCAFFOLD_SH}" --repo-root "${REPO_ROOT}" --target-root "${TARGET_ROOT}" --force >/dev/null
+  else
+    echo "[2/5] Host-specific preview scaffold is currently unavailable for '${HOST_ID}'."
+  fi
   echo "[3/5] No hook files or preview settings were installed into the target root."
-  echo "[4/5] Claude provider settings remain host-managed. Open ${TARGET_ROOT}/settings.json and add only the missing env fields there. Do not paste API keys into chat."
+  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Configure the real host settings surface separately (for example, Cursor commonly uses ~/.cursor/settings.json). Do not paste API keys into chat."
   echo "[5/5] Running preview guidance health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 else

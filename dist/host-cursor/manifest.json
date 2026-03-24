@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "lane_id": "host-cursor",
+  "lane_kind": "host-adapter",
+  "host_id": "cursor",
+  "stability": "preview",
+  "source_release": {
+    "version": "2.3.49",
+    "updated": "2026-03-24"
+  },
+  "summary": "Cursor host adapter preview. The repository can expose runtime-core payload and preview health checks, but does not claim full governed closure yet.",
+  "runtime_ownership": {
+    "owner": "host_managed",
+    "notes": "This lane must not claim official runtime closure. It only exposes configuration artifacts and truthful readiness boundaries."
+  },
+  "entrypoints": {
+    "install_primary": "install.ps1 --host cursor",
+    "install_secondary": "install.sh --host cursor",
+    "check_primary": "check.ps1 --host cursor",
+    "check_secondary": "check.sh --host cursor"
+  },
+  "capability_promises": [
+    {
+      "id": "cursor_preview_adapter_contract_exists",
+      "promise_level": "promised",
+      "evidence_paths": [
+        "adapters/cursor/host-profile.json",
+        "adapters/cursor/closure.json"
+      ]
+    },
+    {
+      "id": "router_authority_remains_local",
+      "promise_level": "promised",
+      "evidence_paths": [
+        "scripts/router/resolve-pack-route.ps1"
+      ]
+    }
+  ],
+  "non_goals": [
+    "official_runtime_install_entrypoints",
+    "official_runtime_check_entrypoints",
+    "host_plugin_provisioning",
+    "cross_platform_parity_claims"
+  ],
+  "docs": {
+    "distribution_lanes": "docs/universalization/distribution-lanes.md",
+    "install_matrix": "docs/universalization/install-matrix.md",
+    "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+    "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+    "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+  },
+  "support": {
+    "platform_support": {
+      "truth_source": "docs/universalization/platform-support-matrix.md",
+      "interpretation": "not_yet_proven_for_this_lane"
+    },
+    "host_support": {
+      "truth_source": "docs/universalization/host-capability-matrix.md",
+      "interpretation": "host_matrix_rating",
+      "rating": "preview"
+    }
+  }
+}

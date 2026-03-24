@@ -1,0 +1,17 @@
+{
+  "adapter_id": "cursor",
+  "platform": "windows",
+  "status": "not-yet-proven",
+  "install_surface": [
+    "template-only"
+  ],
+  "check_surface": [
+    "manual or host-native"
+  ],
+  "doctor_surface": [
+    "not yet frozen"
+  ],
+  "notes": [
+    "Windows support may be possible, but this repository does not yet provide a governed Cursor closure lane."
+  ]
+}

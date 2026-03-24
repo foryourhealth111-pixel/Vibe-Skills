@@ -1,0 +1,17 @@
+{
+  "adapter_id": "cursor",
+  "platform": "linux",
+  "status": "not-yet-proven",
+  "install_surface": [
+    "template-only"
+  ],
+  "check_surface": [
+    "manual or host-native"
+  ],
+  "doctor_surface": [
+    "not yet frozen"
+  ],
+  "notes": [
+    "The repository has guidance surfaces, but no replay-backed proof lane yet."
+  ]
+}

@@ -31,8 +31,9 @@ resolve_host_id() {
   case "${host_id}" in
     codex) printf '%s' 'codex' ;;
     claude|claude-code) printf '%s' 'claude-code' ;;
+    cursor) printf '%s' 'cursor' ;;
     *)
-      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code" >&2
+      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code, cursor" >&2
       exit 1
       ;;
   esac
@@ -43,6 +44,7 @@ resolve_default_target_root() {
   case "${host_id}" in
     codex) printf '%s' "${CODEX_HOME:-${HOME}/.codex}" ;;
     claude-code) printf '%s' "${CLAUDE_HOME:-${HOME}/.claude}" ;;
+    cursor) printf '%s' "${CURSOR_HOME:-${HOME}/.cursor}" ;;
     *)
       echo "[FAIL] Unsupported VCO host id for target-root resolution: ${host_id}" >&2
       exit 1
@@ -82,9 +84,29 @@ assert_target_root_matches_host_intent() {
     echo "[FAIL] Pass --host claude-code for preview guidance or use a Codex target root." >&2
     exit 1
   fi
+  if [[ "${host_id}" == "codex" && "${leaf}" == ".cursor" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='codex'." >&2
+    echo "[FAIL] Pass --host cursor for preview guidance or use a Codex target root." >&2
+    exit 1
+  fi
   if [[ "${host_id}" == "claude-code" && "${leaf}" == ".codex" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='claude-code'." >&2
     echo "[FAIL] Use --host codex for the official closure lane or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && "${leaf}" == ".cursor" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='claude-code'." >&2
+    echo "[FAIL] Pass --host cursor for Cursor preview guidance or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${leaf}" == ".codex" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='cursor'." >&2
+    echo "[FAIL] Use --host codex for the official closure lane or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${leaf}" == ".claude" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Claude Code home, but host='cursor'." >&2
+    echo "[FAIL] Pass --host claude-code for Claude preview guidance or choose a Cursor target root." >&2
     exit 1
   fi
 }
@@ -560,7 +582,7 @@ if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
   check_path "settings.json" "${TARGET_ROOT}/settings.json"
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "preview-guidance" ]]; then
-  info_note "claude preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure"
+  info_note "${HOST_ID} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure"
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
   check_path "plugins manifest" "${TARGET_ROOT}/config/plugins-manifest.codex.json"

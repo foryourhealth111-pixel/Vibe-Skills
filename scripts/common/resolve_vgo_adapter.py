@@ -40,6 +40,18 @@ def embedded_registry():
                 "closure": "adapters/claude-code/closure.json",
                 "manifest": "dist/host-claude-code/manifest.json",
             },
+            {
+                "id": "cursor",
+                "status": "preview",
+                "install_mode": "preview-guidance",
+                "check_mode": "preview-guidance",
+                "bootstrap_mode": "preview-guidance",
+                "default_target_root": {"env": "CURSOR_HOME", "rel": ".cursor", "kind": "host-home"},
+                "host_profile": "adapters/cursor/host-profile.json",
+                "settings_map": "adapters/cursor/settings-map.json",
+                "closure": "adapters/cursor/closure.json",
+                "manifest": "dist/host-cursor/manifest.json",
+            },
         ],
     }
 

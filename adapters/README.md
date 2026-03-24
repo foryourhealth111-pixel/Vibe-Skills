@@ -13,6 +13,7 @@ Current adapter intent:
 
 - `codex/`: strongest current adapter because the repository already ships Codex-specific install, settings, and plugin guidance.
 - `claude-code/`: preview adapter derived from existing template and governance expectations.
+- `cursor/`: preview adapter with truthful host-managed boundaries; no full closure claim yet.
 - `opencode/`: contract placeholder only; no runtime closure claim yet.
 - `generic/`: lowest-common-denominator contract consumer, not an official runtime.
 

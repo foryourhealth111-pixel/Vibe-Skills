@@ -1,0 +1,17 @@
+{
+  "adapter_id": "cursor",
+  "platform": "macos",
+  "status": "not-yet-proven",
+  "install_surface": [
+    "template-only"
+  ],
+  "check_surface": [
+    "manual or host-native"
+  ],
+  "doctor_surface": [
+    "not yet frozen"
+  ],
+  "notes": [
+    "No governed proof lane exists yet."
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "adapter_id": "cursor",
+  "closure_level": "preview-guidance",
+  "install_mode": "preview-guidance",
+  "check_mode": "preview-guidance",
+  "bootstrap_mode": "preview-guidance",
+  "repo_managed_payload": [
+    "runtime core payload",
+    "canonical vibe mirror under skills/vibe/**"
+  ],
+  "host_state_written": [],
+  "host_managed_boundaries": [
+    "plugin provisioning",
+    "hook installation",
+    "MCP registration",
+    "provider credentials",
+    "final Cursor host configuration"
+  ],
+  "verification_contract": [
+    "runtime freshness gate",
+    "runtime BOM/frontmatter gate",
+    "runtime coherence gate"
+  ]
+}

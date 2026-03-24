@@ -59,6 +59,22 @@ function Get-VgoEmbeddedAdapterRegistry {
                 settings_map = 'adapters/claude-code/settings-map.json'
                 closure = 'adapters/claude-code/closure.json'
                 manifest = 'dist/host-claude-code/manifest.json'
+            },
+            [pscustomobject]@{
+                id = 'cursor'
+                status = 'preview'
+                install_mode = 'preview-guidance'
+                check_mode = 'preview-guidance'
+                bootstrap_mode = 'preview-guidance'
+                default_target_root = [pscustomobject]@{
+                    env = 'CURSOR_HOME'
+                    rel = '.cursor'
+                    kind = 'host-home'
+                }
+                host_profile = 'adapters/cursor/host-profile.json'
+                settings_map = 'adapters/cursor/settings-map.json'
+                closure = 'adapters/cursor/closure.json'
+                manifest = 'dist/host-cursor/manifest.json'
             }
         )
     }
