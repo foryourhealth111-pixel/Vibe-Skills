@@ -19,14 +19,6 @@ The real profile mapping is:
 - [`prompts/full-version-update.en.md`](./prompts/full-version-update.en.md)
 - [`prompts/framework-only-update.en.md`](./prompts/framework-only-update.en.md)
 
-## The real semantics of the four hosts
-
-| Host | Mode | Default root | What the repo currently owns | What it must not be described as |
-| --- | --- | --- | --- | --- |
-| `codex` | governed | `~/.codex` | governed runtime, settings/MCP guidance, deep check | hooks already installed, governance-AI online readiness complete |
-| `claude-code` | supported install-and-use path | `~/.claude` | install path, usage guidance, and health checks | real settings takeover |
-| `cursor` | supported install-and-use path | `~/.cursor` | install path, usage guidance, and health checks | repo-owned Cursor-native settings and extension closure |
-| `windsurf` | supported install-and-use path + runtime adapter | `~/.codeium/windsurf` | shared runtime payload, optional `mcp_config.json` / `global_workflows/` materialization, and health checks | full repo takeover of Windsurf-native settings |
 
 ## What AI should do in this flow
 
@@ -39,13 +31,6 @@ The install assistant should:
 - never ask you to paste secrets into chat
 - distinguish “installed locally” from “online-ready”
 - end with a concise result summary plus manual follow-up
-
-## Common truth-first wording
-
-- `codex`: the strongest path today, but hooks are still frozen; `OPENAI_*` is not the same thing as `VCO_AI_PROVIDER_*`
-- `claude-code`: provides a supported install-and-use path and does not overwrite the real `~/.claude/settings.json`
-- `cursor`: provides a supported install-and-use path and does not take over the real `~/.cursor/settings.json`
-- `windsurf`: provides a supported install-and-use path with runtime-adapter integration and only installs runtime payload plus required materialized files
 
 ## What to read next
 
