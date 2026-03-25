@@ -74,13 +74,12 @@ Industrial-grade runtime framework integrating hundreds of Skills, MCP integrati
 
 ## 📋 Table of Contents
 
-- [Core Advantages](#-what-makes-it-different)
+- [What makes it different](#-what-makes-it-different)
+- [Who is it for](#-who-is-it-for)
 - [Intelligent Routing](#-intelligent-routing-how-340-skills-collaborate-without-conflict)
 - [Memory System](#-memory-system-ai-that-truly-remembers)
 - [Full Capability Map](#-full-capability-map-your-all-in-one-workbench)
 - [Getting Started](#-getting-started)
-
-<br/>
 
 > [!IMPORTANT]
 > ### 🎯 Core Vision
@@ -94,23 +93,6 @@ Industrial-grade runtime framework integrating hundreds of Skills, MCP integrati
 
 ---
 
-## 📊 Why is it powerful?
-
-The runtime core behind **VibeSkills** is **VCO**. This is not a single-point tool or a "code completion" script — it is a **super-capability network** that has been deeply integrated and governed:
-
-<br/>
-
-<div align="center">
-
-|                              🧩 Skill Modules                               |                            🌍 Ecosystem                            |                               ⚖️ Governance Rules                                |
-| :---------------------------------------------------------------------: | :---------------------------------------------------------------: | :----------------------------------------------------------------------: |
-| <h2>340+</h2>Directly callable Skills<br/>covering the full chain from requirements to delivery | <h2>19+</h2>Absorbed high-value upstream<br/>open-source projects and best practices | <h2>129</h2>Policy rules and contracts<br/>ensuring stable, traceable, divergence-free execution |
-
-</div>
-
-<br/>
-
----
 
 ## ✨ What makes it different?
 
@@ -137,7 +119,39 @@ The runtime core behind **VibeSkills** is **VCO**. This is not a single-point to
 
 ---
 
+
+## 👥 Who is it for?
+
+_Which of those pain points hit home? Find your position — what comes next will land harder._
+
+<details>
+<summary>Is this for you? Click to expand</summary>
+
+<br/>
+
+<div align="center">
+
+| Audience | Description |
+|:---:|:---|
+| 🎯 **Users who need reliable delivery** | Want AI to be a dependable partner, not a runaway horse |
+| ⚡ **Power users heavily relying on AI/Agents** | Need a unified foundation to support large-scale workflows |
+| 🏢 **Small teams with high standardization needs** | Want AI workflows to be more maintainable and transferable |
+| 😩 **Practitioners exhausted by skill sprawl** | Already tired of tool hunting — just want a ready-to-use solution |
+
+</div>
+
+> _If you're looking for a single small script, this may be overkill. But if you want to use AI more reliably, smoothly, and sustainably — this is your indispensable foundation._
+
+</details>
+
+<br/>
+
+---
+
+
 ## 🔀 Intelligent Routing: How 340+ Skills Collaborate Without Conflict
+
+_You know this is for you. Next question: 340+ skills in one system — how do they stay out of each other's way?_
 
 With 340+ skills, you might wonder: _"Won't similar skills conflict? How does the system know which one to use?"_
 
@@ -266,7 +280,10 @@ The governance framework adds ~30k initial context overhead, but does not cause 
 
 ---
 
+
 ## 🧠 Memory System: AI That Truly Remembers
+
+_Routing solves "which skill". But there's a deeper question: when the conversation ends, does AI remember you?_
 
 Sound familiar?
 
@@ -319,7 +336,10 @@ VibeSkills builds a **four-tier memory system** — one authoritative component 
 
 ---
 
+
 ## ✦ Full Capability Map: Your All-in-One Workbench
+
+_Routing + memory form the dispatch nervous system. Here's the full capability map they power — end to end._
 
 Unrolled across a "real workflow", VibeSkills has laid out a complete **end-to-end capability chain**:
 
@@ -440,33 +460,31 @@ Unrolled across a "real workflow", VibeSkills has laid out a complete **end-to-e
 
 ---
 
-## 👥 Who is it for?
 
-<details>
-<summary>Is this for you? Click to expand</summary>
+## 📊 Why is it powerful?
+
+_Now for the numbers. This isn't a demo project — it's a running system._
+
+The runtime core behind **VibeSkills** is **VCO**. This is not a single-point tool or a "code completion" script — it is a **super-capability network** that has been deeply integrated and governed:
 
 <br/>
 
 <div align="center">
 
-| Audience | Description |
-|:---:|:---|
-| 🎯 **Users who need reliable delivery** | Want AI to be a dependable partner, not a runaway horse |
-| ⚡ **Power users heavily relying on AI/Agents** | Need a unified foundation to support large-scale workflows |
-| 🏢 **Small teams with high standardization needs** | Want AI workflows to be more maintainable and transferable |
-| 😩 **Practitioners exhausted by skill sprawl** | Already tired of tool hunting — just want a ready-to-use solution |
+|                              🧩 Skill Modules                               |                            🌍 Ecosystem                            |                               ⚖️ Governance Rules                                |
+| :---------------------------------------------------------------------: | :---------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| <h2>340+</h2>Directly callable Skills<br/>covering the full chain from requirements to delivery | <h2>19+</h2>Absorbed high-value upstream<br/>open-source projects and best practices | <h2>129</h2>Policy rules and contracts<br/>ensuring stable, traceable, divergence-free execution |
 
 </div>
-
-> _If you're looking for a single small script, this may be overkill. But if you want to use AI more reliably, smoothly, and sustainably — this is your indispensable foundation._
-
-</details>
 
 <br/>
 
 ---
 
+
 ## 📦 Standing on the Shoulders of Giants
+
+_These capabilities weren't built from scratch. VibeSkills' foundation is the continuous integration of the best open-source solutions into one governed system._
 
 We know that building in isolation can't keep pace with the rapidly evolving AI landscape. The core strength of VibeSkills comes from continuously absorbing the most mature methods and architectures from the open-source community, and bringing them under a single unified governance and orchestration system.
 
@@ -482,7 +500,10 @@ We know that building in isolation can't keep pace with the rapidly evolving AI 
 
 ---
 
+
 ## 🚀 Getting Started
+
+_You know what this is now. All it takes from here is one prompt:_
 
 > ⚠️ **Invocation note**: This project uses a **Skills format architecture**. Please invoke it through your host environment's Skills invocation method — **do not** run it as a standalone CLI program.
 
@@ -564,6 +585,7 @@ Tech discussions, AI frontiers, AI experience sharing — all at Linuxdo!
 <br/>
 
 ---
+
 
 ## Star History
 
