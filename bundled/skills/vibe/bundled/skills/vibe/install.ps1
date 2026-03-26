@@ -1,7 +1,7 @@
 param(
   [ValidateSet("minimal", "full")]
   [string]$Profile = "full",
-  [ValidateSet("codex", "claude-code")]
+  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw")]
   [string]$HostId = "codex",
   [string]$TargetRoot = '',
   [switch]$InstallExternal,

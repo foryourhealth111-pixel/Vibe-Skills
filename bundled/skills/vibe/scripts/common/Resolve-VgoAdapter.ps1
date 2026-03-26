@@ -59,6 +59,54 @@ function Get-VgoEmbeddedAdapterRegistry {
                 settings_map = 'adapters/claude-code/settings-map.json'
                 closure = 'adapters/claude-code/closure.json'
                 manifest = 'dist/host-claude-code/manifest.json'
+            },
+            [pscustomobject]@{
+                id = 'cursor'
+                status = 'preview'
+                install_mode = 'preview-guidance'
+                check_mode = 'preview-guidance'
+                bootstrap_mode = 'preview-guidance'
+                default_target_root = [pscustomobject]@{
+                    env = 'CURSOR_HOME'
+                    rel = '.cursor'
+                    kind = 'host-home'
+                }
+                host_profile = 'adapters/cursor/host-profile.json'
+                settings_map = 'adapters/cursor/settings-map.json'
+                closure = 'adapters/cursor/closure.json'
+                manifest = 'dist/host-cursor/manifest.json'
+            },
+            [pscustomobject]@{
+                id = 'windsurf'
+                status = 'preview'
+                install_mode = 'runtime-core'
+                check_mode = 'runtime-core'
+                bootstrap_mode = 'runtime-core'
+                default_target_root = [pscustomobject]@{
+                    env = 'WINDSURF_HOME'
+                    rel = '.codeium/windsurf'
+                    kind = 'host-home'
+                }
+                host_profile = 'adapters/windsurf/host-profile.json'
+                settings_map = 'adapters/windsurf/settings-map.json'
+                closure = 'adapters/windsurf/closure.json'
+                manifest = 'dist/host-windsurf/manifest.json'
+            },
+            [pscustomobject]@{
+                id = 'openclaw'
+                status = 'preview'
+                install_mode = 'runtime-core'
+                check_mode = 'runtime-core'
+                bootstrap_mode = 'runtime-core'
+                default_target_root = [pscustomobject]@{
+                    env = 'OPENCLAW_HOME'
+                    rel = '.openclaw'
+                    kind = 'host-home'
+                }
+                host_profile = 'adapters/openclaw/host-profile.json'
+                settings_map = 'adapters/openclaw/settings-map.json'
+                closure = 'adapters/openclaw/closure.json'
+                manifest = 'dist/host-openclaw/manifest.json'
             }
         )
     }

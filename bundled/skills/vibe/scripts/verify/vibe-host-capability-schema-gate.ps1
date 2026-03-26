@@ -7,6 +7,8 @@ $adapterRoot = Join-Path $repoRoot 'adapters'
 $requiredProfiles = @(
     'codex/host-profile.json',
     'claude-code/host-profile.json',
+    'windsurf/host-profile.json',
+    'openclaw/host-profile.json',
     'opencode/host-profile.json',
     'generic/host-profile.json'
 )

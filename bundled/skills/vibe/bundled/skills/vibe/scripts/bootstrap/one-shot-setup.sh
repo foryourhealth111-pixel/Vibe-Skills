@@ -40,8 +40,11 @@ resolve_host_id() {
   case "${host_id}" in
     codex) printf '%s' 'codex' ;;
     claude|claude-code) printf '%s' 'claude-code' ;;
+    cursor) printf '%s' 'cursor' ;;
+    windsurf) printf '%s' 'windsurf' ;;
+    openclaw) printf '%s' 'openclaw' ;;
     *)
-      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code" >&2
+      echo "[FAIL] Unsupported VCO host id: ${host_id}. Supported values: codex, claude-code, cursor, windsurf, openclaw" >&2
       exit 1
       ;;
   esac
@@ -51,15 +54,21 @@ prompt_for_host_id() {
   local choice normalized
   echo "Select the install target before bootstrap:"
   echo "  1) codex        - strongest governed lane"
-  echo "  2) claude-code  - preview scaffold lane"
+  echo "  2) claude-code  - supported install/use path"
+  echo "  3) cursor       - supported install/use path"
+  echo "  4) windsurf     - supported path + runtime adapter"
+  echo "  5) openclaw     - preview runtime-core adapter"
   while true; do
-    read -r -p "Install into which agent? [1-2]: " choice
+    read -r -p "Install into which agent? [1-5]: " choice
     normalized="$(printf '%s' "${choice}" | tr '[:upper:]' '[:lower:]' | xargs)"
     case "${normalized}" in
       1|codex) HOST_ID='codex'; return 0 ;;
       2|claude|claude-code) HOST_ID='claude-code'; return 0 ;;
+      3|cursor) HOST_ID='cursor'; return 0 ;;
+      4|windsurf) HOST_ID='windsurf'; return 0 ;;
+      5|openclaw) HOST_ID='openclaw'; return 0 ;;
       *)
-        echo "[WARN] Unsupported choice: ${choice}. Enter 1, 2, or a supported host name." >&2
+        echo "[WARN] Unsupported choice: ${choice}. Enter 1, 2, 3, 4, 5, or a supported host name." >&2
         ;;
     esac
   done
@@ -78,7 +87,7 @@ ensure_requested_host_id() {
     return 0
   fi
   echo "[FAIL] No host was provided for one-shot bootstrap." >&2
-  echo "[FAIL] Pass --host codex|claude-code when running non-interactively." >&2
+  echo "[FAIL] Pass --host codex|claude-code|cursor|windsurf|openclaw when running non-interactively." >&2
   return 1
 }
 
@@ -87,6 +96,9 @@ resolve_default_target_root() {
   case "${host_id}" in
     codex) printf '%s' "${CODEX_HOME:-${HOME}/.codex}" ;;
     claude-code) printf '%s' "${CLAUDE_HOME:-${HOME}/.claude}" ;;
+    cursor) printf '%s' "${CURSOR_HOME:-${HOME}/.cursor}" ;;
+    windsurf) printf '%s' "${WINDSURF_HOME:-${HOME}/.codeium/windsurf}" ;;
+    openclaw) printf '%s' "${OPENCLAW_HOME:-${HOME}/.openclaw}" ;;
     *)
       echo "[FAIL] Unsupported VCO host id for target-root resolution: ${host_id}" >&2
       exit 1
@@ -97,17 +109,80 @@ resolve_default_target_root() {
 assert_target_root_matches_host_intent() {
   local target_root="$1"
   local host_id="$2"
-  local leaf
+  local leaf normalized_target is_codex_root is_claude_root is_cursor_root is_windsurf_root is_openclaw_root
   leaf="$(basename "${target_root}")"
   leaf="$(printf '%s' "${leaf}" | tr '[:upper:]' '[:lower:]')"
-  if [[ "${host_id}" == "codex" && "${leaf}" == ".claude" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Claude Code home, but host='codex'." >&2
-    echo "[FAIL] Pass --host claude-code for preview guidance or use a Codex target root." >&2
+  normalized_target="$(printf '%s' "${target_root}" | tr '\\' '/' | tr '[:upper:]' '[:lower:]')"
+  normalized_target="${normalized_target%/}"
+  is_codex_root="false"
+  is_claude_root="false"
+  is_cursor_root="false"
+  is_windsurf_root="false"
+  is_openclaw_root="false"
+  [[ "${leaf}" == ".codex" ]] && is_codex_root="true"
+  [[ "${leaf}" == ".claude" ]] && is_claude_root="true"
+  [[ "${leaf}" == ".cursor" ]] && is_cursor_root="true"
+  [[ "${normalized_target}" == */.codeium/windsurf ]] && is_windsurf_root="true"
+  [[ "${leaf}" == ".openclaw" ]] && is_openclaw_root="true"
+  if [[ "${host_id}" == "codex" && ( "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a non-Codex host root, but host='codex'." >&2
     exit 1
   fi
-  if [[ "${host_id}" == "claude-code" && "${leaf}" == ".codex" ]]; then
+  if [[ "${host_id}" == "codex" && "${is_cursor_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='codex'." >&2
+    echo "[FAIL] Pass --host cursor or use a Codex target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && ( "${is_codex_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a non-Claude host root, but host='claude-code'." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && "${is_codex_root}" == "true" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='claude-code'." >&2
     echo "[FAIL] Use --host codex for the official closure lane or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && "${is_cursor_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='claude-code'." >&2
+    echo "[FAIL] Pass --host cursor or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${is_codex_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='cursor'." >&2
+    echo "[FAIL] Use --host codex for the official closure lane or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${is_claude_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Claude Code home, but host='cursor'." >&2
+    echo "[FAIL] Pass --host claude-code or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${is_windsurf_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Windsurf home, but host='cursor'." >&2
+    echo "[FAIL] Pass --host windsurf or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "cursor" && "${is_openclaw_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like an OpenClaw home, but host='cursor'." >&2
+    echo "[FAIL] Pass --host openclaw or choose a Cursor target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "windsurf" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a non-Windsurf host root, but host='windsurf'." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "windsurf" && "${is_cursor_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='windsurf'." >&2
+    echo "[FAIL] Pass --host cursor or choose a Windsurf target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "openclaw" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" ) ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a non-OpenClaw host root, but host='openclaw'." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "openclaw" && "${is_cursor_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='openclaw'." >&2
+    echo "[FAIL] Pass --host cursor or choose an OpenClaw target root." >&2
     exit 1
   fi
 }
@@ -399,17 +474,21 @@ if [[ "${ADAPTER_BOOTSTRAP_MODE}" == "governed" ]]; then
   echo "[5/5] Running deep health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 elif [[ "${ADAPTER_BOOTSTRAP_MODE}" == "preview-guidance" ]]; then
-  echo "[2/5] Hook installation is frozen for Claude Code because of compatibility issues."
-  bash "${CLAUDE_SCAFFOLD_SH}" --repo-root "${REPO_ROOT}" --target-root "${TARGET_ROOT}" --force >/dev/null
-  echo "[3/5] No hook files or preview settings were installed into the target root."
-  echo "[4/5] Claude provider settings remain host-managed. Open ${TARGET_ROOT}/settings.json and add only the missing env fields there. Do not paste API keys into chat."
-  echo "[5/5] Running preview guidance health check..."
+  if [[ "${HOST_ID}" == "claude-code" ]]; then
+    echo "[2/5] Hook installation is frozen for Claude Code because of compatibility issues."
+    bash "${CLAUDE_SCAFFOLD_SH}" --repo-root "${REPO_ROOT}" --target-root "${TARGET_ROOT}" --force >/dev/null
+  else
+    echo "[2/5] Host-specific scaffold is currently unavailable for '${HOST_ID}'."
+  fi
+  echo "[3/5] No hook files or extra preview settings were installed into the target root."
+  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Configure the real host settings surface separately (for example, Cursor commonly uses ~/.cursor/settings.json). Do not paste API keys into chat."
+  echo "[5/5] Running supported-path health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 else
-  echo "[2/5] Runtime-core lane does not materialize host settings."
-  echo "[3/5] Runtime-core lane does not seed provider settings. Configure url, apikey, and model in the target agent's local settings or local environment variables. Do not paste secrets into chat."
-  echo "[4/5] MCP materialization skipped for runtime-core lane."
-  echo "[5/5] Running runtime-core health check..."
+  echo "[2/5] Runtime-adapter path does not materialize host settings."
+  echo "[3/5] Runtime-adapter path does not seed provider settings. Configure url, apikey, and model in the target agent's local settings or local environment variables. Do not paste secrets into chat."
+  echo "[4/5] MCP materialization skipped for the runtime-adapter path."
+  echo "[5/5] Running runtime-adapter health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 fi
 

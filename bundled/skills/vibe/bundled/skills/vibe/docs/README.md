@@ -14,8 +14,8 @@
 
 ### Runtime Entry
 
-- [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md)锛氶潰鍚戞櫘閫氱敤鎴风殑涓€閿畨瑁呭彂甯冩枃妗堜笌 AI 鍔╂墜澶嶅埗鎻愮ず璇?
-- [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)锛歡rdinary-user public release copy and copy-paste onboarding prompt
+- [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md)：面向普通用户的一键安装发布文案与 AI 助手复制提示词
+- [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)：ordinary-user public release copy and copy-paste onboarding prompt
 
 - [`status/README.md`](./status/README.md)：当前运行态、proof 入口与阶段回执总索引。
 - [`status/current-state.md`](./status/current-state.md)：当前 closure batch 的 runtime summary。

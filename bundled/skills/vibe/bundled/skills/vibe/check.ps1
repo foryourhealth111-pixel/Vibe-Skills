@@ -1,7 +1,7 @@
 param(
   [ValidateSet("minimal", "full")]
   [string]$Profile = "full",
-  [ValidateSet("codex", "claude-code")]
+  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw")]
   [string]$HostId = "codex",
   [string]$TargetRoot = '',
   [switch]$SkipRuntimeFreshnessGate,
@@ -420,7 +420,18 @@ function Invoke-AdapterSpecificChecks {
     Check-Path -Label "settings.json" -Path (Join-Path $TargetRoot 'settings.json')
   }
   if ([string]$Adapter.check_mode -eq 'preview-guidance') {
-    Write-Host '[INFO] claude preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure' -ForegroundColor Cyan
+    Write-Host ("[INFO] {0} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure" -f $Adapter.id) -ForegroundColor Cyan
+  }
+  if ([string]$Adapter.check_mode -eq 'runtime-core') {
+    $commandsRoot = Join-Path $RepoRoot 'commands'
+    if (Test-Path -LiteralPath $commandsRoot) {
+      Check-Path -Label "global workflows" -Path (Join-Path $TargetRoot 'global_workflows')
+    }
+
+    $mcpTemplatePath = Join-Path $RepoRoot 'mcp\servers.template.json'
+    if (Test-Path -LiteralPath $mcpTemplatePath) {
+      Check-Path -Label "mcp_config.json" -Path (Join-Path $TargetRoot 'mcp_config.json')
+    }
   }
   if ([string]$Adapter.check_mode -eq 'governed') {
     Check-Path -Label "plugins manifest" -Path (Join-Path $TargetRoot 'config\plugins-manifest.codex.json')

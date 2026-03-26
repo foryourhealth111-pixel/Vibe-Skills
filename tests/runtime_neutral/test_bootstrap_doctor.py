@@ -71,6 +71,45 @@ class BootstrapDoctorTests(unittest.TestCase):
             + "\n",
             encoding="utf-8",
         )
+        (self.root / "config" / "tool-registry.json").write_text(
+            json.dumps(
+                {
+                    "tools": [
+                        {
+                            "tool_id": "activepieces-mcp",
+                            "display_name": "Activepieces MCP",
+                            "risk_tier": "high",
+                            "secret_refs": ["ACTIVEPIECES_MCP_TOKEN"],
+                            "human_confirmation": {"per_action_required": True, "enable_required": True},
+                        },
+                        {
+                            "tool_id": "composio-tool-router",
+                            "display_name": "Composio Tool Router",
+                            "risk_tier": "high",
+                            "secret_refs": ["COMPOSIO_SESSION_MCP_URL"],
+                            "human_confirmation": {"per_action_required": True, "enable_required": True},
+                        },
+                    ]
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.root / "config" / "memory-governance.json").write_text(
+            json.dumps(
+                {
+                    "role_boundaries": {"cognee": {"status": "active"}},
+                    "defaults_by_task": {
+                        "coding": {"long_term": "cognee"},
+                        "research": {"long_term": "cognee"},
+                    },
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         self.target_root = self.root / "target"
 
     def tearDown(self) -> None:

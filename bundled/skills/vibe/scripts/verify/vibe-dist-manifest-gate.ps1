@@ -185,6 +185,9 @@ $requiredManifests = @(
     [pscustomobject]@{ lane_id = 'official-runtime'; path = 'dist/official-runtime/manifest.json' },
     [pscustomobject]@{ lane_id = 'host-codex'; path = 'dist/host-codex/manifest.json' },
     [pscustomobject]@{ lane_id = 'host-claude-code'; path = 'dist/host-claude-code/manifest.json' },
+    [pscustomobject]@{ lane_id = 'host-cursor'; path = 'dist/host-cursor/manifest.json' },
+    [pscustomobject]@{ lane_id = 'host-windsurf'; path = 'dist/host-windsurf/manifest.json' },
+    [pscustomobject]@{ lane_id = 'host-openclaw'; path = 'dist/host-openclaw/manifest.json' },
     [pscustomobject]@{ lane_id = 'host-opencode'; path = 'dist/host-opencode/manifest.json' }
 )
 $results.dist.required_manifests = @($requiredManifests | ForEach-Object { $_.path })
@@ -193,6 +196,9 @@ $requiredPublicManifests = @(
     [pscustomobject]@{ package_id = 'vibeskills-core'; path = 'dist/manifests/vibeskills-core.json'; expected_status = 'supported-with-constraints' },
     [pscustomobject]@{ package_id = 'vibeskills-codex'; path = 'dist/manifests/vibeskills-codex.json'; expected_status = 'supported-with-constraints' },
     [pscustomobject]@{ package_id = 'vibeskills-claude-code'; path = 'dist/manifests/vibeskills-claude-code.json'; expected_status = 'preview' },
+    [pscustomobject]@{ package_id = 'vibeskills-cursor'; path = 'dist/manifests/vibeskills-cursor.json'; expected_status = 'preview' },
+    [pscustomobject]@{ package_id = 'vibeskills-windsurf'; path = 'dist/manifests/vibeskills-windsurf.json'; expected_status = 'preview' },
+    [pscustomobject]@{ package_id = 'vibeskills-openclaw'; path = 'dist/manifests/vibeskills-openclaw.json'; expected_status = 'preview' },
     [pscustomobject]@{ package_id = 'vibeskills-opencode'; path = 'dist/manifests/vibeskills-opencode.json'; expected_status = 'not-yet-proven' },
     [pscustomobject]@{ package_id = 'vibeskills-generic'; path = 'dist/manifests/vibeskills-generic.json'; expected_status = 'advisory-only' }
 )
@@ -346,6 +352,18 @@ $hostClaudeRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStart
 Add-Assertion -Collection $assertions -Condition ($null -ne $hostClaudeRow) -Message '[truth] host capability row for Claude Code exists'
 Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Claude Code | `preview` |') -Message '[truth] Claude Code host status remains preview in host capability matrix'
 
+$hostCursorRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Cursor |'
+Add-Assertion -Collection $assertions -Condition ($null -ne $hostCursorRow) -Message '[truth] host capability row for Cursor exists'
+Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Cursor | `preview` |') -Message '[truth] Cursor host status remains preview in host capability matrix'
+
+$hostWindsurfRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Windsurf |'
+Add-Assertion -Collection $assertions -Condition ($null -ne $hostWindsurfRow) -Message '[truth] host capability row for Windsurf exists'
+Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Windsurf | `preview` |') -Message '[truth] Windsurf host status remains preview in host capability matrix'
+
+$hostOpenClawRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| OpenClaw |'
+Add-Assertion -Collection $assertions -Condition ($null -ne $hostOpenClawRow) -Message '[truth] host capability row for OpenClaw exists'
+Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| OpenClaw | `preview` |') -Message '[truth] OpenClaw host status remains preview in host capability matrix'
+
 $hostOpenCodeRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| OpenCode |'
 Add-Assertion -Collection $assertions -Condition ($null -ne $hostOpenCodeRow) -Message '[truth] host capability row for OpenCode exists'
 Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| OpenCode | `not-yet-proven` |') -Message '[truth] OpenCode host status remains not-yet-proven in host capability matrix'
@@ -356,7 +374,7 @@ Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $doc
 
 Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsPlatformSupportMatrix -Pattern 'Linux without `pwsh` is an honest degraded path') -Message '[truth] platform support matrix documents degraded-without-pwsh truth'
 
-foreach ($lane in @('official-runtime','core','host-codex','host-claude-code','host-opencode')) {
+foreach ($lane in @('official-runtime','core','host-codex','host-claude-code','host-cursor','host-windsurf','host-openclaw','host-opencode')) {
     Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsDistributionLanes -Pattern ('`{0}`' -f $lane)) -Message ("[docs] distribution-lanes.md mentions lane {0}" -f $lane)
     Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsInstallMatrix -Pattern ('`{0}`' -f $lane)) -Message ("[docs] install-matrix.md mentions lane {0}" -f $lane)
 }

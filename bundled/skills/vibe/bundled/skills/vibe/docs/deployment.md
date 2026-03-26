@@ -2,44 +2,53 @@
 
 ## Profiles
 
-- `minimal`: install required runtime payload only
-- `full`: install the full vendored mirror and host-specific extras for the selected supported host
+- `minimal`: governance foundation install
+- `full`: full install with optional workflow extras
 
 ## Supported Hosts
 
-暂时只支持：
-
 - `codex`
 - `claude-code`
+- `cursor`
+- `windsurf`
 
-`TargetRoot` 是文件路径。
-`HostId` / `--host` 才是宿主选择。
+`TargetRoot` is only the filesystem path.
+`HostId` / `--host` decides host semantics.
 
 ## Recommended Commands
 
 ### Windows
 
 ```powershell
-pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId codex
+pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId codex -Profile full
 pwsh -File .\check.ps1 -HostId codex -Profile full -Deep
-pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId claude-code
+pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId claude-code -Profile full
 pwsh -File .\check.ps1 -HostId claude-code -Profile full -Deep
+pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId cursor -Profile full
+pwsh -File .\check.ps1 -HostId cursor -Profile full -Deep
+pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId windsurf -Profile full
+pwsh -File .\check.ps1 -HostId windsurf -Profile full -Deep
 ```
 
 ### Linux / macOS
 
 ```bash
-bash ./scripts/bootstrap/one-shot-setup.sh --host codex
+bash ./scripts/bootstrap/one-shot-setup.sh --host codex --profile full
 bash ./check.sh --host codex --profile full --deep
-bash ./scripts/bootstrap/one-shot-setup.sh --host claude-code
+bash ./scripts/bootstrap/one-shot-setup.sh --host claude-code --profile full
 bash ./check.sh --host claude-code --profile full --deep
+bash ./scripts/bootstrap/one-shot-setup.sh --host cursor --profile full
+bash ./check.sh --host cursor --profile full --deep
+bash ./scripts/bootstrap/one-shot-setup.sh --host windsurf --profile full
+bash ./check.sh --host windsurf --profile full --deep
 ```
 
 ## Truth Boundaries
 
-- `codex` 是当前最完整的 repo-governed 路径
-- `claude-code` 是 preview guidance，不是 full closure
-- hook 当前因兼容性问题被冻结，`codex` / `claude-code` 都不提供 hook 安装
-- `claude-code` 不再写 `settings.vibe.preview.json`
-- provider 的 `url` / `apikey` / `model` 仍然是本地用户侧配置
-- 安装提示必须告诉用户去本地 settings 或本地环境变量里配置，不要让用户把密钥贴到聊天里
+- `codex` is the strongest governed path today
+- `claude-code` has a supported install-and-use path and does not overwrite the real host settings
+- `cursor` has a supported install-and-use path and does not overwrite the real host settings
+- `windsurf` has a supported install-and-use path with runtime-adapter integration
+- hooks remain frozen on the current public surface
+- `windsurf` defaults to `~/.codeium/windsurf` and only gets shared runtime payload plus optional `mcp_config.json` / `global_workflows/` materialization
+- provider `url` / `apikey` / `model` values remain local user configuration

@@ -2,6 +2,7 @@
 import argparse
 import json
 import shutil
+import tempfile
 from pathlib import Path
 
 REQUIRED_CORE = [
@@ -36,21 +37,63 @@ def write_json(data):
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+def is_relative_to(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def same_path(left: Path, right: Path) -> bool:
+    return left.resolve() == right.resolve()
+
+
+def copy_dir_replace(src: Path, dst: Path):
+    if not src.exists():
+        return
+    if same_path(src, dst):
+        return
+
+    src_resolved = src.resolve()
+    dst_resolved = dst.resolve(strict=False)
+    requires_staging = is_relative_to(src_resolved, dst_resolved) or is_relative_to(dst_resolved, src_resolved)
+
+    if not requires_staging:
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(src, dst)
+        return
+
+    stage_root = Path(tempfile.mkdtemp(prefix="vgo-copy-tree-"))
+    try:
+        staged = stage_root / src.name
+        shutil.copytree(src, staged)
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(staged, dst)
+    finally:
+        shutil.rmtree(stage_root, ignore_errors=True)
+
+
 def copy_tree(src: Path, dst: Path):
     if not src.exists():
         return
+    children = list(src.iterdir())
     dst.mkdir(parents=True, exist_ok=True)
-    for child in src.iterdir():
+    for child in children:
         target = dst / child.name
         if child.is_dir():
-            if target.exists():
-                shutil.rmtree(target)
-            shutil.copytree(child, target)
+            copy_dir_replace(child, target)
         else:
+            if target.exists() and same_path(child, target):
+                continue
             shutil.copy2(child, target)
 
 
 def copy_file(src: Path, dst: Path):
+    if src.exists() and dst.exists() and same_path(src, dst):
+        return
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
 
@@ -191,9 +234,7 @@ def sync_vibe_canonical(repo_root: Path, target_root: Path, target_rel: str):
         src = canonical_root / rel
         dst = target_vibe_root / rel
         if src.exists():
-            if dst.exists():
-                shutil.rmtree(dst)
-            shutil.copytree(src, dst)
+            copy_dir_replace(src, dst)
 
 
 def ensure_skill_present(target_root: Path, name: str, required: bool, allow_fallback: bool, fallback_sources, external_used, missing):

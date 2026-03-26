@@ -1,181 +1,71 @@
-# Host Plugin And Host Configuration Policy
+# Host Plugin and Host Configuration Policy
 
-This document answers only the questions that matter in the current version:
+This document answers only three questions:
 
-- which hosts are supported today
-- what the repository handles automatically
-- what people still need to configure on the host side
-- what should no longer be described as a standard install requirement
+- which hosts are on the current public support surface
+- what the repo currently handles automatically
+- what still must be completed locally by the host side
 
-## Current Support Boundary
-
-The public support surface currently includes only:
+## Current Public Surface
 
 - `codex`
 - `claude-code`
+- `cursor`
+- `windsurf`
+- `openclaw`
 
-Anything outside those two hosts must not be described as "supported installation" in the current version.
+Other agents should not currently be described as having an official install closure.
 
-If someone wants to wire VibeSkills into another agent, the accurate wording is:
+## Global Principle
 
-- there is no officially supported install closure for that host yet
-- there is no reusable host-plugin policy that can honestly be treated as production guidance
-- old experimental lanes must not be presented as the community-default path
+- install the repo-governed payload first
+- add host-local configuration only as needed
+- if a capability is not stably, publicly, and verifiably owned by the repo, do not write it as a default install requirement
+- for OpenClaw, write it as `preview` / `runtime-core-preview` / `runtime-core`
+- for OpenClaw, make the default root explicit: `OPENCLAW_HOME` or `~/.openclaw`
+- for OpenClaw, make the three paths explicit: attach / copy / bundle
 
-## Separate Three Different Things First
+## Codex
 
-The main source of confusion is not the commands themselves. It is the boundary between responsibilities.
+- currently the strongest path
+- guidance stays centered on local settings, MCP, and optional CLI enhancements
+- hooks remain frozen; that is not an install failure
 
-### 1. Repository payload
+## Claude Code
 
-This is the part the repository owns, for example:
+- supported install-and-use path
+- not integrated by “adding a pile of host plugins”
+- does not overwrite the real `~/.claude/settings.json`
+- hooks remain frozen; that is not an install failure
 
-- `skills/`
-- `commands/`
-- the `skills/vibe/` runtime mirror
-- install scripts, check scripts, and doctor / verification entrypoints
+## Cursor
 
-This is the repo-governed surface.
+- supported install-and-use path
+- does not overwrite the real `~/.cursor/settings.json`
+- Cursor-native plugins, settings, and extension surfaces remain managed on the Cursor side
+- hooks remain frozen; that is not an install failure
 
-### 2. Host configuration
+## Windsurf
 
-This is the part the user still finishes locally, for example:
+- supported install-and-use path with runtime-adapter integration
+- default root is `~/.codeium/windsurf`
+- the repo currently owns only shared runtime payload plus optional materialization of `mcp_config.json` and `global_workflows/`
+- Windsurf-native local settings remain managed on the Windsurf side
 
-- `~/.codex/settings.json`
-- `~/.claude/settings.json`
-- local environment variables
-- host-side MCP registration
+## OpenClaw
 
-These are not part of "already completed automatically by the repo".
-
-### 3. Optional enhancements
-
-Some CLIs, MCP servers, or external services may improve the experience, but they are not first-day requirements.
-
-The correct order is:
-
-- first make the supported host path work
-- then add enhancements only when they solve a real need
-- do not install everything just to make the setup look fuller
-
-## Default Policy For Codex
-
-For `codex`, the standard install policy should stay deliberately conservative.
-
-### What counts as the supported baseline
-
-Keep guidance limited to these supportable surfaces:
-
-- local `~/.codex/settings.json`
-- officially supportable MCP registration
-- optional CLI dependencies
-- no hook installation
-
-### Historical claims that should not remain in the public path
-
-The public install story should no longer imply any of the following:
-
-- "install a bundle of host plugins first, then everything else"
-- "Codex normally requires a Claude-style hook/plugin stack"
-- "certain historical plugins are standard prerequisites for Codex"
-
-If any historical capability ever becomes part of a clearly verifiable and maintainable official integration path, that should be documented separately at that time. The current version should not describe it that way.
-
-### How to talk about online capability
-
-If online model access is needed, people should be told to:
-
-- configure the values under `env` in `~/.codex/settings.json`
-- or configure them through local environment variables
-- never paste secrets into chat
-
-Common examples include:
-
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-
-If those values are not configured locally, the environment must not be described as online-ready.
-
-## Default Policy For Claude Code
-
-For `claude-code`, the boundary needs to be even more explicit.
-
-### Current real status
-
-`claude-code` is currently:
-
-- preview guidance
-- not full closure
-- a host path where hook installation is frozen because of compatibility issues
-- a host path where the installer no longer writes preview settings material
-
-### What the repository does
-
-Right now the repository only does the following:
-
-- installs the runtime payload
-- runs the matching preview checks
-
-### What the repository does not do
-
-Right now the repository does not automatically:
-
-- overwrite the real `~/.claude/settings.json`
-- write production provider credentials on behalf of the user
-- complete host-side MCP registration
-- claim that Claude Code is fully integrated
-
-### What the user should do
-
-The correct host-side flow is:
-
-- open `~/.claude/settings.json`
-- add only the fields needed under `env`
-- preserve the host's existing settings
-
-Common fields that may need to be configured locally include:
-
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
-
-If the host connection truly requires them, add:
-
-- `ANTHROPIC_BASE_URL`
-- `ANTHROPIC_AUTH_TOKEN`
-
-Again, none of those values should be requested in chat.
-
-If they are not configured locally yet, the environment must not be described as online-ready.
-
-## Current Policy Conclusion For Host Plugins
-
-For the current version, the public policy should hold these lines clearly:
-
-1. `codex` has no extra default host-plugin prerequisite.
-2. `claude-code` is not integrated by "adding a pile of host plugins". It is a preview guidance path plus local host configuration.
-3. Historical plugin names are not a reason to keep recommending them in current community docs.
-4. If a capability is not stably, publicly, and verifiably integrated by the repo, it should not be written as a standard install requirement.
+- supported install-and-use path at the current `preview` (`runtime-core-preview`) level
+- install/check runs in `runtime-core` mode with default target root from `OPENCLAW_HOME` or `~/.openclaw`
+- attach / copy / bundle cover runtime-core payload installation, validation, and distribution
+- OpenClaw-local configuration remains managed on the OpenClaw side
 
 ## Recommended Community Wording
 
-If you need to reference this policy in issues, README text, discussions, or install prompts, use language like this:
-
-- the current version supports only `codex` and `claude-code`
-- `codex` follows a conservative path centered on local settings, MCP, and optional CLI enhancements
-- the current version does not open the hook install surface for `codex` or `claude-code` because the author is still working through compatibility issues; this is not a user install failure
-- `claude-code` follows a preview guidance path and does not overwrite the real `settings.json`
-- provider `url` / `apikey` / `model` values are configured locally by the user, not pasted into chat
-- missing MCP, provider, or governance-AI-online setup should be framed first as optional enhancement work or recommended next steps
-- other agents are outside the current public support surface
-
-## When This Document Should Expand Again
-
-This policy should only grow again if all of the following are true:
-
-- a new host has a verifiable install closure
-- the automation boundary is clear
-- community users do not need hidden historical context to install it correctly
-- we can state exactly what the repo owns and what the host still owns
-
-Until then, keeping the document simple, truthful, and easy to defend is better than carrying historical baggage forward.
+- the current version supports `codex`, `claude-code`, `cursor`, `windsurf`, and `openclaw`
+- `codex` follows the governed path
+- `claude-code` and `cursor` have a supported install-and-use path
+- `windsurf` has a supported install-and-use path with runtime-adapter integration
+- `openclaw` follows the `preview` / `runtime-core-preview` / `runtime-core` wording
+- `openclaw` uses `OPENCLAW_HOME` or `~/.openclaw` as the default root, with attach / copy / bundle paths
+- hooks remain frozen across the current public surface; that is not a user install failure
+- provider `url` / `apikey` / `model` values stay local and should not be pasted into chat

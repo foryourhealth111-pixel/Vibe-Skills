@@ -210,12 +210,27 @@ function Install-ClaudeGuidancePayload {
     return
 }
 
+function Install-RuntimeCoreModePayload {
+    $commandsRoot = Join-Path $RepoRoot 'commands'
+    if (Test-Path -LiteralPath $commandsRoot) {
+        Copy-DirContent -Source $commandsRoot -Destination (Join-Path $TargetRoot 'global_workflows')
+    }
+
+    $mcpTemplate = Join-Path $RepoRoot 'mcp\servers.template.json'
+    $mcpConfigPath = Join-Path $TargetRoot 'mcp_config.json'
+    if ((Test-Path -LiteralPath $mcpTemplate) -and -not (Test-Path -LiteralPath $mcpConfigPath)) {
+        Copy-Item -LiteralPath $mcpTemplate -Destination $mcpConfigPath -Force
+    }
+}
+
 $adapter = Resolve-VgoAdapterDescriptor -RepoRoot $RepoRoot -HostId $HostId
 $result = Install-RuntimeCorePayload -Adapter $adapter
 switch ([string]$adapter.install_mode) {
     'governed' { Install-GovernedCodexPayload }
     'preview-guidance' { Install-ClaudeGuidancePayload }
-    'runtime-core' { }
+    'runtime-core' {
+        Install-RuntimeCoreModePayload
+    }
     default { throw "Unsupported adapter install mode: $($adapter.install_mode)" }
 }
 

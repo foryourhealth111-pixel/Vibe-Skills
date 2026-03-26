@@ -32,8 +32,11 @@ function Prompt-VgoHostId {
     while ($true) {
         Write-Host 'Select the install target before bootstrap:'
         Write-Host '  1) codex        - strongest governed lane'
-        Write-Host '  2) claude-code  - preview scaffold lane'
-        $choice = [string](Read-Host 'Install into which agent? [1-2]')
+        Write-Host '  2) claude-code  - supported install/use path'
+        Write-Host '  3) cursor       - supported install/use path'
+        Write-Host '  4) windsurf     - supported path + runtime adapter'
+        Write-Host '  5) openclaw     - preview runtime-core adapter'
+        $choice = [string](Read-Host 'Install into which agent? [1-5]')
         $normalized = $choice.Trim().ToLowerInvariant()
         switch ($normalized) {
             '1' { return 'codex' }
@@ -41,7 +44,13 @@ function Prompt-VgoHostId {
             '2' { return 'claude-code' }
             'claude' { return 'claude-code' }
             'claude-code' { return 'claude-code' }
-            default { Write-Warning "Unsupported choice: $choice. Enter 1, 2, or a supported host name." }
+            '3' { return 'cursor' }
+            'cursor' { return 'cursor' }
+            '4' { return 'windsurf' }
+            'windsurf' { return 'windsurf' }
+            '5' { return 'openclaw' }
+            'openclaw' { return 'openclaw' }
+            default { Write-Warning "Unsupported choice: $choice. Enter 1, 2, 3, 4, 5, or a supported host name." }
         }
     }
 }
@@ -54,7 +63,7 @@ if (-not (Test-NonEmptyString -Value $HostId)) {
     } elseif (Test-IsInteractiveBootstrap) {
         $HostId = Prompt-VgoHostId
     } else {
-        throw 'No host was provided for one-shot bootstrap. Pass -HostId codex|claude-code when running non-interactively.'
+        throw 'No host was provided for one-shot bootstrap. Pass -HostId codex|claude-code|cursor|windsurf|openclaw when running non-interactively.'
     }
 }
 $HostId = Resolve-VgoHostId -HostId $HostId
@@ -174,18 +183,22 @@ switch ([string]$Adapter.bootstrap_mode) {
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'preview-guidance' {
-        Write-Host '[2/5] Hook installation is frozen for Claude Code because of compatibility issues.' -ForegroundColor Yellow
-        & $claudeScaffoldPath -RepoRoot $repoRoot -TargetRoot $TargetRoot -Force | Out-Null
-        Write-Host '[3/5] No hook files or preview settings were installed into the target root.' -ForegroundColor DarkGray
-        Write-Host ("[4/5] Claude provider settings remain host-managed. Open {0} and add only the missing env fields there. Do not paste API keys into chat." -f (Join-Path $TargetRoot 'settings.json')) -ForegroundColor DarkGray
-        Write-Host '[5/5] Running preview guidance health check...' -ForegroundColor Yellow
+        if ($HostId -eq 'claude-code') {
+            Write-Host '[2/5] Hook installation is frozen for Claude Code because of compatibility issues.' -ForegroundColor Yellow
+            & $claudeScaffoldPath -RepoRoot $repoRoot -TargetRoot $TargetRoot -Force | Out-Null
+        } else {
+            Write-Host ("[2/5] Host-specific scaffold is currently unavailable for '{0}'." -f $HostId) -ForegroundColor Yellow
+        }
+        Write-Host '[3/5] No hook files or extra preview settings were installed into the target root.' -ForegroundColor DarkGray
+        Write-Host ("[4/5] Provider settings remain host-managed for '{0}'. Configure the real host settings surface separately (for example, Cursor commonly uses ~/.cursor/settings.json). Do not paste API keys into chat." -f $HostId) -ForegroundColor DarkGray
+        Write-Host '[5/5] Running supported-path health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'runtime-core' {
-        Write-Host '[2/5] Runtime-core lane does not materialize host settings.' -ForegroundColor DarkGray
-        Write-Host '[3/5] Runtime-core lane does not seed provider settings. Configure url, apikey, and model in the target agent''s local settings or local environment variables. Do not paste secrets into chat.' -ForegroundColor DarkGray
-        Write-Host '[4/5] User environment sync skipped for runtime-core lane.' -ForegroundColor DarkGray
-        Write-Host '[5/5] Running runtime-core health check...' -ForegroundColor Yellow
+        Write-Host '[2/5] Runtime-adapter path does not materialize host settings.' -ForegroundColor DarkGray
+        Write-Host '[3/5] Runtime-adapter path does not seed provider settings. Configure url, apikey, and model in the target agent''s local settings or local environment variables. Do not paste secrets into chat.' -ForegroundColor DarkGray
+        Write-Host '[4/5] User environment sync skipped for the runtime-adapter path.' -ForegroundColor DarkGray
+        Write-Host '[5/5] Running runtime-adapter health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     default {

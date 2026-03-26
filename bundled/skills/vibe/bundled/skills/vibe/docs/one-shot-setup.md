@@ -63,8 +63,9 @@ Linux / macOS without `pwsh` still gets the full shipped content and the active 
 当前额外边界：
 
 - hook 由于兼容性问题已冻结
-- `codex` / `claude-code` 当前都不会由 one-shot 安装 hook
+- `codex` / `claude-code` / `windsurf` 当前都不会由 one-shot 安装 hook
 - `claude-code` 当前也不再写 `settings.vibe.preview.json`
+- `windsurf` 当前只能按 preview runtime-core 描述，不代表宿主登录、账号、provider 或插件闭环
 
 ## Operator Notes
 

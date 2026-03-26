@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "bundle_id": "openclaw-runtime-core-preview-candidate-2026-03-25",
+  "frozen_at": "2026-03-25",
+  "source_release": {
+    "version": "2.3.49",
+    "updated": "2026-03-25"
+  },
+  "lane_id": "openclaw/runtime-core-preview",
+  "current_status": "preview",
+  "target_status": "preview",
+  "evidence_state": "candidate-scaffold-only-not-for-promotion",
+  "contracts": [
+    "adapters/openclaw/host-profile.json",
+    "adapters/openclaw/closure.json",
+    "adapters/openclaw/platform-linux.json",
+    "adapters/openclaw/platform-windows.json",
+    "adapters/openclaw/platform-macos.json"
+  ],
+  "required_gates": [
+    "scripts/verify/vibe-cross-host-route-parity-gate.ps1",
+    "scripts/verify/vibe-cross-host-degrade-contract-gate.ps1",
+    "scripts/verify/vibe-cross-host-install-isolation-gate.ps1",
+    "scripts/verify/vibe-platform-promotion-bundle.ps1"
+  ],
+  "required_replay_sync": [
+    "tests/replay/fixtures/host-capability-matrix.json",
+    "tests/replay/route/openclaw-runtime-core-preview.json",
+    "tests/replay/degrade/openclaw-runtime-core-preview.json",
+    "tests/replay/install/openclaw-runtime-core-preview-isolation.json",
+    "tests/replay/promotion/openclaw-runtime-core-preview.json"
+  ],
+  "required_future_evidence": [
+    "fresh-machine install log",
+    "fresh-machine check log",
+    "fresh-machine runtime receipt",
+    "documented promotion decision"
+  ],
+  "truth_constraints": {
+    "status_must_remain_preview_until_new_evidence": true,
+    "status_raise_is_not_allowed_in_this_candidate": true,
+    "host_native_plugin_closure_must_remain_unclaimed": true,
+    "windows_and_macos_must_remain_not_yet_proven": true
+  },
+  "notes": [
+    "This bundle is intentionally incomplete and blocks promotion by design.",
+    "Its purpose is to freeze the proof surface for a future OpenClaw status review without overclaiming current support.",
+    "The candidate lane is runtime-core-preview only."
+  ]
+}
