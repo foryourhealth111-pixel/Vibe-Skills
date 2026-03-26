@@ -19,6 +19,30 @@ Pair it with MCP profile materialization when you need a fresh active MCP file:
 pwsh -NoProfile -File ..\setup\materialize-codex-mcp-profile.ps1 -Force
 ```
 
+### Router AI Advice Connectivity Probe (#33)
+
+This probe targets only the router AI advice path (intent/advice layer). It is advice-only and never rewrites canonical route decisions.
+
+Run:
+
+```powershell
+pwsh -NoProfile -File .\vibe-router-ai-connectivity-gate.ps1 -WriteArtifacts
+```
+
+Typical states:
+- `ok`
+- `missing_credentials`
+- `prefix_required`
+- `provider_unreachable`
+- `vector_diff_not_configured` / `vector_diff_missing_credentials` / `vector_diff_provider_unreachable` / `vector_diff_ok`
+
+Result interpretation:
+- Probe failures do not mean the whole platform is unusable.
+- JSON artifact is machine-readable status + next steps.
+- Markdown artifact is human-readable summary.
+- Default JSON output: `outputs/verify/vibe-router-ai-connectivity-gate.json`
+- Default Markdown output: `outputs/verify/vibe-router-ai-connectivity-gate.md`
+
 - `gate-family-index.md`：verify family 导航入口；先按治理主题找 gate，再进入具体脚本。
 - `../../docs/docs-information-architecture.md`：`docs/` 的正式信息架构与 cleanup-first 导航规则。
 - `../../references/reference-asset-taxonomy.md`：`references/` 的 contract / registry / matrix / ledger 分类。

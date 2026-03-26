@@ -75,6 +75,7 @@ function Set-LlmAccelerationPolicyStage {
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $policyPath = Join-Path $repoRoot "config\llm-acceleration-policy.json"
 $mockPath = "scripts/verify/fixtures/llm-acceleration.mock.json"
+$originalBytes = [System.IO.File]::ReadAllBytes($policyPath)
 $originalRaw = Get-Content -LiteralPath $policyPath -Raw -Encoding UTF8
 $results = @()
 
@@ -104,7 +105,7 @@ try {
     $routeOff = Invoke-Route -Prompt "/vibe add login form validation" -Grade "M" -TaskType "coding"
     $results += Assert-True -Condition ($routeOff.llm_acceleration_advice.enabled -eq $false) -Message "[off] overlay disabled"
 } finally {
-    Set-Content -LiteralPath $policyPath -Value $originalRaw -Encoding UTF8
+    [System.IO.File]::WriteAllBytes($policyPath, $originalBytes)
     Write-Host "Restored llm-acceleration-policy to original content."
 }
 
@@ -124,4 +125,3 @@ if ($failCount -gt 0) {
 
 Write-Host "LLM acceleration overlay gate passed."
 exit 0
-

@@ -200,6 +200,33 @@ bash ./check.sh --host claude-code --profile full --deep
 
 ---
 
+## 🔎 Router AI Advice 连通性探针（#33）
+
+这个探针只检查路由里的 AI advice 连通性（意图分析 / advice 层），不是宿主总健康检查，也不是平台可用性总判定。
+
+边界说明：
+- `advice-only`：只做诊断，不改 canonical route 结果。
+- 探针失败不等于整个平台不可用；本地安装与本地流程仍可正常使用。
+
+典型状态：
+- `ok`
+- `missing_credentials`
+- `prefix_required`
+- `provider_unreachable`
+- `vector_diff_not_configured` / `vector_diff_missing_credentials` / `vector_diff_provider_unreachable` / `vector_diff_ok`
+
+运行方式：
+
+```powershell
+pwsh -NoProfile -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -WriteArtifacts
+```
+
+结果读取：
+- JSON：`outputs/verify/vibe-router-ai-connectivity-gate.json`（机器可读，含状态与 next steps）
+- Markdown：`outputs/verify/vibe-router-ai-connectivity-gate.md`（人工可读摘要）
+
+---
+
 ## 🎯 常见配置场景
 
 ### 场景 1: 只使用本地能力
@@ -249,5 +276,5 @@ bash ./check.sh --host claude-code --profile full --deep
 
 ---
 
-**文档版本**: 1.0
-**最后更新**: 2026-03-23
+**文档版本**: 1.1
+**最后更新**: 2026-03-26

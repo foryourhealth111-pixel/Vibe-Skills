@@ -200,6 +200,33 @@ bash ./check.sh --host claude-code --profile full --deep
 
 ---
 
+## 🔎 Router AI Advice Connectivity Probe (#33)
+
+This probe checks only the router AI advice connectivity path (intent/advice layer). It is not a host-wide health doctor and not a platform-wide availability verdict.
+
+Boundary:
+- `advice-only`: diagnostic only, never rewrites canonical route decisions.
+- Probe failure does not mean the whole platform is unusable; local install/runtime flows can still work.
+
+Typical states:
+- `ok`
+- `missing_credentials`
+- `prefix_required`
+- `provider_unreachable`
+- `vector_diff_not_configured` / `vector_diff_missing_credentials` / `vector_diff_provider_unreachable` / `vector_diff_ok`
+
+Run:
+
+```powershell
+pwsh -NoProfile -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -WriteArtifacts
+```
+
+Read outputs:
+- JSON: `outputs/verify/vibe-router-ai-connectivity-gate.json` (machine-readable status + next steps)
+- Markdown: `outputs/verify/vibe-router-ai-connectivity-gate.md` (human-readable summary)
+
+---
+
 ## 🎯 Common Configuration Scenarios
 
 ### Scenario 1: Use Local Capability Only
@@ -249,5 +276,5 @@ Configuration location:
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-03-23
+**Document Version**: 1.1
+**Last Updated**: 2026-03-26
