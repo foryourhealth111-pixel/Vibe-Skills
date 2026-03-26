@@ -501,17 +501,6 @@ _Skills keep growing — but you don't need to manage them individually._
 
 </div>
 
-### Usage: No need to remember any skill names
-
-Just describe your task — the router automatically selects the right skill from 340+:
-
-```
-Help me build a genomics analysis pipeline /vibe
-→ Router identifies intent → auto-dispatches biopython · scanpy · pysam · etc.
-```
-
-**Skill conflicts, alias overlaps** — handled by the routing layer. No manual intervention needed.
-
 ### Customize: Add your own skills
 
 → [Custom workflow & skill onboarding guide](./docs/install/custom-workflow-onboarding.en.md)
