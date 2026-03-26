@@ -49,11 +49,10 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         settings_path = self.target_root / 'settings.json'
         preview_path = self.target_root / PREVIEW_FILE
         self.assertEqual(self.existing_settings, json.loads(settings_path.read_text(encoding='utf-8')))
-        self.assertTrue(preview_path.exists())
-        preview_json = json.loads(preview_path.read_text(encoding='utf-8'))
-        self.assertEqual('<YOUR_API_BASE_URL>', preview_json['env']['ANTHROPIC_BASE_URL'])
-        self.assertEqual(str(preview_path.resolve()), payload['preview_settings_path'])
-        self.assertTrue((self.target_root / 'hooks').exists())
+        self.assertFalse(preview_path.exists())
+        self.assertIsNone(payload['preview_settings_path'])
+        self.assertIsNone(payload['hooks_root'])
+        self.assertIn('temporarily frozen', payload['message'])
 
     def test_powershell_scaffold_preserves_existing_settings_and_writes_preview_file(self) -> None:
         if shutil.which('pwsh') is None:
@@ -75,11 +74,10 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         settings_path = self.target_root / 'settings.json'
         preview_path = self.target_root / PREVIEW_FILE
         self.assertEqual(self.existing_settings, json.loads(settings_path.read_text(encoding='utf-8')))
-        self.assertTrue(preview_path.exists())
-        preview_json = json.loads(preview_path.read_text(encoding='utf-8'))
-        self.assertEqual('<USER_PROVIDED_URL>', preview_json['env']['VCO_AI_PROVIDER_URL'])
-        self.assertEqual(str(preview_path.resolve()), payload['preview_settings_path'])
-        self.assertTrue((self.target_root / 'hooks').exists())
+        self.assertFalse(preview_path.exists())
+        self.assertIsNone(payload['preview_settings_path'])
+        self.assertIsNone(payload['hooks_root'])
+        self.assertIn('temporarily frozen', payload['message'])
 
     def test_install_script_preserves_existing_settings_and_writes_preview_file(self) -> None:
         cmd = [
@@ -100,11 +98,8 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         settings_path = self.target_root / 'settings.json'
         preview_path = self.target_root / PREVIEW_FILE
         self.assertEqual(self.existing_settings, json.loads(settings_path.read_text(encoding='utf-8')))
-        self.assertTrue(preview_path.exists())
-        preview_json = json.loads(preview_path.read_text(encoding='utf-8'))
-        self.assertEqual('<YOUR_API_BASE_URL>', preview_json['env']['ANTHROPIC_BASE_URL'])
-        self.assertEqual('preview-scaffold', payload['install_mode'])
-        self.assertTrue((self.target_root / 'hooks').exists())
+        self.assertFalse(preview_path.exists())
+        self.assertEqual('preview-guidance', payload['install_mode'])
 
     def test_preview_check_accepts_preview_settings_file_without_touching_real_settings(self) -> None:
         install_cmd = [
@@ -131,7 +126,7 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         ]
         result = subprocess.run(check_cmd, capture_output=True, text=True, check=True)
 
-        self.assertIn('[OK] settings.vibe.preview.json', result.stdout)
+        self.assertIn('preview hook/settings scaffold remains intentionally unavailable', result.stdout)
         self.assertNotIn('[FAIL] settings.json', result.stdout)
         self.assertEqual(self.existing_settings, json.loads((self.target_root / 'settings.json').read_text(encoding='utf-8')))
 
