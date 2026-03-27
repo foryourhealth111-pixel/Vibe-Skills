@@ -32,17 +32,6 @@
       "no_network_without_credentials": true
     },
     {
-      "id": "ark-compatible",
-      "kind": "provider-assisted",
-      "module_relpath": "scripts/router/modules/02-volc-ark.ps1",
-      "required_env_any": [
-        "ARK_API_KEY"
-      ],
-      "offline_state_expected": "heuristic-only",
-      "offline_abstain_reason_expected": "missing_ark_api_key",
-      "no_network_without_credentials": true
-    },
-    {
       "id": "heuristic-only",
       "kind": "heuristic-only",
       "module_relpath": "scripts/router/modules/00-core-utils.ps1",
@@ -59,4 +48,3 @@
     "no_network_calls_without_credentials": true
   }
 }
-

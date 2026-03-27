@@ -42,38 +42,6 @@
       ]
     },
     {
-      "id": "ark-compatible",
-      "provider_id": "ark-compatible",
-      "kind": "provider-assisted",
-      "status": "provider-assisted",
-      "module_relpath": "scripts/router/modules/02-volc-ark.ps1",
-      "roles_allowed": [
-        "semantic_extraction",
-        "candidate_rerank",
-        "route_advice",
-        "shadow_evaluation",
-        "route_explainability"
-      ],
-      "roles_forbidden": [
-        "canonical_assignment_owner",
-        "second_router",
-        "live_router_takeover",
-        "explicit_command_override",
-        "release_chain_owner"
-      ],
-      "offline_state": "heuristic-only",
-      "offline_contract": {
-        "abstain_reason": "missing_ark_api_key",
-        "required_env_any": [
-          "ARK_API_KEY"
-        ],
-        "no_network_without_credentials": true
-      },
-      "binding_examples": [
-        "scripts/router/modules/02-volc-ark.ps1"
-      ]
-    },
-    {
       "id": "heuristic-only",
       "provider_id": "heuristic-only",
       "kind": "heuristic-only",

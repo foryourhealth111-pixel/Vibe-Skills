@@ -9,8 +9,6 @@ SKIP_EXTERNAL_INSTALL="false"
 STRICT_OFFLINE="false"
 OPENAI_BASE_URL="${OPENAI_BASE_URL:-}"
 OPENAI_API_KEY_INPUT=""
-ARK_BASE_URL="${ARK_BASE_URL:-}"
-ARK_API_KEY_INPUT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -21,8 +19,6 @@ while [[ $# -gt 0 ]]; do
     --strict-offline) STRICT_OFFLINE="true"; shift ;;
     --openai-base-url) OPENAI_BASE_URL="$2"; shift 2 ;;
     --openai-api-key) OPENAI_API_KEY_INPUT="$2"; shift 2 ;;
-    --ark-base-url) ARK_BASE_URL="$2"; shift 2 ;;
-    --ark-api-key) ARK_API_KEY_INPUT="$2"; shift 2 ;;
     *)
       echo "Unknown arg: $1" >&2
       exit 1
@@ -202,7 +198,6 @@ INSTALL_SH="${REPO_ROOT}/install.sh"
 CHECK_SH="${REPO_ROOT}/check.sh"
 MATERIALIZE_PS1="${REPO_ROOT}/scripts/setup/materialize-codex-mcp-profile.ps1"
 PERSIST_OPENAI_PS1="${REPO_ROOT}/scripts/setup/persist-codex-openai-env.ps1"
-PERSIST_ARK_PS1="${REPO_ROOT}/scripts/setup/persist-codex-ark-env.ps1"
 CLAUDE_SCAFFOLD_SH="${REPO_ROOT}/scripts/bootstrap/scaffold-claude-preview.sh"
 ADAPTER_RESOLVER="${REPO_ROOT}/scripts/common/resolve_vgo_adapter.py"
 
@@ -305,11 +300,8 @@ if provider == "openai":
         env["OPENAI_BASE_URL"] = base_url
     if api_key:
         env["OPENAI_API_KEY"] = api_key
-elif provider == "ark":
-    if base_url:
-        env["ARK_BASE_URL"] = base_url
-    if api_key:
-        env["ARK_API_KEY"] = api_key
+else:
+    raise SystemExit(f"unsupported bootstrap provider seed: {provider}")
 
 env.setdefault("VCO_PROFILE", "full")
 env.setdefault("VCO_CODEX_MODE", "true")
@@ -444,25 +436,7 @@ if [[ "${ADAPTER_BOOTSTRAP_MODE}" == "governed" ]]; then
     echo "[WARN] OPENAI_API_KEY not provided and not present in the current environment. Full online readiness will remain pending."
   fi
 
-  resolved_ark_api_key="${ARK_API_KEY_INPUT:-${ARK_API_KEY:-}}"
-  existing_ark_key=""
-  if existing_ark_key="$(read_existing_settings_env_value "${TARGET_ROOT}" "ARK_API_KEY" 2>/dev/null)"; then
-    :
-  else
-    existing_ark_key=""
-  fi
-  if [[ -n "${resolved_ark_api_key}" ]]; then
-    echo "[3/5] Seeding ARK settings into target settings.json..."
-    if command -v pwsh >/dev/null 2>&1; then
-      pwsh -NoProfile -File "${PERSIST_ARK_PS1}" -CodexRoot "${TARGET_ROOT}" -BaseUrl "${ARK_BASE_URL}" -ApiKey "${resolved_ark_api_key}"
-    else
-      seed_settings_env_with_python "${TARGET_ROOT}" "ark" "${ARK_BASE_URL}" "${resolved_ark_api_key}"
-    fi
-  elif [[ -n "${existing_ark_key}" ]]; then
-    echo "[3/5] ARK settings already exist in target settings.json; keeping current value."
-  else
-    echo "[3/5] ARK settings not provided; skipping optional ARK seeding."
-  fi
+  echo "[3/5] Built-in AI governance now supports only OpenAI-compatible provider wiring; no secondary provider seeding is performed."
 
   echo "[4/5] Materializing MCP profile..."
   if command -v pwsh >/dev/null 2>&1; then
@@ -481,12 +455,12 @@ elif [[ "${ADAPTER_BOOTSTRAP_MODE}" == "preview-guidance" ]]; then
     echo "[2/5] Host-specific scaffold is currently unavailable for '${HOST_ID}'."
   fi
   echo "[3/5] No hook files or extra preview settings were installed into the target root."
-  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Configure the real host settings surface separately (for example, Cursor commonly uses ~/.cursor/settings.json). Do not paste API keys into chat."
+  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Built-in AI governance now supports only OpenAI-compatible wiring: configure OPENAI_API_KEY, optional OPENAI_BASE_URL/OPENAI_API_BASE, and VCO_RUCNLPIR_MODEL in the real host settings surface or local environment variables. Do not paste API keys into chat."
   echo "[5/5] Running supported-path health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 else
   echo "[2/5] Runtime-adapter path does not materialize host settings."
-  echo "[3/5] Runtime-adapter path does not seed provider settings. Configure url, apikey, and model in the target agent's local settings or local environment variables. Do not paste secrets into chat."
+  echo "[3/5] Runtime-adapter path does not seed provider settings. Built-in AI governance now supports only OpenAI-compatible wiring: configure OPENAI_API_KEY, optional OPENAI_BASE_URL/OPENAI_API_BASE, and VCO_RUCNLPIR_MODEL in local settings or local environment variables. Do not paste secrets into chat."
   echo "[4/5] MCP materialization skipped for the runtime-adapter path."
   echo "[5/5] Running runtime-adapter health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep

@@ -27,9 +27,9 @@
 **文件**: `docs/install/configuration-guide.md`
 
 **内容**:
-- VCO_AI_PROVIDER_URL 详细说明
-- VCO_AI_PROVIDER_API_KEY 详细说明
-- VCO_AI_PROVIDER_MODEL 详细说明
+- 旧治理 provider URL 键名的详细说明
+- 旧治理 provider API key 键名的详细说明
+- 旧治理模型键名的详细说明
 - Codex 配置方法（基础能力 + 治理AI层）
 - Claude Code 配置方法
 - 安全最佳实践
@@ -175,9 +175,9 @@
 详细配置请参考：[配置指南](../configuration-guide.md)
 
 核心配置项：
-- VCO_AI_PROVIDER_URL: 治理 AI 的 provider 地址
-- VCO_AI_PROVIDER_API_KEY: 治理 AI 的认证密钥
-- VCO_AI_PROVIDER_MODEL: 治理 AI 使用的模型名
+- 旧治理 provider 地址键名
+- 旧治理认证密钥键名
+- 旧治理模型键名
 
 配置位置：
 - Codex: ~/.codex/settings.json 的 env 字段

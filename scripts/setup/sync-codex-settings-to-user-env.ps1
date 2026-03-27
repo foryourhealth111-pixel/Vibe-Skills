@@ -1,6 +1,6 @@
 param(
   [string]$CodexRoot = '',
-  [ValidateSet("OpenAI", "Ark", "All")]
+  [ValidateSet("OpenAI", "All")]
   [string]$Target = "All",
   [ValidateSet("User", "Process")]
   [string]$Scope = "User",
@@ -79,10 +79,4 @@ if ($Target -eq "OpenAI" -or $Target -eq "All") {
   Sync-One -Name "OPENAI_API_KEY"
 }
 
-if ($Target -eq "Ark" -or $Target -eq "All") {
-  Sync-One -Name "ARK_BASE_URL"
-  Sync-One -Name "ARK_API_KEY"
-}
-
 Write-Host "Done. Note: a new shell may be required to pick up User-scope variables." -ForegroundColor Cyan
-

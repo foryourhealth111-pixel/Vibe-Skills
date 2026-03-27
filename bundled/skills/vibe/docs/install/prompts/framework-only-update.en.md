@@ -24,5 +24,8 @@ Rules:
    - Windows: `pwsh -NoProfile -File .\\install.ps1 -HostId opencode -Profile minimal` and `pwsh -NoProfile -File .\\check.ps1 -HostId opencode -Profile minimal`
    - Linux / macOS: `bash ./install.sh --host opencode --profile minimal` and `bash ./check.sh --host opencode --profile minimal`
 7. Never ask me to paste secrets, URLs, or model names into chat.
-8. Remind me that the result is still the governance-foundation mode, not the complete default workflow-core experience.
+8. If I later want AI-governance online capability, you must recommend the real key names first:
+   - OpenAI-compatible: `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`, plus `VCO_RUCNLPIR_MODEL`
+   - the built-in AI governance layer supports OpenAI-compatible integration only
+9. Remind me that the result is still the governance-foundation mode, not the complete default workflow-core experience.
 ```

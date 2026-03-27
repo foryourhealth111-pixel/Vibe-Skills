@@ -121,14 +121,17 @@ git checkout vX.Y.Z
 ### Codex
 
 - hook 当前冻结；这不是安装失败
-- `OPENAI_*` 只代表 Codex 基础在线 provider
-- `VCO_AI_PROVIDER_*` 才是治理 AI 在线层的可选增强项
+- AI 治理 advice 的常见 OpenAI-compatible 在线路径，优先使用：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Claude Code
 
 - 当前提供支持的安装与使用路径
 - 不覆盖真实 `~/.claude/settings.json`
 - hook 当前冻结；这不是安装失败
+- 如需 AI 治理 advice 的常见 OpenAI-compatible 在线路径，优先使用 `OPENAI_API_KEY` + 可选 base URL + `VCO_RUCNLPIR_MODEL`
 
 ### Cursor
 

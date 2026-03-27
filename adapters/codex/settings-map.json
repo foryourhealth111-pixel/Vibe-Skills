@@ -8,7 +8,6 @@
     "vco.mcp_profile": "profile selector for mcp/servers.active.json materialization",
     "env.OPENAI_API_KEY": "provider credential, required for provider-assisted routing/runtime features",
     "env.OPENAI_BASE_URL": "OpenAI-compatible endpoint binding, not canonical router truth",
-    "env.ARK_API_KEY": "optional provider credential",
     "env.VCO_RUCNLPIR_MODEL": "provider model hint, not canonical routing ownership"
   },
   "notes": [

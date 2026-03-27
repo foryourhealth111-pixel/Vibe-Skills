@@ -77,7 +77,7 @@ Linux / macOS without `pwsh` still gets the full shipped content and the active 
 
 - When external CLI installation is enabled, the slowest step is usually the `npm` install for `claude-flow`; several minutes is expected on some machines.
 - `npm` deprecation warnings during that step are advisory unless the install command exits non-zero.
-- If the target `settings.json` already contains `OPENAI_API_KEY` or `ARK_API_KEY`, the bootstrap reuses those values and reports that explicitly instead of warning that the provider key is missing.
+- If the target `settings.json` already contains `OPENAI_API_KEY` and `VCO_RUCNLPIR_MODEL`, the bootstrap reuses those values and reports them explicitly instead of warning that the built-in governance path is incomplete.
 
 ## What It Can Finish Automatically
 
@@ -151,13 +151,15 @@ bash ./check.sh --profile full --deep
 5. `Composio / Activepieces` 仅在你确实需要外部操作能力时再做 setup，并保持 confirm-gated
 
 6. 如果 `OPENAI_API_KEY` 仍是 `placeholder` 或 `missing`，先在本地配置 key，不要在聊天里粘贴。
-7. 如果是 Claude Code，打开 `~/.claude/settings.json`，只补充缺失的 `env` 字段；当前版本不会再生成 `settings.vibe.preview.json`。
-8. 如果 `manual_action_required` 的 MCP server 是 `stdio` 模式，先安装对应命令行依赖，再在 host 中注册。
+7. 如果 `VCO_RUCNLPIR_MODEL` 仍是 `placeholder` 或 `missing`，补上治理层实际要调用的模型名。
+8. 如果是 Claude Code，打开 `~/.claude/settings.json`，只补充缺失的 `env` 字段；当前版本不会再生成 `settings.vibe.preview.json`。
+9. 如果 `manual_action_required` 的 MCP server 是 `stdio` 模式，先安装对应命令行依赖，再在 host 中注册。
 
 当前 `full` profile 最重要的人工补齐项是：
 
 - plugin-backed MCP surfaces: `github`、`context7`、`serena`
 - 你实际要在线使用的 provider secrets，尤其是 `OPENAI_API_KEY`
+- 内置治理 advice 要使用的模型名，即 `VCO_RUCNLPIR_MODEL`
 
 但默认策略不是“让用户自己折腾 hook 面”。当前 hook 由于兼容性问题被冻结，不在安装支持范围内。
 

@@ -24,5 +24,8 @@ Rules:
    - Windows: `pwsh -NoProfile -File .\\install.ps1 -HostId opencode -Profile full` and `pwsh -NoProfile -File .\\check.ps1 -HostId opencode -Profile full`
    - Linux / macOS: `bash ./install.sh --host opencode --profile full` and `bash ./check.sh --host opencode --profile full`
 7. Never ask me to paste secrets, URLs, or model names into chat.
-8. End with a truth-first report covering host, public version, real profile, commands executed, whether custom governance still exists, and what still needs manual work.
+8. If I later want AI-governance online capability, you must recommend the real key names first:
+   - OpenAI-compatible: `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`, plus `VCO_RUCNLPIR_MODEL`
+   - the built-in AI governance layer supports OpenAI-compatible integration only
+9. End with a truth-first report covering host, public version, real profile, commands executed, whether custom governance still exists, and what still needs manual work.
 ```

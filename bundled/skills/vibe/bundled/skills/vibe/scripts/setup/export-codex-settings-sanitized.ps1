@@ -35,7 +35,6 @@ function Redact-EnvValue {
   $k = $Key.ToUpperInvariant()
 
   if ($k -eq "OPENAI_API_KEY") { return "<REQUIRED>" }
-  if ($k -eq "ARK_API_KEY") { return "<OPTIONAL (TurboMax vector_diff embeddings)>" }
 
   # Conservative generic redaction (avoid leaking unexpected credentials)
   if ($k -match "(_KEY|TOKEN|SECRET|PASSWORD|PASSWD)$") {
@@ -89,4 +88,3 @@ $json | Set-Content -LiteralPath $outPath -Encoding UTF8
 Write-Host "Wrote sanitized settings template:" -ForegroundColor Green
 Write-Host ("- {0}" -f $outPath)
 Write-Host "Note: secrets were redacted; safe to commit/push." -ForegroundColor Green
-

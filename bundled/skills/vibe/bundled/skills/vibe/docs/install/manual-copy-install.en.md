@@ -50,13 +50,18 @@ Then use [`opencode-path.en.md`](./opencode-path.en.md) for the preview-adapter 
 ### Codex
 
 - maintain `~/.codex/settings.json`
-- configure `OPENAI_*` if needed
-- add `VCO_AI_PROVIDER_*` if you also want the governance-AI online layer
+- for the common OpenAI-compatible governance-advice path, prefer:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Claude Code
 
 - maintain `~/.claude/settings.json`
-- add `VCO_AI_PROVIDER_*` if needed
+- for the common OpenAI-compatible governance-advice path, prefer:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Cursor
 

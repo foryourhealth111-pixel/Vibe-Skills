@@ -1,282 +1,156 @@
 # Configuration Guide
 
-This document details VibeSkills configuration options, especially the configuration methods for the governance AI online layer.
+This guide clarifies one thing only: how to finish the AI-governance advice online configuration after install.
 
----
+## First, separate these two states
 
-## 🎯 Configuration Overview
+- `installed locally`: VibeSkills files have been installed into the target host root
+- `AI governance online-ready`: the advice path has usable local credentials, model selection, and a reachable provider endpoint
 
-VibeSkills configuration is divided into two levels:
+The first state does not imply the second.
 
-1. **Basic Online Capability**: The host's (Codex/Claude Code) basic AI capability
-2. **Governance AI Online Layer**: VibeSkills-specific governance enhancement capability
+## What the quick check actually reads
 
----
+The current quick check reads from:
 
-## 📋 VCO Governance AI Configuration Fields
+1. `<target-root>/settings.json` -> `env`
+2. the current shell / process environment
 
-### VCO_AI_PROVIDER_URL
+So:
 
-**Purpose**: The provider address or compatible API Base URL that the governance AI connects to.
+- if the host uses a local `settings.json`, put the variables under `env`
+- if the host does not use that file surface, or if you just want to validate connectivity first, use local environment variables
 
-**Explanation**:
-- This is the entry address for the governance AI to call online models
-- Can be an OpenAI-compatible API address
-- Example: `https://api.openai.com/v1` or other compatible services
+Do not paste secrets into chat.
 
-**Configuration Location**:
-- Codex: `env` field in `~/.codex/settings.json`
-- Claude Code: `env` field in `~/.claude/settings.json`
-- Or use local environment variables
+## Recommended path 1: OpenAI-compatible
 
----
+This is the common and recommended path for AI-governance online advice.
 
-### VCO_AI_PROVIDER_API_KEY
-
-**Purpose**: The local authentication key used by the governance AI when accessing that provider.
-
-**Explanation**:
-- This is the API key for accessing online model services
-- **Security Note**: Never paste API keys in chat
-- Only set in local configuration files or environment variables
-
-**Configuration Location**:
-- Codex: `env` field in `~/.codex/settings.json`
-- Claude Code: `env` field in `~/.claude/settings.json`
-- Or use local environment variables
-
----
-
-### VCO_AI_PROVIDER_MODEL
-
-**Purpose**: The model name to be called when the governance AI needs online analysis, governance enhancement, or related overlay capabilities.
-
-**Explanation**:
-- Specifies the specific model used by the governance AI
-- Example: `gpt-4`, `claude-3-opus`, `gpt-3.5-turbo`, etc.
-- Set according to the models supported by your provider
-
-**Configuration Location**:
-- Codex: `env` field in `~/.codex/settings.json`
-- Claude Code: `env` field in `~/.claude/settings.json`
-- Or use local environment variables
-
----
-
-## 🔧 Codex Configuration Method
-
-### Basic Online Capability Configuration
-
-Codex's basic online capability requires configuration:
+### Recommended keys
 
 ```json
 {
   "env": {
-    "OPENAI_API_KEY": "your-openai-api-key",
-    "OPENAI_BASE_URL": "https://api.openai.com/v1"
-  }
-}
-```
-
-**Explanation**:
-- `OPENAI_API_KEY`: Key for Codex basic online provider
-- `OPENAI_BASE_URL`: Address for Codex basic online provider
-- **Note**: This only represents Codex basic online capability, not that the governance AI online layer is configured
-
-### Governance AI Online Layer Configuration
-
-If you need to enable the governance AI online layer under Codex, additional configuration is required:
-
-```json
-{
-  "env": {
-    "OPENAI_API_KEY": "your-openai-api-key",
+    "OPENAI_API_KEY": "<local-api-key>",
     "OPENAI_BASE_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_API_KEY": "your-vco-api-key",
-    "VCO_AI_PROVIDER_MODEL": "gpt-4"
+    "VCO_RUCNLPIR_MODEL": "gpt-5.4-high"
   }
 }
 ```
 
-**Configuration Steps**:
-1. Open `~/.codex/settings.json`
-2. Add the above configuration under the `env` field
-3. Save the file
-4. Restart Codex
+Notes:
 
-**Why Configuration is Needed**:
-- Only with these three fields configured can the governance AI online layer under Codex be enabled
-- Without configuration, can only say "Codex basic online capability is configured"
-- Cannot say "governance AI online layer is ready"
+- `OPENAI_API_KEY`: required
+- `OPENAI_BASE_URL` or `OPENAI_API_BASE`: optional; if omitted, the runtime falls back to provider defaults or policy config
+- `VCO_RUCNLPIR_MODEL`: recommended model key
 
----
+## Current public path
 
-## 🔧 Claude Code Configuration Method
+For local follow-up and quick-check readiness, the public install path now standardizes on:
 
-### Basic Online Capability
+- `OPENAI_API_KEY`
+- optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+- `VCO_RUCNLPIR_MODEL`
 
-Claude Code's basic online capability is provided by Anthropic and usually does not require additional configuration.
+## Built-in governance provider boundary
 
-### Governance AI Online Layer Configuration
+The built-in AI governance layer now supports OpenAI-compatible integration only.
 
-If you need to enable the AI governance layer's online capability, configuration is required:
+That means:
 
-```json
-{
-  "env": {
-    "VCO_AI_PROVIDER_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_API_KEY": "your-api-key",
-    "VCO_AI_PROVIDER_MODEL": "gpt-4"
-  }
-}
-```
+- advice calls follow OpenAI-compatible Responses / Chat Completions / Embeddings semantics
+- install docs, bootstrap, and quick-check guidance no longer present Ark-compatible as a parallel built-in lane
+- other provider shapes are outside the standard built-in governance support surface
 
-**Configuration Steps**:
-1. Open `~/.claude/settings.json`
-2. Add the above configuration under the `env` field (preserve existing settings)
-3. Save the file
-4. Restart Claude Code
+## Advanced path: provider config in policy
 
-**Why Configuration is Needed**:
-- If you want to enable the AI governance layer's online capability, rather than just running local runtime / prompt / check flows, these three items are needed
-- Without configuration, can only say "local installation complete, but governance AI online capability not ready"
-- Cannot pretend to be full closure or online readiness
+If you already maintain provider config in the repo policy, you can keep using:
 
----
+- `config/llm-acceleration-policy.json` -> `provider.base_url`
+- `config/llm-acceleration-policy.json` -> `provider.model`
 
-## 🔐 Security Best Practices
+In that setup:
 
-### 1. Never Paste Keys in Chat
+- base URL and model can come from policy
+- local credentials should still use `OPENAI_API_KEY`
 
-❌ **Wrong Approach**:
-```
-User: My API key is sk-xxxxx, help me configure it
-```
+## Where this usually goes per host
 
-✅ **Correct Approach**:
-```
-User: I need to configure API key
-Assistant: Please open ~/.codex/settings.json and add VCO_AI_PROVIDER_API_KEY under the env field
-```
+### Codex
 
-### 2. Use Local Configuration Files
+- target root: `~/.codex`
+- common location: `~/.codex/settings.json` -> `env`
 
-Prefer local configuration files over environment variables:
-- Configuration files are easier to manage
-- Can be version controlled (but exclude sensitive information)
-- Easier to backup and restore
+### Claude Code
 
-### 3. Distinguish Different Keys
+- target root: `~/.claude`
+- common location: `~/.claude/settings.json` -> `env`
 
-- `OPENAI_API_KEY`: Key for Codex basic capability
-- `VCO_AI_PROVIDER_API_KEY`: Key for governance AI
-- Can use the same key or different keys
+### Cursor
 
----
+- target root: `~/.cursor`
+- common location: `~/.cursor/settings.json` -> `env`
 
-## 📊 Configuration Status Check
+### Windsurf
 
-### How to Check if Configuration is Correct
+- target root: `~/.codeium/windsurf`
+- if the host does not use `<target-root>/settings.json`, set local environment variables before running the check
 
-After installation completes, run the check command:
+### OpenClaw
 
-```bash
-# Codex
-bash ./check.sh --host codex --profile full --deep
+- target root: `OPENCLAW_HOME` or `~/.openclaw`
+- if the host does not use `<target-root>/settings.json`, set local environment variables before running the check
 
-# Claude Code
-bash ./check.sh --host claude-code --profile full --deep
-```
+### OpenCode
 
-### Configuration Status Explanation
+- target root: `OPENCODE_HOME` or `~/.config/opencode`
+- if the host does not use `<target-root>/settings.json`, set local environment variables before running the check
 
-| Status | Explanation |
-|--------|-------------|
-| ✅ Local installation complete | Installation script executed successfully, files copied |
-| ✅ Basic online capability configured | OPENAI_API_KEY and other basic fields configured |
-| ✅ Governance AI online layer ready | All three VCO_AI_PROVIDER fields configured |
-| ⚠️ Governance AI online capability not ready | VCO_AI_PROVIDER fields not configured or incomplete |
+## Quick-check commands
 
----
+Run from the repo root.
 
-## 🔎 Router AI Advice Connectivity Probe (#33)
-
-This probe checks only the router AI advice connectivity path (intent/advice layer). It is not a host-wide health doctor and not a platform-wide availability verdict.
-
-Boundary:
-- `advice-only`: diagnostic only, never rewrites canonical route decisions.
-- Probe failure does not mean the whole platform is unusable; local install/runtime flows can still work.
-
-Typical states:
-- `ok`
-- `missing_credentials`
-- `prefix_required`
-- `provider_unreachable`
-- `vector_diff_not_configured` / `vector_diff_missing_credentials` / `vector_diff_provider_unreachable` / `vector_diff_ok`
-
-Run:
+### Windows
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -WriteArtifacts
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -TargetRoot "<target host root>" -WriteArtifacts
 ```
 
 If PowerShell 7 is already installed on your machine, you can use `pwsh` instead.
 
-Read outputs:
-- JSON: `outputs/verify/vibe-router-ai-connectivity-gate.json` (machine-readable status + next steps)
-- Markdown: `outputs/verify/vibe-router-ai-connectivity-gate.md` (human-readable summary)
+### Linux / macOS
 
----
-
-## 🎯 Common Configuration Scenarios
-
-### Scenario 1: Use Local Capability Only
-
-If you only want to use local runtime / prompt / check flows without online capability:
-
-**No configuration needed**
-
-### Scenario 2: Use Basic Online Capability
-
-If you want to use Codex's basic online capability:
-
-**Only need to configure**:
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-
-### Scenario 3: Use Complete Governance AI Online Layer
-
-If you want to use the complete governance AI online enhancement capability:
-
-**Need to configure**:
-- `OPENAI_API_KEY` (Codex)
-- `OPENAI_BASE_URL` (Codex)
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
-
----
-
-## 📖 Usage
-
-In installation prompts, you can reference configuration instructions like this:
-
-```text
-## Configuration Instructions
-For detailed configuration, see: [Configuration Guide](../configuration-guide.en.md)
-
-Core configuration items:
-- VCO_AI_PROVIDER_URL: Governance AI provider address
-- VCO_AI_PROVIDER_API_KEY: Governance AI authentication key
-- VCO_AI_PROVIDER_MODEL: Model name used by governance AI
-
-Configuration location:
-- Codex: env field in ~/.codex/settings.json
-- Claude Code: env field in ~/.claude/settings.json
+```bash
+python3 ./scripts/verify/runtime_neutral/router_ai_connectivity_probe.py --target-root "<target host root>" --write-artifacts
 ```
 
----
+Common default roots:
 
-**Document Version**: 1.1
-**Last Updated**: 2026-03-26
+- `codex` -> `~/.codex`
+- `claude-code` -> `~/.claude`
+- `cursor` -> `~/.cursor`
+- `windsurf` -> `~/.codeium/windsurf`
+- `openclaw` -> `~/.openclaw`
+- `opencode` -> `~/.config/opencode`
+
+## How to read the result
+
+- `ok`: AI-governance advice is online
+- `missing_credentials`: local credentials are missing; usually add `OPENAI_API_KEY`
+- `missing_model`: the model is missing; usually add `VCO_RUCNLPIR_MODEL`
+- `missing_base_url`: add the provider base URL locally, or define `provider.base_url` in policy
+- `provider_rejected_request`: key, model id, or endpoint compatibility is wrong
+- `provider_unreachable`: network, DNS, base-url reachability, or timeout is failing
+- `prefix_required`: the current policy only evaluates advice in explicit `/vibe` scope
+
+## Short practical conclusion
+
+If you want the fastest path for a common OpenAI-compatible setup:
+
+1. configure `OPENAI_API_KEY` locally
+2. add `OPENAI_BASE_URL` or `OPENAI_API_BASE` only when you use a custom gateway
+3. configure `VCO_RUCNLPIR_MODEL`
+4. run the quick check
+
+That is enough for the normal install-time path.

@@ -1,282 +1,156 @@
 # 配置指南
 
-本文档详细说明 VibeSkills 的配置选项，特别是治理 AI 在线层的配置方法。
+这份指南只澄清一件事：安装完成后，怎样把 AI 治理 advice 的在线配置补齐。
 
----
+## 先分清两件事
 
-## 🎯 配置概览
+- `本地安装完成`：脚本或复制动作已经把 VibeSkills 放进目标宿主根目录。
+- `AI 治理 online-ready`：路由里的 advice 在线调用已经拿到本地凭据、模型名和可用的 provider 地址。
 
-VibeSkills 的配置分为两个层次：
+前者成立，不代表后者也成立。
 
-1. **基础在线能力**：宿主（Codex/Claude Code）的基本 AI 能力
-2. **治理 AI 在线层**：VibeSkills 特有的治理增强能力
+## 快速检查实际读取哪里
 
----
+当前快速检查会优先读取：
 
-## 📋 VCO 治理 AI 配置字段
+1. `<target-root>/settings.json` 里的 `env`
+2. 当前 shell / process environment
 
-### VCO_AI_PROVIDER_URL
+也就是说：
 
-**作用**: 治理 AI 要连接的 provider 地址或兼容 API Base URL。
+- 如果宿主本地维护 `settings.json`，优先把变量放到那个 `env`
+- 如果宿主不走这个文件面，或者你只是先做连通性验证，也可以先放到本地环境变量
 
-**说明**:
-- 这是治理 AI 调用在线模型的入口地址
-- 可以是 OpenAI 兼容的 API 地址
-- 例如：`https://api.openai.com/v1` 或其他兼容服务
+不要把密钥贴到聊天里。
 
-**配置位置**:
-- Codex: `~/.codex/settings.json` 的 `env` 字段
-- Claude Code: `~/.claude/settings.json` 的 `env` 字段
-- 或使用本地环境变量
+## 推荐路径 1：OpenAI-compatible
 
----
+这是当前最常见、也最推荐的 AI 治理 online 配置路径。
 
-### VCO_AI_PROVIDER_API_KEY
-
-**作用**: 治理 AI 访问该 provider 时使用的本地认证密钥。
-
-**说明**:
-- 这是访问在线模型服务的 API 密钥
-- **安全提示**: 永远不要在聊天中粘贴 API 密钥
-- 只在本地配置文件或环境变量中设置
-
-**配置位置**:
-- Codex: `~/.codex/settings.json` 的 `env` 字段
-- Claude Code: `~/.claude/settings.json` 的 `env` 字段
-- 或使用本地环境变量
-
----
-
-### VCO_AI_PROVIDER_MODEL
-
-**作用**: 治理 AI 在线分析、治理增强或相关 overlay 要调用的模型名。
-
-**说明**:
-- 指定治理 AI 使用的具体模型
-- 例如：`gpt-4`, `claude-3-opus`, `gpt-3.5-turbo` 等
-- 根据你的 provider 支持的模型来设置
-
-**配置位置**:
-- Codex: `~/.codex/settings.json` 的 `env` 字段
-- Claude Code: `~/.claude/settings.json` 的 `env` 字段
-- 或使用本地环境变量
-
----
-
-## 🔧 Codex 配置方法
-
-### 基础在线能力配置
-
-Codex 的基础在线能力需要配置：
+### 推荐键名
 
 ```json
 {
   "env": {
-    "OPENAI_API_KEY": "your-openai-api-key",
-    "OPENAI_BASE_URL": "https://api.openai.com/v1"
-  }
-}
-```
-
-**说明**:
-- `OPENAI_API_KEY`: Codex 基础在线 provider 的密钥
-- `OPENAI_BASE_URL`: Codex 基础在线 provider 的地址
-- **注意**: 这只代表 Codex 基础在线能力，不等于治理 AI 在线层已配置
-
-### 治理 AI 在线层配置
-
-如果需要启用 Codex 下的治理 AI 在线层，还需要额外配置：
-
-```json
-{
-  "env": {
-    "OPENAI_API_KEY": "your-openai-api-key",
+    "OPENAI_API_KEY": "<local-api-key>",
     "OPENAI_BASE_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_API_KEY": "your-vco-api-key",
-    "VCO_AI_PROVIDER_MODEL": "gpt-4"
+    "VCO_RUCNLPIR_MODEL": "gpt-5.4-high"
   }
 }
 ```
 
-**配置步骤**:
-1. 打开 `~/.codex/settings.json`
-2. 在 `env` 字段下添加上述配置
-3. 保存文件
-4. 重启 Codex
+说明：
 
-**为什么需要配置**:
-- 只有配置了这三个字段，才能启用 Codex 下的治理 AI 在线层
-- 如果没配，只能说"Codex 基础在线能力已配置"
-- 不能说"治理 AI 在线层已就绪"
+- `OPENAI_API_KEY`：必需
+- `OPENAI_BASE_URL` 或 `OPENAI_API_BASE`：可选；不填时按 provider 默认值或策略配置处理
+- `VCO_RUCNLPIR_MODEL`：推荐模型键名
 
----
+## 当前公共口径
 
-## 🔧 Claude Code 配置方法
+安装后做本地配置与快速检查时，当前公共安装口径统一使用：
 
-### 基础在线能力
+- `OPENAI_API_KEY`
+- 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+- `VCO_RUCNLPIR_MODEL`
 
-Claude Code 的基础在线能力由 Anthropic 提供，通常不需要额外配置。
+## 内置治理层的 provider 边界
 
-### 治理 AI 在线层配置
+当前内置 AI 治理层只支持 OpenAI-compatible 接入。
 
-如果需要启用 AI 治理层的在线能力，需要配置：
+这表示：
 
-```json
-{
-  "env": {
-    "VCO_AI_PROVIDER_URL": "https://api.openai.com/v1",
-    "VCO_AI_PROVIDER_API_KEY": "your-api-key",
-    "VCO_AI_PROVIDER_MODEL": "gpt-4"
-  }
-}
-```
+- advice 在线调用按 OpenAI-compatible Responses / Chat Completions / Embeddings 语义工作
+- 安装说明、bootstrap 和快速检查不再给出 Ark-compatible 作为内置并行入口
+- 如果你要走别的 provider 形态，不属于当前内置治理层的标准支持面
 
-**配置步骤**:
-1. 打开 `~/.claude/settings.json`
-2. 在 `env` 字段下添加上述配置（保留原有设置）
-3. 保存文件
-4. 重启 Claude Code
+## 高级路径：策略文件里直接指定 provider
 
-**为什么需要配置**:
-- 如果希望启用 AI 治理层的在线能力，而不是只跑本地 runtime / prompt / check 流程，就需要这三项
-- 没配时只能说"本地安装完成，但治理 AI 在线能力未就绪"
-- 不能伪装成 full closure 或 online readiness
+如果你已经在仓库策略里维护 provider，也可以继续保留：
 
----
+- `config/llm-acceleration-policy.json` 的 `provider.base_url`
+- `config/llm-acceleration-policy.json` 的 `provider.model`
 
-## 🔐 安全最佳实践
+这种情况下：
 
-### 1. 永远不要在聊天中粘贴密钥
+- base URL / model 可以来自策略文件
+- 本地凭据仍建议放在 `OPENAI_API_KEY`
 
-❌ **错误做法**:
-```
-用户: 我的 API key 是 sk-xxxxx，帮我配置
-```
+## 不同宿主通常放哪里
 
-✅ **正确做法**:
-```
-用户: 我需要配置 API key
-助手: 请打开 ~/.codex/settings.json，在 env 字段下添加 VCO_AI_PROVIDER_API_KEY
-```
+### Codex
 
-### 2. 使用本地配置文件
+- 目标根目录：`~/.codex`
+- 常见位置：`~/.codex/settings.json` 的 `env`
 
-优先使用本地配置文件，而不是环境变量：
-- 配置文件更容易管理
-- 可以版本控制（但要排除敏感信息）
-- 更容易备份和恢复
+### Claude Code
 
-### 3. 区分不同的密钥
+- 目标根目录：`~/.claude`
+- 常见位置：`~/.claude/settings.json` 的 `env`
 
-- `OPENAI_API_KEY`: Codex 基础能力的密钥
-- `VCO_AI_PROVIDER_API_KEY`: 治理 AI 的密钥
-- 可以使用相同的密钥，也可以使用不同的密钥
+### Cursor
 
----
+- 目标根目录：`~/.cursor`
+- 常见位置：`~/.cursor/settings.json` 的 `env`
 
-## 📊 配置状态检查
+### Windsurf
 
-### 如何检查配置是否正确
+- 目标根目录：`~/.codeium/windsurf`
+- 如果宿主侧没有直接使用 `<target-root>/settings.json`，就在本地环境变量里配置再做检查
 
-安装完成后，运行 check 命令：
+### OpenClaw
 
-```bash
-# Codex
-bash ./check.sh --host codex --profile full --deep
+- 目标根目录：`OPENCLAW_HOME` 或 `~/.openclaw`
+- 如果宿主侧没有直接使用 `<target-root>/settings.json`，就在本地环境变量里配置再做检查
 
-# Claude Code
-bash ./check.sh --host claude-code --profile full --deep
-```
+### OpenCode
 
-### 配置状态说明
+- 目标根目录：`OPENCODE_HOME` 或 `~/.config/opencode`
+- 如果宿主侧没有直接使用 `<target-root>/settings.json`，就在本地环境变量里配置再做检查
 
-| 状态 | 说明 |
-|------|------|
-| ✅ 本地安装完成 | 安装脚本执行成功，文件已复制 |
-| ✅ 基础在线能力已配置 | OPENAI_API_KEY 等基础字段已配置 |
-| ✅ 治理 AI 在线层已就绪 | VCO_AI_PROVIDER 三个字段都已配置 |
-| ⚠️ 治理 AI 在线能力未就绪 | VCO_AI_PROVIDER 字段未配置或不完整 |
+## 快速检查命令
 
----
+在仓库根目录运行：
 
-## 🔎 Router AI Advice 连通性探针（#33）
-
-这个探针只检查路由里的 AI advice 连通性（意图分析 / advice 层），不是宿主总健康检查，也不是平台可用性总判定。
-
-边界说明：
-- `advice-only`：只做诊断，不改 canonical route 结果。
-- 探针失败不等于整个平台不可用；本地安装与本地流程仍可正常使用。
-
-典型状态：
-- `ok`
-- `missing_credentials`
-- `prefix_required`
-- `provider_unreachable`
-- `vector_diff_not_configured` / `vector_diff_missing_credentials` / `vector_diff_provider_unreachable` / `vector_diff_ok`
-
-运行方式：
+### Windows
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -WriteArtifacts
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -TargetRoot "<目标宿主根目录>" -WriteArtifacts
 ```
 
-如果本机已经安装了 PowerShell 7，也可以改用 `pwsh`。
+如果本机已经安装了 PowerShell 7，也可以改成 `pwsh`。
 
-结果读取：
-- JSON：`outputs/verify/vibe-router-ai-connectivity-gate.json`（机器可读，含状态与 next steps）
-- Markdown：`outputs/verify/vibe-router-ai-connectivity-gate.md`（人工可读摘要）
+### Linux / macOS
 
----
-
-## 🎯 常见配置场景
-
-### 场景 1: 只使用本地能力
-
-如果你只想使用本地 runtime / prompt / check 流程，不需要在线能力：
-
-**不需要配置任何字段**
-
-### 场景 2: 使用基础在线能力
-
-如果你想使用 Codex 的基础在线能力：
-
-**只需要配置**:
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
-
-### 场景 3: 使用完整的治理 AI 在线层
-
-如果你想使用完整的治理 AI 在线增强能力：
-
-**需要配置**:
-- `OPENAI_API_KEY` (Codex)
-- `OPENAI_BASE_URL` (Codex)
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
-
----
-
-## 📖 使用方法
-
-在安装提示词中，可以这样引用配置说明：
-
-```text
-## 配置说明
-详细配置请参考：[配置指南](../configuration-guide.md)
-
-核心配置项：
-- VCO_AI_PROVIDER_URL: 治理 AI 的 provider 地址
-- VCO_AI_PROVIDER_API_KEY: 治理 AI 的认证密钥
-- VCO_AI_PROVIDER_MODEL: 治理 AI 使用的模型名
-
-配置位置：
-- Codex: ~/.codex/settings.json 的 env 字段
-- Claude Code: ~/.claude/settings.json 的 env 字段
+```bash
+python3 ./scripts/verify/runtime_neutral/router_ai_connectivity_probe.py --target-root "<目标宿主根目录>" --write-artifacts
 ```
 
----
+常见默认根目录：
 
-**文档版本**: 1.1
-**最后更新**: 2026-03-26
+- `codex` -> `~/.codex`
+- `claude-code` -> `~/.claude`
+- `cursor` -> `~/.cursor`
+- `windsurf` -> `~/.codeium/windsurf`
+- `openclaw` -> `~/.openclaw`
+- `opencode` -> `~/.config/opencode`
+
+## 结果怎么看
+
+- `ok`：AI 治理 advice 已连通
+- `missing_credentials`：缺本地密钥，优先补 `OPENAI_API_KEY`
+- `missing_model`：缺模型名，优先补 `VCO_RUCNLPIR_MODEL`
+- `missing_base_url`：需要补 provider base URL，或在策略文件里补 `provider.base_url`
+- `provider_rejected_request`：密钥、模型名或 endpoint 兼容性有问题
+- `provider_unreachable`：网络、DNS、base URL 可达性或超时有问题
+- `prefix_required`：当前策略要求在 `/vibe` 显式作用域下再检查 advice
+
+## 最短实践结论
+
+如果你只想最快补齐常见 OpenAI-compatible 在线能力：
+
+1. 在本地 `settings.json` 的 `env`，或本地环境变量里配置 `OPENAI_API_KEY`
+2. 如有自定义网关，再补 `OPENAI_BASE_URL` 或 `OPENAI_API_BASE`
+3. 配置 `VCO_RUCNLPIR_MODEL`
+4. 跑一次快速检查
+
+这样就够了。

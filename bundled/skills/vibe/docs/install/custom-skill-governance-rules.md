@@ -118,13 +118,15 @@
 
 ## 治理 AI online layer 边界
 
-`OPENAI_API_KEY`、`OPENAI_BASE_URL` 只代表基础在线 provider，不等于治理 AI online layer 完成。
+基础在线 provider 可用，不等于治理 AI online layer 已完成。
 
-要启用治理 AI online layer，用户需本地补：
+要启用治理 AI advice 的常见在线路径，用户需本地补：
 
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
+- OpenAI-compatible：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+
 
 未配置时只能宣称“基础在线可用”或“本地安装完成”，不能宣称“治理 AI online readiness 已完成”。
 

@@ -77,7 +77,7 @@ function Get-LlmAccelerationPolicyDefaults {
                 enabled = $false
                 embedding_model = "text-embedding-3-small"
                 embedding_provider = [pscustomobject]@{
-                    type = "openai" # openai|volc_ark
+                    type = "openai" # openai|openai-compatible
                     base_url = ""
                     endpoint_path = ""
                     api_key_env = ""
@@ -602,20 +602,12 @@ function Get-VcoEmbeddingsForTextsWithCache {
                         -TimeoutMs $timeoutMs `
                         -BaseUrl $embeddingProviderBaseUrl
                 }
-                "volc_ark" {
-                    $endpointPath = if ($embeddingProviderEndpointPath) { $embeddingProviderEndpointPath } else { "/embeddings/multimodal" }
-                    $apiKeyEnv = if ($embeddingProviderApiKeyEnv) { $embeddingProviderApiKeyEnv } else { "ARK_API_KEY" }
-                    $items = foreach ($t in $missingTexts) {
-                        [ordered]@{ type = "text"; text = [string]$t }
-                    }
-
-                    $result = Invoke-VolcArkEmbeddingsCreate `
+                "openai-compatible" {
+                    $result = Invoke-OpenAiEmbeddingsCreate `
                         -Model $EmbeddingModel `
-                        -InputItems @($items) `
+                        -InputItems @($missingTexts) `
                         -TimeoutMs $timeoutMs `
-                        -BaseUrl $embeddingProviderBaseUrl `
-                        -EndpointPath $endpointPath `
-                        -ApiKeyEnv $apiKeyEnv
+                        -BaseUrl $embeddingProviderBaseUrl
                 }
                 default {
                     return [pscustomobject]@{ ok = $false; abstained = $true; reason = "unknown_embedding_provider"; vectors = @() }
@@ -804,13 +796,8 @@ function Get-VcoGitContextSnippet {
                     "openai" {
                         if (Get-OpenAiApiKey) { $keyOk = $true } else { $keyReason = "missing_openai_api_key" }
                     }
-                    "volc_ark" {
-                        $keyEnv = "ARK_API_KEY"
-                        try {
-                            if ($embProv -and $embProv.api_key_env) { $keyEnv = [string]$embProv.api_key_env }
-                        } catch { }
-
-                        if (Get-VolcArkApiKey -EnvName $keyEnv) { $keyOk = $true } else { $keyReason = "missing_ark_api_key" }
+                    "openai-compatible" {
+                        if (Get-OpenAiApiKey) { $keyOk = $true } else { $keyReason = "missing_openai_api_key" }
                     }
                     default {
                         $keyReason = "unknown_embedding_provider"

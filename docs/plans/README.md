@@ -24,6 +24,11 @@ Those surfaces live under [`../status/README.md`](../status/README.md).
 
 ### Current Entry
 
+- [`2026-03-27-ai-governance-consolidation-plan.md`](./2026-03-27-ai-governance-consolidation-plan.md): 内置 AI 治理层收敛整理执行计划；聚焦把 active runtime、doctor、helper scripts、one-shot 入口与 bundled 镜像统一到单一路径契约。
+- [`2026-03-27-ai-governance-historical-wording-cleanup-plan.md`](./2026-03-27-ai-governance-historical-wording-cleanup-plan.md): 内置 AI 治理层历史表述清理执行计划；聚焦清理 `vibe` 范围内已退役模型键名的历史残留表述。
+- [`2026-03-27-ai-governance-openai-compatible-only-plan.md`](./2026-03-27-ai-governance-openai-compatible-only-plan.md): 内置 AI 治理层 OpenAI-compatible-only 执行计划；聚焦收口权威 provider registry、vector diff 默认面、bootstrap/setup 和安装文档中的 Ark 分支。
+- [`2026-03-27-ai-governance-install-clarity-plan.md`](./2026-03-27-ai-governance-install-clarity-plan.md): issue #57 安装澄清执行计划；聚焦用真实探针读取逻辑收口 AI 治理 advice 的配置键名、快速检查说明与安装时提示。
+- [`2026-03-27-ai-governance-single-model-key-plan.md`](./2026-03-27-ai-governance-single-model-key-plan.md): 内置 AI 治理层单模型键收敛执行计划；聚焦统一到 `VCO_RUCNLPIR_MODEL` 并清理双键口径。
 - [`2026-03-20-readme-en-detail-and-github-branding-copy-plan.md`](./2026-03-20-readme-en-detail-and-github-branding-copy-plan.md): README 英文版细化与 GitHub 品牌文案执行计划；聚焦补齐英文首页细节，并整理 `About / Topics / social preview` 设置文案。
 - [`2026-03-20-readme-emoji-layout-polish-plan.md`](./2026-03-20-readme-emoji-layout-polish-plan.md): README 中文视觉润色执行计划；聚焦少量 emoji 点缀、区块节奏优化与 GitHub-safe 的版式打磨。
 - [`2026-03-20-readme-differentiated-science-ai-strengths-plan.md`](./2026-03-20-readme-differentiated-science-ai-strengths-plan.md): README 中文差异化强化执行计划；聚焦把生命科学、科研、AI 工程三块写得更有辨识度。

@@ -24,5 +24,8 @@
    - Windows：`pwsh -NoProfile -File .\\install.ps1 -HostId opencode -Profile full` 与 `pwsh -NoProfile -File .\\check.ps1 -HostId opencode -Profile full`
    - Linux / macOS：`bash ./install.sh --host opencode --profile full` 与 `bash ./check.sh --host opencode --profile full`
 7. 不要要求我把密钥、URL 或 model 粘贴到聊天里。
-8. 更新完成后，用 truth-first 口径告诉我：目标宿主、公开版本、实际 profile、实际命令、自定义治理是否仍在、仍需我手动处理的部分。
+8. 如果我后续要补 AI 治理 online 能力，你必须优先告诉我真实推荐键名：
+   - OpenAI-compatible：`OPENAI_API_KEY`，可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`，以及 `VCO_RUCNLPIR_MODEL`
+   - 内置 AI 治理层当前只支持 OpenAI-compatible 接入
+9. 更新完成后，用 truth-first 口径告诉我：目标宿主、公开版本、实际 profile、实际命令、自定义治理是否仍在、仍需我手动处理的部分。
 ```

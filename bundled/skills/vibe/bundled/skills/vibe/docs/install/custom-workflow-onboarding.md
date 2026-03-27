@@ -212,16 +212,12 @@
 
 ## Online 配置提醒（不要伪装完成）
 
-如果你要启用治理 AI online layer，用户必须本地配置：
+如果你要启用治理 AI online layer，用户必须本地补齐常见键名：
 
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
+- OpenAI-compatible：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
-这三项分别对应：
-
-- provider 地址 / 兼容 API Base URL
-- provider 访问密钥
-- 在线治理分析调用模型名
 
 未配置时只能说“本地安装完成，但治理 AI online 能力未就绪”。

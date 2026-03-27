@@ -51,9 +51,12 @@ If the user chooses `codex`:
 - run `--host codex`
 - describe it as the default recommended path today
 - explain that hook installation is currently frozen because of compatibility issues; that is not an install failure
-- if base online provider access is needed, point the user to local `OPENAI_*` configuration
-- if the governance AI online layer is needed, point the user to local `VCO_AI_PROVIDER_*` configuration
-- never imply that `OPENAI_*` alone means governance-AI online readiness
+- if the common OpenAI-compatible governance-advice path is needed, point the user to local configuration for:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+- the built-in AI governance layer now supports OpenAI-compatible integration only
+- never imply that baseline host online access automatically means governance-AI online readiness
 
 ## Rule 8: Describe Claude Code as a supported install-and-use path
 
@@ -105,15 +108,25 @@ If the user chooses `opencode`:
 - do not claim ownership of the real `opencode.json`
 - keep provider credentials, plugin installation, and MCP trust on the host-managed side
 
-## Rule 13: Never ask users to paste secrets into chat
+## Rule 13: Prefer the real recommended key names for AI-governance online config
+
+When explaining AI-governance advice connectivity, prefer:
+
+- OpenAI-compatible:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+
+
+## Rule 14: Never ask users to paste secrets into chat
 
 For all six supported hosts, do not ask users to paste keys, URLs, or model names into chat. Point them to local settings or local environment variables instead.
 
-## Rule 14: Distinguish local install from online readiness
+## Rule 15: Distinguish local install from online readiness
 
 If local provider fields are not configured, the environment must not be described as online-ready.
 
-## Rule 15: The result summary must stay explicit
+## Rule 16: The result summary must stay explicit
 
 The install or upgrade summary should include at least:
 
@@ -124,7 +137,7 @@ The install or upgrade summary should include at least:
 - completed parts
 - manual follow-up still required
 
-## Rule 16: The framework version is not the full out-of-box experience
+## Rule 17: The framework version is not the full out-of-box experience
 
 If the user chooses `Framework Only + Customizable Governance` / `minimal`, explicitly remind them:
 

@@ -260,17 +260,11 @@ class ProbeContext:
 
 
 def provider_credential_env(provider_type: str) -> str:
-    normalized = provider_type.strip().lower()
-    if normalized in {"volc_ark", "ark", "ark-compatible"}:
-        return "ARK_API_KEY"
     return "OPENAI_API_KEY"
 
 
 def advice_model_candidates(provider_type: str) -> list[str]:
-    normalized = provider_type.strip().lower()
-    if normalized in {"volc_ark", "ark", "ark-compatible"}:
-        return ["ARK_MODEL", "VCO_AI_PROVIDER_MODEL"]
-    return ["VCO_RUCNLPIR_MODEL", "OPENAI_MODEL", "VCO_AI_PROVIDER_MODEL"]
+    return ["VCO_RUCNLPIR_MODEL"]
 
 
 def resolve_advice_base_url(provider_type: str, provider_cfg: dict[str, Any], settings_values: dict[str, str]) -> str | None:
@@ -281,8 +275,6 @@ def resolve_advice_base_url(provider_type: str, provider_cfg: dict[str, Any], se
     normalized = provider_type.strip().lower()
     if normalized in {"openai", "openai-compatible", "mock"}:
         return resolve_first_value(["OPENAI_BASE_URL", "OPENAI_API_BASE"], settings_values) or "https://api.openai.com/v1"
-    if normalized in {"volc_ark", "ark", "ark-compatible"}:
-        return resolve_first_value(["ARK_BASE_URL", "VOLC_ARK_BASE_URL"], settings_values) or "https://ark.cn-beijing.volces.com/api/v3"
     return resolve_first_value(["OPENAI_BASE_URL", "OPENAI_API_BASE"], settings_values)
 
 
@@ -456,13 +448,8 @@ def probe_advice_connectivity(
                     if isinstance(contract, dict):
                         offline_reason = non_empty(contract.get("abstain_reason"))
                     break
-                if "ark" in provider_id and credential_env == "ARK_API_KEY":
-                    contract = provider_entry.get("offline_contract")
-                    if isinstance(contract, dict):
-                        offline_reason = non_empty(contract.get("abstain_reason"))
-                    break
         if not offline_reason:
-            offline_reason = "missing_openai_api_key" if credential_env == "OPENAI_API_KEY" else "missing_ark_api_key"
+            offline_reason = "missing_openai_api_key"
         return {
             "status": "missing_credentials",
             "provider_type": provider_type,
@@ -601,8 +588,6 @@ def resolve_vector_base_url(provider_type: str, provider_cfg: dict[str, Any], se
     normalized = provider_type.strip().lower()
     if normalized in {"openai", "openai-compatible"}:
         return resolve_first_value(["OPENAI_BASE_URL", "OPENAI_API_BASE"], settings_values) or "https://api.openai.com/v1"
-    if normalized in {"volc_ark", "ark", "ark-compatible"}:
-        return resolve_first_value(["ARK_BASE_URL", "VOLC_ARK_BASE_URL"], settings_values) or "https://ark.cn-beijing.volces.com/api/v3"
     return None
 
 
@@ -658,11 +643,6 @@ def probe_vector_diff(
     provider_type_normalized = provider_type.lower()
     if provider_type_normalized in {"openai", "openai-compatible"}:
         endpoint = f"{openai_v1_base_url(base_url)}/embeddings"
-    elif provider_type_normalized in {"volc_ark", "ark", "ark-compatible"}:
-        endpoint_path = non_empty(provider_cfg.get("endpoint_path")) or "/embeddings/multimodal"
-        if not endpoint_path.startswith("/"):
-            endpoint_path = f"/{endpoint_path}"
-        endpoint = f"{str(base_url).rstrip('/')}{endpoint_path}"
     else:
         return {
             "status": "vector_diff_provider_rejected_request",
@@ -751,9 +731,9 @@ def next_step_for_advice(status: str, advice: dict[str, Any]) -> str | None:
         env_name = advice.get("credential_env") or "OPENAI_API_KEY"
         return f"Configure `{env_name}` in local settings env or process environment."
     if status == "missing_model":
-        return "Set `provider.model` in `config/llm-acceleration-policy.json` (or `VCO_RUCNLPIR_MODEL`)."
+        return "Set `provider.model` in `config/llm-acceleration-policy.json` or configure `VCO_RUCNLPIR_MODEL` locally."
     if status == "missing_base_url":
-        return "Set provider base_url in policy or corresponding environment variable."
+        return "Set `provider.base_url` in policy or configure `OPENAI_BASE_URL` / `OPENAI_API_BASE` locally."
     if status == "provider_unreachable":
         return "Check base_url reachability, DNS, network egress, and provider timeout."
     if status == "provider_rejected_request":
@@ -767,7 +747,7 @@ def next_step_for_vector(status: str, vector: dict[str, Any]) -> str | None:
     if status == "vector_diff_not_configured":
         return "If needed, enable `context.vector_diff` and set `embedding_model` plus provider config."
     if status == "vector_diff_missing_credentials":
-        env_name = vector.get("credential_env") or "ARK_API_KEY"
+        env_name = vector.get("credential_env") or "OPENAI_API_KEY"
         return f"Configure `{env_name}` for vector_diff embeddings probe."
     if status == "vector_diff_provider_unreachable":
         return "Check embeddings provider base_url/network reachability."

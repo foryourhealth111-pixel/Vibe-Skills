@@ -69,12 +69,12 @@
     "max_diff_chars": 6000,
     "vector_diff": {
       "enabled": true,
-      "embedding_model": "doubao-embedding-vision-250615",
+      "embedding_model": "text-embedding-3-small",
       "embedding_provider": {
-        "type": "volc_ark",
-        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-        "endpoint_path": "/embeddings/multimodal",
-        "api_key_env": "ARK_API_KEY",
+        "type": "openai-compatible",
+        "base_url": "",
+        "endpoint_path": "",
+        "api_key_env": "OPENAI_API_KEY",
         "timeout_ms": 6000
       },
       "min_diff_chars_for_vector": 6000,
@@ -98,7 +98,6 @@
     "max_live_apply_rate": 1.0
   }
 }
-
 
 
 

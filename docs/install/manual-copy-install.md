@@ -50,13 +50,18 @@
 ### Codex
 
 - 维护 `~/.codex/settings.json`
-- 视需要配置 `OPENAI_*`
-- 如需治理 AI 在线层，再补 `VCO_AI_PROVIDER_*`
+- 如需 AI 治理 advice 的常见 OpenAI-compatible 在线路径，优先配置：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Claude Code
 
 - 维护 `~/.claude/settings.json`
-- 视需要补 `VCO_AI_PROVIDER_*`
+- 如需 AI 治理 advice 的常见 OpenAI-compatible 在线路径，优先补：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Cursor
 

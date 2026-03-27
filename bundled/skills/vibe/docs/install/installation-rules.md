@@ -51,9 +51,12 @@
 - 运行 `--host codex`
 - 明确说明这是当前默认推荐路径
 - hook 当前因兼容性问题被冻结；这不是安装失败
-- 如需 Codex 基础在线 provider，去本地 `~/.codex/settings.json` 的 `env` 或本地环境变量配置 `OPENAI_*`
-- 如需治理 AI 在线层，再按需补 `VCO_AI_PROVIDER_*`
-- 不能把 `OPENAI_*` 已配置偷换成“治理 AI online readiness 已完成”
+- 如需 AI 治理 advice 的常见 OpenAI-compatible 在线路径，去本地 `~/.codex/settings.json` 的 `env` 或本地环境变量配置：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+- 内置 AI 治理层当前只支持 OpenAI-compatible 接入
+- 不能把宿主基础在线能力偷换成“治理 AI online readiness 已完成”
 
 ## 规则 8：Claude Code 要按“支持的安装与使用路径”口径描述
 
@@ -104,15 +107,25 @@
 - direct install/check 会写入 skills、command/agent wrappers 与 `opencode.json.example`
 - 真实 `opencode.json`、provider 凭据、plugin 安装和 MCP 信任仍由宿主侧本地完成
 
-## 规则 13：不要要求用户把密钥贴到聊天里
+## 规则 13：AI 治理在线配置要优先说真实推荐键名
+
+如需解释 AI 治理 advice 的在线配置，优先使用：
+
+- OpenAI-compatible：
+  - `OPENAI_API_KEY`
+  - 可选 `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+
+
+## 规则 14：不要要求用户把密钥贴到聊天里
 
 对六个支持宿主，都不要要求用户把密钥、URL 或 model 直接粘贴到聊天里；只引导用户去本地 settings 或本地环境变量配置。
 
-## 规则 14：区分“本地安装完成”和“在线能力就绪”
+## 规则 15：区分“本地安装完成”和“在线能力就绪”
 
 如果本地 provider 字段没有配置好，就不能把环境描述成“online ready”。
 
-## 规则 15：输出安装或更新结果时必须说清楚
+## 规则 16：输出安装或更新结果时必须说清楚
 
 结果摘要至少应包含：
 
@@ -123,7 +136,7 @@
 - 已完成的部分
 - 仍需用户手动处理的部分
 
-## 规则 16：框架版本不是开箱即用全量体验
+## 规则 17：框架版本不是开箱即用全量体验
 
 如果用户选择 `仅核心框架 + 可自定义添加治理` / `minimal`，必须额外提醒：
 

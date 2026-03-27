@@ -7,9 +7,7 @@ param(
     [switch]$StrictOffline,
     [switch]$SyncUserEnv,
     [string]$OpenAIBaseUrl = '',
-    [string]$OpenAIApiKey = '',
-    [string]$ArkBaseUrl = '',
-    [string]$ArkApiKey = ''
+    [string]$OpenAIApiKey = ''
 )
 
 Set-StrictMode -Version Latest
@@ -107,7 +105,6 @@ $installPath = Join-Path $repoRoot 'install.ps1'
 $checkPath = Join-Path $repoRoot 'check.ps1'
 $materializePath = Join-Path $repoRoot 'scripts\setup\materialize-codex-mcp-profile.ps1'
 $persistOpenAiPath = Join-Path $repoRoot 'scripts\setup\persist-codex-openai-env.ps1'
-$persistArkPath = Join-Path $repoRoot 'scripts\setup\persist-codex-ark-env.ps1'
 $syncEnvPath = Join-Path $repoRoot 'scripts\setup\sync-codex-settings-to-user-env.ps1'
 $claudeScaffoldPath = Join-Path $repoRoot 'scripts\bootstrap\scaffold-claude-preview.ps1'
 
@@ -157,19 +154,7 @@ switch ([string]$Adapter.bootstrap_mode) {
             Write-Warning 'OPENAI_API_KEY not provided and not present in the current environment. Full online readiness will remain pending.'
         }
 
-        $existingArkKey = Get-ExistingSettingEnvValue -CodexRoot $TargetRoot -Name 'ARK_API_KEY'
-        $hasArkSeed = (Test-NonEmptyString -Value $ArkApiKey) -or (Test-NonEmptyString -Value $env:ARK_API_KEY)
-        if ($hasArkSeed) {
-            Write-Host '[3/5] Seeding ARK settings into target settings.json...' -ForegroundColor Yellow
-            $arkArgs = @{ CodexRoot = $TargetRoot }
-            if (Test-NonEmptyString -Value $ArkBaseUrl) { $arkArgs.BaseUrl = $ArkBaseUrl }
-            if (Test-NonEmptyString -Value $ArkApiKey) { $arkArgs.ApiKey = $ArkApiKey }
-            & $persistArkPath @arkArgs
-        } elseif (Test-NonEmptyString -Value $existingArkKey) {
-            Write-Host '[3/5] ARK settings already exist in target settings.json; keeping current value.' -ForegroundColor DarkGray
-        } else {
-            Write-Host '[3/5] ARK settings not provided; skipping optional ARK seeding.' -ForegroundColor DarkGray
-        }
+        Write-Host '[3/5] Built-in AI governance now supports only OpenAI-compatible provider wiring; no secondary provider seeding is performed.' -ForegroundColor DarkGray
 
         if ($SyncUserEnv) {
             Write-Host '[4/5] Syncing configured settings.json env values into the user environment...' -ForegroundColor Yellow
@@ -190,13 +175,13 @@ switch ([string]$Adapter.bootstrap_mode) {
             Write-Host ("[2/5] Host-specific scaffold is currently unavailable for '{0}'." -f $HostId) -ForegroundColor Yellow
         }
         Write-Host '[3/5] No hook files or extra preview settings were installed into the target root.' -ForegroundColor DarkGray
-        Write-Host ("[4/5] Provider settings remain host-managed for '{0}'. Configure the real host settings surface separately (for example, Cursor commonly uses ~/.cursor/settings.json). Do not paste API keys into chat." -f $HostId) -ForegroundColor DarkGray
+        Write-Host ("[4/5] Provider settings remain host-managed for '{0}'. Built-in AI governance now supports only OpenAI-compatible wiring: configure OPENAI_API_KEY, optional OPENAI_BASE_URL/OPENAI_API_BASE, and VCO_RUCNLPIR_MODEL in the real host settings surface or local environment variables. Do not paste API keys into chat." -f $HostId) -ForegroundColor DarkGray
         Write-Host '[5/5] Running supported-path health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'runtime-core' {
         Write-Host '[2/5] Runtime-adapter path does not materialize host settings.' -ForegroundColor DarkGray
-        Write-Host '[3/5] Runtime-adapter path does not seed provider settings. Configure url, apikey, and model in the target agent''s local settings or local environment variables. Do not paste secrets into chat.' -ForegroundColor DarkGray
+        Write-Host '[3/5] Runtime-adapter path does not seed provider settings. Built-in AI governance now supports only OpenAI-compatible wiring: configure OPENAI_API_KEY, optional OPENAI_BASE_URL/OPENAI_API_BASE, and VCO_RUCNLPIR_MODEL in local settings or local environment variables. Do not paste secrets into chat.' -ForegroundColor DarkGray
         Write-Host '[4/5] User environment sync skipped for the runtime-adapter path.' -ForegroundColor DarkGray
         Write-Host '[5/5] Running runtime-adapter health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep

@@ -212,16 +212,12 @@ Do not ask me to paste any API key, URL, or model into chat.
 
 ## Online Configuration Reminder
 
-If you want to enable the governance AI online layer, the user must configure locally:
+If you want to enable the governance AI online layer, the user should configure the common key sets locally:
 
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
+- OpenAI-compatible:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
-These values correspond to:
-
-- provider address / compatible API base URL
-- provider access key
-- the online model used by governance analysis
 
 Without them, the environment may only be described as "local install complete, but governance AI online capability not ready".

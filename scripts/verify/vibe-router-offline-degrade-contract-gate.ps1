@@ -172,7 +172,7 @@ if ($registry -and @($registry.providers).Count -gt 0) {
         }
 
         # Also clear common base url overrides so offline tests never depend on host/user configs.
-        foreach ($name in @('OPENAI_BASE_URL', 'OPENAI_API_BASE', 'ARK_BASE_URL', 'VOLC_ARK_BASE_URL')) {
+        foreach ($name in @('OPENAI_BASE_URL', 'OPENAI_API_BASE')) {
             if (-not $envSnapshot.ContainsKey($name)) {
                 $envSnapshot[$name] = if (Test-Path -LiteralPath ("env:{0}" -f $name)) { [string](Get-Item -LiteralPath ("env:{0}" -f $name)).Value } else { $null }
             }
@@ -192,12 +192,6 @@ if ($registry -and @($registry.providers).Count -gt 0) {
                     throw "expected Invoke-OpenAiResponsesCreate to be available after dot-sourcing: $moduleRel"
                 }
                 $call = Invoke-OpenAiResponsesCreate -Model 'gpt-4.1-mini' -InputItems @() -TextFormat @{ type = 'text' } -TimeoutMs 1
-                $invokeOk = $true
-            } elseif ($moduleRel -like '*scripts/router/modules/02-volc-ark.ps1') {
-                if (-not (Get-Command -Name Invoke-VolcArkEmbeddingsCreate -ErrorAction SilentlyContinue)) {
-                    throw "expected Invoke-VolcArkEmbeddingsCreate to be available after dot-sourcing: $moduleRel"
-                }
-                $call = Invoke-VolcArkEmbeddingsCreate -Model 'doubao-embedding' -InputItems @('ping') -TimeoutMs 1
                 $invokeOk = $true
             }
 

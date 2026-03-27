@@ -75,6 +75,34 @@ function Get-EnvironmentVariableValue {
     return [string]$item.Value
 }
 
+function Get-ResolvedSettingState {
+    param(
+        [AllowNull()]$Settings,
+        [string]$Name
+    )
+
+    $envValue = Get-EnvironmentVariableValue -Name $Name
+    if (-not [string]::IsNullOrWhiteSpace($envValue)) {
+        return [pscustomobject]@{
+            state = if (Test-PlaceholderValue -Value $envValue) { 'placeholder' } else { 'configured' }
+            source = 'env'
+        }
+    }
+
+    $settingValue = Get-SettingValue -Settings $Settings -Name $Name
+    if ([string]::IsNullOrWhiteSpace($settingValue)) {
+        return [pscustomobject]@{
+            state = 'missing'
+            source = 'missing'
+        }
+    }
+
+    return [pscustomobject]@{
+        state = if (Test-PlaceholderValue -Value $settingValue) { 'placeholder' } else { 'configured' }
+        source = 'settings'
+    }
+}
+
 function Write-DoctorArtifacts {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
@@ -111,8 +139,8 @@ function Write-DoctorArtifacts {
 
     $lines += '## Settings'
     $lines += ''
-    $lines += ('- `OPENAI_API_KEY`: `{0}`' -f $Artifact.settings.openai_api_key_state)
-    $lines += ('- `ARK_API_KEY`: `{0}`' -f $Artifact.settings.ark_api_key_state)
+    $lines += ('- `OPENAI_API_KEY`: `{0}` via `{1}`' -f $Artifact.settings.openai_api_key_state, $Artifact.settings.openai_api_key_source)
+    $lines += ('- `VCO_RUCNLPIR_MODEL`: `{0}` via `{1}`' -f $Artifact.settings.vco_rucnlpir_model_state, $Artifact.settings.vco_rucnlpir_model_source)
     $lines += ''
 
     if ($Artifact.plugins.Count -gt 0) {
@@ -395,8 +423,13 @@ $warnings = New-Object System.Collections.Generic.List[string]
 if (-not (Test-Path -LiteralPath $settingsPath)) {
     $blockingIssues.Add('settings.json is missing in target root.') | Out-Null
 }
-if ((Get-SettingState -Settings $settings -Name 'OPENAI_API_KEY') -ne 'configured') {
+$resolvedOpenAiApiKey = Get-ResolvedSettingState -Settings $settings -Name 'OPENAI_API_KEY'
+$resolvedGovernanceModel = Get-ResolvedSettingState -Settings $settings -Name 'VCO_RUCNLPIR_MODEL'
+if ($resolvedOpenAiApiKey.state -ne 'configured') {
     $manualActions.Add('OPENAI_API_KEY must be configured for full online Codex usage.') | Out-Null
+}
+if ($resolvedGovernanceModel.state -ne 'configured') {
+    $manualActions.Add('VCO_RUCNLPIR_MODEL must be configured for built-in governance advice readiness.') | Out-Null
 }
 if (-not (Test-Path -LiteralPath $activeMcpPath)) {
     $manualActions.Add('MCP active profile has not been materialized yet (servers.active.json missing).') | Out-Null
@@ -428,10 +461,11 @@ $artifact = [ordered]@{
     settings = [ordered]@{
         path = $settingsPath
         exists = [bool](Test-Path -LiteralPath $settingsPath)
-        openai_api_key_state = (Get-SettingState -Settings $settings -Name 'OPENAI_API_KEY')
-        ark_api_key_state = (Get-SettingState -Settings $settings -Name 'ARK_API_KEY')
+        openai_api_key_state = $resolvedOpenAiApiKey.state
+        openai_api_key_source = $resolvedOpenAiApiKey.source
         openai_base_url_state = (Get-SettingState -Settings $settings -Name 'OPENAI_BASE_URL')
-        ark_base_url_state = (Get-SettingState -Settings $settings -Name 'ARK_BASE_URL')
+        vco_rucnlpir_model_state = $resolvedGovernanceModel.state
+        vco_rucnlpir_model_source = $resolvedGovernanceModel.source
     }
     plugins = @($pluginResults)
     external_tools = @($externalTools)

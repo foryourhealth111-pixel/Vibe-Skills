@@ -118,13 +118,15 @@ For both hosts, never ask users to paste key/url/model values into chat. Only gu
 
 ## Governance AI Online Layer Boundary
 
-`OPENAI_API_KEY` and `OPENAI_BASE_URL` represent only baseline online provider access. They do not mean the governance AI online layer is ready.
+Baseline online provider access does not automatically mean the governance AI online layer is ready.
 
-To enable the governance AI online layer, the user must configure locally:
+For the common governance-advice online path, the user should configure locally:
 
-- `VCO_AI_PROVIDER_URL`
-- `VCO_AI_PROVIDER_API_KEY`
-- `VCO_AI_PROVIDER_MODEL`
+- OpenAI-compatible:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
+
 
 Without those values, the environment may be described only as "basic online available" or "local install complete", not as "governance AI online ready".
 

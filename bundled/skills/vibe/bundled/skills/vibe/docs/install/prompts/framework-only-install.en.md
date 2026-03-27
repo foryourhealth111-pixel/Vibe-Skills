@@ -21,11 +21,14 @@ Rules:
    - Linux / macOS: `bash ./install.sh --host opencode --profile minimal` and `bash ./check.sh --host opencode --profile minimal`
 5. For host wording, default roots, and truth-first boundaries, follow `docs/install/minimal-path.en.md` and `docs/install/installation-rules.en.md` instead of restating a second version here.
 6. Never ask me to paste secrets, URLs, or model names into chat.
-7. Remind me that this gives me the governance foundation first, not the full default workflow-core experience.
-8. After installation, proactively give me one quick check command for “is AI governance configured?”:
+7. If I later want AI-governance online capability, you must recommend the real key names first:
+   - OpenAI-compatible: `OPENAI_API_KEY`, optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`, plus `VCO_RUCNLPIR_MODEL`
+   - the built-in AI governance layer supports OpenAI-compatible integration only
+8. Remind me that this gives me the governance foundation first, not the full default workflow-core experience.
+9. After installation, proactively give me one quick check command for “is AI governance configured?”:
    - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\verify\\vibe-router-ai-connectivity-gate.ps1 -TargetRoot "<resolved host root>" -WriteArtifacts`
    - Linux / macOS: `python3 ./scripts/verify/runtime_neutral/router_ai_connectivity_probe.py --target-root "<resolved host root>" --write-artifacts`
    - if the user already has PowerShell 7, an equivalent `pwsh` command is acceptable, but `pwsh` must not be treated as the default prerequisite.
    - explain that this probe checks only AI governance advice connectivity, not full platform health.
-9. End with a concise report covering host, public version, real profile, commands executed, completed parts, and manual follow-up.
+10. End with a concise report covering host, public version, real profile, commands executed, completed parts, and manual follow-up.
 ```

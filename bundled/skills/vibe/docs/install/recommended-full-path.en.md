@@ -121,14 +121,17 @@ git checkout vX.Y.Z
 ### Codex
 
 - hooks remain frozen; that is not an install failure
-- `OPENAI_*` only covers Codex base online provider access
-- `VCO_AI_PROVIDER_*` is the optional governance-AI online layer
+- for the common OpenAI-compatible governance-advice path, prefer:
+  - `OPENAI_API_KEY`
+  - optional `OPENAI_BASE_URL` / `OPENAI_API_BASE`
+  - `VCO_RUCNLPIR_MODEL`
 
 ### Claude Code
 
 - this host has a supported install-and-use path
 - it does not overwrite the real `~/.claude/settings.json`
 - hooks remain frozen; that is not an install failure
+- for the common OpenAI-compatible governance-advice path, prefer `OPENAI_API_KEY` + optional base URL + `VCO_RUCNLPIR_MODEL`
 
 ### Cursor
 

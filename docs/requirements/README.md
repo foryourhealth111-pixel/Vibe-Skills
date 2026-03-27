@@ -19,6 +19,11 @@ Primary policy:
 
 ## Current Entry
 
+- [`2026-03-27-ai-governance-consolidation.md`](./2026-03-27-ai-governance-consolidation.md): 冻结“内置 AI 治理层活跃路径整体收敛整理”的需求；聚焦让 runtime、doctor、install docs 与 helper surface 在 active shipped path 上完全对齐。
+- [`2026-03-27-ai-governance-historical-wording-cleanup.md`](./2026-03-27-ai-governance-historical-wording-cleanup.md): 冻结“内置 AI 治理层历史表述清理”的需求；聚焦在 `vibe` 范围内去掉退役模型键名的历史残留。
+- [`2026-03-27-ai-governance-openai-compatible-only.md`](./2026-03-27-ai-governance-openai-compatible-only.md): 冻结“内置 AI 治理层只保留 OpenAI-compatible 接入”的需求；聚焦移除 Ark 并行内置入口，统一公开安装、bootstrap、probe 与默认策略口径。
+- [`2026-03-27-ai-governance-install-clarity.md`](./2026-03-27-ai-governance-install-clarity.md): 冻结 issue #57 的安装澄清需求；聚焦把 AI 治理 advice 的 API 配置键名、快速检查口径与“本地安装完成 / 在线能力就绪”边界说清楚。
+- [`2026-03-27-ai-governance-single-model-key.md`](./2026-03-27-ai-governance-single-model-key.md): 冻结“内置 AI 治理层单模型键收敛”的需求；聚焦统一到 `VCO_RUCNLPIR_MODEL`。
 - [`2026-03-20-readme-en-detail-and-github-branding-copy.md`](./2026-03-20-readme-en-detail-and-github-branding-copy.md): 冻结英文 README 细化与 GitHub 品牌文案补充；聚焦让 `README.en.md` 与中文版接近同等细节层级，并产出 `About / Topics / social preview` 可复用文案。
 - [`2026-03-20-readme-emoji-layout-polish.md`](./2026-03-20-readme-emoji-layout-polish.md): 冻结 README 中文视觉润色；聚焦用少量 emoji 和版式节奏优化，让首页更精致、更有设计感但仍保持克制。
 - [`2026-03-20-readme-differentiated-science-ai-strengths.md`](./2026-03-20-readme-differentiated-science-ai-strengths.md): 冻结 README 中文差异化强化；聚焦把生命科学、科研、AI 工程三块写得更有冲击力，更能体现仓库强势能力区。

@@ -77,14 +77,13 @@ function Scan-Text {
       continue
     }
 
-    # 2) Settings-style JSON env assignments (OPENAI_API_KEY / ARK_API_KEY)
-    if ($line -match "(?i)\\bOPENAI_API_KEY\\b" -and ($line -notmatch "<REQUIRED>" ) -and ($line -notmatch "\\$\\{OPENAI_API_KEY\\}" ) -and ($line -notmatch "\\$OPENAI_API_KEY" )) {
-      # If it's not a placeholder, flag it.
-      Add-Finding -Kind "openai_api_key_assignment" -Path $VirtualPath -Line ($i + 1) -Preview (Get-RedactedLine -Line $line)
-      continue
-    }
-    if ($line -match "(?i)\\bARK_API_KEY\\b" -and ($line -notmatch "<OPTIONAL" ) -and ($line -notmatch "\\$\\{ARK_API_KEY\\}" ) -and ($line -notmatch "\\$ARK_API_KEY" )) {
-      Add-Finding -Kind "ark_api_key_assignment" -Path $VirtualPath -Line ($i + 1) -Preview (Get-RedactedLine -Line $line)
+    # 2) Settings-style JSON env assignments for explicit API key variable names.
+    if ($line -match '(?i)\b[A-Z0-9_]*API_KEY\b' -and
+        ($line -notmatch '<REQUIRED>') -and
+        ($line -notmatch '<OPTIONAL') -and
+        ($line -notmatch '\$\{[A-Z0-9_]*API_KEY\}') -and
+        ($line -notmatch '\$[A-Z0-9_]*API_KEY\b')) {
+      Add-Finding -Kind "api_key_assignment" -Path $VirtualPath -Line ($i + 1) -Preview (Get-RedactedLine -Line $line)
       continue
     }
   }

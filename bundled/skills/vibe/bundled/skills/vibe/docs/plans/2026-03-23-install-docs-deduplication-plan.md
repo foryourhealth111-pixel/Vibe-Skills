@@ -53,9 +53,9 @@ docs/install/
 │   - 规则的执行顺序
 │
 ├── configuration-guide.md (配置指南，100行)
-│   - VCO_AI_PROVIDER_URL 详细说明
-│   - VCO_AI_PROVIDER_API_KEY 详细说明
-│   - VCO_AI_PROVIDER_MODEL 详细说明
+│   - 旧治理 provider URL 键名的详细说明
+│   - 旧治理 provider API key 键名的详细说明
+│   - 旧治理模型键名的详细说明
 │   - Codex 配置方法
 │   - Claude Code 配置方法
 │

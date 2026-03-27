@@ -71,6 +71,30 @@ def setting_state(settings: dict[str, Any] | None, name: str) -> str:
     return "configured"
 
 
+def os_environ(name: str) -> str | None:
+    import os
+
+    value = os.environ.get(name)
+    if value is None or not str(value).strip():
+        return None
+    return str(value)
+
+
+def resolved_setting_state(settings: dict[str, Any] | None, name: str) -> tuple[str, str]:
+    env_value = os_environ(name)
+    if env_value:
+        if placeholder_value(env_value):
+            return "placeholder", "env"
+        return "configured", "env"
+
+    setting_value_text = setting_value(settings, name)
+    if setting_value_text is None or not setting_value_text.strip():
+        return "missing", "missing"
+    if placeholder_value(setting_value_text):
+        return "placeholder", "settings"
+    return "configured", "settings"
+
+
 def command_present(name: str) -> bool:
     return shutil.which(name) is not None
 
@@ -92,8 +116,8 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
         "",
         "## Settings",
         "",
-        f"- `OPENAI_API_KEY`: `{artifact['settings']['openai_api_key_state']}`",
-        f"- `ARK_API_KEY`: `{artifact['settings']['ark_api_key_state']}`",
+        f"- `OPENAI_API_KEY`: `{artifact['settings']['openai_api_key_state']}` via `{artifact['settings']['openai_api_key_source']}`",
+        f"- `VCO_RUCNLPIR_MODEL`: `{artifact['settings']['vco_rucnlpir_model_state']}` via `{artifact['settings']['vco_rucnlpir_model_source']}`",
         "",
     ]
     if artifact["plugins"]:
@@ -309,8 +333,13 @@ def evaluate(repo_root: Path, target_root: Path) -> dict[str, Any]:
 
     if not settings_path.exists():
         blocking_issues.append("settings.json is missing in target root.")
-    if setting_state(settings, "OPENAI_API_KEY") != "configured":
+    openai_api_key_state, openai_api_key_source = resolved_setting_state(settings, "OPENAI_API_KEY")
+    governance_model_state, governance_model_source = resolved_setting_state(settings, "VCO_RUCNLPIR_MODEL")
+
+    if openai_api_key_state != "configured":
         manual_actions.append("OPENAI_API_KEY must be configured for full online Codex usage.")
+    if governance_model_state != "configured":
+        manual_actions.append("VCO_RUCNLPIR_MODEL must be configured for built-in governance advice readiness.")
     if not active_mcp_path.exists():
         manual_actions.append("MCP active profile has not been materialized yet (servers.active.json missing).")
     for plugin in plugins:
@@ -340,10 +369,11 @@ def evaluate(repo_root: Path, target_root: Path) -> dict[str, Any]:
         "settings": {
             "path": str(settings_path),
             "exists": settings_path.exists(),
-            "openai_api_key_state": setting_state(settings, "OPENAI_API_KEY"),
-            "ark_api_key_state": setting_state(settings, "ARK_API_KEY"),
+            "openai_api_key_state": openai_api_key_state,
+            "openai_api_key_source": openai_api_key_source,
             "openai_base_url_state": setting_state(settings, "OPENAI_BASE_URL"),
-            "ark_base_url_state": setting_state(settings, "ARK_BASE_URL"),
+            "vco_rucnlpir_model_state": governance_model_state,
+            "vco_rucnlpir_model_source": governance_model_source,
         },
         "plugins": plugins,
         "external_tools": external_tools,
@@ -367,16 +397,6 @@ def evaluate(repo_root: Path, target_root: Path) -> dict[str, Any]:
             "warnings": warnings,
         },
     }
-
-
-def os_environ(name: str) -> str | None:
-    import os
-
-    value = os.environ.get(name)
-    if value is None or not str(value).strip():
-        return None
-    return str(value)
-
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Runtime-neutral bootstrap doctor.")

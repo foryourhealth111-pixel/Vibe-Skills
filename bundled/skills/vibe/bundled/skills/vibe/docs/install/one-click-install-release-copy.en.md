@@ -50,6 +50,20 @@ Outside these four docs, the other pages no longer act as public install prompt 
 - if you later want online providers, MCP, host-local settings, or plugin integrations, those should be presented as optional enhancement guidance rather than mandatory blockers
 - the prompt docs and references still explain truthfully which parts remain host-managed
 
+## If you want AI governance online afterward, use only this OpenAI-compatible key set
+
+Common OpenAI-compatible path:
+
+- `OPENAI_API_KEY`
+- optional: `OPENAI_BASE_URL` or `OPENAI_API_BASE`
+- `VCO_RUCNLPIR_MODEL`
+
+Notes:
+
+- the built-in AI governance layer now supports OpenAI-compatible integration only
+- the install docs no longer treat `VCO_AI_PROVIDER_URL` / `VCO_AI_PROVIDER_API_KEY` as the default primary path
+- see [`configuration-guide.en.md`](./configuration-guide.en.md) for the full explanation
+
 ## Quick Check After Install: Is AI Governance Configured?
 
 If you want to quickly confirm whether the router AI governance advice path is configured, run this from the repo root:

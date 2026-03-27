@@ -50,6 +50,20 @@
 - 如果你还想补在线 provider、MCP、宿主本地 settings 或插件联动，这些都属于增强建议，不是基础安装的前置门槛
 - 各宿主哪些内容仍由宿主侧本地维护，会在对应提示词和参考文档中如实说明
 
+## 安装后如果要补 AI 治理在线配置，只按 OpenAI-compatible 这组键名
+
+常见 OpenAI-compatible 路径：
+
+- `OPENAI_API_KEY`
+- 可选：`OPENAI_BASE_URL` 或 `OPENAI_API_BASE`
+- `VCO_RUCNLPIR_MODEL`
+
+补充说明：
+
+- 内置 AI 治理层当前只支持 OpenAI-compatible 接入
+- 当前安装说明不再把 `VCO_AI_PROVIDER_URL` / `VCO_AI_PROVIDER_API_KEY` 当成默认主路径
+- 详细说明见 [`configuration-guide.md`](./configuration-guide.md)
+
 ## 安装后快速检查 AI 治理是否已配置好
 
 如果你想快速确认“路由里的 AI 治理 advice 是否已经配通”，可以在仓库根目录运行：
