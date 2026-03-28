@@ -4,13 +4,20 @@ param(
     [string]$RunId = '',
     [string]$RequirementDocPath = '',
     [string]$RuntimeInputPacketPath = '',
-    [string]$ArtifactRoot = ''
+    [string]$ArtifactRoot = '',
+    [AllowEmptyString()] [string]$GovernanceScope = '',
+    [AllowEmptyString()] [string]$RootRunId = '',
+    [AllowEmptyString()] [string]$ParentRunId = '',
+    [AllowEmptyString()] [string]$ParentUnitId = '',
+    [AllowEmptyString()] [string]$InheritedRequirementDocPath = '',
+    [AllowEmptyString()] [string]$InheritedExecutionPlanPath = ''
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
+. (Join-Path $PSScriptRoot 'VibeExecution.Common.ps1')
 . (Join-Path $PSScriptRoot '..\common\AntiProxyGoalDrift.ps1')
 
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
@@ -19,8 +26,25 @@ if ([string]::IsNullOrWhiteSpace($RunId)) {
 }
 
 $sessionRoot = Ensure-VibeSessionRoot -RepoRoot $runtime.repo_root -RunId $RunId -ArtifactRoot $ArtifactRoot
+$hierarchyState = Get-VibeHierarchyState `
+    -GovernanceScope $GovernanceScope `
+    -RunId $RunId `
+    -RootRunId $RootRunId `
+    -ParentRunId $ParentRunId `
+    -ParentUnitId $ParentUnitId `
+    -InheritedRequirementDocPath $InheritedRequirementDocPath `
+    -InheritedExecutionPlanPath $InheritedExecutionPlanPath `
+    -HierarchyContract $runtime.runtime_input_packet_policy.hierarchy_contract
 $grade = Get-VibeInternalGrade -Task $Task
-$planPath = Get-VibeExecutionPlanPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
+$isChildScope = ([string]$hierarchyState.governance_scope -eq 'child')
+$planPath = if ($isChildScope) {
+    if ([string]::IsNullOrWhiteSpace([string]$hierarchyState.inherited_execution_plan_path)) {
+        throw 'Child-governed plan stage requires InheritedExecutionPlanPath.'
+    }
+    [string]$hierarchyState.inherited_execution_plan_path
+} else {
+    Get-VibeExecutionPlanPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
+}
 $requirementPath = if (-not [string]::IsNullOrWhiteSpace($RequirementDocPath)) { $RequirementDocPath } else { Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot }
 $antiDriftDraft = Get-VgoAntiProxyGoalDriftPacketFromRequirementDoc -RequirementDocPath $requirementPath
 $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath) -and (Test-Path -LiteralPath $RuntimeInputPacketPath)) {
@@ -28,6 +52,17 @@ $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketP
 } else {
     $null
 }
+$approvedDispatch = if ($runtimeInputPacket -and $runtimeInputPacket.specialist_dispatch) { @($runtimeInputPacket.specialist_dispatch.approved_dispatch) } else { @() }
+$localSuggestions = if ($runtimeInputPacket -and $runtimeInputPacket.specialist_dispatch) { @($runtimeInputPacket.specialist_dispatch.local_specialist_suggestions) } else { @() }
+$executionTopology = New-VibeExecutionTopology `
+    -RunId $RunId `
+    -Grade $grade `
+    -GovernanceScope ([string]$hierarchyState.governance_scope) `
+    -BenchmarkPolicy $runtime.benchmark_execution_policy `
+    -TopologyPolicy $runtime.execution_topology_policy `
+    -ApprovedDispatch @($approvedDispatch)
+$executionTopologyPath = Get-VibeExecutionTopologyPath -RepoRoot $runtime.repo_root -RunId $RunId -ArtifactRoot $ArtifactRoot
+Write-VibeJsonArtifact -Path $executionTopologyPath -Value $executionTopology
 
 $waveLines = switch ($grade) {
     'XL' {
@@ -66,28 +101,81 @@ $lines = @(
 $lines += @('')
 if ($runtimeInputPacket) {
     $lines += @(
+        "- Governance scope: $([string]$runtimeInputPacket.governance_scope)",
+        "- Root run id: $([string]$runtimeInputPacket.hierarchy.root_run_id)",
         "- Frozen route pack: $([string]$runtimeInputPacket.route_snapshot.selected_pack)",
         "- Frozen route skill: $([string]$runtimeInputPacket.route_snapshot.selected_skill)",
         "- Frozen route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
         "- Router/runtime skill mismatch: $([bool]$runtimeInputPacket.divergence_shadow.skill_mismatch)"
     )
 }
+$lines += @(
+    "- Execution topology companion: $executionTopologyPath"
+)
 $lines += @(Get-VgoAntiProxyGoalDriftPlanLines -Packet $antiDriftDraft)
 $lines += @(
     '',
     '## Internal Grade Decision',
     "- Grade: $grade",
     '- User-facing runtime remains fixed; grade is internal only.',
+    '- `vibe` remains the governor and final authority for execution flow.',
     '',
     '## Wave Plan'
 )
 $lines += $waveLines
 $lines += @(
     '',
+    '## Execution Topology Snapshot',
+    "- Delegation mode: $([string]$executionTopology.delegation_mode)",
+    "- Review mode: $([string]$executionTopology.review_mode)",
+    "- Specialist execution mode: $([string]$executionTopology.specialist_execution_mode)",
+    "- Max parallel units: $([int]$executionTopology.max_parallel_units)"
+)
+foreach ($topologyWave in @($executionTopology.waves)) {
+    $lines += ('- Wave `{0}` has {1} executable step(s).' -f [string]$topologyWave.wave_id, @($topologyWave.steps).Count)
+    foreach ($step in @($topologyWave.steps)) {
+        $lines += ('  Step `{0}` -> mode `{1}`, units `{2}`.' -f [string]$step.step_id, [string]$step.execution_mode, @($step.units).Count)
+    }
+}
+if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
+    $lines += @(
+        '',
+        '## Specialist Skill Dispatch Plan',
+        '- Specialist dispatch is advisory and bounded; it does not transfer runtime authority away from vibe.',
+        '- Each specialist must be invoked through its native workflow, input contract, and validation style.',
+        '- Specialist outputs remain subordinate to the frozen requirement and the governed plan.'
+    )
+    foreach ($recommendation in @($approvedDispatch)) {
+        $lines += @(
+            ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
+            ('  Reason: {0}' -f [string]$recommendation.reason),
+            ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
+            ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
+            ('  Verification: {0}' -f [string]$recommendation.verification_expectation)
+        )
+    }
+    if (@($localSuggestions).Count -gt 0) {
+        $lines += @(
+            '',
+            '## Child Specialist Escalation Suggestions',
+            '- These suggestions are advisory only until root-governed approval updates the canonical dispatch surface.'
+        )
+        foreach ($recommendation in @($localSuggestions)) {
+            $lines += @(
+                ('- Suggest {0}.' -f [string]$recommendation.skill_id),
+                ('  Reason: {0}' -f [string]$recommendation.reason),
+                '  Escalation required: true'
+            )
+        }
+    }
+}
+$lines += @(
+    '',
     '## Ownership Boundaries',
     '- One owner per artifact set.',
     '- Parallel work must use disjoint write scopes.',
     '- Subagent prompts must end with `$vibe`.',
+    '- Specialist help stays bounded and native-mode; it must not become a second planner or a second runtime.',
     '',
     '## Verification Commands',
     '- Run targeted repo verification for changed surfaces.',
@@ -104,16 +192,45 @@ $lines += @(
     '- Write cleanup receipt before completion.'
 )
 
-Write-VibeMarkdownArtifact -Path $planPath -Lines $lines
+$childHandoffPath = $null
+if ($isChildScope) {
+    if (-not (Test-Path -LiteralPath $planPath)) {
+        throw ("Child-governed plan stage cannot inherit missing canonical execution plan: {0}" -f $planPath)
+    }
+
+    $childHandoffPath = Join-Path $sessionRoot 'child-execution-handoff.md'
+    $handoffLines = @(
+        "# Child Execution Handoff",
+        '',
+        '- governance_scope: child',
+        ('- inherited_execution_plan: {0}' -f $planPath),
+        ('- root_run_id: {0}' -f [string]$hierarchyState.root_run_id),
+        ('- parent_run_id: {0}' -f [string]$hierarchyState.parent_run_id),
+        ('- parent_unit_id: {0}' -f [string]$hierarchyState.parent_unit_id),
+        '- canonical_write_allowed: false',
+        ('- approved_specialist_dispatch_count: {0}' -f @($approvedDispatch).Count),
+        ('- local_specialist_suggestion_count: {0}' -f @($localSuggestions).Count),
+        '',
+        'Child-governed lanes inherit the frozen root plan and may not create a second canonical execution-plan surface.'
+    )
+    Write-VibeMarkdownArtifact -Path $childHandoffPath -Lines $handoffLines
+} else {
+    Write-VibeMarkdownArtifact -Path $planPath -Lines $lines
+}
 
 $receipt = [pscustomobject]@{
     stage = 'xl_plan'
     run_id = $RunId
+    governance_scope = [string]$hierarchyState.governance_scope
     mode = $Mode
     internal_grade = $grade
     requirement_doc_path = $requirementPath
     execution_plan_path = $planPath
+    child_execution_handoff_path = $childHandoffPath
+    canonical_write_allowed = -not $isChildScope
+    inherited_execution_plan_path = if ($isChildScope) { $planPath } else { $null }
     runtime_input_packet_path = $RuntimeInputPacketPath
+    execution_topology_path = $executionTopologyPath
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
 $receiptPath = Join-Path $sessionRoot 'execution-plan-receipt.json'

@@ -17,6 +17,8 @@ function Get-VibeRuntimeContext {
         runtime_contract = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-contract.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         runtime_modes = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-modes.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         runtime_input_packet_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-input-packet-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        execution_topology_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\execution-topology-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        native_specialist_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\native-specialist-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         requirement_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\requirement-doc-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         plan_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\plan-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         benchmark_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\benchmark-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -47,6 +49,73 @@ function Resolve-VibeRuntimeMode {
     }
 
     return $normalized
+}
+
+function Resolve-VibeGovernanceScope {
+    param(
+        [AllowEmptyString()] [string]$GovernanceScope,
+        [AllowEmptyString()] [string]$DefaultScope = 'root'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($GovernanceScope)) {
+        return $DefaultScope
+    }
+
+    $normalized = $GovernanceScope.Trim().ToLowerInvariant()
+    if ($normalized -notin @('root', 'child')) {
+        throw "Unsupported governance scope: $GovernanceScope"
+    }
+
+    return $normalized
+}
+
+function Get-VibeHierarchyState {
+    param(
+        [Parameter(Mandatory)] [AllowEmptyString()] [string]$GovernanceScope,
+        [Parameter(Mandatory)] [string]$RunId,
+        [AllowEmptyString()] [string]$RootRunId = '',
+        [AllowEmptyString()] [string]$ParentRunId = '',
+        [AllowEmptyString()] [string]$ParentUnitId = '',
+        [AllowEmptyString()] [string]$InheritedRequirementDocPath = '',
+        [AllowEmptyString()] [string]$InheritedExecutionPlanPath = '',
+        [Parameter(Mandatory)] [object]$HierarchyContract
+    )
+
+    $scope = Resolve-VibeGovernanceScope -GovernanceScope $GovernanceScope -DefaultScope ([string]$HierarchyContract.default_governance_scope)
+    $authoritySource = if ($scope -eq 'child') {
+        $HierarchyContract.child_authority_flags
+    } else {
+        $HierarchyContract.root_authority_flags
+    }
+
+    $resolvedRootRunId = if ($scope -eq 'root') {
+        $RunId
+    } elseif (-not [string]::IsNullOrWhiteSpace($RootRunId)) {
+        $RootRunId
+    } elseif (-not [string]::IsNullOrWhiteSpace($ParentRunId)) {
+        $ParentRunId
+    } else {
+        $RunId
+    }
+
+    $resolvedParentRunId = if ($scope -eq 'child' -and -not [string]::IsNullOrWhiteSpace($ParentRunId)) {
+        $ParentRunId
+    } else {
+        $null
+    }
+
+    return [pscustomobject]@{
+        governance_scope = $scope
+        root_run_id = $resolvedRootRunId
+        parent_run_id = $resolvedParentRunId
+        parent_unit_id = if ($scope -eq 'child' -and -not [string]::IsNullOrWhiteSpace($ParentUnitId)) { $ParentUnitId } else { $null }
+        inherited_requirement_doc_path = if ($scope -eq 'child' -and -not [string]::IsNullOrWhiteSpace($InheritedRequirementDocPath)) { [System.IO.Path]::GetFullPath($InheritedRequirementDocPath) } else { $null }
+        inherited_execution_plan_path = if ($scope -eq 'child' -and -not [string]::IsNullOrWhiteSpace($InheritedExecutionPlanPath)) { [System.IO.Path]::GetFullPath($InheritedExecutionPlanPath) } else { $null }
+        allow_requirement_freeze = [bool]$authoritySource.allow_requirement_freeze
+        allow_plan_freeze = [bool]$authoritySource.allow_plan_freeze
+        allow_global_dispatch = [bool]$authoritySource.allow_global_dispatch
+        allow_completion_claim = [bool]$authoritySource.allow_completion_claim
+    }
 }
 
 function ConvertTo-VibeSlug {
@@ -252,4 +321,15 @@ function Get-VibeRuntimeInputPacketPath {
 
     $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -ArtifactRoot $ArtifactRoot
     return [System.IO.Path]::GetFullPath((Join-Path $sessionRoot 'runtime-input-packet.json'))
+}
+
+function Get-VibeExecutionTopologyPath {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$RunId,
+        [AllowEmptyString()] [string]$ArtifactRoot = ''
+    )
+
+    $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -ArtifactRoot $ArtifactRoot
+    return [System.IO.Path]::GetFullPath((Join-Path $sessionRoot 'execution-topology.json'))
 }

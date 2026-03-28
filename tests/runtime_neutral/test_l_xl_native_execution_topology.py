@@ -35,6 +35,7 @@ def run_runtime(
     artifact_root: Path,
     *,
     mode: str = "benchmark_autonomous",
+    script_relative_path: str = "scripts/runtime/invoke-vibe-runtime.ps1",
     governance_scope: str = "root",
     root_run_id: str = "",
     parent_run_id: str = "",
@@ -48,7 +49,7 @@ def run_runtime(
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
-    script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+    script_path = REPO_ROOT / script_relative_path
     run_id = "pytest-topology-" + uuid.uuid4().hex[:10]
     approved = approved_specialist_skill_ids or []
     approved_literal = (
@@ -464,6 +465,95 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             child_session_root = Path(child_payload["session_root"])
             specialist_result_files = list(child_session_root.glob("execution-results/*specialist*.json"))
             self.assertLessEqual(len(specialist_result_files), len(specialist_outcomes))
+
+    def test_child_divergent_specialist_request_without_overlap_escalates_without_crashing(self) -> None:
+        cases = [
+            (
+                "L",
+                "Design architecture migration with staged review and planning gates.",
+                "serial_child_lanes",
+            ),
+            (
+                "XL",
+                "Run an XL multi-agent wave with parallelizable independent units, then reconcile in sequence.",
+                "selective_parallel_child_lanes",
+            ),
+        ]
+
+        for expected_grade, root_task, expected_delegation_mode in cases:
+            with self.subTest(expected_grade=expected_grade):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    artifact_root = Path(tempdir)
+                    root_payload = run_runtime(
+                        task=root_task,
+                        artifact_root=artifact_root,
+                        governance_scope="root",
+                    )
+                    root_summary = root_payload["summary"]
+
+                    child_payload = run_runtime(
+                        task=root_task + " Child lane divergence into a new specialist demand set.",
+                        artifact_root=artifact_root,
+                        governance_scope="child",
+                        root_run_id=str(root_summary["run_id"]),
+                        parent_run_id=str(root_summary["run_id"]),
+                        parent_unit_id=f"pytest-{expected_grade.lower()}-divergent-child-unit",
+                        inherited_requirement_doc_path=Path(root_summary["artifacts"]["requirement_doc"]),
+                        inherited_execution_plan_path=Path(root_summary["artifacts"]["execution_plan"]),
+                        approved_specialist_skill_ids=["totally-non-overlap-skill-id"],
+                    )
+
+                    child_summary = child_payload["summary"]
+                    child_runtime_input = load_json(child_summary["artifacts"]["runtime_input_packet"])
+                    child_execution_manifest = load_json(child_summary["artifacts"]["execution_manifest"])
+
+                    self.assertEqual(expected_grade, child_execution_manifest["internal_grade"])
+                    self.assertEqual(
+                        expected_delegation_mode,
+                        child_execution_manifest["execution_topology"]["delegation_mode"],
+                    )
+
+                    specialist_dispatch = child_runtime_input["specialist_dispatch"]
+                    self.assertEqual([], list(specialist_dispatch["approved_dispatch"]))
+                    self.assertEqual([], list(specialist_dispatch["approved_skill_ids"]))
+                    self.assertGreaterEqual(len(list(specialist_dispatch["local_specialist_suggestions"])), 1)
+                    self.assertTrue(bool(specialist_dispatch["escalation_required"]))
+                    self.assertEqual("root_approval_required", str(specialist_dispatch["escalation_status"]))
+
+                    specialist_accounting = child_execution_manifest["specialist_accounting"]
+                    self.assertEqual(0, int(specialist_accounting["approved_dispatch_count"]))
+                    self.assertEqual(0, int(specialist_accounting["executed_specialist_unit_count"]))
+                    self.assertEqual(0, int(specialist_accounting["degraded_specialist_unit_count"]))
+                    self.assertEqual(0, int(specialist_accounting["specialist_skill_count"]))
+                    self.assertEqual([], list(specialist_accounting["specialist_dispatch_outcomes"]))
+                    self.assertGreaterEqual(int(specialist_accounting["local_suggestion_count"]), 1)
+                    self.assertTrue(bool(specialist_accounting["escalation_required"]))
+
+                    escalation_request_path = specialist_accounting.get("escalation_request_path")
+                    self.assertTrue(escalation_request_path)
+                    self.assertTrue(Path(escalation_request_path).exists())
+                    self.assertEqual("completed_local_scope", child_execution_manifest["status"])
+                    self.assertFalse(bool(child_execution_manifest["authority"]["completion_claim_allowed"]))
+
+    def test_bundled_runtime_mirror_matches_primary_runtime_sources(self) -> None:
+        primary_runtime = REPO_ROOT / "scripts" / "runtime"
+        bundled_runtime_roots = [
+            REPO_ROOT / "bundled" / "skills" / "vibe" / "scripts" / "runtime",
+            REPO_ROOT / "bundled" / "skills" / "vibe" / "bundled" / "skills" / "vibe" / "scripts" / "runtime",
+        ]
+
+        primary_files = sorted(path.name for path in primary_runtime.glob("*.ps1"))
+        self.assertGreaterEqual(len(primary_files), 1)
+
+        for bundled_runtime in bundled_runtime_roots:
+            with self.subTest(bundled_runtime=str(bundled_runtime)):
+                bundled_files = sorted(path.name for path in bundled_runtime.glob("*.ps1"))
+                self.assertEqual(primary_files, bundled_files)
+                for file_name in primary_files:
+                    self.assertEqual(
+                        (primary_runtime / file_name).read_text(encoding="utf-8"),
+                        (bundled_runtime / file_name).read_text(encoding="utf-8"),
+                    )
 
 
 if __name__ == "__main__":
