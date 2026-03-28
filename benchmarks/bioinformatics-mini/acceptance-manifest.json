@@ -1,0 +1,13 @@
+{
+  "benchmark_id": "bioinformatics-mini",
+  "critical_user_flows": [
+    "process small biological dataset",
+    "produce structured analysis summary",
+    "produce scientific-style downstream report"
+  ],
+  "acceptance_focus": [
+    "specialist-assisted workflow integrity",
+    "scientific reporting quality",
+    "bounded manual acceptance review"
+  ]
+}

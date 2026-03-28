@@ -21,6 +21,7 @@ The governed runtime path remains:
 - a frozen requirement document
 - an execution plan
 - an internal execution grade
+- a frozen downstream delivery-acceptance contract
 
 The job here is to execute, verify, and hand off cleanly to `phase_cleanup`.
 
@@ -166,7 +167,8 @@ Before marking code task complete:
 2. Code review completed
 3. No security vulnerabilities (for user-facing code)
 4. No console.log left in production code
-5. A handoff bundle exists for runtime stage 6 `phase_cleanup`
+5. Delivery-acceptance evidence is sufficient for the claimed completion wording
+6. A handoff bundle exists for runtime stage 6 `phase_cleanup`
 
 ## Required Handoff To `phase_cleanup`
 
@@ -177,6 +179,8 @@ Before leaving this protocol, write or preserve the evidence needed for cleanup:
 - changed artifact list
 - temp artifact list
 - node or process cleanup notes when relevant
+- manual spot-check status when the frozen requirement declared them
+- completion-language downgrade notes when delivery truth is not fully passing
 - open risks or deferred follow-ups
 
 `phase_cleanup` is mandatory and owns the final closure receipt.

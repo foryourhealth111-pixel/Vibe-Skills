@@ -158,6 +158,8 @@ foreach ($key in @('GovernanceScope', 'RootRunId', 'ParentRunId', 'ParentUnitId'
 }
 $execute = & (Join-Path $PSScriptRoot 'Invoke-PlanExecute.ps1') @executeArgs
 $cleanup = & (Join-Path $PSScriptRoot 'Invoke-PhaseCleanup.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot -ExecuteGovernanceCleanup:$ExecuteGovernanceCleanup -ApplyManagedNodeCleanup:$ApplyManagedNodeCleanup
+$deliveryAcceptanceReportPath = Join-Path $skeleton.session_root 'delivery-acceptance-report.json'
+$deliveryAcceptanceMarkdownPath = Join-Path $skeleton.session_root 'delivery-acceptance-report.md'
 
 $artifactReadiness = Wait-VibeArtifactSet -Paths @(
     [string]$skeleton.receipt_path,
@@ -171,7 +173,8 @@ $artifactReadiness = Wait-VibeArtifactSet -Paths @(
     [string]$execute.execution_manifest_path,
     [string]$execute.execution_topology_path,
     [string]$execute.benchmark_proof_manifest_path,
-    [string]$cleanup.receipt_path
+    [string]$cleanup.receipt_path,
+    [string]$deliveryAcceptanceReportPath
 )
 
 if (-not $artifactReadiness.ready) {
@@ -191,6 +194,14 @@ $relativeArtifacts = [ordered]@{
     execution_topology = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$execute.execution_topology_path)
     benchmark_proof_manifest = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$execute.benchmark_proof_manifest_path)
     cleanup_receipt = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$cleanup.receipt_path)
+    delivery_acceptance_report = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$deliveryAcceptanceReportPath)
+    delivery_acceptance_markdown = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$deliveryAcceptanceMarkdownPath)
+}
+
+$deliveryAcceptanceReport = if (Test-Path -LiteralPath $deliveryAcceptanceReportPath) {
+    Get-Content -LiteralPath $deliveryAcceptanceReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} else {
+    $null
 }
 
 $summary = [pscustomobject]@{
@@ -230,6 +241,19 @@ $summary = [pscustomobject]@{
         execution_topology = $execute.execution_topology_path
         benchmark_proof_manifest = $execute.benchmark_proof_manifest_path
         cleanup_receipt = $cleanup.receipt_path
+        delivery_acceptance_report = $deliveryAcceptanceReportPath
+        delivery_acceptance_markdown = $deliveryAcceptanceMarkdownPath
+    }
+    delivery_acceptance = if ($deliveryAcceptanceReport) {
+        [pscustomobject]@{
+            gate_result = [string]$deliveryAcceptanceReport.summary.gate_result
+            completion_language_allowed = [bool]$deliveryAcceptanceReport.summary.completion_language_allowed
+            readiness_state = [string]$deliveryAcceptanceReport.summary.readiness_state
+            manual_review_layer_count = [int]$deliveryAcceptanceReport.summary.manual_review_layer_count
+            failing_layer_count = [int]$deliveryAcceptanceReport.summary.failing_layer_count
+        }
+    } else {
+        $null
     }
     artifacts_relative = [pscustomobject]$relativeArtifacts
 }

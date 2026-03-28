@@ -1,0 +1,41 @@
+{
+  "scenario_id": "partial-completion-blocked",
+  "task_class": "runtime_partial_completion",
+  "benchmark_repo": "benchmarks/python-lib",
+  "runtime": {
+    "status": "completed_with_failures",
+    "readiness_state": "ready"
+  },
+  "truths": {
+    "governance_truth": {
+      "state": "passing",
+      "evidence": [
+        "governed runtime executed and wrote receipts"
+      ]
+    },
+    "engineering_verification_truth": {
+      "state": "partial",
+      "evidence": [
+        "some tests passed",
+        "some tests or verifiers failed"
+      ]
+    },
+    "workflow_completion_truth": {
+      "state": "partial",
+      "evidence": [
+        "some planned work executed",
+        "some units failed"
+      ]
+    },
+    "product_acceptance_truth": {
+      "state": "failing",
+      "evidence": [
+        "critical user flow remains broken"
+      ]
+    }
+  },
+  "manual_spot_checks": [],
+  "residual_risks": [
+    "Critical project behavior is still incomplete."
+  ]
+}

@@ -19,6 +19,67 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
 . (Join-Path $PSScriptRoot '..\common\AntiProxyGoalDrift.ps1')
 
+function Test-VibeTaskNeedsManualSpotChecks {
+    param(
+        [Parameter(Mandatory)] [string]$Task,
+        [AllowEmptyString()] [string]$Deliverable = ''
+    )
+
+    $text = ('{0} {1}' -f $Task, $Deliverable).ToLowerInvariant()
+    return $text -match 'ui|ux|frontend|browser|page|screen|openclaw|cursor|windsurf|codex|用户|界面|交互|可视化|体验'
+}
+
+function Get-VibeProductAcceptanceCriteria {
+    param(
+        [Parameter(Mandatory)] [object]$IntentContract
+    )
+
+    $criteria = @()
+    foreach ($item in @($IntentContract.acceptance_criteria)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$item)) {
+            $criteria += [string]$item
+        }
+    }
+    $criteria += 'The delivered output must satisfy observable behavior implied by the frozen goal and deliverable, not only internal runtime progress.'
+    $criteria += 'Full completion wording is allowed only after downstream delivery truth is passing.'
+    return @($criteria | Select-Object -Unique)
+}
+
+function Get-VibeManualSpotChecks {
+    param(
+        [Parameter(Mandatory)] [string]$Task,
+        [Parameter(Mandatory)] [object]$IntentContract
+    )
+
+    if (Test-VibeTaskNeedsManualSpotChecks -Task $Task -Deliverable ([string]$IntentContract.deliverable)) {
+        return @(
+            'Open the primary user-facing flow and confirm the main path works from entry to completion.',
+            'Exercise one meaningful unhappy-path or validation-path interaction and record whether behavior matches the frozen requirement.'
+        )
+    }
+
+    return @(
+        'None required beyond automated verification for this task unless the execution scope expands to a user-visible or interactive flow.'
+    )
+}
+
+function Get-VibeCompletionLanguagePolicy {
+    return @(
+        'Full completion wording is allowed only when governance truth, engineering verification truth, workflow completion truth, and product acceptance truth are all passing.',
+        '`completed_with_failures`, degraded execution, or pending manual actions must be reported as non-complete states.',
+        'If manual spot checks remain pending, the run must be described as requiring manual review rather than fully ready.'
+    )
+}
+
+function Get-VibeDeliveryTruthContractLines {
+    return @(
+        'Governance truth: requirement, plan, execution, and cleanup artifacts remain traceable and authoritative.',
+        'Engineering verification truth: targeted verification passes or fails explicitly; silence does not count as success.',
+        'Workflow completion truth: planned units, delegated lanes, and specialist outputs reconcile back into the governed plan.',
+        'Product acceptance truth: observable deliverable behavior satisfies frozen acceptance criteria before full completion language is allowed.'
+    )
+}
+
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
 if ([string]::IsNullOrWhiteSpace($RunId)) {
     $RunId = New-VibeRunId
@@ -50,6 +111,10 @@ $docPath = if ($isChildScope) {
     Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 }
 $antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
+$productAcceptanceCriteria = Get-VibeProductAcceptanceCriteria -IntentContract $intentContract
+$manualSpotChecks = Get-VibeManualSpotChecks -Task $Task -IntentContract $intentContract
+$completionLanguagePolicy = Get-VibeCompletionLanguagePolicy
+$deliveryTruthContract = Get-VibeDeliveryTruthContractLines
 $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath) -and (Test-Path -LiteralPath $RuntimeInputPacketPath)) {
     Get-Content -LiteralPath $RuntimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
@@ -75,6 +140,26 @@ $lines += @(
     '## Acceptance Criteria'
 )
 $lines += @($intentContract.acceptance_criteria | ForEach-Object { "- $_" })
+$lines += @(
+    '',
+    '## Product Acceptance Criteria'
+)
+$lines += @($productAcceptanceCriteria | ForEach-Object { "- $_" })
+$lines += @(
+    '',
+    '## Manual Spot Checks'
+)
+$lines += @($manualSpotChecks | ForEach-Object { "- $_" })
+$lines += @(
+    '',
+    '## Completion Language Policy'
+)
+$lines += @($completionLanguagePolicy | ForEach-Object { "- $_" })
+$lines += @(
+    '',
+    '## Delivery Truth Contract'
+)
+$lines += @($deliveryTruthContract | ForEach-Object { "- $_" })
 $lines += @(
     '',
     '> Fill the anti-drift fields once here. Downstream governed plan and completion surfaces should reuse them rather than restate them.',

@@ -123,6 +123,16 @@ $lines += @(
     '## Wave Plan'
 )
 $lines += $waveLines
+$deliveryAcceptanceReportPath = Join-Path $sessionRoot 'delivery-acceptance-report.json'
+$lines += @(
+    '',
+    '## Delivery Acceptance Plan',
+    '- Freeze downstream product acceptance inside the governed requirement doc and reuse it rather than inventing closeout claims later.',
+    '- Emit a per-run delivery-acceptance report during `phase_cleanup` so runtime/process success is kept separate from project-delivery success.',
+    ('- Delivery-acceptance report: {0}' -f $deliveryAcceptanceReportPath),
+    '- If manual spot checks are declared in the requirement doc, final completion wording stays blocked until they are cleared or explicitly downgraded to manual review.',
+    '- Release truth aggregation remains an outer-layer gate; this run emits the per-run delivery-truth report only.'
+)
 $lines += @(
     '',
     '## Execution Topology Snapshot',
@@ -174,6 +184,11 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
 }
 $lines += @(
     '',
+    '## Completion Language Rules',
+    '- Do not report runtime completion as downstream project delivery unless the delivery-acceptance report returns `PASS`.',
+    '- `completed_with_failures`, degraded execution, or pending manual actions must downgrade completion wording.',
+    '- Child-governed completion remains local-scope only and cannot justify root-level completion language.',
+    '',
     '## Ownership Boundaries',
     '- One owner per artifact set.',
     '- Parallel work must use disjoint write scopes.',
@@ -183,6 +198,7 @@ $lines += @(
     '## Verification Commands',
     '- Run targeted repo verification for changed surfaces.',
     '- Run runtime contract gate before claiming completion.',
+    '- Review the delivery-acceptance report emitted during `phase_cleanup` before using full completion language.',
     '- Re-run mirror sync and parity validation before release claims.',
     '',
     '## Rollback Plan',

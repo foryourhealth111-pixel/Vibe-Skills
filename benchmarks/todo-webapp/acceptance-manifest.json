@@ -1,0 +1,13 @@
+{
+  "benchmark_id": "todo-webapp",
+  "critical_user_flows": [
+    "create todo item",
+    "mark todo item complete",
+    "render updated item list"
+  ],
+  "acceptance_focus": [
+    "feature completeness",
+    "user-path usability",
+    "basic regression safety"
+  ]
+}

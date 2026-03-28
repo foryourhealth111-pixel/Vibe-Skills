@@ -13,6 +13,9 @@ It exists to support truthful cross-platform progress without weakening the Wind
 | `freshness_gate.py` | installed runtime freshness decision logic |
 | `coherence_gate.py` | release / install / runtime coherence decision logic |
 | `bootstrap_doctor.py` | bootstrap doctor / deep-check portability layer |
+| `workflow_acceptance_runner.py` | downstream project-delivery acceptance decision logic |
+| `runtime_delivery_acceptance.py` | main-chain per-run delivery truth evaluator for governed `vibe` sessions |
+| `release_truth_gate.py` | aggregates workflow acceptance reports into release/completion truth |
 
 ## Design Rules
 
@@ -38,6 +41,9 @@ Run the direct Python checks:
 python tests/runtime_neutral/test_freshness_gate.py
 python tests/runtime_neutral/test_bootstrap_doctor.py
 python tests/runtime_neutral/test_coherence_gate.py
+python tests/runtime_neutral/test_workflow_acceptance_runner.py
+python tests/runtime_neutral/test_runtime_delivery_acceptance.py
+python tests/runtime_neutral/test_release_truth_gate.py
 ```
 
 Run the shell wrapper syntax checks:

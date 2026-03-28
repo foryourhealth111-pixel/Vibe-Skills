@@ -206,6 +206,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 "execution_manifest",
                 "benchmark_proof_manifest",
                 "cleanup_receipt",
+                "delivery_acceptance_report",
             ):
                 self.assertFalse(str(Path(artifacts[key])).lower().startswith(repo_root_text), key)
                 if key in relative_artifacts:
@@ -219,10 +220,15 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             execution_manifest_path = resolve_artifact_path("execution_manifest")
             benchmark_proof_path = resolve_artifact_path("benchmark_proof_manifest")
             runtime_input_packet_path = resolve_artifact_path("runtime_input_packet")
+            delivery_acceptance_report_path = resolve_artifact_path("delivery_acceptance_report")
 
             if requirement_doc_path.exists():
                 requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
                 self.assertIn("## Acceptance Criteria", requirement_doc)
+                self.assertIn("## Product Acceptance Criteria", requirement_doc)
+                self.assertIn("## Manual Spot Checks", requirement_doc)
+                self.assertIn("## Completion Language Policy", requirement_doc)
+                self.assertIn("## Delivery Truth Contract", requirement_doc)
                 self.assertIn("## Assumptions", requirement_doc)
                 self.assertIn("## Runtime Input Truth", requirement_doc)
                 self.assertIn("## Specialist Recommendations", requirement_doc)
@@ -230,11 +236,15 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual("plans", execution_plan_path.parent.name)
             execution_plan = execution_plan_path.read_text(encoding="utf-8")
             self.assertIn("## Specialist Skill Dispatch Plan", execution_plan)
+            self.assertIn("## Delivery Acceptance Plan", execution_plan)
+            self.assertIn("## Completion Language Rules", execution_plan)
 
             runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
             execute_receipt = json.loads(execute_receipt_path.read_text(encoding="utf-8"))
             execution_manifest = json.loads(execution_manifest_path.read_text(encoding="utf-8"))
             benchmark_proof = json.loads(benchmark_proof_path.read_text(encoding="utf-8"))
+            delivery_acceptance_report = json.loads(delivery_acceptance_report_path.read_text(encoding="utf-8"))
+            cleanup_receipt = json.loads(resolve_artifact_path("cleanup_receipt").read_text(encoding="utf-8"))
 
             self.assertEqual("runtime_input_freeze", runtime_input_packet["stage"])
             self.assertEqual("interactive_governed", runtime_input_packet["runtime_mode"])
@@ -258,6 +268,13 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(execute_receipt["executed_unit_count"], execution_manifest["executed_unit_count"])
             self.assertEqual("completed", execution_manifest["status"])
             self.assertGreaterEqual(execution_manifest["successful_unit_count"], 2)
+            self.assertEqual("PASS", delivery_acceptance_report["summary"]["gate_result"])
+            self.assertTrue(delivery_acceptance_report["summary"]["completion_language_allowed"])
+            self.assertIsNotNone(summary["delivery_acceptance"])
+            self.assertEqual("PASS", summary["delivery_acceptance"]["gate_result"])
+            self.assertTrue(summary["delivery_acceptance"]["completion_language_allowed"])
+            self.assertIsNotNone(cleanup_receipt["delivery_acceptance"])
+            self.assertEqual("PASS", cleanup_receipt["delivery_acceptance"]["gate_result"])
             self.assertEqual(0, execution_manifest["failed_unit_count"])
             self.assertEqual("runtime", execution_manifest["proof_class"])
             self.assertTrue(Path(execution_manifest["plan_shadow"]["path"]).exists())

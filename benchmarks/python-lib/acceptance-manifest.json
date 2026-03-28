@@ -1,0 +1,13 @@
+{
+  "benchmark_id": "python-lib",
+  "critical_user_flows": [
+    "import target package",
+    "run documented core function",
+    "preserve previous passing behavior"
+  ],
+  "acceptance_focus": [
+    "regression coverage",
+    "API correctness",
+    "library usability"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "scenario_id": "xl-composite-manual-review",
+  "task_class": "xl_composite_specialist_delivery",
+  "benchmark_repo": "benchmarks/bioinformatics-mini",
+  "runtime": {
+    "status": "completed",
+    "readiness_state": "ready"
+  },
+  "truths": {
+    "governance_truth": {
+      "state": "passing",
+      "evidence": [
+        "root-owned requirement and plan remain canonical"
+      ]
+    },
+    "engineering_verification_truth": {
+      "state": "passing",
+      "evidence": [
+        "automation suite passes",
+        "specialist outputs are structurally valid"
+      ]
+    },
+    "workflow_completion_truth": {
+      "state": "passing",
+      "evidence": [
+        "all planned waves completed",
+        "approved specialist units executed"
+      ]
+    },
+    "product_acceptance_truth": {
+      "state": "manual_review_required",
+      "evidence": [
+        "automated checks pass but final downstream judgment still needs a domain expert"
+      ],
+      "notes": "Scientific output quality still requires bounded manual review."
+    }
+  },
+  "manual_spot_checks": [
+    "Review the scientific writing section for methodological honesty.",
+    "Review the domain-specific analysis output for plausibility."
+  ],
+  "residual_risks": [
+    "Automated acceptance does not fully establish domain correctness."
+  ]
+}

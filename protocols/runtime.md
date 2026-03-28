@@ -72,6 +72,10 @@ Required fields:
 - deliverable
 - constraints
 - acceptance criteria
+- product acceptance criteria
+- manual spot checks
+- completion language policy
+- delivery truth contract
 - non-goals
 - autonomy mode
 - open questions
@@ -88,6 +92,7 @@ Rules:
 - write under `docs/requirements/`
 - execution and review trace back to this document
 - benchmark mode must record inferred assumptions
+- freeze downstream delivery semantics here, including product acceptance criteria, manual spot checks, and completion-language limits
 - when the canonical anti-proxy-goal-drift policy is active, governed requirement packets must carry its declared objective, proxy-signal, scope, abstraction, completion, and evidence fields
 
 ### Stage 4: `xl_plan`
@@ -102,6 +107,8 @@ Required contents:
 - wave or batch structure
 - ownership map
 - verification commands
+- delivery acceptance plan
+- completion-language downgrade rules
 - rollback strategy
 - cleanup expectations
 - when the canonical anti-proxy-goal-drift policy is active, governed plans must include the anti-drift control surface used by the canonical template
@@ -128,6 +135,7 @@ Rules:
 - runtime-selected skill stays `vibe` for governed entry even when route truth points at a specialist
 - specialist use must preserve native workflow, required inputs, expected outputs, and validation style
 - child-governed lanes inherit root-frozen requirement/plan context and must not open second canonical requirement or plan truth surfaces
+- the run must emit a downstream delivery-acceptance report during closure so process success is not silently relabeled as project-delivery success
 
 ### Stage 6: `phase_cleanup`
 
@@ -141,6 +149,7 @@ Minimum actions:
 - repo hygiene pass
 - node audit or cleanup
 - cleanup receipt write
+- delivery-acceptance report write with completion-language allowance or downgrade
 
 ## Protocol Delegation
 
@@ -227,6 +236,7 @@ Expected runtime artifacts:
 - execution-manifest specialist dispatch accounting when the plan uses bounded specialist help
 - hierarchy-scoped authority markers indicating `root_governed` versus `child_governed` lane
 - explicit escalation artifacts when child-governed lanes propose non-approved specialist dispatch
+- delivery-acceptance report proving whether full downstream completion language is allowed
 
 ## Success Criteria
 
@@ -238,5 +248,6 @@ The governed runtime is considered healthy only when:
 - cleanup is recorded
 - no success claim is made without verification evidence
 - anti-proxy-goal-drift completion semantics are not silently bypassed in governed packets
+- downstream delivery truth is evaluated separately from runtime/process truth before full completion wording is allowed
 - no fallback or degraded path is presented as equivalent success
 - any fallback or degraded path emits a standalone hazard alert

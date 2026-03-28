@@ -1,0 +1,13 @@
+{
+  "benchmark_id": "docs-project",
+  "critical_user_flows": [
+    "produce readable documentation update",
+    "preserve required structure",
+    "avoid unsupported completion claims"
+  ],
+  "acceptance_focus": [
+    "readability",
+    "structure fidelity",
+    "completion honesty"
+  ]
+}

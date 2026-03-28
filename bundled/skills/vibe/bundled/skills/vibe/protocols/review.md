@@ -71,6 +71,9 @@ Before approving code:
 13. The claimed completion state matches the evidence bundle and scope
 14. Bounded specialization is either preserved as specialization or explicitly marked as not-yet-generalized
 15. Any anti-drift warning is recorded as report-only review evidence, not hidden hard enforcement
+16. Product acceptance criteria are frozen in the requirement doc rather than improvised at closeout
+17. Manual spot checks are either explicitly not needed or honestly left as pending manual review
+18. Delivery-truth wording does not collapse workflow/process success into downstream project acceptance
 
 ## Output Format
 Review findings categorized by severity:

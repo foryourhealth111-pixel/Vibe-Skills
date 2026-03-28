@@ -1,0 +1,44 @@
+{
+  "scenario_id": "l-grade-feature-complete",
+  "task_class": "l_serial_feature_delivery",
+  "benchmark_repo": "benchmarks/todo-webapp",
+  "runtime": {
+    "status": "completed",
+    "readiness_state": "ready"
+  },
+  "truths": {
+    "governance_truth": {
+      "state": "passing",
+      "evidence": [
+        "requirement frozen",
+        "plan frozen",
+        "cleanup receipt emitted"
+      ]
+    },
+    "engineering_verification_truth": {
+      "state": "passing",
+      "evidence": [
+        "unit tests pass",
+        "integration smoke passes"
+      ]
+    },
+    "workflow_completion_truth": {
+      "state": "passing",
+      "evidence": [
+        "planned units executed in order",
+        "required outputs emitted"
+      ]
+    },
+    "product_acceptance_truth": {
+      "state": "passing",
+      "evidence": [
+        "critical user flow passes",
+        "no blocked acceptance item remains"
+      ]
+    }
+  },
+  "manual_spot_checks": [
+    "Confirm the final artifact is readable by an operator."
+  ],
+  "residual_risks": []
+}

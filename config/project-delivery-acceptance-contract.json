@@ -1,0 +1,64 @@
+{
+  "contract_id": "vibe-project-delivery-acceptance-v1",
+  "version": 1,
+  "truth_layers": [
+    "governance_truth",
+    "engineering_verification_truth",
+    "workflow_completion_truth",
+    "product_acceptance_truth"
+  ],
+  "truth_states": {
+    "passing": {
+      "counts_as_success": true,
+      "completion_language_allowed": true
+    },
+    "manual_review_required": {
+      "counts_as_success": false,
+      "completion_language_allowed": false
+    },
+    "partial": {
+      "counts_as_success": false,
+      "completion_language_allowed": false
+    },
+    "degraded": {
+      "counts_as_success": false,
+      "completion_language_allowed": false
+    },
+    "failing": {
+      "counts_as_success": false,
+      "completion_language_allowed": false
+    },
+    "not_run": {
+      "counts_as_success": false,
+      "completion_language_allowed": false
+    }
+  },
+  "forbidden_completion_collapses": [
+    {
+      "source": "runtime_status",
+      "value": "completed_with_failures",
+      "reason": "partial execution cannot be reported as full downstream delivery"
+    },
+    {
+      "source": "runtime_status",
+      "value": "degraded_non_authoritative",
+      "reason": "degraded execution cannot be reported as equivalent delivery success"
+    },
+    {
+      "source": "readiness_state",
+      "value": "manual_actions_pending",
+      "reason": "pending manual actions cannot be reported as fully ready delivery"
+    }
+  ],
+  "report_requirements": {
+    "must_report_fields": [
+      "governance_truth",
+      "engineering_verification_truth",
+      "workflow_completion_truth",
+      "product_acceptance_truth",
+      "completion_language_allowed",
+      "residual_risks",
+      "manual_spot_checks"
+    ]
+  }
+}

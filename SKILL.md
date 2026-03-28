@@ -144,6 +144,10 @@ Produce a structured intent contract containing:
 - deliverable
 - constraints
 - acceptance criteria
+- product acceptance criteria
+- manual spot checks
+- completion language policy
+- delivery truth contract
 - non-goals
 - autonomy mode
 - inferred assumptions
@@ -167,6 +171,8 @@ The plan must contain:
 - wave or batch structure
 - ownership boundaries
 - verification commands
+- delivery acceptance plan
+- completion language rules
 - rollback rules
 - phase cleanup expectations
 
@@ -190,6 +196,7 @@ Each phase must leave behind:
 - temp-file cleanup result
 - node audit or cleanup result
 - proof artifacts needed for later verification
+- delivery-acceptance report proving whether full completion wording is allowed
 
 ## Router And Runtime Authority
 

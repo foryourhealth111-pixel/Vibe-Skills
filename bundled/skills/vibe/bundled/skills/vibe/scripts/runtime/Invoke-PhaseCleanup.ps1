@@ -31,6 +31,10 @@ foreach ($defaultMode in @($runtime.cleanup_policy.bounded_default_modes)) {
 $cleanupResult = $null
 $cleanupError = $null
 $cleanupMode = 'receipt_only'
+$deliveryAcceptance = $null
+$deliveryAcceptanceError = $null
+$deliveryAcceptanceReportPath = Join-Path $sessionRoot 'delivery-acceptance-report.json'
+$deliveryAcceptanceMarkdownPath = Join-Path $sessionRoot 'delivery-acceptance-report.md'
 if ($shouldExecuteGovernanceCleanup) {
     $cleanupArgs = @()
     $cleanupArgs += '-WriteArtifacts'
@@ -104,10 +108,75 @@ $receipt = [pscustomobject]@{
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     cleanup_result = $cleanupResult
     cleanup_error = $cleanupError
+    delivery_acceptance = $deliveryAcceptance
+    delivery_acceptance_error = $deliveryAcceptanceError
     proof_class = [string]$runtime.proof_class_registry.artifact_class_defaults.cleanup_receipt
 }
 
 $receiptPath = Join-Path $sessionRoot 'cleanup-receipt.json'
+Write-VibeJsonArtifact -Path $receiptPath -Value $receipt
+
+$deliveryAcceptanceScriptPath = Join-Path $runtime.repo_root 'scripts\verify\runtime_neutral\runtime_delivery_acceptance.py'
+if (Test-Path -LiteralPath $deliveryAcceptanceScriptPath) {
+    try {
+        $pythonInvocation = Get-VgoPythonCommand
+        $pythonArgs = @($pythonInvocation.prefix_arguments)
+        $pythonArgs += @(
+            $deliveryAcceptanceScriptPath,
+            '--repo-root', $runtime.repo_root,
+            '--session-root', $sessionRoot,
+            '--write-artifacts',
+            '--output-directory', $sessionRoot
+        )
+        $commandOutput = & $pythonInvocation.host_path @pythonArgs 2>&1
+        $commandExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+
+        if (Test-Path -LiteralPath $deliveryAcceptanceReportPath) {
+            $deliveryAcceptanceReport = Get-Content -LiteralPath $deliveryAcceptanceReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        } else {
+            $commandText = (@($commandOutput) | ForEach-Object { [string]$_ }) -join [Environment]::NewLine
+            if ([string]::IsNullOrWhiteSpace($commandText)) {
+                throw 'runtime_delivery_acceptance.py produced neither artifact nor JSON output.'
+            }
+            $deliveryAcceptanceReport = $commandText | ConvertFrom-Json
+        }
+
+        $deliveryAcceptance = [pscustomobject]@{
+            report_path = $deliveryAcceptanceReportPath
+            markdown_path = if (Test-Path -LiteralPath $deliveryAcceptanceMarkdownPath) { $deliveryAcceptanceMarkdownPath } else { $null }
+            gate_result = [string]$deliveryAcceptanceReport.summary.gate_result
+            completion_language_allowed = [bool]$deliveryAcceptanceReport.summary.completion_language_allowed
+            runtime_status = [string]$deliveryAcceptanceReport.summary.runtime_status
+            readiness_state = [string]$deliveryAcceptanceReport.summary.readiness_state
+            manual_review_layer_count = [int]$deliveryAcceptanceReport.summary.manual_review_layer_count
+            failing_layer_count = [int]$deliveryAcceptanceReport.summary.failing_layer_count
+            forbidden_completion_hit_count = [int]$deliveryAcceptanceReport.summary.forbidden_completion_hit_count
+            incomplete_layers = @($deliveryAcceptanceReport.summary.incomplete_layers)
+            command_exit_code = $commandExitCode
+        }
+    } catch {
+        $deliveryAcceptanceError = $_.Exception.Message
+        $cleanupMode = 'cleanup_degraded'
+        if ([string]::IsNullOrWhiteSpace($cleanupError)) {
+            $cleanupError = "delivery_acceptance: $deliveryAcceptanceError"
+        } else {
+            $cleanupError = "$cleanupError | delivery_acceptance: $deliveryAcceptanceError"
+        }
+    }
+} else {
+    $deliveryAcceptanceError = "Missing runtime delivery acceptance evaluator: $deliveryAcceptanceScriptPath"
+    $cleanupMode = 'cleanup_degraded'
+    if ([string]::IsNullOrWhiteSpace($cleanupError)) {
+        $cleanupError = "delivery_acceptance: $deliveryAcceptanceError"
+    } else {
+        $cleanupError = "$cleanupError | delivery_acceptance: $deliveryAcceptanceError"
+    }
+}
+
+$receipt.cleanup_mode = $cleanupMode
+$receipt.cleanup_error = $cleanupError
+$receipt.delivery_acceptance = $deliveryAcceptance
+$receipt.delivery_acceptance_error = $deliveryAcceptanceError
 Write-VibeJsonArtifact -Path $receiptPath -Value $receipt
 
 [pscustomobject]@{

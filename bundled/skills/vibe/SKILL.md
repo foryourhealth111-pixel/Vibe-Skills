@@ -70,13 +70,49 @@ Legacy compatibility alias only.
 If older callers still pass `benchmark_autonomous`, the runtime silently normalizes it to `interactive_governed`.
 It is not a separate execution plane and it must not create a second unattended control path.
 
+## Governor And Specialist Contract
+
+`vibe` owns runtime authority even when the canonical router surfaces a specialist skill.
+
+That means:
+
+- router-selected specialist skills may appear as bounded recommendations or route truth
+- runtime-selected skill remains `vibe` for governed entry
+- specialist help is allowed only as bounded native-mode assistance
+- specialist help must preserve the specialist skill's own workflow, inputs, outputs, and validation style
+- specialist help must not create a second requirement doc, second plan surface, or second runtime authority
+
+## Root/Child Governance Lanes
+
+For XL delegation, `vibe` runs with hierarchy semantics:
+
+- `root_governed`: the only lane that may freeze canonical requirement and plan surfaces and issue final completion claims
+- `child_governed`: subordinate execution lane that inherits frozen context and emits local receipts only
+
+Child-governed lanes must:
+
+- keep `$vibe` at prompt tail to preserve governed discipline
+- inherit frozen requirement and plan context from the root lane
+- stay within assigned ownership boundaries and write scopes
+
+Child-governed lanes must not:
+
+- create a second canonical requirement surface under `docs/requirements/`
+- create a second canonical plan surface under `docs/plans/`
+- publish final completion claims for the full root task
+
+Specialist dispatch under hierarchy:
+
+- `approved_dispatch`: root-approved specialist usage in the frozen plan
+- `local_suggestion`: child-detected specialist suggestion that stays advisory until root escalation approval
+
 ## Internal Execution Grades
 
 `M`, `L`, and `XL` remain active, but only as internal orchestration grades.
 
 - `M`: narrow execution, single-agent or tightly scoped work
-- `L`: design or coordination work that needs staged planning and review
-- `XL`: parallelizable or long-running work that benefits from agent teams and wave control
+- `L`: native serial execution lane for staged work; delegated units stay bounded and sequence-first
+- `XL`: wave-sequential execution with step-level bounded parallelism for independent units only
 
 The governed runtime selects the internal grade after `deep_interview` and before `plan_execute`.
 
@@ -90,7 +126,8 @@ User-facing behavior stays the same regardless of host syntax:
 Compatibility notes for downstream verification and host adapters:
 
 - `M=single-agent`
-- `L grade always follows: design → plan → user approval → subagent execution → two-stage review.`
+- `L=serial native execution from frozen plan (no blanket fan-out).`
+- `XL=wave-sequential execution; bounded parallelism only inside eligible steps.`
 - XL native lifecycle APIs remain `spawn_agent`/`send_input`/`wait`/`close_agent`
 
 ## Stage Contract
@@ -107,6 +144,10 @@ Produce a structured intent contract containing:
 - deliverable
 - constraints
 - acceptance criteria
+- product acceptance criteria
+- manual spot checks
+- completion language policy
+- delivery truth contract
 - non-goals
 - autonomy mode
 - inferred assumptions
@@ -130,6 +171,8 @@ The plan must contain:
 - wave or batch structure
 - ownership boundaries
 - verification commands
+- delivery acceptance plan
+- completion language rules
 - rollback rules
 - phase cleanup expectations
 
@@ -137,8 +180,11 @@ The plan must contain:
 
 Execute the approved plan.
 
-If the work is parallelizable, prefer Codex-native XL orchestration.
+L grade executes planned units serially in the native governed lane.
+XL grade executes waves sequentially and may run only independent units in bounded parallel within a step.
 If subagents are spawned, their prompts must end with `$vibe`.
+If specialist skills are used, execute them as bounded native dispatch units only when root-approved in the frozen plan; otherwise keep them as advisory `local_suggestion` until escalation approval.
+If subagents run in child-governed lanes, they must inherit root-frozen context and must not reopen canonical requirement or plan truth surfaces.
 
 ### 6. `phase_cleanup`
 
@@ -150,6 +196,7 @@ Each phase must leave behind:
 - temp-file cleanup result
 - node audit or cleanup result
 - proof artifacts needed for later verification
+- delivery-acceptance report proving whether full completion wording is allowed
 
 ## Router And Runtime Authority
 
@@ -232,6 +279,7 @@ The governed runtime should leave behind:
 - `docs/plans/YYYY-MM-DD-<topic>-execution-plan.md`
 - `outputs/runtime/vibe-sessions/<run-id>/phase-*.json`
 - `outputs/runtime/vibe-sessions/<run-id>/cleanup-receipt.json`
+- specialist recommendation and dispatch accounting when bounded specialist help is planned
 
 ## Known Boundaries
 
