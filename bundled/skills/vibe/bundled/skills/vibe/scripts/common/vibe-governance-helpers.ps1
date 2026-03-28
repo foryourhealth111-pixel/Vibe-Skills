@@ -1038,6 +1038,38 @@ function Get-VgoLegacySourceOfTruthCompatibility {
     }
 }
 
+function Test-VgoInstalledRuntimeMaterialization {
+    param(
+        [AllowEmptyString()] [string]$RepoRoot,
+        [AllowNull()] [psobject]$RuntimeConfig
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RepoRoot) -or $null -eq $RuntimeConfig) {
+        return $false
+    }
+
+    $requiredMarkers = @()
+    if ($RuntimeConfig.PSObject.Properties.Name -contains 'required_runtime_markers' -and $null -ne $RuntimeConfig.required_runtime_markers) {
+        $requiredMarkers = @($RuntimeConfig.required_runtime_markers)
+    }
+    if (@($requiredMarkers).Count -eq 0) {
+        return $false
+    }
+
+    foreach ($marker in @($requiredMarkers)) {
+        if ([string]::IsNullOrWhiteSpace([string]$marker)) {
+            continue
+        }
+
+        $markerPath = Join-Path $RepoRoot ([string]$marker)
+        if (-not (Test-Path -LiteralPath $markerPath)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
 function Assert-VgoCanonicalExecutionContext {
     param(
         [Parameter(Mandatory)] [psobject]$Context
@@ -1056,7 +1088,9 @@ function Assert-VgoCanonicalExecutionContext {
         }
     }
 
-    if ($requireOuterGitRoot -and -not (Test-Path -LiteralPath (Join-Path $Context.repoRoot '.git'))) {
+    $hasOuterGitRoot = (Test-Path -LiteralPath (Join-Path $Context.repoRoot '.git'))
+    $hasInstalledRuntimeMaterialization = Test-VgoInstalledRuntimeMaterialization -RepoRoot ([string]$Context.repoRoot) -RuntimeConfig $Context.runtimeConfig
+    if ($requireOuterGitRoot -and -not $hasOuterGitRoot -and -not $hasInstalledRuntimeMaterialization) {
         throw "Execution-context lock failed: resolved repo root is not the outer git root -> $($Context.repoRoot)"
     }
 

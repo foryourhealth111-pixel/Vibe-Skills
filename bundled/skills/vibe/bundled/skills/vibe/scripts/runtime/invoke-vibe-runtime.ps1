@@ -18,6 +18,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
+. (Join-Path $PSScriptRoot 'VibeMemoryActivation.Common.ps1')
 
 function Wait-VibeArtifactSet {
     param(
@@ -105,6 +106,8 @@ if (-not [string]::IsNullOrWhiteSpace([string]$hierarchyState.inherited_executio
 }
 
 $skeleton = & (Join-Path $PSScriptRoot 'Invoke-SkeletonCheck.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot
+$memorySkeletonDigest = New-VibeSkeletonMemoryDigest -Runtime $runtime -Skeleton $skeleton -Task $Task -SessionRoot ([string]$skeleton.session_root)
+$requirementMemoryContext = New-VibeRequirementContextPack -Runtime $runtime -SkeletonDigestAction $memorySkeletonDigest -SessionRoot ([string]$skeleton.session_root)
 $freezeArgs = @{
     Task = $Task
     Mode = $Mode
@@ -123,6 +126,7 @@ $requirementArgs = @{
     RunId = $RunId
     IntentContractPath = $interview.receipt_path
     RuntimeInputPacketPath = $runtimeInput.packet_path
+    MemoryContextPath = $requirementMemoryContext.context_path
     ArtifactRoot = $ArtifactRoot
 }
 foreach ($key in @($hierarchyArgs.Keys)) {
@@ -158,6 +162,25 @@ foreach ($key in @('GovernanceScope', 'RootRunId', 'ParentRunId', 'ParentUnitId'
 }
 $execute = & (Join-Path $PSScriptRoot 'Invoke-PlanExecute.ps1') @executeArgs
 $cleanup = & (Join-Path $PSScriptRoot 'Invoke-PhaseCleanup.ps1') -Task $Task -Mode $Mode -RunId $RunId -ArtifactRoot $ArtifactRoot -ExecuteGovernanceCleanup:$ExecuteGovernanceCleanup -ApplyManagedNodeCleanup:$ApplyManagedNodeCleanup
+$memoryDeepInterviewRead = Get-VibeDeepInterviewMemoryReadAction -Runtime $runtime
+$memoryExecuteWrite = New-VibeExecutionMemoryWriteAction -ExecutionManifestPath ([string]$execute.execution_manifest_path) -SessionRoot ([string]$skeleton.session_root)
+$memoryCleanupDecision = Get-VibeCleanupDecisionWriteAction -RequirementDocPath ([string]$requirement.requirement_doc_path) -ExecutionPlanPath ([string]$plan.execution_plan_path)
+$memoryCleanupFold = New-VibeCleanupMemoryFold `
+    -RequirementDocPath ([string]$requirement.requirement_doc_path) `
+    -ExecutionPlanPath ([string]$plan.execution_plan_path) `
+    -ExecutionManifestPath ([string]$execute.execution_manifest_path) `
+    -CleanupReceiptPath ([string]$cleanup.receipt_path) `
+    -SessionRoot ([string]$skeleton.session_root)
+$memoryActivation = New-VibeMemoryActivationReport `
+    -Runtime $runtime `
+    -RunId $RunId `
+    -SessionRoot ([string]$skeleton.session_root) `
+    -SkeletonDigestAction $memorySkeletonDigest `
+    -DeepInterviewReadAction $memoryDeepInterviewRead `
+    -RequirementContextPack $requirementMemoryContext `
+    -ExecuteWriteAction $memoryExecuteWrite `
+    -CleanupDecisionAction $memoryCleanupDecision `
+    -CleanupFoldAction $memoryCleanupFold
 $deliveryAcceptanceReportPath = Join-Path $skeleton.session_root 'delivery-acceptance-report.json'
 $deliveryAcceptanceMarkdownPath = Join-Path $skeleton.session_root 'delivery-acceptance-report.md'
 
@@ -174,7 +197,9 @@ $artifactReadiness = Wait-VibeArtifactSet -Paths @(
     [string]$execute.execution_topology_path,
     [string]$execute.benchmark_proof_manifest_path,
     [string]$cleanup.receipt_path,
-    [string]$deliveryAcceptanceReportPath
+    [string]$deliveryAcceptanceReportPath,
+    [string]$memoryActivation.report_path,
+    [string]$memoryActivation.markdown_path
 )
 
 if (-not $artifactReadiness.ready) {
@@ -196,6 +221,8 @@ $relativeArtifacts = [ordered]@{
     cleanup_receipt = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$cleanup.receipt_path)
     delivery_acceptance_report = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$deliveryAcceptanceReportPath)
     delivery_acceptance_markdown = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$deliveryAcceptanceMarkdownPath)
+    memory_activation_report = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$memoryActivation.report_path)
+    memory_activation_markdown = Get-VibeRelativePathCompat -BasePath $artifactBaseRoot -TargetPath ([string]$memoryActivation.markdown_path)
 }
 
 $deliveryAcceptanceReport = if (Test-Path -LiteralPath $deliveryAcceptanceReportPath) {
@@ -243,6 +270,15 @@ $summary = [pscustomobject]@{
         cleanup_receipt = $cleanup.receipt_path
         delivery_acceptance_report = $deliveryAcceptanceReportPath
         delivery_acceptance_markdown = $deliveryAcceptanceMarkdownPath
+        memory_activation_report = $memoryActivation.report_path
+        memory_activation_markdown = $memoryActivation.markdown_path
+    }
+    memory_activation = [pscustomobject]@{
+        policy_mode = [string]$memoryActivation.report.policy.mode
+        routing_contract = [string]$memoryActivation.report.policy.routing_contract
+        fallback_event_count = [int]$memoryActivation.report.summary.fallback_event_count
+        artifact_count = [int]$memoryActivation.report.summary.artifact_count
+        budget_guard_respected = [bool]$memoryActivation.report.summary.budget_guard_respected
     }
     delivery_acceptance = if ($deliveryAcceptanceReport) {
         [pscustomobject]@{

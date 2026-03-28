@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "updated": "2026-03-28",
+  "defaults": {
+    "top_k": 3,
+    "max_tokens": 120,
+    "max_chars_per_item": 240
+  },
+  "stages": {
+    "skeleton_check": {
+      "top_k": 3,
+      "max_tokens": 96,
+      "max_chars_per_item": 220
+    },
+    "requirement_doc": {
+      "top_k": 2,
+      "max_tokens": 120,
+      "max_chars_per_item": 260
+    },
+    "phase_cleanup": {
+      "top_k": 2,
+      "max_tokens": 160,
+      "max_chars_per_item": 320
+    }
+  }
+}

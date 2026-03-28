@@ -4,6 +4,7 @@ param(
     [string]$RunId = '',
     [string]$IntentContractPath = '',
     [string]$RuntimeInputPacketPath = '',
+    [string]$MemoryContextPath = '',
     [string]$ArtifactRoot = '',
     [AllowEmptyString()] [string]$GovernanceScope = '',
     [AllowEmptyString()] [string]$RootRunId = '',
@@ -120,6 +121,11 @@ $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketP
 } else {
     $null
 }
+$memoryContextPack = if (-not [string]::IsNullOrWhiteSpace($MemoryContextPath) -and (Test-Path -LiteralPath $MemoryContextPath)) {
+    Get-Content -LiteralPath $MemoryContextPath -Raw -Encoding UTF8 | ConvertFrom-Json
+} else {
+    $null
+}
 $lines = @(
     "# $($intentContract.title)",
     '',
@@ -224,6 +230,15 @@ if ($runtimeInputPacket) {
     }
 }
 
+if ($memoryContextPack -and @($memoryContextPack.items).Count -gt 0) {
+    $lines += @(
+        '',
+        '## Memory Context',
+        'Bounded stage-aware memory context injected into requirement freezing:'
+    )
+    $lines += @($memoryContextPack.items | ForEach-Object { "- $_" })
+}
+
 $childHandoffPath = $null
 if ($isChildScope) {
     if (-not (Test-Path -LiteralPath $docPath)) {
@@ -258,6 +273,9 @@ $receipt = [pscustomobject]@{
     canonical_write_allowed = -not $isChildScope
     inherited_requirement_doc_path = if ($isChildScope) { $docPath } else { $null }
     runtime_input_packet_path = $RuntimeInputPacketPath
+    memory_context_path = if ($memoryContextPack) { $MemoryContextPath } else { $null }
+    memory_context_item_count = if ($memoryContextPack) { @($memoryContextPack.items).Count } else { 0 }
+    memory_context_estimated_tokens = if ($memoryContextPack) { [int]$memoryContextPack.estimated_tokens } else { 0 }
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }
 $receiptPath = Join-Path $sessionRoot 'requirement-doc-receipt.json'

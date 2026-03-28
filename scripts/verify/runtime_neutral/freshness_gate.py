@@ -211,11 +211,22 @@ def runtime_config(governance: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def installed_runtime_materialized(repo_root: Path, runtime_cfg: dict[str, Any]) -> bool:
+    required_markers = list(runtime_cfg.get("required_runtime_markers") or [])
+    if not required_markers:
+        return False
+    return all((repo_root / marker).exists() for marker in required_markers)
+
+
 def enforce_execution_context(context: GovernanceContext, script_path: Path) -> None:
     policy = context.governance.get("execution_context_policy") or {}
     require_outer_git_root = bool(policy.get("require_outer_git_root", True))
     fail_if_under_mirror = bool(policy.get("fail_if_script_path_is_under_mirror_root", True))
-    if require_outer_git_root and not (context.repo_root / ".git").exists():
+    if (
+        require_outer_git_root
+        and not (context.repo_root / ".git").exists()
+        and not installed_runtime_materialized(context.repo_root, context.runtime_config)
+    ):
         raise RuntimeError(
             f"Execution-context lock failed: resolved repo root is not the outer git root -> {context.repo_root}"
         )

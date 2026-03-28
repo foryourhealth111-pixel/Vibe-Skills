@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "updated": "2026-03-28",
+  "enabled": true,
+  "fallback_mode": "local_first_audited",
+  "stages": [
+    {
+      "stage": "skeleton_check",
+      "read_actions": [
+        {
+          "owner": "state_store",
+          "status": "fallback_local_digest",
+          "artifact_kind": "local_digest"
+        }
+      ],
+      "write_actions": []
+    },
+    {
+      "stage": "deep_interview",
+      "read_actions": [
+        {
+          "owner": "serena",
+          "status_if_missing_project_key": "deferred_no_project_key",
+          "project_key_env": [
+            "VIBE_SERENA_PROJECT_KEY",
+            "SERENA_PROJECT_KEY"
+          ]
+        }
+      ],
+      "write_actions": []
+    },
+    {
+      "stage": "requirement_doc",
+      "read_actions": [
+        {
+          "owner": "state_store",
+          "status": "bounded_context_injection",
+          "artifact_kind": "context_pack"
+        }
+      ],
+      "write_actions": []
+    },
+    {
+      "stage": "xl_plan",
+      "read_actions": [],
+      "write_actions": []
+    },
+    {
+      "stage": "plan_execute",
+      "read_actions": [],
+      "write_actions": [
+        {
+          "owner": "state_store",
+          "status": "fallback_local_artifact",
+          "artifact_kind": "execution_handoff_card"
+        }
+      ]
+    },
+    {
+      "stage": "phase_cleanup",
+      "read_actions": [],
+      "write_actions": [
+        {
+          "owner": "serena",
+          "status": "guarded_no_write",
+          "artifact_kind": "project_decision_gate"
+        },
+        {
+          "owner": "state_store",
+          "status": "generated_local_fold",
+          "artifact_kind": "memory_fold"
+        }
+      ]
+    }
+  ]
+}

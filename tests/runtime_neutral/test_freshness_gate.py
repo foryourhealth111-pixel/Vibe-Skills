@@ -183,6 +183,37 @@ class FreshnessGateTests(unittest.TestCase):
         docs_entry = next(item for item in artifact["results"]["directories"] if item["path"] == "docs")
         self.assertEqual(["unexpected.md"], docs_entry["only_in_installed"])
 
+    def test_execution_context_allows_installed_runtime_without_outer_git_root(self) -> None:
+        with tempfile.TemporaryDirectory() as isolated_dir:
+            installed_context_root = Path(isolated_dir)
+            self.seed_tree(installed_context_root, canonical=False)
+            (installed_context_root / "config").mkdir(parents=True, exist_ok=True)
+            (installed_context_root / "config" / "version-governance.json").write_text(
+                json.dumps(self.governance, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            script_path = installed_context_root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+            script_path.parent.mkdir(parents=True, exist_ok=True)
+            script_path.write_text("Write-Host 'runtime'\n", encoding="utf-8")
+
+            context = self.module.load_governance_context(script_path, enforce_context=True)
+            self.assertEqual(installed_context_root, context.repo_root)
+
+    def test_execution_context_rejects_missing_git_and_incomplete_installed_runtime(self) -> None:
+        with tempfile.TemporaryDirectory() as isolated_dir:
+            incomplete_root = Path(isolated_dir)
+            (incomplete_root / "config").mkdir(parents=True, exist_ok=True)
+            (incomplete_root / "config" / "version-governance.json").write_text(
+                json.dumps(self.governance, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            script_path = incomplete_root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+            script_path.parent.mkdir(parents=True, exist_ok=True)
+            script_path.write_text("Write-Host 'runtime'\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "resolved repo root is not the outer git root"):
+                self.module.load_governance_context(script_path, enforce_context=True)
+
 
 if __name__ == "__main__":
     unittest.main()
