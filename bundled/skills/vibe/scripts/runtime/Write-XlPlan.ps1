@@ -145,14 +145,16 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
         '- Each specialist must be invoked through its native workflow, input contract, and validation style.',
         '- Specialist outputs remain subordinate to the frozen requirement and the governed plan.'
     )
-    foreach ($recommendation in @($approvedDispatch)) {
-        $lines += @(
-            ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
-            ('  Reason: {0}' -f [string]$recommendation.reason),
-            ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
-            ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
-            ('  Verification: {0}' -f [string]$recommendation.verification_expectation)
-        )
+        foreach ($recommendation in @($approvedDispatch)) {
+            $lines += @(
+                ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
+                ('  Binding profile: {0}; dispatch phase: {1}; lane policy: {2}; parallel in XL: {3}' -f [string]$recommendation.binding_profile, [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [bool]$recommendation.parallelizable_in_root_xl),
+                ('  Write scope: {0}; review mode: {1}; execution priority: {2}' -f [string]$recommendation.write_scope, [string]$recommendation.review_mode, [int]$recommendation.execution_priority),
+                ('  Reason: {0}' -f [string]$recommendation.reason),
+                ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
+                ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
+                ('  Verification: {0}' -f [string]$recommendation.verification_expectation)
+            )
     }
     if (@($localSuggestions).Count -gt 0) {
         $lines += @(
@@ -163,6 +165,7 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
         foreach ($recommendation in @($localSuggestions)) {
             $lines += @(
                 ('- Suggest {0}.' -f [string]$recommendation.skill_id),
+                ('  Proposed phase: {0}; lane policy: {1}; write scope: {2}' -f [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [string]$recommendation.write_scope),
                 ('  Reason: {0}' -f [string]$recommendation.reason),
                 '  Escalation required: true'
             )

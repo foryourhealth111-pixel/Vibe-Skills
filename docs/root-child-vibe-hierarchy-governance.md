@@ -78,6 +78,16 @@ They may not:
 
 ## Dispatch Model
 
+Approved specialist dispatch is phase-bound rather than “call it whenever”.
+The stable phase vocabulary is:
+
+- `pre_execution`
+- `in_execution`
+- `post_execution`
+- `verification`
+
+This keeps expert help aligned with the governed task stage instead of turning specialist calls into ad-hoc afterthoughts.
+
 ### Approved Specialist Dispatch
 
 Specialist usage approved by the root-governed lane and written into the frozen plan.
@@ -87,6 +97,7 @@ Properties:
 - executable without extra authority negotiation
 - carried into child-lane inputs
 - tracked in execution accounting
+- bound to an explicit phase, lane policy, write scope, and review mode
 
 ### Local Specialist Suggestion
 
@@ -108,6 +119,7 @@ To prevent skills from "fighting", the system enforces:
 4. one final completion authority
 5. bounded specialist usage
 6. explicit escalation instead of silent self-expansion
+7. stage-bound dispatch instead of random specialist timing
 
 ## Artifact Rules
 

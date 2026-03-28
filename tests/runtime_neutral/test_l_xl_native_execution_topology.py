@@ -125,6 +125,19 @@ def collect_wave_units(execution_manifest: dict[str, object]) -> list[dict[str, 
     return units
 
 
+def collect_topology_steps(execution_manifest: dict[str, object]) -> list[dict[str, object]]:
+    topology = execution_manifest.get("execution_topology") or {}
+    topology_path = topology.get("path")
+    if not topology_path:
+        return []
+
+    execution_topology = load_json(topology_path)
+    steps: list[dict[str, object]] = []
+    for wave in list(execution_topology.get("waves") or []):
+        steps.extend(list((wave or {}).get("steps") or []))
+    return steps
+
+
 def load_unit_result(unit: dict[str, object]) -> dict[str, object]:
     return load_json(unit["result_path"])
 
@@ -181,6 +194,52 @@ def create_fake_codex_command(directory: Path) -> Path:
 
 
 class NativeExecutionTopologyTests(unittest.TestCase):
+    def test_specialist_binding_metadata_is_frozen_into_runtime_requirement_and_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            payload = run_runtime(
+                task=(
+                    "Plan and coordinate a multi-step workflow for assay data processing, "
+                    "bioinformatics sequence interpretation, and scientific writing with staged verification."
+                ),
+                artifact_root=Path(tempdir),
+                governance_scope="root",
+            )
+            summary = payload["summary"]
+            runtime_input = load_json(summary["artifacts"]["runtime_input_packet"])
+            requirement_doc = Path(summary["artifacts"]["requirement_doc"]).read_text(encoding="utf-8")
+            execution_plan = Path(summary["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
+            execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
+
+            approved_dispatch = list(
+                (runtime_input.get("specialist_dispatch") or {}).get("approved_dispatch") or []
+            )
+            self.assertGreaterEqual(len(approved_dispatch), 1)
+
+            dispatch = approved_dispatch[0]
+            for field in (
+                "binding_profile",
+                "dispatch_phase",
+                "execution_priority",
+                "lane_policy",
+                "parallelizable_in_root_xl",
+                "write_scope",
+                "review_mode",
+            ):
+                with self.subTest(field=field):
+                    self.assertIn(field, dispatch)
+
+            self.assertIn("## Specialist Recommendations", requirement_doc)
+            self.assertIn("Binding: profile=", requirement_doc)
+            self.assertIn("## Specialist Skill Dispatch Plan", execution_plan)
+            self.assertIn("Binding profile:", execution_plan)
+
+            specialist_phase_bindings = execution_manifest["execution_topology"]["specialist_phase_bindings"]
+            self.assertIsNotNone(specialist_phase_bindings)
+            self.assertGreaterEqual(
+                sum(len(list(specialist_phase_bindings.get(phase) or [])) for phase in specialist_phase_bindings),
+                len(approved_dispatch),
+            )
+
     def test_l_grade_requires_native_serial_child_lane_execution(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
@@ -674,6 +733,59 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                     )
                     self.assertEqual("completed_local_scope", child_execution_manifest["status"])
                     self.assertFalse(bool(child_execution_manifest["authority"]["completion_claim_allowed"]))
+
+    def test_xl_can_build_bounded_parallel_specialist_steps(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            fake_bin_dir = Path(tempdir) / "fake-bin"
+            fake_bin_dir.mkdir(parents=True, exist_ok=True)
+            fake_codex = create_fake_codex_command(fake_bin_dir)
+
+            payload = run_runtime(
+                task=(
+                    "Run an XL multi-agent wave to draft a scientific manuscript, prepare scientific "
+                    "reporting artifacts, and publish-ready writing deliverables with independent lanes "
+                    "and staged verification."
+                ),
+                artifact_root=Path(tempdir),
+                governance_scope="root",
+                extra_env={
+                    "PATH": str(fake_bin_dir) + os.pathsep + os.environ.get("PATH", ""),
+                    "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_CODEX_EXECUTABLE": str(fake_codex),
+                },
+            )
+
+            summary = payload["summary"]
+            execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
+            topology_steps = collect_topology_steps(execution_manifest)
+            specialist_accounting = execution_manifest["specialist_accounting"]
+
+            self.assertEqual("XL", execution_manifest["internal_grade"])
+            self.assertGreaterEqual(int(specialist_accounting["approved_dispatch_count"]), 2)
+            self.assertGreaterEqual(
+                int(specialist_accounting["phase_binding_counts"]["post_execution"]),
+                2,
+            )
+
+            bounded_parallel_specialist_steps = [
+                step
+                for step in topology_steps
+                if "specialist-" in str(step.get("step_id", ""))
+                and str(step.get("execution_mode", "")) == "bounded_parallel"
+            ]
+            self.assertGreaterEqual(len(bounded_parallel_specialist_steps), 1)
+            self.assertTrue(
+                any(len(list(step.get("units") or [])) >= 2 for step in bounded_parallel_specialist_steps)
+            )
+
+            parallel_windows = list(execution_manifest["execution_topology"]["parallel_execution_windows"] or [])
+            self.assertTrue(
+                any(
+                    any("specialist-" in str(unit_id) for unit_id in list(window.get("unit_ids") or []))
+                    for window in parallel_windows
+                )
+            )
 
     def test_bundled_runtime_mirror_matches_primary_runtime_sources(self) -> None:
         primary_runtime = REPO_ROOT / "scripts" / "runtime"

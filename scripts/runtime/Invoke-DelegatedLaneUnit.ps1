@@ -103,13 +103,16 @@ switch ($laneKind) {
             requirement_doc_path = [string]$laneSpec.requirement_doc_path
             execution_plan_path = [string]$laneSpec.execution_plan_path
             execution_driver = [string]$executed.result.execution_driver
-            parallelizable = $false
+            parallelizable = [bool]$laneSpec.parallelizable
             write_scope = [string]$laneSpec.write_scope
             review_mode = [string]$laneSpec.review_mode
             status = [string]$executed.result.status
             verification_passed = [bool]$executed.result.verification_passed
             specialist_skill_id = [string]$dispatch.skill_id
             bounded_role = [string]$dispatch.bounded_role
+            dispatch_phase = if ($dispatch.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$dispatch.dispatch_phase } else { 'in_execution' }
+            binding_profile = if ($dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$dispatch.binding_profile } else { 'default' }
+            lane_policy = if ($dispatch.PSObject.Properties.Name -contains 'lane_policy') { [string]$dispatch.lane_policy } else { 'inherit_grade' }
             native_usage_required = [bool]$dispatch.native_usage_required
             must_preserve_workflow = [bool]$dispatch.must_preserve_workflow
             result_path = $resultPath
@@ -123,6 +126,10 @@ switch ($laneKind) {
             "- specialist_skill_id: $([string]$dispatch.skill_id)",
             "- execution_driver: $([string]$executed.result.execution_driver)",
             "- bounded_role: $([string]$dispatch.bounded_role)",
+            "- dispatch_phase: $(if ($dispatch.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$dispatch.dispatch_phase } else { 'in_execution' })",
+            "- binding_profile: $(if ($dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$dispatch.binding_profile } else { 'default' })",
+            "- lane_policy: $(if ($dispatch.PSObject.Properties.Name -contains 'lane_policy') { [string]$dispatch.lane_policy } else { 'inherit_grade' })",
+            "- parallelizable: $([bool]$laneSpec.parallelizable)",
             "- native_usage_required: $([bool]$dispatch.native_usage_required)",
             "- verification_expectation: $([string]$dispatch.verification_expectation)",
             "- required_inputs: $([string]::Join(', ', @($dispatch.required_inputs)))",

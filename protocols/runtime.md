@@ -122,6 +122,9 @@ Rules:
 - milestone evidence must be written before phase completion
 - if the canonical router surfaces specialist skills, record them as bounded native specialist recommendations under `vibe` governance
 - root-approved specialist dispatch may execute as bounded native units; non-approved specialist ideas remain advisory escalation requests
+- approved specialist dispatch must be phase-bound as `pre_execution`, `in_execution`, `post_execution`, or `verification`
+- approved specialist dispatch must carry lane policy, write scope, and review mode so execution remains deterministic and conflict-aware
+- `L` uses explicit serial specialist steps; `XL` may use bounded parallel specialist lanes only when root-approved and write-scope-safe
 - runtime-selected skill stays `vibe` for governed entry even when route truth points at a specialist
 - specialist use must preserve native workflow, required inputs, expected outputs, and validation style
 - child-governed lanes inherit root-frozen requirement/plan context and must not open second canonical requirement or plan truth surfaces
@@ -207,6 +210,7 @@ Explicitly forbidden for child-governed lanes:
 Specialist dispatch semantics under hierarchy:
 
 - `approved_dispatch`: specialist execution approved by root and recorded in frozen plan
+- approved dispatch must include phase binding, lane policy, write scope, and review mode so downstream child lanes do not improvise governance semantics
 - `local_suggestion`: child-surfaced specialist suggestion that remains advisory in the frozen packet until root-governed execution either escalates it or auto-absorbs it through the same-round approval gate
 
 ## Artifact Contract

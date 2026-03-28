@@ -24,6 +24,7 @@ It answers three questions:
 
 - [`protected-capability-baseline.md`](protected-capability-baseline.md): defines which surfaces must be proven before they are changed during closure work
 - [`non-regression-proof-bundle.md`](non-regression-proof-bundle.md): current cleanup and no-regression proof contract
+- [`stage-bound-specialist-dispatch-closure-2026-03-28.md`](stage-bound-specialist-dispatch-closure-2026-03-28.md): closure proof for phase-bound specialist dispatch, `L` serial specialist steps, and `XL` bounded specialist lanes under root/child governance
 - [`platform-promotion-baseline-2026-03-13.md`](platform-promotion-baseline-2026-03-13.md): current platform-promotion truth snapshot
 - [`linux-pwsh-fresh-machine-evidence-ledger-2026-03-13.md`](linux-pwsh-fresh-machine-evidence-ledger-2026-03-13.md): Linux fresh-machine evidence ledger for the promoted `Linux + pwsh` authoritative lane
 - [`single-core-dual-adaptation-baseline-2026-03-14.md`](single-core-dual-adaptation-baseline-2026-03-14.md): first adapter-contract landing status for platform-neutral target roots, installed-runtime resolution, and shell spawning

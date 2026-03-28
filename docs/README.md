@@ -18,6 +18,7 @@
 - [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)：ordinary-user public release copy and copy-paste onboarding prompt
 - Governed runtime canonical surfaces live in [`../SKILL.md`](../SKILL.md), [`../protocols/runtime.md`](../protocols/runtime.md), and [`../protocols/team.md`](../protocols/team.md). Do not create a second runtime-governance truth document.
 - [`root-child-vibe-hierarchy-governance.md`](./root-child-vibe-hierarchy-governance.md)：稳定说明 root/child `vibe` 分层治理，以及 `L` 串行原生执行、`XL` 分波顺序+步骤级有界并行、批准式 specialist 可执行 bounded units 与 child escalation 规则。
+- [`specialist-dispatch-governance.md`](./specialist-dispatch-governance.md)：稳定说明 specialist skills 如何以阶段绑定、写域隔离、`L` 串行 / `XL` 有界并行的方式接入 `vibe`，避免技能荒废或互相冲突。
 
 - [`status/README.md`](./status/README.md)：当前运行态、proof 入口与阶段回执总索引。
 - [`status/current-state.md`](./status/current-state.md)：当前 closure batch 的 runtime summary。

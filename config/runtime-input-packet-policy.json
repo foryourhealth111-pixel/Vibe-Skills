@@ -46,6 +46,12 @@
     "bounded_role": "specialist_assist",
     "native_usage_required": true,
     "must_preserve_workflow": true,
+    "dispatch_phase": "in_execution",
+    "execution_priority": 50,
+    "lane_policy": "inherit_grade",
+    "parallelizable_in_root_xl": true,
+    "write_scope_template": "specialist:{skill_id}",
+    "review_mode": "native_contract",
     "required_inputs": [
       "bounded specialist subtask contract",
       "frozen requirement context",
@@ -73,6 +79,84 @@
       "max_auto_absorb_count": 4,
       "disable_env": "VGO_DISABLE_CHILD_SPECIALIST_AUTO_ABSORB",
       "force_escalation_env": "VGO_FORCE_CHILD_SPECIALIST_ESCALATION"
+    }
+  },
+  "specialist_binding_profiles": {
+    "planning": {
+      "match_skill_patterns": [
+        "plan",
+        "architect",
+        "spec",
+        "design",
+        "roadmap",
+        "strategy"
+      ],
+      "dispatch_phase": "pre_execution",
+      "execution_priority": 10,
+      "lane_policy": "serial",
+      "parallelizable_in_root_xl": false,
+      "write_scope_template": "specialist:planning",
+      "review_mode": "native_contract"
+    },
+    "implementation": {
+      "match_skill_patterns": [
+        "pipeline",
+        "analysis",
+        "debug",
+        "bio",
+        "python",
+        "ml",
+        "model",
+        "workflow",
+        "data"
+      ],
+      "dispatch_phase": "in_execution",
+      "execution_priority": 50,
+      "lane_policy": "bounded_parallel",
+      "parallelizable_in_root_xl": true,
+      "write_scope_template": "specialist:execution:{skill_id}",
+      "review_mode": "native_contract"
+    },
+    "deliverable": {
+      "match_skill_patterns": [
+        "writing",
+        "report",
+        "publish",
+        "document",
+        "slide",
+        "poster",
+        "manuscript"
+      ],
+      "dispatch_phase": "post_execution",
+      "execution_priority": 70,
+      "lane_policy": "bounded_parallel",
+      "parallelizable_in_root_xl": true,
+      "write_scope_template": "specialist:deliverable:{skill_id}",
+      "review_mode": "checkpoint_after_step"
+    },
+    "verification": {
+      "match_skill_patterns": [
+        "review",
+        "qa",
+        "verify",
+        "assurance",
+        "audit",
+        "guard"
+      ],
+      "dispatch_phase": "verification",
+      "execution_priority": 90,
+      "lane_policy": "serial",
+      "parallelizable_in_root_xl": false,
+      "write_scope_template": "specialist:verification",
+      "review_mode": "checkpoint_after_step"
+    },
+    "default": {
+      "dispatch_phase": "in_execution",
+      "execution_priority": 50,
+      "lane_policy": "inherit_grade",
+      "parallelizable_in_root_xl": true,
+      "write_scope_template": "specialist:{skill_id}",
+      "review_mode": "native_contract"
     }
   },
   "overlay_fields": [

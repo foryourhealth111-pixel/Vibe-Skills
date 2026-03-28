@@ -832,6 +832,113 @@ function Get-VibeExecutionTopologyProfile {
     }
 }
 
+function Get-VibeSpecialistDispatchPhaseSortOrder {
+    param(
+        [AllowEmptyString()] [string]$DispatchPhase
+    )
+
+    switch ([string]$DispatchPhase) {
+        'pre_execution' { return 10 }
+        'in_execution' { return 20 }
+        'post_execution' { return 30 }
+        'verification' { return 40 }
+        default { return 20 }
+    }
+}
+
+function New-VibeSpecialistLaneEntry {
+    param(
+        [Parameter(Mandatory)] [object]$Dispatch,
+        [Parameter(Mandatory)] [string]$Grade,
+        [Parameter(Mandatory)] [string]$GovernanceScope
+    )
+
+    $lanePolicy = if ($Dispatch.PSObject.Properties.Name -contains 'lane_policy' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.lane_policy)) {
+        [string]$Dispatch.lane_policy
+    } else {
+        'inherit_grade'
+    }
+    $parallelizable = $false
+    if ($Grade -eq 'XL' -and $GovernanceScope -eq 'root') {
+        $parallelizable = [bool]$Dispatch.parallelizable_in_root_xl -and ($lanePolicy -ne 'serial')
+    }
+
+    $writeScope = if ($Dispatch.PSObject.Properties.Name -contains 'write_scope' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.write_scope)) {
+        [string]$Dispatch.write_scope
+    } else {
+        "specialist:{0}" -f [string]$Dispatch.skill_id
+    }
+
+    return [pscustomobject]@{
+        lane_id = "specialist-{0}-{1}" -f [string]$Dispatch.dispatch_phase, [string]$Dispatch.skill_id
+        lane_kind = 'specialist_dispatch'
+        source_unit_id = [string]$Dispatch.skill_id
+        specialist_skill_id = [string]$Dispatch.skill_id
+        dispatch_phase = if ($Dispatch.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$Dispatch.dispatch_phase } else { 'in_execution' }
+        binding_profile = if ($Dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$Dispatch.binding_profile } else { 'default' }
+        lane_policy = $lanePolicy
+        execution_priority = if ($Dispatch.PSObject.Properties.Name -contains 'execution_priority') { [int]$Dispatch.execution_priority } else { 50 }
+        parallelizable = [bool]$parallelizable
+        write_scope = $writeScope
+        review_mode = if ($Dispatch.PSObject.Properties.Name -contains 'review_mode' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.review_mode)) { [string]$Dispatch.review_mode } else { 'native_contract' }
+        dispatch = $Dispatch
+    }
+}
+
+function New-VibeSpecialistPhaseSteps {
+    param(
+        [Parameter(Mandatory)] [string]$WaveId,
+        [Parameter(Mandatory)] [string]$Phase,
+        [Parameter(Mandatory)] [string]$Grade,
+        [Parameter(Mandatory)] [string]$GovernanceScope,
+        [Parameter(Mandatory)] [object]$ProfileDef,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]]$Dispatches
+    )
+
+    $steps = @()
+    $orderedDispatches = @(
+        $Dispatches |
+            Sort-Object `
+                @{ Expression = { Get-VibeSpecialistDispatchPhaseSortOrder -DispatchPhase ([string]$_.dispatch_phase) } }, `
+                @{ Expression = { if ($_.PSObject.Properties.Name -contains 'execution_priority') { [int]$_.execution_priority } else { 50 } } }, `
+                @{ Expression = { [string]$_.skill_id } }
+    )
+    if (@($orderedDispatches).Count -eq 0) {
+        return @()
+    }
+
+    $units = @()
+    foreach ($dispatch in @($orderedDispatches)) {
+        $units += New-VibeSpecialistLaneEntry -Dispatch $dispatch -Grade $Grade -GovernanceScope $GovernanceScope
+    }
+
+    $parallelUnits = @($units | Where-Object { $_.parallelizable })
+    $serialUnits = @($units | Where-Object { -not $_.parallelizable })
+    if (@($parallelUnits).Count -gt 0) {
+        $steps += [pscustomobject]@{
+            step_id = "{0}-specialist-{1}-parallel" -f $WaveId, $Phase
+            execution_mode = 'bounded_parallel'
+            review_mode = [string]$parallelUnits[0].review_mode
+            max_parallel_units = [int]$ProfileDef.max_parallel_units
+            units = @($parallelUnits)
+        }
+    }
+
+    $serialIndex = 0
+    foreach ($entry in @($serialUnits)) {
+        $serialIndex += 1
+        $steps += [pscustomobject]@{
+            step_id = "{0}-specialist-{1}-serial-{2}" -f $WaveId, $Phase, $serialIndex
+            execution_mode = 'sequential'
+            review_mode = [string]$entry.review_mode
+            max_parallel_units = 1
+            units = @($entry)
+        }
+    }
+
+    return @($steps)
+}
+
 function New-VibeExecutionTopology {
     param(
         [Parameter(Mandatory)] [string]$RunId,
@@ -848,8 +955,29 @@ function New-VibeExecutionTopology {
         $effectiveSpecialistExecutionMode = 'native_bounded_units'
     }
     $steps = @()
+    $specialistPhaseBuckets = [ordered]@{
+        pre_execution = @()
+        in_execution = @()
+        post_execution = @()
+        verification = @()
+    }
+    foreach ($dispatch in @($ApprovedDispatch)) {
+        $phase = if ($dispatch.PSObject.Properties.Name -contains 'dispatch_phase' -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.dispatch_phase)) {
+            [string]$dispatch.dispatch_phase
+        } else {
+            'in_execution'
+        }
+        if (-not $specialistPhaseBuckets.Contains($phase)) {
+            $phase = 'in_execution'
+        }
+        $specialistPhaseBuckets[$phase] += $dispatch
+    }
 
+    $waveCount = @($profileDef.profile.waves).Count
+
+    $waveIndex = 0
     foreach ($wave in @($profileDef.profile.waves)) {
+        $waveIndex += 1
         $waveSteps = @()
         $unitEntries = @()
         foreach ($unit in @($wave.units)) {
@@ -929,26 +1057,46 @@ function New-VibeExecutionTopology {
         }
 
         if ($effectiveSpecialistExecutionMode -eq 'native_bounded_units' -and @($ApprovedDispatch).Count -gt 0) {
-            $specialistUnits = @()
-            foreach ($dispatch in @($ApprovedDispatch)) {
-                $specialistUnits += [pscustomobject]@{
-                    lane_id = "specialist-{0}" -f [string]$dispatch.skill_id
-                    lane_kind = 'specialist_dispatch'
-                    source_unit_id = [string]$dispatch.skill_id
-                    specialist_skill_id = [string]$dispatch.skill_id
-                    parallelizable = $false
-                    write_scope = "specialist:{0}" -f [string]$dispatch.skill_id
-                    review_mode = 'native_contract'
-                    dispatch = $dispatch
-                }
+            $prependedSteps = @()
+            $appendedSteps = @()
+
+            if ($waveIndex -eq 1) {
+                $prependedSteps += New-VibeSpecialistPhaseSteps `
+                    -WaveId ([string]$wave.wave_id) `
+                    -Phase 'pre_execution' `
+                    -Grade $Grade `
+                    -GovernanceScope $GovernanceScope `
+                    -ProfileDef $profileDef `
+                    -Dispatches @($specialistPhaseBuckets.pre_execution)
+
+                $appendedSteps += New-VibeSpecialistPhaseSteps `
+                    -WaveId ([string]$wave.wave_id) `
+                    -Phase 'in_execution' `
+                    -Grade $Grade `
+                    -GovernanceScope $GovernanceScope `
+                    -ProfileDef $profileDef `
+                    -Dispatches @($specialistPhaseBuckets.in_execution)
             }
-            $waveSteps += [pscustomobject]@{
-                step_id = "{0}-approved-specialists" -f [string]$wave.wave_id
-                execution_mode = 'sequential'
-                review_mode = 'checkpoint_after_step'
-                max_parallel_units = 1
-                units = @($specialistUnits)
+
+            if ($waveIndex -eq $waveCount) {
+                $appendedSteps += New-VibeSpecialistPhaseSteps `
+                    -WaveId ([string]$wave.wave_id) `
+                    -Phase 'post_execution' `
+                    -Grade $Grade `
+                    -GovernanceScope $GovernanceScope `
+                    -ProfileDef $profileDef `
+                    -Dispatches @($specialistPhaseBuckets.post_execution)
+
+                $appendedSteps += New-VibeSpecialistPhaseSteps `
+                    -WaveId ([string]$wave.wave_id) `
+                    -Phase 'verification' `
+                    -Grade $Grade `
+                    -GovernanceScope $GovernanceScope `
+                    -ProfileDef $profileDef `
+                    -Dispatches @($specialistPhaseBuckets.verification)
             }
+
+            $waveSteps = @($prependedSteps) + @($waveSteps) + @($appendedSteps)
         }
 
         $steps += [pscustomobject]@{
@@ -968,6 +1116,13 @@ function New-VibeExecutionTopology {
         review_mode = [string]$profileDef.review_mode
         specialist_execution_mode = $effectiveSpecialistExecutionMode
         max_parallel_units = [int]$profileDef.max_parallel_units
+        specialist_phase_bindings = [pscustomobject]@{
+            pre_execution = @($specialistPhaseBuckets.pre_execution)
+            in_execution = @($specialistPhaseBuckets.in_execution)
+            post_execution = @($specialistPhaseBuckets.post_execution)
+            verification = @($specialistPhaseBuckets.verification)
+        }
+        parallelizable_specialist_unit_count = @($ApprovedDispatch | Where-Object { [bool]$_.parallelizable_in_root_xl }).Count
         waves = @($steps)
     }
 }

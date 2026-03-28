@@ -91,6 +91,77 @@ function Get-VibeSkillMetadata {
     }
 }
 
+function Resolve-VibeSpecialistWriteScopeTemplate {
+    param(
+        [AllowEmptyString()] [string]$Template,
+        [Parameter(Mandatory)] [string]$SkillId
+    )
+
+    $value = if ([string]::IsNullOrWhiteSpace($Template)) {
+        'specialist:{skill_id}'
+    } else {
+        [string]$Template
+    }
+    return $value.Replace('{skill_id}', $SkillId)
+}
+
+function Get-VibeSpecialistBindingProfile {
+    param(
+        [Parameter(Mandatory)] [string]$SkillId,
+        [Parameter(Mandatory)] [object]$Policy,
+        [Parameter(Mandatory)] [object]$DispatchContract
+    )
+
+    $profiles = if ($Policy.PSObject.Properties.Name -contains 'specialist_binding_profiles') {
+        $Policy.specialist_binding_profiles
+    } else {
+        $null
+    }
+
+    $selectedProfileName = 'default'
+    $selectedProfile = if ($profiles -and $profiles.PSObject.Properties.Name -contains 'default') {
+        $profiles.default
+    } else {
+        $null
+    }
+
+    if ($profiles) {
+        foreach ($profileName in @('planning', 'implementation', 'deliverable', 'verification')) {
+            if (-not ($profiles.PSObject.Properties.Name -contains $profileName)) {
+                continue
+            }
+            $profile = $profiles.$profileName
+            foreach ($pattern in @($profile.match_skill_patterns)) {
+                $regex = [string]$pattern
+                if (-not [string]::IsNullOrWhiteSpace($regex) -and $SkillId -match $regex) {
+                    $selectedProfileName = $profileName
+                    $selectedProfile = $profile
+                    break
+                }
+            }
+            if ($selectedProfileName -ne 'default') {
+                break
+            }
+        }
+    }
+
+    if ($null -eq $selectedProfile) {
+        $selectedProfile = [pscustomobject]@{}
+    }
+
+    return [pscustomobject]@{
+        binding_profile = $selectedProfileName
+        dispatch_phase = if ($selectedProfile.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$selectedProfile.dispatch_phase } else { [string]$DispatchContract.dispatch_phase }
+        execution_priority = if ($selectedProfile.PSObject.Properties.Name -contains 'execution_priority') { [int]$selectedProfile.execution_priority } else { [int]$DispatchContract.execution_priority }
+        lane_policy = if ($selectedProfile.PSObject.Properties.Name -contains 'lane_policy') { [string]$selectedProfile.lane_policy } else { [string]$DispatchContract.lane_policy }
+        parallelizable_in_root_xl = if ($selectedProfile.PSObject.Properties.Name -contains 'parallelizable_in_root_xl') { [bool]$selectedProfile.parallelizable_in_root_xl } else { [bool]$DispatchContract.parallelizable_in_root_xl }
+        write_scope = Resolve-VibeSpecialistWriteScopeTemplate `
+            -Template $(if ($selectedProfile.PSObject.Properties.Name -contains 'write_scope_template') { [string]$selectedProfile.write_scope_template } else { [string]$DispatchContract.write_scope_template }) `
+            -SkillId $SkillId
+        review_mode = if ($selectedProfile.PSObject.Properties.Name -contains 'review_mode') { [string]$selectedProfile.review_mode } else { [string]$DispatchContract.review_mode }
+    }
+}
+
 function New-VibeSpecialistRecommendation {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
@@ -105,6 +176,7 @@ function New-VibeSpecialistRecommendation {
     )
 
     $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $SkillId
+    $bindingProfile = Get-VibeSpecialistBindingProfile -SkillId $SkillId -Policy $DispatchContract.policy -DispatchContract $DispatchContract
     return [pscustomobject]@{
         skill_id = $SkillId
         source = $Source
@@ -120,6 +192,13 @@ function New-VibeSpecialistRecommendation {
         required_inputs = @($DispatchContract.required_inputs)
         expected_outputs = @($DispatchContract.expected_outputs)
         verification_expectation = [string]$DispatchContract.verification_expectation
+        binding_profile = [string]$bindingProfile.binding_profile
+        dispatch_phase = [string]$bindingProfile.dispatch_phase
+        execution_priority = [int]$bindingProfile.execution_priority
+        lane_policy = [string]$bindingProfile.lane_policy
+        parallelizable_in_root_xl = [bool]$bindingProfile.parallelizable_in_root_xl
+        write_scope = [string]$bindingProfile.write_scope
+        review_mode = [string]$bindingProfile.review_mode
         native_skill_entrypoint = if ($metadata.skill_path) { [string]$metadata.skill_path } else { $null }
         native_skill_description = if ($metadata.description) { [string]$metadata.description } else { $null }
     }
@@ -145,11 +224,22 @@ function Get-VibeSpecialistRecommendations {
             bounded_role = 'specialist_assist'
             native_usage_required = $true
             must_preserve_workflow = $true
+            dispatch_phase = 'in_execution'
+            execution_priority = 50
+            lane_policy = 'inherit_grade'
+            parallelizable_in_root_xl = $true
+            write_scope_template = 'specialist:{skill_id}'
+            review_mode = 'native_contract'
             required_inputs = @('bounded specialist subtask contract')
             expected_outputs = @('bounded specialist result')
             verification_expectation = 'Preserve the specialist skill native workflow.'
         }
     }
+    $dispatchContractForRecommendation = [pscustomobject]@{}
+    foreach ($property in @($dispatchContract.PSObject.Properties)) {
+        $dispatchContractForRecommendation | Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value
+    }
+    $dispatchContractForRecommendation | Add-Member -NotePropertyName policy -NotePropertyValue $Policy -Force
 
     $recommendations = @()
     $seen = @{}
@@ -183,7 +273,7 @@ function Get-VibeSpecialistRecommendations {
             -PackId ([string]$ranked.pack_id) `
             -Confidence ([double]$ranked.score) `
             -Rank (@($recommendations).Count + 1) `
-            -DispatchContract $dispatchContract)
+            -DispatchContract $dispatchContractForRecommendation)
         $seen[$skillId] = $true
     }
 
@@ -222,7 +312,7 @@ function Get-VibeSpecialistRecommendations {
             -PackId $null `
             -Confidence 0.0 `
             -Rank (@($recommendations).Count + 1) `
-            -DispatchContract $dispatchContract)
+            -DispatchContract $dispatchContractForRecommendation)
         $seen[$skillId] = $true
     }
 

@@ -55,6 +55,8 @@ Child-governed lanes must not:
 - `XL` execution is wave-sequential by dependency.
 - Parallel work in `XL` is step-scoped and bounded to independent units only.
 - Specialist dispatch can be executable as bounded units only when root-approved in the frozen plan.
+- Specialist dispatch is phase-bound: `pre_execution`, `in_execution`, `post_execution`, `verification`.
+- In `XL`, specialist lanes may join bounded parallel windows only when their write scopes are disjoint and their lane policy allows it.
 
 ### Role Division
 
@@ -96,6 +98,7 @@ Rules:
 - specialist dispatch should be declared in the frozen plan before execution
 - each specialist receives a bounded subtask contract plus the frozen requirement context
 - specialist outputs must stay in the native format or workflow expected by that specialist skill
+- each approved specialist also carries phase binding, lane policy, write scope, and review mode
 - lead aggregation may summarize specialist output, but must not erase specialist-specific verification notes
 - a specialist recommendation is advisory until the governed plan chooses to dispatch it
 

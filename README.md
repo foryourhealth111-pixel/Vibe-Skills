@@ -225,7 +225,7 @@ After selecting the primary skill, the router also automatically determines the 
 
 > The system automatically selects the level after requirements clarification, before plan execution. Users only need to invoke `/vibe` or `$vibe`.
 >
-> Specialist skills are executed as bounded native units only when approved in the frozen plan. Child-lane specialist suggestions stay advisory until root approval.
+> Specialist skills are executed as bounded native units only when approved in the frozen plan. They are phase-bound to planning, execution, deliverable, or verification work so expert help is useful without competing with runtime governance. Child-lane specialist suggestions stay advisory until root approval.
 >
 > You can also express an explicit preference:
 > ```text
