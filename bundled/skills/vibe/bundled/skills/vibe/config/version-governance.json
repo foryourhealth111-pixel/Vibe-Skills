@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "2.3.51",
-    "updated": "2026-03-28",
+    "version": "2.3.52",
+    "updated": "2026-03-29",
     "channel": "stable",
-    "notes": "Adds main-chain delivery acceptance under vibe, hardens stage-bound specialist dispatch and Windows specialist runtime handoff, and promotes stricter completion-language truth for governed runs."
+    "notes": "Adds stage-aware memory activation to the main vibe runtime, wires governed Serena/ruflo/Cognee backend adapters into observable session artifacts, and keeps memory-scope boundaries explicit."
   },
   "source_of_truth": {
     "canonical_root": ".",

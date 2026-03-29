@@ -5,8 +5,8 @@
   "host_id": "claude-code",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.51",
-    "updated": "2026-03-26"
+    "version": "2.3.52",
+    "updated": "2026-03-29"
   },
   "summary": "Claude Code host adapter preview. The repo can now scaffold preview artifacts and run preview health checks, but still does not claim full governed closure.",
   "runtime_ownership": {

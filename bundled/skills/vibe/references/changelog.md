@@ -1,5 +1,13 @@
 # VCO Changelog
 
+## v2.3.52 (2026-03-29)
+
+- Landed stage-aware memory activation inside the standard six-stage `vibe` runtime, including per-run memory activation reports and bounded context injection into governed artifacts.
+- Added real governed backend adapter read/write paths for `Serena`, `ruflo`, and `Cognee`, with session-local request/response receipts instead of policy-only ownership claims.
+- Kept memory-scope boundaries explicit: `ruflo` remains XL-scoped, `knowledge-steward` remains explicit-only, and the runtime cleanup fold is local governed compaction rather than silent skill auto-invocation.
+- Detailed release notes: `docs/releases/v2.3.52.md`.
+
+
 ## v2.3.51 (2026-03-28)
 
 - Integrated downstream delivery acceptance into the normal `vibe` main chain so governed runs now freeze product acceptance semantics, plan delivery checks, and emit a per-run delivery-acceptance report during cleanup.
