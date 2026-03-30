@@ -68,7 +68,9 @@ The install writes:
 - `agent/*.md`
 - `opencode.json.example`
 
-The install does not create or modify the real `opencode.json`. If you need to change native OpenCode settings, keep doing that on the host side.
+The install does not create a new real `opencode.json`, and it does not take ownership of that file.
+If install sees a legacy top-level `vibeskills` node that an older Vibe build wrote by mistake, it removes only that Vibe-owned node and preserves the user's `$schema`, `mcp`, and other host-managed settings.
+If you need to change native OpenCode settings, keep doing that on the host side.
 
 Plural and singular command/agent directories are both materialized because the current OpenCode docs treat plural directories as the primary layout while still supporting singular names for backwards compatibility.
 

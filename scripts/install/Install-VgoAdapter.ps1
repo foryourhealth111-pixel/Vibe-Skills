@@ -163,7 +163,7 @@ function Test-VgoOwnedLegacyOpenCodeNode {
         [string]$TargetRoot
     )
 
-    if ($Node -isnot [hashtable]) {
+    if ($Node -isnot [System.Collections.IDictionary]) {
         return $false
     }
 
@@ -203,7 +203,7 @@ function Repair-VgoLegacyOpenCodeConfig {
         return [pscustomobject]$receipt
     }
 
-    if ($payload -isnot [hashtable]) {
+    if ($payload -isnot [System.Collections.IDictionary]) {
         $receipt.status = 'non-object'
         return [pscustomobject]$receipt
     }
