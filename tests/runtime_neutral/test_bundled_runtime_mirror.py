@@ -63,6 +63,20 @@ class BundledRuntimeMirrorTests(unittest.TestCase):
                     f"Mirror drift detected for {relative_path} under {mirror_root.relative_to(REPO_ROOT)}",
                 )
 
+    def test_bundled_release_docs_do_not_reference_removed_local_doc_surfaces(self) -> None:
+        bundled_root = REPO_ROOT / "bundled" / "skills" / "vibe"
+        readme = (bundled_root / "README.md").read_text(encoding="utf-8")
+        readme_zh = (bundled_root / "README.zh.md").read_text(encoding="utf-8")
+        licenses = (bundled_root / "THIRD_PARTY_LICENSES.md").read_text(encoding="utf-8")
+        notice = (bundled_root / "NOTICE").read_text(encoding="utf-8")
+
+        for content in (readme, readme_zh, licenses):
+            self.assertNotIn("](./docs/", content)
+        self.assertNotIn("](./third_party/", licenses)
+        self.assertIn("[NOTICE](./NOTICE)", licenses)
+        self.assertIn("config/upstream-lock.json", notice)
+        self.assertNotIn("third_party/NOTICE.md", notice)
+
 
 if __name__ == "__main__":
     unittest.main()
