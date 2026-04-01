@@ -225,6 +225,109 @@ function Get-VgoSafeSkillName {
     return $name
 }
 
+function Get-VgoExistingInstallLedger {
+    param([string]$TargetRoot)
+
+    $ledgerPath = Join-Path $TargetRoot '.vibeskills\install-ledger.json'
+    if (-not (Test-Path -LiteralPath $ledgerPath -PathType Leaf)) {
+        return $null
+    }
+
+    try {
+        $ledger = Get-Content -LiteralPath $ledgerPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    } catch {
+        return $null
+    }
+
+    if (-not ($ledger -is [System.Collections.IDictionary])) {
+        return $null
+    }
+    return $ledger
+}
+
+function Get-VgoManagedSkillNamesFromLedger {
+    param(
+        [hashtable]$Ledger,
+        [string]$TargetRoot
+    )
+
+    if (-not ($Ledger -is [System.Collections.IDictionary])) {
+        return @()
+    }
+
+    $managed = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($fieldName in @('managed_skill_names', 'managed_runtime_skill_names', 'managed_catalog_skill_names')) {
+        foreach ($rawName in @($Ledger[$fieldName])) {
+            $text = [string]$rawName
+            if ([string]::IsNullOrWhiteSpace($text)) {
+                continue
+            }
+            $managed.Add((Get-VgoSafeSkillName -Value $text -FieldName $fieldName)) | Out-Null
+        }
+    }
+
+    $skillsRoot = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
+    foreach ($rawPath in @($Ledger['created_paths'])) {
+        $text = [string]$rawPath
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            continue
+        }
+        try {
+            $candidate = [System.IO.Path]::GetFullPath($text)
+        } catch {
+            continue
+        }
+        if (-not $candidate.StartsWith($skillsRoot, [System.StringComparison]::Ordinal)) {
+            continue
+        }
+        $relative = $candidate.Substring($skillsRoot.Length).TrimStart('\', '/')
+        if ([string]::IsNullOrWhiteSpace($relative)) {
+            continue
+        }
+        $firstPart = @($relative -split '[\\/]') | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace([string]$firstPart)) {
+            $managed.Add([string]$firstPart) | Out-Null
+        }
+    }
+
+    $canonicalVibeRoot = [string]$Ledger['canonical_vibe_root']
+    if (-not [string]::IsNullOrWhiteSpace($canonicalVibeRoot)) {
+        $managed.Add((Split-Path -Leaf $canonicalVibeRoot)) | Out-Null
+    }
+
+    return @($managed | Sort-Object)
+}
+
+function Remove-VgoPreviouslyManagedSkillDirs {
+    param(
+        [string]$TargetRoot,
+        [string[]]$PreviousManagedSkillNames = @(),
+        [string[]]$CurrentManagedSkillNames = @()
+    )
+
+    $skillsRoot = Join-Path $TargetRoot 'skills'
+    if (-not (Test-Path -LiteralPath $skillsRoot -PathType Container)) {
+        return
+    }
+
+    $currentManaged = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($name in @($CurrentManagedSkillNames)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$name)) {
+            $currentManaged.Add([string]$name) | Out-Null
+        }
+    }
+
+    foreach ($name in @($PreviousManagedSkillNames | Sort-Object -CaseSensitive -Unique)) {
+        if ([string]::IsNullOrWhiteSpace([string]$name) -or $currentManaged.Contains([string]$name)) {
+            continue
+        }
+        $skillRoot = Join-Path $skillsRoot ([string]$name)
+        if (Test-Path -LiteralPath $skillRoot -PathType Container) {
+            Remove-Item -LiteralPath $skillRoot -Recurse -Force
+        }
+    }
+}
+
 function Test-VgoSkillOnlyActivationHost {
     param([string]$HostId)
 
@@ -456,7 +559,7 @@ function Get-VgoInstalledRuntimeCatalogSourceInfo {
         @($ledger['managed_catalog_skill_names']) |
             ForEach-Object { Get-VgoSafeSkillName -Value $_ -FieldName 'managed_catalog_skill_names' } |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-            Sort-Object -Unique
+            Sort-Object -CaseSensitive -Unique
     )
     if (@($catalogSkillNames).Count -eq 0) {
         return $null
@@ -586,7 +689,7 @@ function Sync-VgoCatalogRuntimeSupportFiles {
         $manifestRel,
         (Get-VgoSafeRelativeContractPath -Value $(if ($catalogPackaging.ContainsKey('profiles_manifest')) { $catalogPackaging['profiles_manifest'] } else { $null }) -Default 'config/skill-catalog-profiles.json' -FieldName 'profiles_manifest'),
         (Get-VgoSafeRelativeContractPath -Value $(if ($catalogPackaging.ContainsKey('groups_manifest')) { $catalogPackaging['groups_manifest'] } else { $null }) -Default 'config/skill-catalog-groups.json' -FieldName 'groups_manifest')
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Sort-Object -Unique
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Sort-Object -CaseSensitive -Unique
 
     foreach ($relpath in $relpaths) {
         $src = Join-Path $catalogBaseRoot $relpath
@@ -1105,7 +1208,7 @@ function Write-VgoInstallLedger {
     $ledgerPath = Join-Path $TargetRoot '.vibeskills\install-ledger.json'
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ledgerPath) | Out-Null
 
-    $managedSkillNames = @($RuntimeManagedSkillNames + $CatalogManagedSkillNames | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Sort-Object -Unique)
+    $managedSkillNames = @($RuntimeManagedSkillNames + $CatalogManagedSkillNames | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Sort-Object -CaseSensitive -Unique)
 
     $ledger = [ordered]@{
         schema_version = 1
@@ -1121,9 +1224,9 @@ function Write-VgoInstallLedger {
         specialist_wrapper_paths = @($script:VgoSpecialistWrapperPaths)
         external_fallback_used = @($ExternalFallbackUsed | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Sort-Object -Unique)
         managed_runtime_units = @('runtime-core')
-        managed_runtime_skill_names = @($RuntimeManagedSkillNames | Sort-Object -Unique)
+        managed_runtime_skill_names = @($RuntimeManagedSkillNames | Sort-Object -CaseSensitive -Unique)
         managed_catalog_profiles = @($(if (-not [string]::IsNullOrWhiteSpace($CatalogProfile)) { $CatalogProfile }))
-        managed_catalog_skill_names = @($CatalogManagedSkillNames | Sort-Object -Unique)
+        managed_catalog_skill_names = @($CatalogManagedSkillNames | Sort-Object -CaseSensitive -Unique)
         managed_skill_names = @($managedSkillNames)
         packaging_manifest = [ordered]@{
             profile = [string]$Packaging['profile']
@@ -1283,11 +1386,16 @@ function Install-ClaudeManagedSettings {
     New-Item -ItemType Directory -Force -Path $hooksRoot | Out-Null
     Add-VgoCreatedPath -Path $hooksRoot
     $hookPath = Join-Path $hooksRoot 'write-guard.js'
-    $sourceHook = Join-Path $RepoRoot 'hooks\write-guard.js'
-    if (-not (Test-Path -LiteralPath $sourceHook -PathType Leaf)) {
-        throw "Claude managed settings require hooks/write-guard.js in the runtime payload: $sourceHook"
+    $sourceHook = @(
+        (Join-Path $RepoRoot 'hooks\write-guard.js'),
+        $hookPath
+    ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace([string]$sourceHook)) {
+        throw 'Claude managed settings require hooks/write-guard.js in the runtime payload or the existing target hooks directory.'
     }
-    Copy-Item -LiteralPath $sourceHook -Destination $hookPath -Force
+    if ([System.IO.Path]::GetFullPath($sourceHook) -ne [System.IO.Path]::GetFullPath($hookPath)) {
+        Copy-Item -LiteralPath $sourceHook -Destination $hookPath -Force
+    }
     Add-VgoCreatedPath -Path $hookPath
 
     $hookCommand = 'node ' + [System.IO.Path]::GetFullPath($hookPath)
@@ -1594,7 +1702,7 @@ function Install-RuntimeCorePayload {
         catalog_profile = [string]$packaging['catalog_profile']
         governance = $governance
         external_fallback_used = @($externalFallbackUsed | Select-Object -Unique)
-        runtime_managed_skill_names = @($runtimeManagedSkillNames | Sort-Object -Unique)
+        runtime_managed_skill_names = @($runtimeManagedSkillNames | Sort-Object -CaseSensitive -Unique)
         target_vibe_rel = $targetVibeRel
     }
 }
@@ -1657,7 +1765,7 @@ function Install-SkillCatalogPayload {
     return [pscustomobject]@{
         catalog_packaging = $catalogPackaging
         external_fallback_used = @($externalFallbackUsed | Select-Object -Unique)
-        managed_skill_names = @($managedSkillNames | Sort-Object -Unique)
+        managed_skill_names = @($managedSkillNames | Sort-Object -CaseSensitive -Unique)
     }
 }
 
@@ -1681,6 +1789,9 @@ function Install-GovernedCodexPayload {
 
 function Install-ClaudeGuidancePayload {
     Install-ClaudeManagedSettings -RepoRoot $RepoRoot -TargetRoot $TargetRoot
+}
+
+function Install-CursorGuidancePayload {
 }
 
 function Install-OpenCodeGuidancePayload {
@@ -1718,6 +1829,7 @@ function Install-RuntimeCoreModePayload {
 
 Add-VgoCreatedPath -Path $TargetRoot
 $adapter = Resolve-VgoAdapterDescriptor -RepoRoot $RepoRoot -HostId $HostId
+$previousLedger = Get-VgoExistingInstallLedger -TargetRoot $TargetRoot
 $runtimeResult = Install-RuntimeCorePayload -Adapter $adapter
 $catalogProfile = [string]$runtimeResult.catalog_profile
 $catalogProfile = $catalogProfile.Trim()
@@ -1732,8 +1844,10 @@ switch ([string]$adapter.install_mode) {
     'preview-guidance' {
         if ([string]$adapter.id -eq 'opencode') {
             Install-OpenCodeGuidancePayload
-        } elseif ([string]$adapter.id -eq 'claude-code' -or [string]$adapter.id -eq 'cursor') {
+        } elseif ([string]$adapter.id -eq 'claude-code') {
             Install-ClaudeGuidancePayload
+        } elseif ([string]$adapter.id -eq 'cursor') {
+            Install-CursorGuidancePayload
         } else {
             throw "Unsupported preview-guidance adapter id: $($adapter.id)"
         }
@@ -1743,6 +1857,16 @@ switch ([string]$adapter.install_mode) {
     }
     default { throw "Unsupported adapter install mode: $($adapter.install_mode)" }
 }
+
+$currentManagedSkillNames = @(
+    @($runtimeResult.runtime_managed_skill_names + $catalogResult.managed_skill_names) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Sort-Object -CaseSensitive -Unique
+)
+Remove-VgoPreviouslyManagedSkillDirs `
+    -TargetRoot $TargetRoot `
+    -PreviousManagedSkillNames (Get-VgoManagedSkillNamesFromLedger -Ledger $previousLedger -TargetRoot $TargetRoot) `
+    -CurrentManagedSkillNames $currentManagedSkillNames
 
 Sync-InstalledGeneratedNestedCompatibilityRoot -Governance $runtimeResult.governance -TargetRoot $TargetRoot -TargetRel $runtimeResult.target_vibe_rel -ManagedSkillNames @($runtimeResult.runtime_managed_skill_names)
 

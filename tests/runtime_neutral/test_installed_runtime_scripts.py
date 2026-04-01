@@ -543,6 +543,113 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         settings = json.loads((target_root / "settings.json").read_text(encoding="utf-8"))
         self.assertEqual("claude-code", settings["vibeskills"]["host_id"])
 
+    def test_powershell_installed_runtime_claude_code_rerun_reuses_existing_target_hook_when_payload_hook_is_missing(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        target_root = self.root / "pwsh-claude-hook-fallback"
+        target_root.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [
+                "bash",
+                str(REPO_ROOT / "install.sh"),
+                "--host",
+                "claude-code",
+                "--profile",
+                "full",
+                "--target-root",
+                str(target_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        installed_root = target_root / "skills" / "vibe"
+        packaged_hook = installed_root / "hooks" / "write-guard.js"
+        target_hook = target_root / "hooks" / "write-guard.js"
+        self.assertTrue(target_hook.exists())
+        if packaged_hook.exists():
+            packaged_hook.unlink()
+
+        empty_bin = self.root / "empty-bin-hook-fallback"
+        empty_bin.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env["PATH"] = str(empty_bin)
+
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(installed_root / "install.ps1"),
+                "-RepoRoot",
+                str(installed_root),
+                "-TargetRoot",
+                str(target_root),
+                "-HostId",
+                "claude-code",
+                "-Profile",
+                "full",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+        )
+
+        self.assertIn("Installation complete.", result.stdout)
+        self.assertTrue(target_hook.exists())
+        settings = json.loads((target_root / "settings.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            f"node {target_hook.resolve()}",
+            settings["vibeskills"]["managed_hook_command"],
+        )
+
+    def test_powershell_preview_guidance_cursor_install_does_not_materialize_claude_managed_settings(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        target_root = self.root / "pwsh-cursor-preview"
+        target_root.mkdir(parents=True, exist_ok=True)
+        empty_bin = self.root / "empty-bin-cursor-preview"
+        empty_bin.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env["PATH"] = str(empty_bin)
+
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(REPO_ROOT / "install.ps1"),
+                "-HostId",
+                "cursor",
+                "-Profile",
+                "full",
+                "-TargetRoot",
+                str(target_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+        )
+
+        ledger = json.loads((target_root / ".vibeskills" / "install-ledger.json").read_text(encoding="utf-8"))
+        self.assertIn("Installation complete.", result.stdout)
+        self.assertEqual("cursor", ledger["host_id"])
+        self.assertEqual("preview-guidance", ledger["install_mode"])
+        self.assertTrue((target_root / ".vibeskills" / "host-settings.json").exists())
+        self.assertFalse((target_root / "settings.json").exists())
+        self.assertFalse((target_root / "hooks" / "write-guard.js").exists())
+
     def test_shell_install_prunes_stale_managed_entries_without_recursive_dir_wipe(self) -> None:
         self.install_shell_runtime()
 

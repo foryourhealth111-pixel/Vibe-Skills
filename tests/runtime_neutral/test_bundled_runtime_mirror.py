@@ -105,6 +105,30 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertFalse(full_packaging["copy_bundled_skills"])
         self.assertFalse(minimal_packaging["copy_bundled_skills"])
 
+    def test_python_desired_runtime_managed_skill_names_include_allowlisted_skills(self) -> None:
+        installer = load_installer_module()
+
+        managed = installer.desired_runtime_managed_skill_names(
+            {
+                "canonical_vibe_payload": {"target_relpath": "skills/vibe"},
+                "skills_allowlist": ["brainstorming", "custom-skill", "brainstorming"],
+            }
+        )
+
+        self.assertIn("vibe", managed)
+        self.assertIn("brainstorming", managed)
+        self.assertIn("custom-skill", managed)
+
+    def test_python_previous_ledger_skill_names_must_be_leaf_names_before_prune(self) -> None:
+        installer = load_installer_module()
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir)
+            with self.assertRaises(SystemExit):
+                installer.derive_managed_skill_names_from_ledger(
+                    target_root,
+                    {"managed_runtime_skill_names": ["../../outside"]},
+                )
+
     def test_repo_no_longer_tracks_bundled_vibe_mirror(self) -> None:
         self.assertFalse((REPO_ROOT / "bundled" / "skills" / "vibe").exists())
 

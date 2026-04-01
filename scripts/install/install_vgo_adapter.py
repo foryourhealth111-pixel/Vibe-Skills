@@ -1241,21 +1241,13 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
     if not isinstance(ledger, dict):
         return set()
 
-    managed = {
-        str(name).strip()
-        for name in ledger.get("managed_skill_names") or []
-        if str(name).strip()
-    }
-    managed.update(
-        str(name).strip()
-        for name in ledger.get("managed_runtime_skill_names") or []
-        if str(name).strip()
-    )
-    managed.update(
-        str(name).strip()
-        for name in ledger.get("managed_catalog_skill_names") or []
-        if str(name).strip()
-    )
+    managed: set[str] = set()
+    for field_name in ("managed_skill_names", "managed_runtime_skill_names", "managed_catalog_skill_names"):
+        managed.update(
+            safe_skill_name(name, field_name=field_name)
+            for name in ledger.get(field_name) or []
+            if str(name).strip()
+        )
 
     skills_root = (target_root / "skills").resolve()
     for raw_path in ledger.get("created_paths") or []:
@@ -1277,6 +1269,11 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
 def desired_runtime_managed_skill_names(packaging: dict) -> set[str]:
     managed = {Path(canonical_vibe_target_relpath(packaging)).name}
     managed.update(REQUIRED_CORE)
+    managed.update(
+        safe_skill_name(name, field_name="skills_allowlist")
+        for name in packaging.get("skills_allowlist") or []
+        if str(name).strip()
+    )
     return managed
 
 
@@ -1306,7 +1303,12 @@ def materialize_allowlisted_skills(repo_root: Path, target_root: Path, packaging
 
     canonical_vibe_rel = canonical_vibe_target_relpath(packaging)
     canonical_vibe_name = Path(canonical_vibe_rel).name
-    for name in sorted({str(value).strip() for value in skills_allowlist if str(value).strip()}):
+    normalized_allowlist = {
+        safe_skill_name(value, field_name="skills_allowlist")
+        for value in skills_allowlist
+        if str(value).strip()
+    }
+    for name in sorted(normalized_allowlist):
         if name == canonical_vibe_name:
             continue
         source = bundled_root / name

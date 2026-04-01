@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -100,6 +101,10 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
         if powershell is None:
             self.skipTest("PowerShell is required for installed-runtime rerun verification.")
 
+        env = os.environ.copy()
+        empty_bin = target_root.parent / "no-python-path"
+        empty_bin.mkdir(parents=True, exist_ok=True)
+        env["PATH"] = str(empty_bin)
         command = [
             powershell,
             "-NoProfile",
@@ -116,7 +121,7 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             "-Profile",
             profile,
         ]
-        subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+        subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, check=True, env=env)
         return load_json(target_root / ".vibeskills" / "install-ledger.json")
 
     def test_profile_packaging_manifests_exist_and_declare_distinct_payload_models(self) -> None:
@@ -234,7 +239,7 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertTrue((target_root / "skills" / REPRESENTATIVE_NON_CORE_SKILL).is_dir())
             self.assertEqual(["default-full"], rerun_ledger["managed_catalog_profiles"])
             self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, rerun_ledger["managed_catalog_skill_names"])
-            self.assertEqual(first_ledger["managed_catalog_skill_names"], rerun_ledger["managed_catalog_skill_names"])
+            self.assertEqual(set(first_ledger["managed_catalog_skill_names"]), set(rerun_ledger["managed_catalog_skill_names"]))
 
     def test_python_installed_runtime_reruns_do_not_absorb_or_prune_foreign_skill_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -274,7 +279,7 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertTrue((target_root / "skills" / REPRESENTATIVE_NON_CORE_SKILL).is_dir())
             self.assertEqual(["default-full"], rerun_ledger["managed_catalog_profiles"])
             self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, rerun_ledger["managed_catalog_skill_names"])
-            self.assertEqual(first_ledger["managed_catalog_skill_names"], rerun_ledger["managed_catalog_skill_names"])
+            self.assertEqual(set(first_ledger["managed_catalog_skill_names"]), set(rerun_ledger["managed_catalog_skill_names"]))
 
     def test_powershell_installed_runtime_reruns_do_not_absorb_or_prune_foreign_skill_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -331,6 +336,45 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("Invalid skill name", result.stderr or result.stdout)
 
+    def test_python_installed_runtime_rejects_non_leaf_previous_managed_skill_names_from_ledger(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            target_root = root / "full-root"
+            outside_root = root / "outside"
+            target_root.mkdir(parents=True, exist_ok=True)
+            outside_root.mkdir(parents=True, exist_ok=True)
+            outside_note = outside_root / "note.txt"
+            outside_note.write_text("keep me\n", encoding="utf-8")
+
+            self.install_profile(target_root, profile="full")
+            ledger_path = target_root / ".vibeskills" / "install-ledger.json"
+            ledger = load_json(ledger_path)
+            ledger["managed_runtime_skill_names"] = ["../../outside", "vibe"]
+            ledger_path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(REPO_ROOT / "scripts" / "install" / "install_vgo_adapter.py"),
+                    "--repo-root",
+                    str(target_root / "skills" / "vibe"),
+                    "--target-root",
+                    str(target_root),
+                    "--host",
+                    "codex",
+                    "--profile",
+                    "full",
+                ],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("Invalid skill name", result.stderr or result.stdout)
+            self.assertTrue(outside_root.exists())
+            self.assertEqual("keep me\n", outside_note.read_text(encoding="utf-8"))
+
     def test_minimal_reinstall_prunes_previously_managed_full_profile_skills(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             target_root = Path(tempdir) / "shared-root"
@@ -351,6 +395,26 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertEqual(["foundation-workflow"], ledger["managed_catalog_profiles"])
             self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["managed_skill_names"])
             self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["payload_summary"]["installed_skill_names"])
+
+    def test_powershell_minimal_rerun_prunes_previously_managed_full_profile_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "shared-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            self.install_profile(target_root, profile="full")
+            ledger = self.rerun_powershell_installer_from_installed_runtime(target_root, profile="minimal")
+
+            installed_skills = {
+                candidate.name
+                for candidate in (target_root / "skills").iterdir()
+                if candidate.is_dir()
+            }
+
+            self.assertEqual(MINIMAL_REQUIRED_SKILLS, installed_skills)
+            self.assertNotIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
+            self.assertEqual(["runtime-core"], ledger["managed_runtime_units"])
+            self.assertEqual(["foundation-workflow"], ledger["managed_catalog_profiles"])
+            self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["managed_skill_names"])
 
     def test_payload_summary_ignores_preexisting_foreign_host_content(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
