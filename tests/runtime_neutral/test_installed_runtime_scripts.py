@@ -325,6 +325,7 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         }
         self.assertEqual(MINIMAL_REQUIRED_SKILLS, installed_skills)
         self.assertIn("Install done.", result.stdout)
+        self.assertNotIn("Runtime freshness gate requires the canonical repo root", result.stdout)
 
     def test_installed_shell_scripts_work_without_repo_level_adapter_registry(self) -> None:
         for profile in ("minimal", "full"):
@@ -535,6 +536,64 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
         self.assertIn("payload_summary", ledger)
         self.assertGreater(ledger["payload_summary"]["installed_file_count"], 0)
+
+    def test_powershell_install_payload_summary_ignores_preexisting_foreign_host_content(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        target_root = self.root / "pwsh-foreign-content-target"
+        foreign_skill_root = target_root / "skills" / "foreign-user-skill"
+        foreign_file = target_root / "host-notes.txt"
+        target_root.mkdir(parents=True, exist_ok=True)
+        foreign_skill_root.mkdir(parents=True, exist_ok=True)
+        (foreign_skill_root / "SKILL.md").write_text("---\nname: foreign-user-skill\n---\n", encoding="utf-8")
+        foreign_file.write_text("user content\n", encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(REPO_ROOT / "install.ps1"),
+                "-HostId",
+                "codex",
+                "-Profile",
+                "minimal",
+                "-TargetRoot",
+                str(target_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        ledger_path = target_root / ".vibeskills" / "install-ledger.json"
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        installed_skills = {
+            candidate.name
+            for candidate in (target_root / "skills").iterdir()
+            if candidate.is_dir()
+        }
+
+        self.assertIn("Installation complete.", result.stdout)
+        self.assertIn("foreign-user-skill", installed_skills)
+        self.assertNotIn("foreign-user-skill", ledger["payload_summary"]["installed_skill_names"])
+        self.assertLess(
+            ledger["payload_summary"]["installed_file_count"],
+            sum(1 for candidate in target_root.rglob("*") if candidate.is_file()),
+        )
+
+    def test_install_powershell_entrypoints_do_not_require_as_hashtable_json_parsing(self) -> None:
+        for path in (
+            REPO_ROOT / "install.ps1",
+            BUNDLED_VIBE_ROOT / "install.ps1",
+            BUNDLED_VIBE_ROOT / "bundled" / "skills" / "vibe" / "install.ps1",
+        ):
+            with self.subTest(path=path):
+                self.assertNotIn("ConvertFrom-Json -AsHashtable", path.read_text(encoding="utf-8"))
 
     def test_powershell_fallback_install_preserves_existing_opencode_config_without_mutation(self) -> None:
         powershell = resolve_powershell()

@@ -158,16 +158,19 @@ safe_parent_dir() {
 }
 
 canonical_repo_available() {
+  resolve_canonical_repo_root "${1:-}" >/dev/null
+}
+
+resolve_canonical_repo_root() {
   local current="${1:-}"
   [[ -n "${current}" ]] || return 1
   current="$(cd "${current}" 2>/dev/null && pwd || true)"
   [[ -n "${current}" ]] || return 1
-  local origin="${current}"
 
   while [[ -n "${current}" ]]; do
     if [[ -e "${current}/.git" && -f "${current}/config/version-governance.json" ]]; then
-      [[ "${origin}" == "${current}" ]] && return 0
-      return 1
+      printf '%s' "${current}"
+      return 0
     fi
     local parent
     parent="$(dirname "${current}")"
@@ -360,10 +363,10 @@ SP_SRC_ROOT="${SCRIPT_DIR}/bundled/superpowers-skills"
 EXTERNAL_FALLBACK_USED=()
 MISSING_REQUIRED=()
 
-json_query_lines() {
-  local expr="$1"
-  local governance_path="${SCRIPT_DIR}/config/version-governance.json"
-  if [[ ! -f "${governance_path}" ]]; then
+json_query_lines_from_file() {
+  local governance_path="$1"
+  local expr="$2"
+  if [[ -z "${governance_path}" || ! -f "${governance_path}" ]]; then
     return 1
   fi
 
@@ -435,6 +438,17 @@ if ($value -is [System.Collections.IEnumerable] -and -not ($value -is [string]))
   return 1
 }
 
+json_query_lines() {
+  local expr="$1"
+  json_query_lines_from_file "${SCRIPT_DIR}/config/version-governance.json" "${expr}"
+}
+
+json_query_scalar_from_file() {
+  local governance_path="$1"
+  local expr="$2"
+  json_query_lines_from_file "${governance_path}" "${expr}" | head -n 1
+}
+
 json_query_scalar() {
   local expr="$1"
   json_query_lines "${expr}" | head -n 1
@@ -503,7 +517,8 @@ adapter_query() {
 }
 
 run_runtime_neutral_freshness_gate() {
-  local gate_path="${SCRIPT_DIR}/scripts/verify/runtime_neutral/freshness_gate.py"
+  local repo_root="${1:-${SCRIPT_DIR}}"
+  local gate_path="${repo_root}/scripts/verify/runtime_neutral/freshness_gate.py"
   local python_bin=""
   if [[ ! -f "${gate_path}" ]]; then
     return 127
@@ -520,24 +535,27 @@ run_runtime_freshness_gate() {
     return 0
   fi
 
-  if ! canonical_repo_available "${SCRIPT_DIR}"; then
+  local canonical_root=""
+  canonical_root="$(resolve_canonical_repo_root "${SCRIPT_DIR}" || true)"
+  if [[ -z "${canonical_root}" ]]; then
     echo "[WARN] Runtime freshness gate requires the canonical repo root; skipping because no outer .git root was found."
     return 0
   fi
 
   local gate_rel="scripts/verify/vibe-installed-runtime-freshness-gate.ps1"
+  local governance_path="${canonical_root}/config/version-governance.json"
   local configured_gate
-  configured_gate="$(json_query_scalar 'runtime.installed_runtime.post_install_gate' 2>/dev/null || true)"
+  configured_gate="$(json_query_scalar_from_file "${governance_path}" 'runtime.installed_runtime.post_install_gate' 2>/dev/null || true)"
   if [[ -n "${configured_gate}" ]]; then
     gate_rel="${configured_gate}"
   fi
-  local gate_path="${SCRIPT_DIR}/${gate_rel}"
+  local gate_path="${canonical_root}/${gate_rel}"
   if [[ ! -f "${gate_path}" ]]; then
     echo "[FAIL] Runtime freshness gate script missing: ${gate_path}"
     return 1
   fi
 
-  if run_runtime_neutral_freshness_gate; then
+  if run_runtime_neutral_freshness_gate "${canonical_root}"; then
     :
   elif [[ $? -eq 127 ]]; then
     if ! pick_powershell >/dev/null 2>&1; then
@@ -550,7 +568,7 @@ run_runtime_freshness_gate() {
   fi
 
   local receipt_rel receipt_path
-  receipt_rel="$(json_query_scalar 'runtime.installed_runtime.receipt_relpath' 2>/dev/null || true)"
+  receipt_rel="$(json_query_scalar_from_file "${governance_path}" 'runtime.installed_runtime.receipt_relpath' 2>/dev/null || true)"
   [[ -n "${receipt_rel}" ]] || receipt_rel='skills/vibe/outputs/runtime-freshness-receipt.json'
   receipt_path="${TARGET_ROOT}/${receipt_rel}"
   if [[ ! -f "${receipt_path}" ]]; then

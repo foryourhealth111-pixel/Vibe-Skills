@@ -123,6 +123,244 @@ function Invoke-InstalledRuntimeFreshnessGate {
   }
 }
 
+function Test-VgoPathWithinOrEqual {
+  param(
+    [string]$ParentPath,
+    [string]$ChildPath
+  )
+
+  if ([string]::IsNullOrWhiteSpace($ParentPath) -or [string]::IsNullOrWhiteSpace($ChildPath)) {
+    return $false
+  }
+
+  try {
+    $parentFull = [System.IO.Path]::GetFullPath($ParentPath)
+    $childFull = [System.IO.Path]::GetFullPath($ChildPath)
+  } catch {
+    return $false
+  }
+
+  if ($parentFull -eq $childFull) {
+    return $true
+  }
+
+  return (Test-VgoPathWithin -ParentPath $parentFull -ChildPath $childFull)
+}
+
+function Get-VgoJsonStringArray {
+  param($Value)
+
+  $items = New-Object 'System.Collections.Generic.List[string]'
+  foreach ($item in @($Value)) {
+    if ($null -eq $item) {
+      continue
+    }
+    $text = ([string]$item).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($text)) {
+      $items.Add($text)
+    }
+  }
+
+  return @($items.ToArray())
+}
+
+function Get-VgoJsonPropertyValue {
+  param(
+    [AllowNull()] $Node,
+    [string]$Name
+  )
+
+  if ($null -eq $Node -or [string]::IsNullOrWhiteSpace($Name)) {
+    return $null
+  }
+
+  if ($Node -is [System.Collections.IDictionary]) {
+    if ($Node.Contains($Name)) {
+      return $Node[$Name]
+    }
+    return $null
+  }
+
+  if ($Node.PSObject.Properties.Name -contains $Name) {
+    return $Node.$Name
+  }
+
+  return $null
+}
+
+function Get-InstallLedgerManagedSkillNames {
+  param(
+    [psobject]$Ledger,
+    [string]$TargetRoot
+  )
+
+  $managed = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+  foreach ($name in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'managed_skill_names'))) {
+    [void]$managed.Add($name)
+  }
+
+  $skillsRoot = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'created_paths'))) {
+    try {
+      $candidatePath = [System.IO.Path]::GetFullPath($rawPath)
+    } catch {
+      continue
+    }
+    if (-not (Test-VgoPathWithin -ParentPath $skillsRoot -ChildPath $candidatePath)) {
+      continue
+    }
+    $relativePath = $candidatePath.Substring($skillsRoot.Length).TrimStart('\', '/')
+    if ([string]::IsNullOrWhiteSpace($relativePath)) {
+      continue
+    }
+    $skillName = ($relativePath -split '[\\/]', 2)[0]
+    if (-not [string]::IsNullOrWhiteSpace($skillName)) {
+      [void]$managed.Add($skillName)
+    }
+  }
+
+  $canonicalVibeRoot = [string](Get-VgoJsonPropertyValue -Node $Ledger -Name 'canonical_vibe_root')
+  $canonicalVibeRoot = $canonicalVibeRoot.Trim()
+  if (-not [string]::IsNullOrWhiteSpace($canonicalVibeRoot)) {
+    [void]$managed.Add([System.IO.Path]::GetFileName($canonicalVibeRoot))
+  }
+
+  return @($managed | Sort-Object)
+}
+
+function Add-InstallLedgerOwnedFile {
+  param(
+    [System.Collections.Generic.HashSet[string]]$OwnedFiles,
+    [string]$TargetRoot,
+    [string]$PathValue
+  )
+
+  if ([string]::IsNullOrWhiteSpace($PathValue)) {
+    return
+  }
+
+  try {
+    $candidatePath = [System.IO.Path]::GetFullPath($PathValue)
+  } catch {
+    return
+  }
+
+  if (-not (Test-VgoPathWithinOrEqual -ParentPath $TargetRoot -ChildPath $candidatePath)) {
+    return
+  }
+
+  if (Test-Path -LiteralPath $candidatePath -PathType Leaf) {
+    [void]$OwnedFiles.Add($candidatePath)
+  }
+}
+
+function Add-InstallLedgerOwnedTreeFiles {
+  param(
+    [System.Collections.Generic.HashSet[string]]$OwnedFiles,
+    [string]$TargetRoot,
+    [string]$PathValue
+  )
+
+  if ([string]::IsNullOrWhiteSpace($PathValue)) {
+    return
+  }
+
+  try {
+    $candidatePath = [System.IO.Path]::GetFullPath($PathValue)
+  } catch {
+    return
+  }
+
+  if (-not (Test-VgoPathWithinOrEqual -ParentPath $TargetRoot -ChildPath $candidatePath)) {
+    return
+  }
+
+  if (-not (Test-Path -LiteralPath $candidatePath -PathType Container)) {
+    return
+  }
+
+  foreach ($file in @(Get-ChildItem -LiteralPath $candidatePath -Recurse -File -Force -ErrorAction SilentlyContinue)) {
+    [void]$OwnedFiles.Add([System.IO.Path]::GetFullPath($file.FullName))
+  }
+}
+
+function Get-InstallLedgerPayloadSummary {
+  param(
+    [psobject]$Ledger,
+    [string]$TargetRoot
+  )
+
+  $targetRootFull = [System.IO.Path]::GetFullPath($TargetRoot)
+  $skillsRootFull = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
+  $managedSkillNames = @(Get-InstallLedgerManagedSkillNames -Ledger $Ledger -TargetRoot $TargetRoot)
+  $managedSkillSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+  foreach ($name in $managedSkillNames) {
+    [void]$managedSkillSet.Add($name)
+  }
+
+  $installedSkillNames = New-Object 'System.Collections.Generic.List[string]'
+  foreach ($name in $managedSkillNames) {
+    if ($name.StartsWith('.')) {
+      continue
+    }
+    $skillRoot = Join-Path $skillsRootFull $name
+    if (Test-Path -LiteralPath $skillRoot -PathType Container) {
+      $installedSkillNames.Add($name)
+    }
+  }
+
+  $ownedFiles = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+  foreach ($name in $managedSkillNames) {
+    $skillRoot = Join-Path $skillsRootFull $name
+    if (Test-Path -LiteralPath $skillRoot -PathType Container) {
+      Add-InstallLedgerOwnedTreeFiles -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $skillRoot
+    }
+  }
+
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'owned_tree_roots'))) {
+    try {
+      $candidatePath = [System.IO.Path]::GetFullPath($rawPath)
+    } catch {
+      continue
+    }
+    if ($candidatePath -eq $targetRootFull -or $candidatePath -eq $skillsRootFull) {
+      continue
+    }
+    $candidateParent = [System.IO.Path]::GetDirectoryName($candidatePath)
+    if ($candidateParent -eq $skillsRootFull -and -not $managedSkillSet.Contains([System.IO.Path]::GetFileName($candidatePath))) {
+      continue
+    }
+    Add-InstallLedgerOwnedTreeFiles -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $candidatePath
+  }
+
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'created_paths'))) {
+    Add-InstallLedgerOwnedFile -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $rawPath
+  }
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'managed_json_paths'))) {
+    Add-InstallLedgerOwnedFile -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $rawPath
+  }
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'generated_from_template_if_absent'))) {
+    Add-InstallLedgerOwnedFile -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $rawPath
+  }
+  foreach ($rawPath in @(Get-VgoJsonStringArray -Value (Get-VgoJsonPropertyValue -Node $Ledger -Name 'specialist_wrapper_paths'))) {
+    Add-InstallLedgerOwnedFile -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $rawPath
+  }
+  foreach ($entry in @((Get-VgoJsonPropertyValue -Node $Ledger -Name 'merged_files'))) {
+    if ($null -eq $entry) {
+      continue
+    }
+    $pathValue = [string](Get-VgoJsonPropertyValue -Node $entry -Name 'path')
+    Add-InstallLedgerOwnedFile -OwnedFiles $ownedFiles -TargetRoot $targetRootFull -PathValue $pathValue
+  }
+
+  return [ordered]@{
+    installed_skill_count = $installedSkillNames.Count
+    installed_skill_names = @($installedSkillNames.ToArray() | Sort-Object)
+    installed_file_count = $ownedFiles.Count
+  }
+}
+
 function Update-InstallLedgerPayloadSummary {
   param(
     [string]$RepoRoot,
@@ -135,31 +373,13 @@ function Update-InstallLedgerPayloadSummary {
   }
 
   try {
-    $ledger = Get-Content -LiteralPath $ledgerPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+    $ledger = Get-Content -LiteralPath $ledgerPath -Raw -Encoding UTF8 | ConvertFrom-Json
   } catch {
     throw ("Failed to parse install ledger for refresh: " + $_.Exception.Message)
   }
 
-  $skillsRoot = Join-Path $TargetRoot 'skills'
-  $installedSkillNames = @()
-  if (Test-Path -LiteralPath $skillsRoot -PathType Container) {
-    $installedSkillNames = @(
-      Get-ChildItem -LiteralPath $skillsRoot -Directory -Force |
-        Where-Object { -not $_.Name.StartsWith('.') } |
-        Sort-Object Name |
-        ForEach-Object { $_.Name }
-    )
-  }
-
-  $installedFileCount = @(
-    Get-ChildItem -LiteralPath $TargetRoot -Recurse -File -Force -ErrorAction SilentlyContinue
-  ).Count
-
-  $ledger['payload_summary'] = [ordered]@{
-    installed_skill_count = @($installedSkillNames).Count
-    installed_skill_names = @($installedSkillNames)
-    installed_file_count = $installedFileCount
-  }
+  $payloadSummary = [pscustomobject](Get-InstallLedgerPayloadSummary -Ledger $ledger -TargetRoot $TargetRoot)
+  $ledger | Add-Member -NotePropertyName 'payload_summary' -NotePropertyValue $payloadSummary -Force
 
   Write-VgoUtf8NoBomText -Path $ledgerPath -Content ($ledger | ConvertTo-Json -Depth 20)
 }
