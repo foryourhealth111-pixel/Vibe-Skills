@@ -73,7 +73,7 @@ function Get-SkillDirHash {
     $entries = New-Object System.Collections.Generic.List[string]
     $totalBytes = 0
 
-    foreach ($file in Get-ChildItem -LiteralPath $DirPath -Recurse -File) {
+    foreach ($file in Get-ChildItem -LiteralPath $DirPath -Force -Recurse -File) {
         $relative = $file.FullName.Substring($DirPath.Length + 1).Replace('\', '/')
         if (
             $relative.Equals("config/skills-lock.json", [System.StringComparison]::OrdinalIgnoreCase) -or

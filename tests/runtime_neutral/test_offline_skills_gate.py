@@ -229,6 +229,7 @@ class OfflineSkillsGateTests(unittest.TestCase):
         self.assertIn("skills-lock entries missing in skills root: vibe", result.stdout)
 
     def test_lock_generator_uses_deterministic_ordinal_relative_path_order(self) -> None:
+        self._write("bundled/skills/mixed-case/.hidden-note.md", "hidden\n")
         self._write("bundled/skills/mixed-case/README.md", "# readme\n")
         self._write("bundled/skills/mixed-case/SKILL.md", "---\nname: mixed-case\ndescription: fixture\n---\n")
         self._write("bundled/skills/mixed-case/agents/AGENTS.md", "# agents\n")

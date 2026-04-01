@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "generated_at": "2026-04-01T18:14:55+08:00",
+  "generated_at": "2026-04-01T18:21:21+08:00",
   "source": "bundled/skills",
   "skill_count": 339,
-  "total_bytes": 22454649.0,
+  "total_bytes": 22455310.0,
   "skills": [
     {
       "name": ".system",
       "relative_path": "bundled/skills/.system",
-      "file_count": 17,
-      "bytes": 90509,
+      "file_count": 18,
+      "bytes": 90526,
       "skill_md_hash": null,
-      "dir_hash": "ba4d85ae95756a23e286df3f99de79409e13232c12d1d74dc79d5aae0c9a6c93"
+      "dir_hash": "50cd85f2c04745748365fd6f3285f722f37d2681f509bc035d1673dd2972cc1f"
     },
     {
       "name": "adaptyv",
@@ -656,10 +656,10 @@
     {
       "name": "digital-brain",
       "relative_path": "bundled/skills/digital-brain",
-      "file_count": 46,
-      "bytes": 128530,
+      "file_count": 47,
+      "bytes": 128972,
       "skill_md_hash": "39ed6cd20dd787b6c71397aa0f75619887ed774c0fd390439d8e535f54bb3544",
-      "dir_hash": "18e7da5fa559797449eb14be1fafe5a889c5d17456daa764c1faebe37a2b7584"
+      "dir_hash": "50865fc937e74f6c7cf6a1dceb199d2bb030e5942942b69e5a4763bc78377d61"
     },
     {
       "name": "dnanexus-integration",
@@ -1168,10 +1168,10 @@
     {
       "name": "knowledge-steward",
       "relative_path": "bundled/skills/knowledge-steward",
-      "file_count": 14,
-      "bytes": 94124,
+      "file_count": 15,
+      "bytes": 94326,
       "skill_md_hash": "dc500334bd4b58f74a7d48fca4eb7145879355e9915701c1b88b2e87f7a5f002",
-      "dir_hash": "c91a5718c9fed6b4eb8ff24a3b8f8cdff659b4d4b86aa2ffa9b59a6218c6b7b7"
+      "dir_hash": "70b34d99a53539ba2793b81946f947b74a13b177f40391a8bceeab15fdbf02e6"
     },
     {
       "name": "labarchive-integration",
