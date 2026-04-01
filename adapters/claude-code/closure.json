@@ -9,22 +9,18 @@
     "canonical vibe mirror under skills/vibe/**",
     ".vibeskills/host-closure.json",
     ".vibeskills/bin/**",
-    "settings.json managed vibeskills stanza",
-    "settings.json managed Claude PreToolUse hook entry",
-    "hooks/write-guard.js"
+    "settings.json managed vibeskills stanza"
   ],
   "host_state_written": [
     ".vibeskills/host-closure.json",
     ".vibeskills/bin/**",
-    "settings.json managed vibeskills stanza",
-    "settings.json managed Claude PreToolUse hook entry",
-    "hooks/write-guard.js"
+    "settings.json managed vibeskills stanza"
   ],
   "host_managed_boundaries": [
     "plugin provisioning",
     "MCP registration",
     "provider credentials",
-    "broader Claude host behavior outside the managed vibeskills + write-guard surface"
+    "broader Claude host behavior outside the managed vibeskills settings surface"
   ],
   "uninstall_contract": {
     "contract_version": 1,
@@ -34,12 +30,10 @@
       "runtime core payload",
       "canonical vibe mirror under skills/vibe/**",
       ".vibeskills/host-closure.json",
-      ".vibeskills/bin/**",
-      "hooks/write-guard.js"
+      ".vibeskills/bin/**"
     ],
     "shared_json_targets": [
-      "settings.json vibeskills stanza",
-      "settings.json managed Claude hook entry"
+      "settings.json vibeskills stanza"
     ],
     "legacy_compatibility": [
       ".vibeskills/bin/**"
@@ -47,9 +41,7 @@
     "host_state_written": [
       ".vibeskills/host-closure.json",
       ".vibeskills/bin/**",
-      "settings.json managed vibeskills stanza",
-      "settings.json managed Claude PreToolUse hook entry",
-      "hooks/write-guard.js"
+      "settings.json managed vibeskills stanza"
     ],
     "documentation_reference": "docs/uninstall-governance.md"
   },
@@ -58,7 +50,6 @@
     "runtime BOM/frontmatter gate",
     "runtime coherence gate",
     "host closure presence check",
-    "managed Claude settings presence check",
-    "managed Claude hook surface check"
+    "managed Claude settings presence check"
   ]
 }

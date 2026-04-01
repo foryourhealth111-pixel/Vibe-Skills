@@ -19,7 +19,7 @@ Rules:
 2. If I choose the full version, map it to the real profile `full`.
 3. Detect the OS first; use `bash` on Linux/macOS and `pwsh` on Windows.
 4. For `codex`, run `--host codex --profile full` and describe it as the strongest governed path, while making clear that hooks remain frozen.
-5. For `claude-code`, run `--host claude-code --profile full` and describe it as a supported install-and-use path that preserves the real `~/.claude/settings.json` while merging a bounded managed `vibeskills` + write-guard hook surface.
+5. For `claude-code`, run `--host claude-code --profile full` and describe it as a supported install-and-use path that preserves the real `~/.claude/settings.json` while merging a bounded managed `vibeskills` settings surface.
 6. For `cursor`, run `--host cursor --profile full` and describe it as a supported install-and-use path with no takeover of the real `~/.cursor/settings.json`.
 7. For `windsurf`, run `--host windsurf --profile full` and describe it as a supported install-and-use path with runtime-adapter integration; mention the default root `~/.codeium/windsurf` and that the repo only owns shared runtime payload plus `.vibeskills/*` sidecar state.
 8. For `openclaw`, run `--host openclaw --profile full` and describe it with the `preview` / `runtime-core-preview` / `runtime-core` wording; mention the default target root `OPENCLAW_HOME` or `~/.openclaw`, plus the attach / copy / bundle paths.

@@ -37,12 +37,6 @@ check "Common rules" "${CLAUDE_DIR}/rules/common/agents.md"
 check "TypeScript rules" "${CLAUDE_DIR}/rules/typescript/coding-style.md" false
 
 echo ""
-echo "Hooks:"
-check "write-guard.js" "${CLAUDE_DIR}/hooks/write-guard.js"
-check "hookify: auto-plugin-discovery" "${CLAUDE_DIR}/hookify.auto-plugin-discovery.local.md"
-check "hookify: prevent-large-file-write" "${CLAUDE_DIR}/hookify.prevent-large-file-write.local.md"
-
-echo ""
 echo "Commands:"
 check "SuperClaude sc:design" "${CLAUDE_DIR}/commands/sc/design.md"
 check "SuperClaude sc:research" "${CLAUDE_DIR}/commands/sc/research.md"

@@ -56,7 +56,7 @@ bash ./check.sh --host claude-code --profile full --deep
 
 你会得到：
 
-- bounded managed `vibeskills` + write-guard hook surface
+- bounded managed `vibeskills` settings surface
 - install/check 对真实 `~/.claude/settings.json` 的增量合并与校验
 - supported-with-constraints health check
 

@@ -112,7 +112,7 @@ If provider, MCP, or host-side manual items are still missing, do not claim onli
 ## Codex And Claude Code Boundaries
 
 - Codex: official governed host; hooks are not installed right now
-- Claude Code: supported install-and-use path; the installer preserves existing Claude settings while writing a bounded managed `vibeskills` stanza plus a managed `PreToolUse` write-guard hook surface
+- Claude Code: supported install-and-use path; the installer preserves existing Claude settings while writing a bounded managed `vibeskills` stanza only
 
 For both hosts, never ask users to paste key/url/model values into chat. Only guide them to local `settings.json` `env` fields or local environment variables.
 

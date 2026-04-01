@@ -76,7 +76,7 @@
 
 - 运行 `--host claude-code`
 - 明确说明当前提供支持的安装与使用路径
-- 明确说明安装器会在保留现有 `~/.claude/settings.json` 内容的前提下，补入受约束的 `vibeskills` 节点、受管的 `PreToolUse` hook 条目，以及受管的 `hooks/write-guard.js`
+- 明确说明安装器会在保留现有 `~/.claude/settings.json` 内容的前提下，补入受约束的 `vibeskills` 节点，而不会再写入受管 hook 资产
 - 不要宣传成 official runtime、Codex 满血等价或跨平台 proof 已闭环
 - 引导用户继续把 `env`、plugin enablement、MCP 注册和 provider credentials 放在 Claude 宿主侧本地维护
 

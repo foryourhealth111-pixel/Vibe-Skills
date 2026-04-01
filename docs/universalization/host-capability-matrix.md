@@ -27,7 +27,7 @@ It prevents the project from collapsing all hosts into a fake "one runtime fits 
 | Host         | Status                       | Runtime Role             | Settings Contract                                                                  | Plugin/MCP Contract         | Release Closure        | Notes                                                                      |
 | ------------ | ---------------------------- | ------------------------ | ---------------------------------------------------------------------------------- | --------------------------- | ---------------------- | -------------------------------------------------------------------------- |
 | Codex | `supported-with-constraints` | official-runtime-adapter | repo template + materialization exist | host-managed but documented | strongest current path | current reference lane |
-| Claude Code | `supported-with-constraints` | host-adapter-supported | repo writes managed settings + hook surface | host-managed beyond the bounded Claude managed surface | managed-with-constraints | install/check can write and verify real Claude managed state, but not claim official-runtime parity |
+| Claude Code | `supported-with-constraints` | host-adapter-supported | repo writes managed settings surface | host-managed beyond the bounded Claude managed surface | managed-with-constraints | install/check can write and verify real Claude managed state, but not claim official-runtime parity |
 | Cursor | `preview` | host-adapter-preview | preview guidance only | mostly host-managed | preview-scaffold | shared entrypoints exist, but host-native closure is not claimed |
 | Windsurf | `preview` | official-runtime-adapter | runtime-core host-root install/check exists | host-managed beyond runtime-core payload | runtime-core-preview | documented host root with shared runtime-core payload only |
 | OpenClaw | `preview` | official-runtime-adapter | runtime-core host-root install/check exists | host-managed beyond runtime-core payload | runtime-core-preview | attach / copy / bundle are supported, but host-native closure is not claimed |
@@ -44,7 +44,7 @@ It prevents the project from collapsing all hosts into a fake "one runtime fits 
 
 ### Claude Code
 
-- The repo can now preserve existing Claude settings while writing a bounded `vibeskills` stanza, a managed `PreToolUse` hook entry, and the managed `write-guard.js` hook script.
+- The repo can now preserve existing Claude settings while writing a bounded `vibeskills` stanza only; repo-managed hook assets are intentionally absent.
 - This is still not a full Claude Code closure claim, an official-runtime promotion, or a platform-parity claim.
 
 ### Cursor

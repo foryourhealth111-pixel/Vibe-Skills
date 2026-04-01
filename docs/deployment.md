@@ -57,12 +57,12 @@ bash ./check.sh --host opencode
 
 - `codex` is the strongest governed path today
 - `claude-code` has a supported install-and-use path and does not overwrite the real host settings
-- `claude-code` merges a bounded managed `vibeskills` + write-guard hook surface into the real host settings while leaving broader host behavior managed on the Claude side
+- `claude-code` merges a bounded managed `vibeskills` settings surface into the real host settings while leaving broader host behavior managed on the Claude side
 - `cursor` has a supported install-and-use path and does not overwrite the real host settings
 - `windsurf` has a supported install-and-use path with runtime-adapter integration
 - `openclaw` is documented as `preview` / `runtime-core-preview` / `runtime-core`, with default target root from `OPENCLAW_HOME` or `~/.openclaw`
 - `opencode` is documented as a preview-adapter path that uses direct install/check
-- hooks are not uniform on the current public surface: Codex/Cursor remain frozen, while Claude now has a bounded managed write-guard hook surface
+- hooks are not uniform on the current public surface: Codex/Cursor remain frozen, and Claude also avoids repo-managed hook installation
 - `windsurf` defaults to `~/.codeium/windsurf` and only gets shared runtime payload plus optional `mcp_config.json` / `global_workflows/` materialization
 - `openclaw` keeps runtime-core payload install, validation, and distribution explicit through attach / copy / bundle
 - `opencode` defaults to `OPENCODE_HOME`, otherwise `~/.config/opencode`, and keeps the real `opencode.json`, plugin install, and MCP trust host-managed

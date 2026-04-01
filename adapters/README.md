@@ -12,7 +12,7 @@ Rules:
 Current adapter intent:
 
 - `codex/`: strongest current adapter because the repository already ships Codex-specific install, settings, and plugin guidance.
-- `claude-code/`: supported-with-constraints host adapter with a bounded managed Claude settings + hook surface, but still below official-runtime ownership.
+- `claude-code/`: supported-with-constraints host adapter with a bounded managed Claude settings surface, but still below official-runtime ownership.
 - `cursor/`: preview adapter with truthful host-managed boundaries; no full closure claim yet.
 - `windsurf/`: preview runtime-core adapter with documented host-root payload materialization.
 - `openclaw/`: preview runtime-core adapter with documented host-root payload materialization.

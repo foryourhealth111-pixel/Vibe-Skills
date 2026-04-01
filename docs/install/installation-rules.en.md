@@ -77,7 +77,7 @@ If the user chooses `claude-code`:
 
 - run `--host claude-code`
 - state clearly that it has a supported install-and-use path
-- explain that the installer preserves existing `~/.claude/settings.json` content while adding a bounded managed `vibeskills` node, managed `PreToolUse` hook entry, and managed `hooks/write-guard.js`
+- explain that the installer preserves existing `~/.claude/settings.json` content while adding a bounded managed `vibeskills` node and no repo-managed hook assets
 - do not claim official-runtime ownership, full Codex parity, or cross-platform proof that has not been frozen
 - guide the user to keep `env`, plugin enablement, MCP registration, and provider credentials on the Claude host-managed side
 

@@ -48,18 +48,6 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tempdir.cleanup()
 
-    def run_write_guard(self, file_path: Path | str) -> subprocess.CompletedProcess[str]:
-        node = shutil.which('node')
-        if node is None:
-            self.skipTest('Node.js executable not available in PATH')
-        payload = json.dumps({'tool_input': {'file_path': str(file_path)}})
-        return subprocess.run(
-            [node, str(REPO_ROOT / 'hooks' / 'write-guard.js')],
-            input=payload,
-            capture_output=True,
-            text=True,
-        )
-
     def test_shell_scaffold_preserves_existing_settings_and_writes_preview_file(self) -> None:
         cmd = [
             'bash',
@@ -78,8 +66,8 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertEqual(self.existing_settings, json.loads(settings_path.read_text(encoding='utf-8')))
         self.assertFalse(preview_path.exists())
         self.assertIsNone(payload['preview_settings_path'])
-        self.assertIsNone(payload['hooks_root'])
-        self.assertIn('temporarily frozen', payload['message'])
+        self.assertNotIn('hooks_root', payload)
+        self.assertIn('no longer installs managed hooks', payload['message'])
 
     def test_powershell_scaffold_preserves_existing_settings_and_writes_preview_file(self) -> None:
         powershell = resolve_powershell()
@@ -104,8 +92,8 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertEqual(self.existing_settings, json.loads(settings_path.read_text(encoding='utf-8')))
         self.assertFalse(preview_path.exists())
         self.assertIsNone(payload['preview_settings_path'])
-        self.assertIsNone(payload['hooks_root'])
-        self.assertIn('temporarily frozen', payload['message'])
+        self.assertNotIn('hooks_root', payload)
+        self.assertIn('no longer installs managed hooks', payload['message'])
 
     def test_install_script_preserves_existing_settings_and_writes_preview_file(self) -> None:
         cmd = [
@@ -126,18 +114,17 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         settings_path = self.target_root / 'settings.json'
         closure_path = self.target_root / '.vibeskills' / 'host-closure.json'
         host_settings_path = self.target_root / '.vibeskills' / 'host-settings.json'
-        hook_path = self.target_root / 'hooks' / 'write-guard.js'
         settings = json.loads(settings_path.read_text(encoding='utf-8'))
         self.assertEqual(self.existing_settings['env'], settings['env'])
         self.assertEqual(self.existing_settings['model'], settings['model'])
         self.assertEqual('claude-code', settings['vibeskills']['host_id'])
         self.assertTrue(settings['vibeskills']['managed'])
         self.assertEqual(str((self.target_root / 'skills').resolve()), settings['vibeskills']['skills_root'])
-        self.assertIn('PreToolUse', settings['hooks'])
-        self.assertIn('write-guard.js', json.dumps(settings['hooks']))
+        self.assertNotIn('hooks', settings)
+        self.assertNotIn('managed_hook_command', settings['vibeskills'])
         self.assertTrue(closure_path.exists())
         self.assertTrue(host_settings_path.exists())
-        self.assertTrue(hook_path.exists())
+        self.assertFalse((self.target_root / 'hooks').exists())
         self.assertFalse((self.target_root / 'commands').exists())
         self.assertEqual('preview-guidance', payload['install_mode'])
         self.assertEqual(str(closure_path), payload['host_closure_path'])
@@ -169,28 +156,14 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
 
         self.assertIn('[OK] host closure manifest', result.stdout)
         self.assertIn('[OK] settings.json managed vibeskills node', result.stdout)
-        self.assertIn('[OK] settings.json managed Claude hook command', result.stdout)
-        self.assertIn('[OK] managed Claude hook script', result.stdout)
         settings = json.loads((self.target_root / 'settings.json').read_text(encoding='utf-8'))
         self.assertEqual(self.existing_settings['env'], settings['env'])
         self.assertEqual(self.existing_settings['model'], settings['model'])
         self.assertEqual('claude-code', settings['vibeskills']['host_id'])
         self.assertTrue((self.target_root / '.vibeskills' / 'host-settings.json').exists())
-        self.assertTrue((self.target_root / 'hooks' / 'write-guard.js').exists())
+        self.assertFalse((self.target_root / 'hooks').exists())
+        self.assertNotIn('hooks', settings)
         self.assertFalse((self.target_root / 'commands').exists())
-
-    def test_write_guard_blocks_markdown_created_directly_in_home_root(self) -> None:
-        result = self.run_write_guard(Path.home() / 'tmp-vibe-home-root.md')
-
-        self.assertEqual(2, result.returncode)
-        self.assertIn('BLOCKED', result.stderr)
-
-    def test_write_guard_allows_markdown_in_project_directory(self) -> None:
-        target_file = self.target_root / 'notes.md'
-        result = self.run_write_guard(target_file)
-
-        self.assertEqual(0, result.returncode)
-        self.assertIn(str(target_file), result.stdout)
 
 
 if __name__ == '__main__':

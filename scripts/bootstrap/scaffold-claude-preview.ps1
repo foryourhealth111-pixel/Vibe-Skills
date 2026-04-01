@@ -21,6 +21,5 @@ function Copy-DirContent {
     host_id = 'claude-code'
     target_root = [System.IO.Path]::GetFullPath($TargetRoot)
     preview_settings_path = $null
-    hooks_root = $null
-    message = 'Hook and preview-settings installation are temporarily frozen because of compatibility issues.'
+    message = 'Claude preview scaffold no longer installs managed hooks or preview settings; use the supported settings-only installer path instead.'
 } | ConvertTo-Json -Depth 10

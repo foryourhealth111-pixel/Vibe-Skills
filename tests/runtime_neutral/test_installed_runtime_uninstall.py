@@ -165,7 +165,7 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
         self.assertNotIn("vibeskills", mutated)
         self.assertNotIn("hooks", mutated)
 
-    def test_claude_code_install_preserves_user_pretooluse_hook_with_same_description(self) -> None:
+    def test_claude_code_install_preserves_user_pretooluse_hook_without_adding_managed_hook(self) -> None:
         target_root = self.root / "claude-root-user-hook-install"
         settings_path = target_root / "settings.json"
         settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -199,19 +199,11 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
 
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
         pre_tool_use = settings["hooks"]["PreToolUse"]
-        commands = [
-            str(entry["hooks"][0]["command"])
-            for entry in pre_tool_use
-            if isinstance(entry, dict)
-            and isinstance(entry.get("hooks"), list)
-            and entry["hooks"]
-            and isinstance(entry["hooks"][0], dict)
-        ]
-        self.assertIn(user_hook_command, commands)
-        self.assertIn(
-            f'node "{(target_root / "hooks" / "write-guard.js").resolve()}"',
-            commands,
-        )
+        self.assertEqual(1, len(pre_tool_use))
+        self.assertEqual(user_hook_command, pre_tool_use[0]["hooks"][0]["command"])
+        self.assertNotIn("managed_hook_command", settings["vibeskills"])
+        self.assertNotIn("managed_hook_description", settings["vibeskills"])
+        self.assertFalse((target_root / "hooks").exists())
 
     def test_claude_code_uninstall_preserves_user_pretooluse_hook_with_same_description(self) -> None:
         target_root = self.root / "claude-root-user-hook-uninstall"

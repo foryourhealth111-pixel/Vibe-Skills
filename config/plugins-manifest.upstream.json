@@ -32,15 +32,6 @@
         "observed_head_sha": "d0c0d2759f8aadfba1b3361b5860024e4a7e68d4"
       },
       {
-        "id": "hookify@claude-plugins-official",
-        "repo": "https://github.com/anthropics/claude-plugins-official",
-        "install_mode": "manual-codex",
-        "install_hint": "Provision via Codex-native MCP/plugin tooling (no Claude CLI command).",
-        "role": "Hook management: auto-plugin-discovery, large-file-write prevention",
-        "required": true,
-        "policy_alignment": "recommended-first-under-host-plugin-policy"
-      },
-      {
         "id": "ralph-loop@claude-plugins-official",
         "repo": "https://github.com/frankbria/ralph-claude-code",
         "install_mode": "manual-codex",

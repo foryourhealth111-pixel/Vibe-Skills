@@ -13,6 +13,6 @@
   "notes": [
     "This mapping is Codex-specific.",
     "Template values are runtime bindings, not cross-host canonical truth.",
-    "Host hook installation is temporarily frozen because of compatibility issues."
+    "Repo-managed hook installation is intentionally unsupported on the Codex host path."
   ]
 }

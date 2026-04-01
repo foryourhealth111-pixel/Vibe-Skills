@@ -8,10 +8,10 @@
     "version": "2.3.55",
     "updated": "2026-03-30"
   },
-  "summary": "Claude Code host adapter lane with bounded managed closure. The repo can write and verify a managed Claude settings + hook surface, while still keeping broader host behavior outside repo ownership.",
+  "summary": "Claude Code host adapter lane with bounded managed closure. The repo can write and verify a managed Claude settings surface, while still keeping broader host behavior outside repo ownership.",
   "runtime_ownership": {
     "owner": "host_managed",
-    "notes": "This lane must not claim official runtime closure. It owns only the bounded vibeskills-managed Claude settings and write-guard hook surface plus truthful readiness boundaries."
+    "notes": "This lane must not claim official runtime closure. It owns only the bounded vibeskills-managed Claude settings surface plus truthful readiness boundaries."
   },
   "entrypoints": {
     "install_primary": "install.ps1 --host claude-code",
@@ -35,15 +35,6 @@
       "evidence_paths": [
         "docs/universalization/router-model-neutrality.md",
         "scripts/router/resolve-pack-route.ps1"
-      ]
-    },
-    {
-      "id": "claude_code_managed_hook_surface_exists",
-      "promise_level": "promised",
-      "evidence_paths": [
-        "hooks/write-guard.js",
-        "check.sh",
-        "tests/runtime_neutral/test_claude_preview_scaffold.py"
       ]
     }
   ],

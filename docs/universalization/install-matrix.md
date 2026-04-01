@@ -17,7 +17,7 @@ It does **not** promise that all host dependencies can be installed in one shot.
 | --- | --- | --- | --- | --- |
 | `official-runtime` | `install.ps1`, `install.sh` | `check.ps1`, `check.sh` | governed | Tier-1 reference lane |
 | `host-codex` | `install.* --host codex` | `check.* --host codex` | governed-with-constraints | strongest current lane |
-| `host-claude-code` | `install.* --host claude-code` | `check.* --host claude-code` | managed-with-constraints | writes and verifies a bounded Claude settings + hook surface |
+| `host-claude-code` | `install.* --host claude-code` | `check.* --host claude-code` | managed-with-constraints | writes and verifies a bounded Claude settings surface |
 | `host-cursor` | `install.* --host cursor` | `check.* --host cursor` | preview-scaffold | exposes preview guidance and truthful readiness checks only |
 | `host-windsurf` | `install.* --host windsurf` | `check.* --host windsurf` | runtime-core-preview | documented host root with shared runtime-core payload only |
 | `host-openclaw` | `install.* --host openclaw` | `check.* --host openclaw` | runtime-core-preview | documented host root with shared runtime-core payload only |

@@ -39,6 +39,7 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertNotIn("docs", directories)
         self.assertNotIn("references", directories)
         self.assertNotIn("protocols", directories)
+        self.assertNotIn("hooks", directories)
         self.assertTrue({"templates", "mcp"}.issubset(directories))
 
     def test_runtime_governance_declares_explicit_script_and_config_manifests(self) -> None:
@@ -68,6 +69,17 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertNotIn("config/skill-catalog-packaging.json", required_markers)
         self.assertNotIn("config/skill-catalog-profiles.json", required_markers)
         self.assertNotIn("config/skill-catalog-groups.json", required_markers)
+        self.assertNotIn("hooks/write-guard.js", required_markers)
+
+    def test_python_safe_relative_contract_path_rejects_windows_drive_qualified_values(self) -> None:
+        installer = load_installer_module()
+
+        with self.assertRaises(SystemExit):
+            installer.safe_relative_contract_path(
+                "C:outside.json",
+                default="config/skill-catalog-packaging.json",
+                field_name="profiles_manifest",
+            )
 
     def test_python_installer_resolves_catalog_manifest_via_runtime_core_contract(self) -> None:
         installer = load_installer_module()

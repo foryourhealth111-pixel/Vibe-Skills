@@ -29,7 +29,6 @@ print(json.dumps({
     "host_id": "claude-code",
     "target_root": str(target),
     "preview_settings_path": None,
-    "hooks_root": None,
-    "message": "Hook and preview-settings installation are temporarily frozen because of compatibility issues.",
+    "message": "Claude preview scaffold no longer installs managed hooks or preview settings; use the supported settings-only installer path instead.",
 }, ensure_ascii=False, indent=2))
 PY

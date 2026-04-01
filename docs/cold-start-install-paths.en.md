@@ -51,7 +51,7 @@ bash ./check.sh --host claude-code --profile full --deep
 
 What you get:
 
-- bounded managed `vibeskills` + write-guard hook surface
+- bounded managed `vibeskills` settings surface
 - incremental merge and verification against the real `~/.claude/settings.json`
 - supported-with-constraints health check
 
@@ -153,6 +153,6 @@ Next actions:
 ## Boundaries That Must Hold During Cold Start
 
 - `HostId` / `--host` decides host semantics
-- hooks are not uniform across the current public surface: Codex/Cursor keep hooks frozen, while Claude has a bounded managed write-guard hook surface
+- hooks are not uniform across the current public surface: Codex/Cursor keep hooks frozen, and Claude also avoids repo-managed hook installation
 - if local provider fields are not configured, the environment must not be described as online-ready
 - do not ask users to paste secrets into chat

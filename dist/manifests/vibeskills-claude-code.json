@@ -5,7 +5,7 @@
   "package_name": "VibeSkills for Claude Code",
   "status": "supported-with-constraints",
   "runtime_role": "host-adapter-supported",
-  "summary": "Claude Code now has a bounded managed install/check lane that writes and verifies a Claude settings + hook surface, but it still does not become the Codex official runtime or full platform-parity lane.",
+  "summary": "Claude Code now has a bounded managed install/check lane that writes and verifies a Claude settings surface, but it still does not become the Codex official runtime or full platform-parity lane.",
   "source_release": {
     "version": "2.3.55",
     "updated": "2026-03-30"
@@ -31,15 +31,13 @@
     "repo_provided": [
       "install.ps1 --host claude-code",
       "install.sh --host claude-code",
-      "settings.json managed vibeskills stanza",
-      "settings.json managed Claude PreToolUse hook entry",
-      "hooks/write-guard.js"
+      "settings.json managed vibeskills stanza"
     ],
     "host_managed": [
       "plugin enablement",
       "MCP registration",
       "provider credentials",
-      "broader Claude host behavior outside the managed vibeskills + write-guard surface"
+      "broader Claude host behavior outside the managed vibeskills settings surface"
     ],
     "notes": [
       "The repo preserves existing Claude settings while merging a bounded managed surface.",

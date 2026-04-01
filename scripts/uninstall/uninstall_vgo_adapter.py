@@ -30,24 +30,6 @@ def write_json_file(path: Path, data: object):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def should_remove_claude_pretooluse_hook_entry(
-    entry: dict,
-    *,
-    managed_hook_command: str,
-    managed_hook_description: str,
-) -> bool:
-    entry_hooks = entry.get("hooks")
-    entry_command = ""
-    if isinstance(entry_hooks, list) and entry_hooks:
-        first_hook = entry_hooks[0]
-        if isinstance(first_hook, dict):
-            entry_command = str(first_hook.get("command") or "").strip()
-    if managed_hook_command:
-        return bool(entry_command) and entry_command == managed_hook_command
-    description = str(entry.get("description") or "").strip()
-    return bool(managed_hook_description) and not entry_command and description == managed_hook_description
-
-
 def normalize_relpath(value: str | Path | None) -> str | None:
     if value is None:
         return None
@@ -327,38 +309,6 @@ def remove_vibeskills_node(
         return
 
     next_payload = dict(payload)
-    managed_node = payload.get("vibeskills")
-    managed_hook_command = ""
-    managed_hook_description = ""
-    if isinstance(managed_node, dict):
-        managed_hook_command = str(managed_node.get("managed_hook_command") or "").strip()
-        managed_hook_description = str(managed_node.get("managed_hook_description") or "").strip()
-
-    hooks = next_payload.get("hooks")
-    if isinstance(hooks, dict) and "PreToolUse" in hooks:
-        pre_tool_use = hooks.get("PreToolUse")
-        if isinstance(pre_tool_use, list):
-            filtered_pre_tool_use = []
-            for entry in pre_tool_use:
-                if not isinstance(entry, dict):
-                    filtered_pre_tool_use.append(entry)
-                    continue
-                if should_remove_claude_pretooluse_hook_entry(
-                    entry,
-                    managed_hook_command=managed_hook_command,
-                    managed_hook_description=managed_hook_description,
-                ):
-                    continue
-                filtered_pre_tool_use.append(entry)
-            if filtered_pre_tool_use:
-                hooks["PreToolUse"] = filtered_pre_tool_use
-            else:
-                del hooks["PreToolUse"]
-            if hooks:
-                next_payload["hooks"] = hooks
-            else:
-                next_payload.pop("hooks", None)
-
     del next_payload["vibeskills"]
     mutated_json_paths.append(relpath)
 

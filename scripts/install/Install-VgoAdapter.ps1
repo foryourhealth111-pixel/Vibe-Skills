@@ -198,8 +198,14 @@ function Get-VgoSafeRelativeContractPath {
         $raw = $Default
     }
 
+    $windowsCandidate = $raw.Replace('/', '\')
     $normalized = $raw.Replace('\', '/').Trim('/')
-    if ([System.IO.Path]::IsPathRooted($normalized)) {
+    if (
+        [System.IO.Path]::IsPathRooted($raw) -or
+        [System.IO.Path]::IsPathRooted($windowsCandidate) -or
+        $windowsCandidate.StartsWith('\', [System.StringComparison]::Ordinal) -or
+        $windowsCandidate -match '^[A-Za-z]:'
+    ) {
         throw "Invalid relative path for ${FieldName}: $raw"
     }
 
@@ -1434,88 +1440,6 @@ function Ensure-SkillPresent {
     }
 }
 
-function Test-VgoShouldReplaceClaudePreToolUseHookEntry {
-    param(
-        [object]$Entry,
-        [string]$ManagedDescription,
-        [string]$HookCommand
-    )
-
-    if ($Entry -isnot [System.Collections.IDictionary]) {
-        return $false
-    }
-
-    $existingCommand = ''
-    if ($Entry.Contains('hooks') -and $Entry['hooks'] -is [System.Collections.IList] -and @($Entry['hooks']).Count -gt 0) {
-        $firstHook = @($Entry['hooks'])[0]
-        if ($firstHook -is [System.Collections.IDictionary] -and $firstHook.Contains('command')) {
-            $existingCommand = [string]$firstHook['command']
-            $existingCommand = $existingCommand.Trim()
-        }
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($existingCommand)) {
-        return $existingCommand -eq $HookCommand
-    }
-
-    $description = ''
-    if ($Entry.Contains('description')) {
-        $description = [string]$Entry['description']
-        $description = $description.Trim()
-    }
-    return (-not [string]::IsNullOrWhiteSpace($description)) -and $description -eq $ManagedDescription
-}
-
-function Update-VgoClaudePreToolUseHook {
-    param(
-        [hashtable]$Settings,
-        [string]$HookCommand
-    )
-
-    $managedDescription = 'VibeSkills managed write guard'
-    $hooks = @{}
-    if ($Settings.ContainsKey('hooks') -and $Settings['hooks'] -is [System.Collections.IDictionary]) {
-        foreach ($key in $Settings['hooks'].Keys) {
-            $hooks[$key] = $Settings['hooks'][$key]
-        }
-    }
-
-    $preToolUse = @()
-    if ($hooks.ContainsKey('PreToolUse') -and $hooks['PreToolUse'] -is [System.Collections.IList]) {
-        $preToolUse = @($hooks['PreToolUse'])
-    }
-
-    $managedEntry = [ordered]@{
-        matcher = 'Write'
-        hooks = @(
-            [ordered]@{
-                type = 'command'
-                command = $HookCommand
-            }
-        )
-        description = $managedDescription
-    }
-
-    $nextPreToolUse = New-Object System.Collections.Generic.List[object]
-    $replaced = $false
-    foreach ($entry in $preToolUse) {
-        if (Test-VgoShouldReplaceClaudePreToolUseHookEntry -Entry $entry -ManagedDescription $managedDescription -HookCommand $HookCommand) {
-            if (-not $replaced) {
-                $nextPreToolUse.Add($managedEntry) | Out-Null
-                $replaced = $true
-            }
-            continue
-        }
-        $nextPreToolUse.Add($entry) | Out-Null
-    }
-    if (-not $replaced) {
-        $nextPreToolUse.Add($managedEntry) | Out-Null
-    }
-
-    $hooks['PreToolUse'] = $nextPreToolUse.ToArray()
-    $Settings['hooks'] = $hooks
-}
-
 function Install-ClaudeManagedSettings {
     param(
         [string]$RepoRoot,
@@ -1539,34 +1463,13 @@ function Install-ClaudeManagedSettings {
         }
     }
 
-    $hooksRoot = Join-Path $TargetRoot 'hooks'
-    New-Item -ItemType Directory -Force -Path $hooksRoot | Out-Null
-    Add-VgoCreatedPath -Path $hooksRoot
-    $hookPath = Join-Path $hooksRoot 'write-guard.js'
-    $sourceHook = @(
-        (Join-Path $RepoRoot 'hooks\write-guard.js'),
-        $hookPath
-    ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
-    if ([string]::IsNullOrWhiteSpace([string]$sourceHook)) {
-        throw 'Claude managed settings require hooks/write-guard.js in the runtime payload or the existing target hooks directory.'
-    }
-    if ([System.IO.Path]::GetFullPath($sourceHook) -ne [System.IO.Path]::GetFullPath($hookPath)) {
-        Copy-Item -LiteralPath $sourceHook -Destination $hookPath -Force
-    }
-    Add-VgoCreatedPath -Path $hookPath
-
-    $hookCommand = 'node "' + [System.IO.Path]::GetFullPath($hookPath) + '"'
     $settings['vibeskills'] = [ordered]@{
         managed = $true
         host_id = 'claude-code'
         skills_root = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
         runtime_skill_entry = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills\vibe\SKILL.md'))
-        hooks_root = [System.IO.Path]::GetFullPath($hooksRoot)
-        managed_hook_command = $hookCommand
-        managed_hook_description = 'VibeSkills managed write guard'
         explicit_vibe_skill_invocation = @('/vibe', '$vibe')
     }
-    Update-VgoClaudePreToolUseHook -Settings $settings -HookCommand $hookCommand
     $settings | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $settingsPath -Encoding UTF8
 
     if ($createdIfAbsent) {

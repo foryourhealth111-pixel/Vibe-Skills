@@ -15,13 +15,13 @@
   "settings_surface": {
     "path": "~/.claude/settings.json",
     "managed_by_repo": true,
-    "notes": "The repository preserves existing Claude settings while adding a bounded vibeskills-managed stanza, a managed PreToolUse hook entry, and a managed write-guard hook script."
+    "notes": "The repository preserves existing Claude settings while adding a bounded vibeskills-managed stanza only."
   },
   "host_managed_surfaces": [
     "plugin enablement",
     "MCP registration",
     "provider credentials",
-    "broader Claude host behavior outside the managed vibeskills + write-guard surface"
+    "broader Claude host behavior outside the managed vibeskills settings surface"
   ],
   "capabilities": {
     "fs.read": "expected",

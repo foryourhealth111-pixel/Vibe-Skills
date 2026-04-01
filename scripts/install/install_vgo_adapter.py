@@ -7,7 +7,7 @@ import shutil
 import sys
 import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 COMMON_DIR = Path(__file__).resolve().parents[1] / "common"
 if str(COMMON_DIR) not in sys.path:
@@ -579,107 +579,23 @@ def load_json_object(path: Path) -> dict:
     return payload
 
 
-def should_replace_claude_pretooluse_hook_entry(
-    entry: dict,
-    *,
-    managed_description: str,
-    hook_command: str,
-) -> bool:
-    existing_hooks = entry.get("hooks")
-    existing_command = ""
-    if isinstance(existing_hooks, list) and existing_hooks:
-        first_hook = existing_hooks[0]
-        if isinstance(first_hook, dict):
-            existing_command = str(first_hook.get("command") or "").strip()
-    if existing_command:
-        return existing_command == hook_command
-    description = str(entry.get("description") or "").strip()
-    return bool(description) and description == managed_description
-
-
-def upsert_claude_pretooluse_hook(settings: dict, hook_command: str) -> None:
-    managed_description = "VibeSkills managed write guard"
-    hooks = settings.get("hooks")
-    if not isinstance(hooks, dict):
-        hooks = {}
-    pre_tool_use = hooks.get("PreToolUse")
-    if not isinstance(pre_tool_use, list):
-        pre_tool_use = []
-
-    managed_entry = {
-        "matcher": "Write",
-        "hooks": [
-            {
-                "type": "command",
-                "command": hook_command,
-            }
-        ],
-        "description": managed_description,
-    }
-
-    next_pre_tool_use = []
-    replaced = False
-    for entry in pre_tool_use:
-        if not isinstance(entry, dict):
-            next_pre_tool_use.append(entry)
-            continue
-        if should_replace_claude_pretooluse_hook_entry(
-            entry,
-            managed_description=managed_description,
-            hook_command=hook_command,
-        ):
-            if not replaced:
-                next_pre_tool_use.append(managed_entry)
-                replaced = True
-            continue
-        next_pre_tool_use.append(entry)
-
-    if not replaced:
-        next_pre_tool_use.append(managed_entry)
-
-    hooks["PreToolUse"] = next_pre_tool_use
-    settings["hooks"] = hooks
-
-
 def install_claude_managed_settings(repo_root: Path, target_root: Path) -> list[str]:
     settings_path = target_root / "settings.json"
     created_if_absent = not settings_path.exists()
     settings = load_json_object(settings_path)
-
-    hooks_root = target_root / "hooks"
-    hooks_root.mkdir(parents=True, exist_ok=True)
-    track_created_path(hooks_root)
-    hook_path = hooks_root / "write-guard.js"
-    source_hook_candidates = [
-        repo_root / "hooks" / "write-guard.js",
-        target_root / "hooks" / "write-guard.js",
-    ]
-    source_hook = next((candidate for candidate in source_hook_candidates if candidate.exists()), None)
-    if source_hook is None:
-        raise SystemExit(
-            "Claude managed settings require hooks/write-guard.js in the runtime payload "
-            "or the existing target hooks directory."
-        )
-    copy_file(source_hook, hook_path)
-
-    hook_command = f'node "{hook_path.resolve()}"'
     settings["vibeskills"] = {
         "managed": True,
         "host_id": "claude-code",
         "skills_root": str((target_root / "skills").resolve()),
         "runtime_skill_entry": str((target_root / "skills" / "vibe" / "SKILL.md").resolve()),
-        "hooks_root": str(hooks_root.resolve()),
-        "managed_hook_command": hook_command,
-        "managed_hook_description": "VibeSkills managed write guard",
         "explicit_vibe_skill_invocation": ["/vibe", "$vibe"],
     }
-    upsert_claude_pretooluse_hook(settings, hook_command)
     write_json_file(settings_path, settings)
     if created_if_absent:
         track_created_path(settings_path)
     record_managed_json(settings_path)
     record_merged_file(settings_path, created_if_absent=created_if_absent)
-    return [str(settings_path.resolve()), str(hook_path.resolve())]
+    return [str(settings_path.resolve())]
 
 
 def path_points_inside_target_root(value: object, target_root: Path) -> bool:
@@ -1009,9 +925,14 @@ def safe_relative_contract_path(value: object, *, default: str, field_name: str)
     raw = str(value or default).strip()
     if not raw:
         raw = default
+    windows_candidate = PureWindowsPath(raw)
     normalized = raw.replace("\\", "/").strip("/")
     candidate = Path(normalized)
-    if candidate.is_absolute() or any(part in {"", ".", ".."} for part in candidate.parts):
+    if (
+        candidate.is_absolute()
+        or windows_candidate.anchor
+        or any(part in {"", ".", ".."} for part in candidate.parts)
+    ):
         raise SystemExit(f"Invalid relative path for {field_name}: {raw}")
     return candidate.as_posix()
 

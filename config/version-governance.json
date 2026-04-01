@@ -39,21 +39,20 @@
     "release_notes_dir": "docs/releases"
   },
   "packaging": {
-      "runtime_payload": {
-        "files": [
-          "SKILL.md",
-          "check.ps1",
-          "check.sh",
-          "install.ps1",
-          "install.sh",
-          "config/runtime-core-packaging.json",
-          "config/runtime-core-packaging.minimal.json",
-          "config/runtime-core-packaging.full.json",
-          "config/runtime-script-manifest.json",
-          "config/runtime-config-manifest.json"
-        ],
+    "runtime_payload": {
+      "files": [
+        "SKILL.md",
+        "check.ps1",
+        "check.sh",
+        "install.ps1",
+        "install.sh",
+        "config/runtime-core-packaging.json",
+        "config/runtime-core-packaging.minimal.json",
+        "config/runtime-core-packaging.full.json",
+        "config/runtime-script-manifest.json",
+        "config/runtime-config-manifest.json"
+      ],
       "directories": [
-        "hooks",
         "templates",
         "mcp"
       ]
@@ -93,11 +92,11 @@
       "coherence_gate": "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
       "receipt_contract_version": 1,
       "shell_degraded_behavior": "warn_and_skip_authoritative_runtime_gate",
-        "required_runtime_markers": [
-          "SKILL.md",
-          "config/version-governance.json",
-          "config/runtime-script-manifest.json",
-          "config/runtime-config-manifest.json",
+      "required_runtime_markers": [
+        "SKILL.md",
+        "config/version-governance.json",
+        "config/runtime-script-manifest.json",
+        "config/runtime-config-manifest.json",
         "install.ps1",
         "check.ps1",
         "scripts/common/vibe-governance-helpers.ps1",
@@ -116,13 +115,12 @@
         "scripts/router/resolve-pack-route.ps1",
         "scripts/router/invoke-pack-route.py",
         "scripts/router/runtime_neutral/router_contract.py",
-          "scripts/verify/runtime_neutral/router_bridge_gate.py",
-          "hooks/write-guard.js",
-          "config/runtime-contract.json",
-          "config/runtime-modes.json",
-          "config/runtime-input-packet-policy.json",
-          "config/benchmark-execution-policy.json",
-          "config/memory-backend-adapters.json",
+        "scripts/verify/runtime_neutral/router_bridge_gate.py",
+        "config/runtime-contract.json",
+        "config/runtime-modes.json",
+        "config/runtime-input-packet-policy.json",
+        "config/benchmark-execution-policy.json",
+        "config/memory-backend-adapters.json",
         "config/proof-class-registry.json",
         "config/requirement-doc-policy.json",
         "config/plan-execution-policy.json",

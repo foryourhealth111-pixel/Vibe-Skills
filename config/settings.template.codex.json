@@ -1,21 +1,17 @@
-﻿{
-    "vco":  {
-                "skill_root":  "~/.codex/skills",
-                "rules_root":  "~/.codex/rules",
-                "hooks_root":  "~/.codex/hooks",
-                "mcp_profile":  "full"
-            },
-    "hooks":  {
-                  "pre_write_guard":  "~/.codex/hooks/write-guard.js"
-              },
-    "env":  {
-                "VCO_PROFILE":  "full",
-                "VCO_CODEX_MODE":  "true",
-                "VCO_INTENT_ADVICE_API_KEY":  "\u003cREQUIRED\u003e",
-                "VCO_INTENT_ADVICE_BASE_URL":  "https://your-openai-compatible-endpoint/v1",
-                "VCO_INTENT_ADVICE_MODEL":  "your-intent-advice-model-id",
-                "VCO_VECTOR_DIFF_API_KEY":  "\u003cOPTIONAL_IF_VECTOR_DIFF_UNUSED\u003e",
-                "VCO_VECTOR_DIFF_BASE_URL":  "https://your-openai-compatible-endpoint/v1",
-                "VCO_VECTOR_DIFF_MODEL":  "your-vector-diff-model-id"
-            }
+{
+  "vco": {
+    "skill_root": "~/.codex/skills",
+    "rules_root": "~/.codex/rules",
+    "mcp_profile": "full"
+  },
+  "env": {
+    "VCO_PROFILE": "full",
+    "VCO_CODEX_MODE": "true",
+    "VCO_INTENT_ADVICE_API_KEY": "<REQUIRED>",
+    "VCO_INTENT_ADVICE_BASE_URL": "https://your-openai-compatible-endpoint/v1",
+    "VCO_INTENT_ADVICE_MODEL": "your-intent-advice-model-id",
+    "VCO_VECTOR_DIFF_API_KEY": "<OPTIONAL_IF_VECTOR_DIFF_UNUSED>",
+    "VCO_VECTOR_DIFF_BASE_URL": "https://your-openai-compatible-endpoint/v1",
+    "VCO_VECTOR_DIFF_MODEL": "your-vector-diff-model-id"
+  }
 }
