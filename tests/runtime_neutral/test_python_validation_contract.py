@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import configparser
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -17,6 +19,47 @@ TIMESFM_OUTPUT_ROOT = REPO_ROOT / "bundled" / "skills" / "timesfm-forecasting" /
 
 
 class PythonValidationContractTests(unittest.TestCase):
+    def _resolve_powershell(self) -> str | None:
+        return shutil.which("pwsh") or shutil.which("pwsh.exe")
+
+    def test_catalog_profile_gate_is_powershell_parseable(self) -> None:
+        powershell = self._resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell is required to parse the catalog profile gate script.")
+
+        command = (
+            "$errors = $null; "
+            "[System.Management.Automation.Language.Parser]::ParseFile("
+            f"'{CATALOG_GATE.as_posix()}', "
+            "[ref]$null, [ref]$errors) | Out-Null; "
+            "if ($errors -and $errors.Count -gt 0) { "
+            "$errors | ForEach-Object { Write-Host $_.Message }; "
+            "exit 1 }"
+        )
+        result = subprocess.run(
+            [powershell, "-NoProfile", "-Command", command],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, msg=result.stdout + result.stderr)
+
+    def test_catalog_profile_gate_executes_successfully(self) -> None:
+        powershell = self._resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell is required to execute the catalog profile gate script.")
+
+        result = subprocess.run(
+            [powershell, "-NoProfile", "-File", str(CATALOG_GATE)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, msg=result.stdout + result.stderr)
+
     def test_repo_declares_tests_as_the_default_pytest_collection_surface(self) -> None:
         self.assertTrue(PYTEST_INI.exists(), "pytest.ini should exist at the repo root")
 

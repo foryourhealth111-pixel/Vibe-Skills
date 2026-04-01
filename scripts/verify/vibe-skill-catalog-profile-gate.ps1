@@ -71,6 +71,20 @@ function Get-MapValue {
     return $Map.$Key
 }
 
+function Get-OptionalCollectionProperty {
+    param(
+        [object]$Object,
+        [string]$PropertyName
+    )
+
+    if ($null -eq $Object) { return @() }
+    if ($Object.PSObject.Properties.Name -notcontains $PropertyName) {
+        return @()
+    }
+
+    return @($Object.$PropertyName)
+}
+
 function Resolve-CatalogProfileSkillNames {
     param(
         [string]$ProfileId,
@@ -91,19 +105,19 @@ function Resolve-CatalogProfileSkillNames {
         throw "Unknown catalog profile: $ProfileId"
     }
 
-    foreach ($skillName in @($profile.skills)) {
+    foreach ($skillName in (Get-OptionalCollectionProperty -Object $profile -PropertyName 'skills')) {
         $text = [string]$skillName
         if (-not [string]::IsNullOrWhiteSpace($text)) {
             $names.Add($text) | Out-Null
         }
     }
 
-    foreach ($groupId in @($profile.groups)) {
+    foreach ($groupId in (Get-OptionalCollectionProperty -Object $profile -PropertyName 'groups')) {
         $group = Get-MapValue -Map $Groups -Key ([string]$groupId)
         if ($null -eq $group) {
             throw "Unknown catalog group '$groupId' referenced by profile '$ProfileId'"
         }
-        foreach ($skillName in @($group.skills)) {
+        foreach ($skillName in (Get-OptionalCollectionProperty -Object $group -PropertyName 'skills')) {
             $text = [string]$skillName
             if (-not [string]::IsNullOrWhiteSpace($text)) {
                 $names.Add($text) | Out-Null
@@ -111,7 +125,7 @@ function Resolve-CatalogProfileSkillNames {
         }
     }
 
-    foreach ($nestedProfileId in @($profile.include_profiles)) {
+    foreach ($nestedProfileId in (Get-OptionalCollectionProperty -Object $profile -PropertyName 'include_profiles')) {
         $nested = Resolve-CatalogProfileSkillNames -ProfileId ([string]$nestedProfileId) -Profiles $Profiles -Groups $Groups -CatalogRoot $CatalogRoot -Seen $Seen
         foreach ($skillName in $nested) {
             $names.Add([string]$skillName) | Out-Null
@@ -126,7 +140,7 @@ function Resolve-CatalogProfileSkillNames {
         }
     }
 
-    foreach ($excluded in @($profile.exclude_skills)) {
+    foreach ($excluded in (Get-OptionalCollectionProperty -Object $profile -PropertyName 'exclude_skills')) {
         $text = [string]$excluded
         if (-not [string]::IsNullOrWhiteSpace($text)) {
             $names.Remove($text) | Out-Null
@@ -236,14 +250,14 @@ if ($WriteArtifacts) {
     $jsonPath = Join-Path $outputRoot 'vibe-skill-catalog-profile-gate.json'
     $mdPath = Join-Path $outputRoot 'vibe-skill-catalog-profile-gate.md'
     $result | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
-    @(
-        '# Vibe Skill Catalog Profile Gate',
-        '',
-        ("- package_id: `{0}`" -f $result.skill_catalog.package_id),
-        ("- catalog_root: `{0}`" -f $result.skill_catalog.catalog_root),
-        ("- minimal profile: `{0}`" -f $result.runtime_packaging.minimal_catalog_profile),
-        ("- full profile: `{0}`" -f $result.runtime_packaging.full_catalog_profile)
-    ) | Set-Content -LiteralPath $mdPath -Encoding UTF8
+    $markdownLines = [System.Collections.Generic.List[string]]::new()
+    $markdownLines.Add('# Vibe Skill Catalog Profile Gate')
+    $markdownLines.Add('')
+    $markdownLines.Add([string]::Format('- package_id: `{0}`', $result.skill_catalog.package_id))
+    $markdownLines.Add([string]::Format('- catalog_root: `{0}`', $result.skill_catalog.catalog_root))
+    $markdownLines.Add([string]::Format('- minimal profile: `{0}`', $result.runtime_packaging.minimal_catalog_profile))
+    $markdownLines.Add([string]::Format('- full profile: `{0}`', $result.runtime_packaging.full_catalog_profile))
+    $markdownLines | Set-Content -LiteralPath $mdPath -Encoding UTF8
 }
 
 if ($assertions -contains $false) {
