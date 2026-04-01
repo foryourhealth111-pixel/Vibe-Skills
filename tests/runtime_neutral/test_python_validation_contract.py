@@ -90,6 +90,14 @@ class PythonValidationContractTests(unittest.TestCase):
         self.assertIn("Invoke-RuntimeFreshnessCheck", check_ps1_text)
         self.assertIn("Invoke-RuntimeCoherenceCheck", check_ps1_text)
 
+    def test_ci_workflow_propagates_subgate_exit_codes(self) -> None:
+        workflow_text = WORKFLOW.read_text(encoding="utf-8-sig")
+
+        self.assertIn("function Invoke-Gate", workflow_text)
+        self.assertIn("$LASTEXITCODE", workflow_text)
+        self.assertIn("Gate failed with exit code", workflow_text)
+        self.assertIn('Invoke-Gate .\\scripts\\verify\\vibe-offline-skills-gate.ps1', workflow_text)
+
     def test_catalog_manifest_indirection_is_consumed_by_installers_and_gate(self) -> None:
         py_installer_text = PY_INSTALLER.read_text(encoding="utf-8-sig")
         ps_installer_text = PS_INSTALLER.read_text(encoding="utf-8-sig")

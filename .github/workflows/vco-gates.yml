@@ -43,13 +43,27 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          & .\scripts\verify\vibe-pack-regression-matrix.ps1
-          & .\scripts\verify\vibe-offline-skills-gate.ps1
-          & .\scripts\verify\vibe-router-contract-gate.ps1
-          & .\scripts\verify\vibe-routing-stability-gate.ps1 -Strict
-          & .\scripts\verify\vibe-version-consistency-gate.ps1
-          & .\scripts\verify\vibe-config-parity-gate.ps1
-          & .\scripts\verify\vibe-version-packaging-gate.ps1
-          & .\scripts\verify\vibe-skill-catalog-profile-gate.ps1
-          & .\scripts\verify\vibe-observability-gate.ps1
-          & .\scripts\verify\vibe-ai-rerank-gate.ps1
+          function Invoke-Gate {
+            param(
+              [Parameter(Mandatory = $true)][string]$ScriptPath,
+              [string[]]$ArgumentList = @()
+            )
+
+            $global:LASTEXITCODE = 0
+            & $ScriptPath @ArgumentList
+            $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+            if ($exitCode -ne 0) {
+              throw ("Gate failed with exit code {0}: {1}" -f $exitCode, $ScriptPath)
+            }
+          }
+
+          Invoke-Gate .\scripts\verify\vibe-pack-regression-matrix.ps1
+          Invoke-Gate .\scripts\verify\vibe-offline-skills-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-router-contract-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-routing-stability-gate.ps1 -ArgumentList @("-Strict")
+          Invoke-Gate .\scripts\verify\vibe-version-consistency-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-config-parity-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-version-packaging-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-skill-catalog-profile-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-observability-gate.ps1
+          Invoke-Gate .\scripts\verify\vibe-ai-rerank-gate.ps1

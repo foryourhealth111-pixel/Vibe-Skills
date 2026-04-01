@@ -68,11 +68,12 @@ function Get-SkillDirHash {
         [string]$DirPath
     )
 
-    $files = Get-ChildItem -LiteralPath $DirPath -Recurse -File | Sort-Object FullName
+    $filesByRelative = @{}
+    $relativePaths = [System.Collections.Generic.List[string]]::new()
     $entries = New-Object System.Collections.Generic.List[string]
     $totalBytes = 0
 
-    foreach ($file in $files) {
+    foreach ($file in Get-ChildItem -LiteralPath $DirPath -Recurse -File) {
         $relative = $file.FullName.Substring($DirPath.Length + 1).Replace('\', '/')
         if (
             $relative.Equals("config/skills-lock.json", [System.StringComparison]::OrdinalIgnoreCase) -or
@@ -80,6 +81,13 @@ function Get-SkillDirHash {
         ) {
             continue
         }
+        $filesByRelative[$relative] = $file
+        $relativePaths.Add($relative)
+    }
+
+    $relativePaths.Sort([System.StringComparer]::Ordinal)
+    foreach ($relative in $relativePaths) {
+        $file = $filesByRelative[$relative]
         $hash = Get-NormalizedFileHash -Path $file.FullName
         $entries.Add("$relative`:$hash")
         $totalBytes += $file.Length
@@ -91,7 +99,7 @@ function Get-SkillDirHash {
 
     return [pscustomobject]@{
         dir_hash   = $dirHash
-        file_count = $files.Count
+        file_count = $relativePaths.Count
         bytes      = $totalBytes
     }
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import shutil
 import subprocess
 import tempfile
@@ -10,6 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OFFLINE_GATE = REPO_ROOT / "scripts" / "verify" / "vibe-offline-skills-gate.ps1"
+LOCK_GENERATOR = REPO_ROOT / "scripts" / "verify" / "vibe-generate-skills-lock.ps1"
 
 
 def resolve_powershell() -> str | None:
@@ -61,6 +63,7 @@ class OfflineSkillsGateTests(unittest.TestCase):
 
     def _write_fixture(self) -> None:
         self._write("scripts/verify/vibe-offline-skills-gate.ps1", OFFLINE_GATE.read_text(encoding="utf-8"))
+        self._write("scripts/verify/vibe-generate-skills-lock.ps1", LOCK_GENERATOR.read_text(encoding="utf-8"))
         self._write("config/pack-manifest.json", json.dumps({"packs": []}, indent=2) + "\n")
         self._write("SKILL.md", "---\nname: vibe\ndescription: canonical fixture\n---\n")
         self._write(
@@ -130,6 +133,76 @@ class OfflineSkillsGateTests(unittest.TestCase):
             text=True,
         )
 
+    def _run_lock_generator(self, output_path: Path) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                self.powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(self.root / "scripts" / "verify" / "vibe-generate-skills-lock.ps1"),
+                "-OutputPath",
+                str(output_path),
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+
+    def _normalized_file_hash(self, path: Path) -> str:
+        raw = path.read_bytes()
+        text_ext = {
+            ".md",
+            ".txt",
+            ".json",
+            ".ps1",
+            ".psm1",
+            ".sh",
+            ".yml",
+            ".yaml",
+            ".toml",
+            ".ini",
+            ".cfg",
+            ".xml",
+            ".csv",
+            ".tsv",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".py",
+            ".rb",
+            ".go",
+            ".rs",
+            ".java",
+            ".c",
+            ".cpp",
+            ".h",
+            ".hpp",
+            ".css",
+            ".html",
+            ".htm",
+            ".sql",
+        }
+        is_text = path.suffix.lower() in text_ext or (0 not in raw)
+        if not is_text:
+            return hashlib.sha256(raw).hexdigest()
+
+        normalized = raw.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+    def _expected_dir_hash(self, skill_root: Path, casefold: bool) -> str:
+        entries: list[str] = []
+        files = [path for path in skill_root.rglob("*") if path.is_file()]
+        files.sort(key=(lambda path: path.relative_to(skill_root).as_posix().lower()) if casefold else (lambda path: path.relative_to(skill_root).as_posix()))
+        for path in files:
+            relative = path.relative_to(skill_root).as_posix()
+            if relative == "config/skills-lock.json" or relative.endswith("/config/skills-lock.json"):
+                continue
+            entries.append(f"{relative}:{self._normalized_file_hash(path)}")
+        return hashlib.sha256("\n".join(entries).encode("utf-8")).hexdigest()
+
     def test_gate_accepts_canonical_vibe_when_not_present_under_bundled_skills(self) -> None:
         result = self._run_gate()
         self.assertEqual(0, result.returncode, msg=result.stdout + result.stderr)
@@ -154,6 +227,24 @@ class OfflineSkillsGateTests(unittest.TestCase):
         result = self._run_gate()
         self.assertNotEqual(0, result.returncode)
         self.assertIn("skills-lock entries missing in skills root: vibe", result.stdout)
+
+    def test_lock_generator_uses_deterministic_ordinal_relative_path_order(self) -> None:
+        self._write("bundled/skills/mixed-case/README.md", "# readme\n")
+        self._write("bundled/skills/mixed-case/SKILL.md", "---\nname: mixed-case\ndescription: fixture\n---\n")
+        self._write("bundled/skills/mixed-case/agents/AGENTS.md", "# agents\n")
+
+        output_path = self.root / "generated-skills-lock.json"
+        result = self._run_lock_generator(output_path)
+        self.assertEqual(0, result.returncode, msg=result.stdout + result.stderr)
+
+        payload = json.loads(output_path.read_text(encoding="utf-8"))
+        generated = next(item for item in payload["skills"] if item["name"] == "mixed-case")
+        skill_root = self.root / "bundled" / "skills" / "mixed-case"
+        expected = self._expected_dir_hash(skill_root, casefold=False)
+        casefold_hash = self._expected_dir_hash(skill_root, casefold=True)
+
+        self.assertEqual(expected, generated["dir_hash"])
+        self.assertNotEqual(casefold_hash, generated["dir_hash"])
 
 
 if __name__ == "__main__":
