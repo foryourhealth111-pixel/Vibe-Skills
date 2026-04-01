@@ -70,6 +70,7 @@
     "include_git_diff": true,
     "max_git_status_lines": 80,
     "max_diff_chars": 6000,
+    "git_diff_task_allow": ["coding", "debug", "review"],
     "vector_diff": {
       "enabled": true,
       "embedding_model": "",
@@ -103,7 +104,6 @@
     "max_live_apply_rate": 1.0
   }
 }
-
 
 
 
