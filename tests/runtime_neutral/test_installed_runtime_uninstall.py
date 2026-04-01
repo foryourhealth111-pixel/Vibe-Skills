@@ -21,7 +21,7 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tempdir.cleanup()
 
-    def install_host(self, host: str, target_root: Path) -> None:
+    def install_host(self, host: str, target_root: Path, *, profile: str = "full") -> None:
         subprocess.run(
             [
                 "bash",
@@ -31,14 +31,14 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
                 "--target-root",
                 str(target_root),
                 "--profile",
-                "full",
+                profile,
             ],
             capture_output=True,
             text=True,
             check=True,
         )
 
-    def uninstall_host(self, host: str, target_root: Path) -> dict[str, object]:
+    def uninstall_host(self, host: str, target_root: Path, *, profile: str = "full") -> dict[str, object]:
         result = subprocess.run(
             [
                 "bash",
@@ -48,7 +48,7 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
                 "--target-root",
                 str(target_root),
                 "--profile",
-                "full",
+                profile,
                 "--purge-empty-dirs",
             ],
             capture_output=True,
@@ -67,6 +67,39 @@ class InstalledRuntimeUninstallTests(unittest.TestCase):
 
         self.assertFalse((target_root / "rules").exists())
         self.assertFalse((target_root / "config" / "plugins-manifest.codex.json").exists())
+        self.assertTrue(sentinel.exists())
+        self.assertIn("PASS", payload["gate_result"])
+
+    def test_codex_minimal_installed_runtime_uninstall_removes_runtime_and_foundation_catalog(self) -> None:
+        target_root = self.root / "codex-minimal-root"
+        self.install_host("codex", target_root, profile="minimal")
+        sentinel = target_root / "commands" / "user.md"
+        sentinel.write_text("user\n", encoding="utf-8")
+        self.assertTrue((target_root / "skills" / "brainstorming" / "SKILL.md").exists())
+        self.assertFalse((target_root / "skills" / "verification-before-completion").exists())
+
+        payload = self.uninstall_host("codex", target_root, profile="minimal")
+
+        self.assertFalse((target_root / "skills" / "vibe").exists())
+        self.assertFalse((target_root / "skills" / "brainstorming").exists())
+        self.assertTrue(sentinel.exists())
+        self.assertIn("PASS", payload["gate_result"])
+
+    def test_codex_downgrade_from_full_to_minimal_then_uninstall_uses_latest_dual_unit_ledger(self) -> None:
+        target_root = self.root / "codex-downgrade-root"
+        self.install_host("codex", target_root, profile="full")
+        self.assertTrue((target_root / "skills" / "verification-before-completion" / "SKILL.md").exists())
+
+        self.install_host("codex", target_root, profile="minimal")
+        sentinel = target_root / "commands" / "user.md"
+        sentinel.write_text("user\n", encoding="utf-8")
+        self.assertFalse((target_root / "skills" / "verification-before-completion").exists())
+        self.assertTrue((target_root / "skills" / "brainstorming" / "SKILL.md").exists())
+
+        payload = self.uninstall_host("codex", target_root, profile="minimal")
+
+        self.assertFalse((target_root / "skills" / "vibe").exists())
+        self.assertFalse((target_root / "skills" / "brainstorming").exists())
         self.assertTrue(sentinel.exists())
         self.assertIn("PASS", payload["gate_result"])
 

@@ -168,8 +168,10 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         self.assertEqual([], sorted(nested_skills_root.glob("*/SKILL.md")))
         if not require_nested:
             return
-        for name in ("vibe", "ralph-loop", "cancel-ralph", "xan"):
+        for name in ("vibe", "dialectic", "ralph-loop", "cancel-ralph"):
             self.assertTrue((nested_skills_root / name / "SKILL.runtime-mirror.md").exists())
+        self.assertFalse((nested_skills_root / "brainstorming").exists())
+        self.assertFalse((nested_skills_root / "xan").exists())
 
     def test_shell_install_quarantines_legacy_agents_duplicate_for_default_codex_root(self) -> None:
         home_root = self.root / "home"

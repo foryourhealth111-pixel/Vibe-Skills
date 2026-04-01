@@ -295,9 +295,65 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
                     "schema_version": 1,
                     "package_id": "runtime-core",
                     "directories": ["skills", "config"],
-                    "copy_directories": [{"source": "bundled/skills", "target": "skills"}],
+                    "copy_directories": [],
                     "copy_files": [{"source": "config/upstream-lock.json", "target": "config/upstream-lock.json", "optional": False}],
-                    "canonical_vibe_mirror": {"enabled": True, "target_relpath": "skills/vibe"},
+                    "copy_bundled_skills": False,
+                    "bundled_skills_source": "bundled/skills",
+                    "runtime_profile": "core-default",
+                    "catalog_profile": "foundation-workflow",
+                    "canonical_vibe_payload": {"enabled": True, "target_relpath": "skills/vibe"},
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        self._write(
+            "config/skill-catalog-packaging.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "package_id": "skill-catalog",
+                    "catalog_root": "bundled/skills",
+                    "profiles_manifest": "config/skill-catalog-profiles.json",
+                    "groups_manifest": "config/skill-catalog-groups.json",
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        self._write(
+            "config/skill-catalog-profiles.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "profiles": {
+                        "foundation-workflow": {
+                            "groups": ["workflow-foundation"],
+                            "skills": [],
+                            "include_all_bundled": False,
+                            "exclude_skills": [],
+                        }
+                    },
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        self._write(
+            "config/skill-catalog-groups.json",
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "groups": {
+                        "workflow-foundation": {
+                            "skills": [
+                                "brainstorming",
+                                "writing-plans",
+                                "subagent-driven-development",
+                                "systematic-debugging",
+                            ]
+                        }
+                    },
                 },
                 indent=2,
             )
@@ -376,6 +432,7 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
     def assert_generated_nested_installed(self) -> None:
         installed_root = self.target_root / "skills" / "vibe"
         nested_root = installed_root / "bundled" / "skills" / "vibe"
+        nested_skills_root = nested_root.parent
         self.assertTrue((installed_root / "SKILL.md").exists())
         self.assertFalse((nested_root / "SKILL.md").exists())
         self.assertTrue((nested_root / "SKILL.runtime-mirror.md").exists())
@@ -387,6 +444,9 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
             (installed_root / "scripts" / "runtime" / "sample.ps1").read_text(encoding="utf-8"),
             (nested_root / "scripts" / "runtime" / "sample.ps1").read_text(encoding="utf-8"),
         )
+        self.assertFalse((nested_skills_root / "dialectic" / "SKILL.md").exists())
+        self.assertTrue((nested_skills_root / "dialectic" / "SKILL.runtime-mirror.md").exists())
+        self.assertFalse((nested_skills_root / "brainstorming").exists())
 
     def test_python_installer_materializes_generated_nested_compatibility_root(self) -> None:
         subprocess.run(

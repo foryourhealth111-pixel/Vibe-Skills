@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "package_id": "skill-catalog",
+  "catalog_root": "bundled/skills",
+  "profiles_manifest": "config/skill-catalog-profiles.json",
+  "groups_manifest": "config/skill-catalog-groups.json"
+}

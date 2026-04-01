@@ -50,5 +50,6 @@ jobs:
           & .\scripts\verify\vibe-version-consistency-gate.ps1
           & .\scripts\verify\vibe-config-parity-gate.ps1
           & .\scripts\verify\vibe-version-packaging-gate.ps1
+          & .\scripts\verify\vibe-skill-catalog-profile-gate.ps1
           & .\scripts\verify\vibe-observability-gate.ps1
           & .\scripts\verify\vibe-ai-rerank-gate.ps1

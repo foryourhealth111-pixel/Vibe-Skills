@@ -40,6 +40,8 @@ OPTIONAL_WORKFLOW = [
     "receiving-code-review",
     "verification-before-completion",
 ]
+RUNTIME_UNIT_ID = "runtime-core"
+RUNTIME_SUPPORT_ROOT_REL = ".vibeskills/runtime-support"
 HOST_BRIDGE_COMMAND_CANDIDATES = {
     "claude-code": ["claude", "claude-code"],
     "cursor": ["cursor-agent", "cursor"],
@@ -253,6 +255,12 @@ def restore_skill_entrypoint_if_needed(skill_root: Path):
     mirror_md.rename(skill_md)
 
 
+def is_skill_directory(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    return (path / "SKILL.md").exists() or (path / "SKILL.runtime-mirror.md").exists()
+
+
 def sanitize_skill_entrypoint_for_runtime_mirror(skill_root: Path):
     skill_md = skill_root / "SKILL.md"
     mirror_md = skill_root / "SKILL.runtime-mirror.md"
@@ -281,11 +289,34 @@ def skill_source_roots(repo_root: Path) -> list[Path]:
         canonical_skills_root,
         workspace_root / "skills" if workspace_root is not None else None,
         workspace_root / "superpowers" / "skills" if workspace_root is not None else None,
+        repo_root / "bundled" / "skills",
         repo_root / "bundled" / "superpowers-skills",
     ]
     roots: list[Path] = []
     for candidate in candidates:
         if candidate is None or not candidate.exists():
+            continue
+        if candidate not in roots:
+            roots.append(candidate)
+    return roots
+
+
+def repo_owned_skill_source_roots(repo_root: Path) -> list[Path]:
+    roots: list[Path] = []
+    for candidate in [
+        repo_root / "bundled" / "skills",
+        repo_root / "bundled" / "superpowers-skills",
+    ]:
+        if candidate.exists() and candidate not in roots:
+            roots.append(candidate)
+    return roots
+
+
+def external_skill_source_roots(repo_root: Path) -> list[Path]:
+    owned_roots = repo_owned_skill_source_roots(repo_root)
+    roots: list[Path] = []
+    for candidate in skill_source_roots(repo_root):
+        if any(same_path(candidate, owned_root) for owned_root in owned_roots):
             continue
         if candidate not in roots:
             roots.append(candidate)
@@ -932,12 +963,124 @@ def load_runtime_core_packaging(repo_root: Path, profile: str) -> dict:
     packaging.setdefault("profile", profile)
     packaging.setdefault("bundled_skills_source", "bundled/skills")
     packaging.setdefault("skills_allowlist", [])
+    packaging.setdefault("catalog_profile", profile)
+    packaging.setdefault("runtime_profile", "core-default")
     packaging.setdefault(
         "copy_bundled_skills",
         any(entry.get("target") == "skills" for entry in packaging.get("copy_directories") or []),
     )
     packaging.setdefault("exclude_bundled_skill_names", [Path(canonical_vibe_target_relpath(packaging)).name])
     return packaging
+
+
+def catalog_packaging_manifest_relpath(repo_root: Path) -> str:
+    runtime_packaging_path = repo_root / "config" / "runtime-core-packaging.json"
+    runtime_packaging = load_json(runtime_packaging_path)
+    manifest_rel = str(runtime_packaging.get("catalog_packaging_manifest") or "config/skill-catalog-packaging.json").strip()
+    if not manifest_rel:
+        raise SystemExit(f"runtime-core packaging must declare catalog_packaging_manifest: {runtime_packaging_path}")
+    return manifest_rel
+
+
+def resolve_catalog_packaging_manifest_path(repo_root: Path, target_root: Path | None = None) -> tuple[Path, Path]:
+    manifest_rel = catalog_packaging_manifest_relpath(repo_root)
+    candidates: list[tuple[Path, Path]] = [(repo_root, repo_root / manifest_rel)]
+    if target_root is not None:
+        support_root = target_root / RUNTIME_SUPPORT_ROOT_REL
+        candidates.append((support_root, support_root / manifest_rel))
+
+    for base_root, candidate in candidates:
+        if candidate.exists():
+            return base_root, candidate
+
+    return repo_root, repo_root / manifest_rel
+
+
+def load_skill_catalog_packaging(repo_root: Path, target_root: Path | None = None) -> tuple[dict, Path]:
+    base_root, packaging_path = resolve_catalog_packaging_manifest_path(repo_root, target_root)
+    return load_json(packaging_path), base_root
+
+
+def resolve_skill_catalog_root(base_root: Path, catalog_packaging: dict) -> Path:
+    return base_root / str(catalog_packaging.get("catalog_root") or "bundled/skills")
+
+
+def load_skill_catalog_profiles(base_root: Path, catalog_packaging: dict) -> dict:
+    profiles_rel = str(catalog_packaging.get("profiles_manifest") or "config/skill-catalog-profiles.json")
+    return load_json(base_root / profiles_rel)
+
+
+def load_skill_catalog_groups(base_root: Path, catalog_packaging: dict) -> dict:
+    groups_rel = str(catalog_packaging.get("groups_manifest") or "config/skill-catalog-groups.json")
+    return load_json(base_root / groups_rel)
+
+
+def resolve_catalog_profile_skill_names(
+    catalog_base_root: Path,
+    catalog_packaging: dict,
+    profile_id: str,
+    _seen: set[str] | None = None,
+) -> set[str]:
+    profiles = load_skill_catalog_profiles(catalog_base_root, catalog_packaging).get("profiles") or {}
+    groups = load_skill_catalog_groups(catalog_base_root, catalog_packaging).get("groups") or {}
+    if profile_id not in profiles:
+        raise SystemExit(f"Unknown skill catalog profile: {profile_id}")
+
+    seen = set() if _seen is None else _seen
+    if profile_id in seen:
+        return set()
+    seen.add(profile_id)
+
+    profile = profiles[profile_id]
+    names = {
+        str(name).strip()
+        for name in profile.get("skills") or []
+        if str(name).strip()
+    }
+
+    for group_id in profile.get("groups") or []:
+        group = groups.get(str(group_id))
+        if not isinstance(group, dict):
+            raise SystemExit(f"Unknown skill catalog group '{group_id}' in profile '{profile_id}'")
+        names.update(
+            str(name).strip()
+            for name in group.get("skills") or []
+            if str(name).strip()
+        )
+
+    for nested_profile in profile.get("include_profiles") or []:
+        names.update(resolve_catalog_profile_skill_names(catalog_base_root, catalog_packaging, str(nested_profile), seen))
+
+    catalog_root = resolve_skill_catalog_root(catalog_base_root, catalog_packaging)
+    if bool(profile.get("include_all_bundled")) and catalog_root.exists():
+        names.update(
+            candidate.name
+            for candidate in catalog_root.iterdir()
+            if is_skill_directory(candidate)
+        )
+
+    excluded = {
+        str(name).strip()
+        for name in profile.get("exclude_skills") or []
+        if str(name).strip()
+    }
+    return {name for name in names if name and name not in excluded and name != "vibe"}
+
+
+def sync_catalog_runtime_support_files(repo_root: Path, target_root: Path) -> None:
+    catalog_packaging, catalog_base_root = load_skill_catalog_packaging(repo_root, target_root)
+    support_root = target_root / RUNTIME_SUPPORT_ROOT_REL
+    relpaths = {
+        catalog_packaging_manifest_relpath(repo_root),
+        str(catalog_packaging.get("profiles_manifest") or "config/skill-catalog-profiles.json"),
+        str(catalog_packaging.get("groups_manifest") or "config/skill-catalog-groups.json"),
+    }
+    for relpath in sorted(relpaths):
+        source = catalog_base_root / relpath
+        if not source.exists():
+            raise SystemExit(f"Catalog support manifest missing: {source}")
+        destination = support_root / relpath
+        copy_file(source, destination)
 
 
 def resolve_bundled_skills_root(repo_root: Path, packaging: dict) -> Path:
@@ -972,6 +1115,16 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
         for name in ledger.get("managed_skill_names") or []
         if str(name).strip()
     }
+    managed.update(
+        str(name).strip()
+        for name in ledger.get("managed_runtime_skill_names") or []
+        if str(name).strip()
+    )
+    managed.update(
+        str(name).strip()
+        for name in ledger.get("managed_catalog_skill_names") or []
+        if str(name).strip()
+    )
 
     skills_root = (target_root / "skills").resolve()
     for raw_path in ledger.get("created_paths") or []:
@@ -990,27 +1143,9 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
     return managed
 
 
-def desired_managed_skill_names(repo_root: Path, packaging: dict, profile: str) -> set[str]:
-    managed = {
-        str(name).strip()
-        for name in packaging.get("skills_allowlist") or []
-        if str(name).strip()
-    }
-    excluded_names = excluded_bundled_skill_names(packaging)
-
-    bundled_root = resolve_bundled_skills_root(repo_root, packaging)
-    if bool(packaging.get("copy_bundled_skills")) and bundled_root.exists():
-        managed.update(
-            candidate.name
-            for candidate in bundled_root.iterdir()
-            if candidate.is_dir() and candidate.name not in excluded_names
-        )
-
-    managed.add(Path(canonical_vibe_target_relpath(packaging)).name)
+def desired_runtime_managed_skill_names(packaging: dict) -> set[str]:
+    managed = {Path(canonical_vibe_target_relpath(packaging)).name}
     managed.update(REQUIRED_CORE)
-    managed.update(REQUIRED_WORKFLOW)
-    if profile == "full":
-        managed.update(OPTIONAL_WORKFLOW)
     return managed
 
 
@@ -1132,7 +1267,9 @@ def write_install_ledger(
     canonical_vibe_rel: str,
     external_fallback_used: list[str],
     packaging: dict,
-    managed_skill_names: list[str],
+    runtime_managed_skill_names: list[str],
+    catalog_profile: str,
+    catalog_managed_skill_names: list[str],
 ):
     ledger_path = target_root / ".vibeskills" / "install-ledger.json"
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1155,10 +1292,16 @@ def write_install_ledger(
         "generated_from_template_if_absent": sorted(ledger_state["template_generated"]),
         "specialist_wrapper_paths": ledger_state["specialist_wrapper_paths"],
         "external_fallback_used": external_fallback_used,
-        "managed_skill_names": managed_skill_names,
+        "managed_runtime_units": [RUNTIME_UNIT_ID],
+        "managed_runtime_skill_names": runtime_managed_skill_names,
+        "managed_catalog_profiles": [catalog_profile] if catalog_profile else [],
+        "managed_catalog_skill_names": catalog_managed_skill_names,
+        "managed_skill_names": sorted(set(runtime_managed_skill_names) | set(catalog_managed_skill_names)),
         "packaging_manifest": {
             "profile": packaging.get("profile", profile),
             "package_id": packaging.get("package_id"),
+            "runtime_profile": packaging.get("runtime_profile"),
+            "catalog_profile": packaging.get("catalog_profile"),
             "copy_bundled_skills": bool(packaging.get("copy_bundled_skills")),
         },
         "timestamp": datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -1182,19 +1325,21 @@ def refresh_install_ledger(target_root: Path) -> dict:
     }
 
 
-def ensure_skill_present(target_root: Path, name: str, required: bool, allow_fallback: bool, fallback_sources, external_used, missing):
+def ensure_skill_present(target_root: Path, name: str, required: bool, source_candidates, external_used, missing):
     skill_md = target_root / "skills" / name / "SKILL.md"
     if skill_md.exists():
         return
-    if allow_fallback:
-        for src in fallback_sources:
-            src_path = Path(src)
-            if src_path.exists():
-                destination = target_root / "skills" / name
-                copy_tree(src_path, destination)
-                restore_skill_entrypoint_if_needed(destination)
+
+    for src, is_external in source_candidates:
+        src_path = Path(src)
+        if src_path.exists():
+            destination = target_root / "skills" / name
+            copy_tree(src_path, destination)
+            restore_skill_entrypoint_if_needed(destination)
+            if is_external:
                 external_used.add(name)
-                break
+            break
+
     if required and not skill_md.exists():
         missing.add(name)
 
@@ -1203,8 +1348,6 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
     packaging = load_runtime_core_packaging(repo_root, profile)
     governance = load_json(repo_root / "config" / "version-governance.json")
     excluded_skill_names = excluded_bundled_skill_names(packaging)
-    previous_ledger = load_existing_install_ledger(target_root)
-    current_managed_skill_names = desired_managed_skill_names(repo_root, packaging, profile)
     include_command_surfaces = not uses_skill_only_activation(adapter["id"])
     runtime_directories = [
         rel for rel in packaging["directories"]
@@ -1240,71 +1383,76 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
 
     target_rel = canonical_vibe_target_relpath(packaging)
     sync_vibe_canonical(repo_root, target_root, target_rel)
-    prune_previously_managed_skill_dirs(
-        target_root,
-        derive_managed_skill_names_from_ledger(target_root, previous_ledger),
-        current_managed_skill_names,
-    )
     materialize_allowlisted_skills(repo_root, target_root, packaging)
-    materialize_generated_nested_compatibility(
-        governance,
-        target_root / target_rel,
-        current_managed_skill_names,
-    )
 
-    roots = skill_source_roots(repo_root)
+    repo_roots = repo_owned_skill_source_roots(repo_root)
+    external_roots = external_skill_source_roots(repo_root)
 
     external_used = set()
     missing = set()
 
     for name in REQUIRED_CORE:
+        source_candidates = [(root / name, False) for root in repo_roots]
+        if allow_fallback:
+            source_candidates.extend((root / name, True) for root in external_roots)
         ensure_skill_present(
             target_root,
             name,
             True,
-            allow_fallback,
-            [
-                root / name for root in roots
-            ],
+            source_candidates,
             external_used,
             missing,
         )
-    for name in REQUIRED_WORKFLOW:
-        ensure_skill_present(
-            target_root,
-            name,
-            True,
-            allow_fallback,
-            [
-                root / name for root in roots[1:] + roots[:1]
-            ],
-            external_used,
-            missing,
-        )
-    if profile == "full":
-        for name in OPTIONAL_WORKFLOW:
-            ensure_skill_present(
-                target_root,
-                name,
-                False,
-                allow_fallback,
-                [
-                    root / name for root in roots[1:] + roots[:1]
-                ],
-                external_used,
-                missing,
-            )
 
     if missing:
         raise SystemExit("Missing required vendored skills: " + ", ".join(sorted(missing)))
 
     managed_skill_names = sorted(
         name
-        for name in current_managed_skill_names
+        for name in desired_runtime_managed_skill_names(packaging)
         if (target_root / "skills" / name).is_dir()
     )
 
-    return packaging, sorted(external_used), managed_skill_names
+    return packaging, governance, sorted(external_used), managed_skill_names
+
+
+def install_skill_catalog(repo_root: Path, target_root: Path, catalog_profile_id: str, allow_fallback: bool):
+    catalog_packaging, catalog_base_root = load_skill_catalog_packaging(repo_root, target_root)
+    desired_skill_names = resolve_catalog_profile_skill_names(catalog_base_root, catalog_packaging, catalog_profile_id)
+    if not desired_skill_names:
+        return catalog_packaging, [], []
+
+    bundled_root = resolve_skill_catalog_root(catalog_base_root, catalog_packaging)
+    source_roots = [bundled_root]
+    for root in external_skill_source_roots(repo_root):
+        if not same_path(root, bundled_root):
+            source_roots.append(root)
+
+    external_used = set()
+    missing = set()
+
+    for name in sorted(desired_skill_names):
+        source_candidates = [(root / name, same_path(root, bundled_root) is False) for root in source_roots[:1]]
+        if allow_fallback:
+            source_candidates.extend((root / name, True) for root in source_roots[1:])
+        ensure_skill_present(
+            target_root,
+            name,
+            True,
+            source_candidates,
+            external_used,
+            missing,
+        )
+
+    if missing:
+        raise SystemExit("Missing required catalog skills: " + ", ".join(sorted(missing)))
+
+    managed_skill_names = sorted(
+        name
+        for name in desired_skill_names
+        if (target_root / "skills" / name).is_dir()
+    )
+    return catalog_packaging, sorted(external_used), managed_skill_names
 
 
 def install_codex_payload(repo_root: Path, target_root: Path):
@@ -1386,8 +1534,23 @@ def main():
     target_root.mkdir(parents=True, exist_ok=True)
     track_created_path(target_root)
     adapter = resolve_adapter(repo_root, args.host)
-    packaging, external_used, managed_skill_names = install_runtime_core(
+    previous_ledger = load_existing_install_ledger(target_root)
+    packaging, governance, runtime_external_used, runtime_managed_skill_names = install_runtime_core(
         repo_root, target_root, args.profile, args.allow_external_skill_fallback, adapter
+    )
+    catalog_profile = str(packaging.get("catalog_profile") or "").strip()
+    _catalog_packaging, catalog_external_used, catalog_managed_skill_names = install_skill_catalog(
+        repo_root,
+        target_root,
+        catalog_profile,
+        args.allow_external_skill_fallback,
+    )
+    sync_catalog_runtime_support_files(repo_root, target_root)
+    managed_skill_names = sorted(set(runtime_managed_skill_names) | set(catalog_managed_skill_names))
+    prune_previously_managed_skill_dirs(
+        target_root,
+        derive_managed_skill_names_from_ledger(target_root, previous_ledger),
+        set(managed_skill_names),
     )
     mode = adapter["install_mode"]
     legacy_opencode_config_cleanup = None
@@ -1418,6 +1581,11 @@ def main():
         )
 
     canonical_vibe_rel = canonical_vibe_target_relpath(packaging)
+    materialize_generated_nested_compatibility(
+        governance,
+        target_root / canonical_vibe_rel,
+        set(runtime_managed_skill_names),
+    )
     write_install_ledger(
         repo_root,
         target_root,
@@ -1425,9 +1593,11 @@ def main():
         mode,
         args.profile,
         canonical_vibe_rel,
-        external_used,
+        sorted(set(runtime_external_used) | set(catalog_external_used)),
         packaging,
-        managed_skill_names,
+        runtime_managed_skill_names,
+        catalog_profile,
+        catalog_managed_skill_names,
     )
 
     write_json(
@@ -1435,7 +1605,7 @@ def main():
             "host_id": adapter["id"],
             "install_mode": mode,
             "target_root": str(target_root),
-            "external_fallback_used": external_used,
+            "external_fallback_used": sorted(set(runtime_external_used) | set(catalog_external_used)),
             "host_closure_path": str(closure_path),
             "host_closure_state": closure["host_closure_state"],
             "settings_materialized": closure["settings_materialized"],

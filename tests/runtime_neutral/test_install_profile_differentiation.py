@@ -8,8 +8,12 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+RUNTIME_PACKAGING = REPO_ROOT / "config" / "runtime-core-packaging.json"
 MINIMAL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.minimal.json"
 FULL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.full.json"
+CATALOG_MANIFEST = REPO_ROOT / "config" / "skill-catalog-packaging.json"
+CATALOG_PROFILES = REPO_ROOT / "config" / "skill-catalog-profiles.json"
+CATALOG_GROUPS = REPO_ROOT / "config" / "skill-catalog-groups.json"
 
 REQUIRED_RUNTIME_SKILLS = {
     "vibe",
@@ -31,7 +35,6 @@ REQUIRED_WORKFLOW_SKILLS = {
 }
 
 MINIMAL_REQUIRED_SKILLS = REQUIRED_RUNTIME_SKILLS | REQUIRED_WORKFLOW_SKILLS
-MINIMAL_ALLOWLIST_SKILLS = (REQUIRED_RUNTIME_SKILLS - {"vibe"}) | REQUIRED_WORKFLOW_SKILLS
 REPRESENTATIVE_NON_CORE_SKILL = "scikit-learn"
 
 
@@ -63,17 +66,34 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
     def test_profile_packaging_manifests_exist_and_declare_distinct_payload_models(self) -> None:
         self.assertTrue(MINIMAL_MANIFEST.exists(), "minimal packaging manifest must exist")
         self.assertTrue(FULL_MANIFEST.exists(), "full packaging manifest must exist")
+        self.assertTrue(CATALOG_MANIFEST.exists(), "skill catalog packaging manifest must exist")
+        self.assertTrue(CATALOG_PROFILES.exists(), "skill catalog profiles manifest must exist")
+        self.assertTrue(CATALOG_GROUPS.exists(), "skill catalog groups manifest must exist")
 
+        runtime_packaging = load_json(RUNTIME_PACKAGING)
         minimal = load_json(MINIMAL_MANIFEST)
         full = load_json(FULL_MANIFEST)
+        catalog = load_json(CATALOG_MANIFEST)
+        profiles = load_json(CATALOG_PROFILES)
+        groups = load_json(CATALOG_GROUPS)
 
+        self.assertEqual("config/skill-catalog-packaging.json", runtime_packaging["catalog_packaging_manifest"])
         self.assertEqual("minimal", minimal["profile"])
         self.assertEqual("full", full["profile"])
-        self.assertEqual(sorted(MINIMAL_ALLOWLIST_SKILLS), sorted(minimal["skills_allowlist"]))
         self.assertTrue(minimal["canonical_vibe_payload"]["enabled"])
         self.assertEqual("skills/vibe", minimal["canonical_vibe_payload"]["target_relpath"])
-        self.assertTrue(full["copy_bundled_skills"])
+        self.assertFalse(full["copy_bundled_skills"])
         self.assertFalse(minimal["copy_bundled_skills"])
+        self.assertEqual("foundation-workflow", minimal["catalog_profile"])
+        self.assertEqual("default-full", full["catalog_profile"])
+        self.assertEqual("skill-catalog", catalog["package_id"])
+        self.assertEqual("bundled/skills", catalog["catalog_root"])
+        self.assertEqual("config/skill-catalog-profiles.json", catalog["profiles_manifest"])
+        self.assertEqual("config/skill-catalog-groups.json", catalog["groups_manifest"])
+        self.assertIn("foundation-workflow", profiles["profiles"])
+        self.assertIn("default-full", profiles["profiles"])
+        self.assertIn("workflow-foundation", groups["groups"])
+        self.assertIn("optional-review", groups["groups"])
 
     def test_minimal_install_contains_only_required_foundation_skills(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -90,6 +110,12 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertEqual(MINIMAL_REQUIRED_SKILLS, installed_skills)
             self.assertNotIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
             self.assertEqual("minimal", ledger["profile"])
+            self.assertEqual(["runtime-core"], ledger["managed_runtime_units"])
+            self.assertEqual(sorted(REQUIRED_RUNTIME_SKILLS), ledger["managed_runtime_skill_names"])
+            self.assertEqual(["foundation-workflow"], ledger["managed_catalog_profiles"])
+            self.assertEqual(sorted(REQUIRED_WORKFLOW_SKILLS), ledger["managed_catalog_skill_names"])
+            self.assertEqual("core-default", ledger["packaging_manifest"]["runtime_profile"])
+            self.assertEqual("foundation-workflow", ledger["packaging_manifest"]["catalog_profile"])
             self.assertEqual(len(installed_skills), ledger["payload_summary"]["installed_skill_count"])
             # In a fresh temp target, every file should be installer-owned.
             self.assertEqual(count_files(target_root), ledger["payload_summary"]["installed_file_count"])
@@ -119,6 +145,12 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertTrue(MINIMAL_REQUIRED_SKILLS.issubset(full_skills))
             self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, full_skills)
             self.assertGreater(len(full_skills), len(minimal_skills))
+            self.assertEqual(["runtime-core"], full_ledger["managed_runtime_units"])
+            self.assertEqual(sorted(REQUIRED_RUNTIME_SKILLS), full_ledger["managed_runtime_skill_names"])
+            self.assertEqual(["default-full"], full_ledger["managed_catalog_profiles"])
+            self.assertEqual("core-default", full_ledger["packaging_manifest"]["runtime_profile"])
+            self.assertEqual("default-full", full_ledger["packaging_manifest"]["catalog_profile"])
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, full_ledger["managed_catalog_skill_names"])
             self.assertGreater(
                 full_ledger["payload_summary"]["installed_skill_count"],
                 minimal_ledger["payload_summary"]["installed_skill_count"],
@@ -144,6 +176,8 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
 
             self.assertEqual(MINIMAL_REQUIRED_SKILLS, installed_skills)
             self.assertNotIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
+            self.assertEqual(["runtime-core"], ledger["managed_runtime_units"])
+            self.assertEqual(["foundation-workflow"], ledger["managed_catalog_profiles"])
             self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["managed_skill_names"])
             self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["payload_summary"]["installed_skill_names"])
 

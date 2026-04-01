@@ -1,21 +1,18 @@
 {
   "schema_version": 2,
   "package_id": "runtime-core",
-  "summary": "Host-neutral runtime-core payload that can be installed without writing Codex-shaped host state.",
+  "summary": "Host-neutral runtime-core payload that can be installed without bundling the entire skill catalog into the runtime payload.",
   "profile_manifests": {
     "minimal": "config/runtime-core-packaging.minimal.json",
     "full": "config/runtime-core-packaging.full.json"
   },
+  "catalog_packaging_manifest": "config/skill-catalog-packaging.json",
   "directories": [
     "skills",
     "commands",
     "config"
   ],
   "copy_directories": [
-    {
-      "source": "bundled/skills",
-      "target": "skills"
-    },
     {
       "source": "commands",
       "target": "commands"

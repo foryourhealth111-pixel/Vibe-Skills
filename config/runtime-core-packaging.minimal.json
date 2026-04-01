@@ -2,7 +2,9 @@
   "schema_version": 1,
   "package_id": "runtime-core-minimal",
   "profile": "minimal",
-  "summary": "Governed runtime foundation payload with only the canonical vibe runtime and required workflow support skills.",
+  "summary": "Governed runtime foundation payload with runtime-core surfaces only; catalog installation is delegated to the foundation-workflow profile.",
+  "runtime_profile": "core-default",
+  "catalog_profile": "foundation-workflow",
   "directories": [
     "skills",
     "commands",
@@ -28,20 +30,7 @@
   ],
   "copy_bundled_skills": false,
   "bundled_skills_source": "bundled/skills",
-  "skills_allowlist": [
-    "brainstorming",
-    "cancel-ralph",
-    "dialectic",
-    "local-vco-roles",
-    "ralph-loop",
-    "spec-kit-vibe-compat",
-    "subagent-driven-development",
-    "superclaude-framework-compat",
-    "systematic-debugging",
-    "tdd-guide",
-    "think-harder",
-    "writing-plans"
-  ],
+  "skills_allowlist": [],
   "exclude_bundled_skill_names": [
     "vibe"
   ],

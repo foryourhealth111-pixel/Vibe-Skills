@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "groups": {
+    "workflow-foundation": {
+      "skills": [
+        "brainstorming",
+        "writing-plans",
+        "subagent-driven-development",
+        "systematic-debugging"
+      ]
+    },
+    "optional-review": {
+      "skills": [
+        "requesting-code-review",
+        "receiving-code-review",
+        "verification-before-completion"
+      ]
+    }
+  }
+}

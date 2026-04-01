@@ -416,6 +416,9 @@ def plan_uninstall(repo_root: Path, target_root: Path, adapter: dict) -> dict[st
                 deleted_dirs.add(rel)
                 continue
             if candidate.exists() and candidate.is_dir() and not candidate.is_symlink():
+                normalized_rel = rel.replace("\\", "/")
+                if normalized_rel == "skills" or normalized_rel.startswith("skills/"):
+                    deleted_dirs.add(rel)
                 continue
             managed_files.add(rel)
         for rel in sorted(parse_path_list(ledger.get("specialist_wrapper_paths"), target_root)):

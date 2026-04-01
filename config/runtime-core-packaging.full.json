@@ -2,17 +2,15 @@
   "schema_version": 1,
   "package_id": "runtime-core-full",
   "profile": "full",
-  "summary": "Broad bundled runtime payload with the governed runtime foundation plus the full bundled skills surface.",
+  "summary": "Runtime-core payload with the same governed runtime foundation as minimal; catalog installation is delegated to the default-full profile.",
+  "runtime_profile": "core-default",
+  "catalog_profile": "default-full",
   "directories": [
     "skills",
     "commands",
     "config"
   ],
   "copy_directories": [
-    {
-      "source": "bundled/skills",
-      "target": "skills"
-    },
     {
       "source": "commands",
       "target": "commands"
@@ -30,7 +28,7 @@
       "optional": true
     }
   ],
-  "copy_bundled_skills": true,
+  "copy_bundled_skills": false,
   "bundled_skills_source": "bundled/skills",
   "skills_allowlist": [],
   "exclude_bundled_skill_names": [

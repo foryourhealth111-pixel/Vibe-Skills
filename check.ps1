@@ -451,6 +451,34 @@ function Invoke-RuntimeCoherenceCheck {
   }
 }
 
+function Invoke-SkillCatalogProfileCheck {
+  param([string]$RepoRoot)
+
+  if (-not (Test-CanonicalRepoExecution -RepoRoot $RepoRoot)) {
+    Write-Host '[WARN] skill catalog profile gate skipped: run canonical repo check.ps1 to execute catalog verification.' -ForegroundColor Yellow
+    $script:warn++
+    return
+  }
+
+  $gatePath = Join-Path $RepoRoot 'scripts\verify\vibe-skill-catalog-profile-gate.ps1'
+  if (-not (Test-Path -LiteralPath $gatePath)) {
+    Write-Host "[FAIL] vibe skill catalog profile gate script -> $gatePath" -ForegroundColor Red
+    $script:fail++
+    return
+  }
+
+  $global:LASTEXITCODE = 0
+  & $gatePath
+  $gateExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+  if ($gateExitCode -eq 0) {
+    Write-Host '[OK] vibe skill catalog profile gate'
+    $script:pass++
+  } else {
+    Write-Host '[FAIL] vibe skill catalog profile gate' -ForegroundColor Red
+    $script:fail++
+  }
+}
+
 $requiredSkills = @('vibe', 'dialectic', 'local-vco-roles', 'spec-kit-vibe-compat', 'superclaude-framework-compat', 'ralph-loop', 'cancel-ralph', 'tdd-guide', 'think-harder')
 $requiredWorkflow = @('brainstorming', 'writing-plans', 'subagent-driven-development', 'systematic-debugging')
 $optionalWorkflow = @('requesting-code-review', 'receiving-code-review', 'verification-before-completion')
@@ -666,6 +694,7 @@ Check-CodexDuplicateSkillSurface -TargetRoot $TargetRoot -HostId $HostId
 Invoke-RuntimeFreshnessCheck -RepoRoot $RepoRoot -TargetRoot $TargetRoot -SkipGate:$SkipRuntimeFreshnessGate
 Invoke-RuntimeFrontmatterCheck -RepoRoot $RepoRoot -TargetRoot $TargetRoot
 Invoke-RuntimeCoherenceCheck -RepoRoot $RepoRoot -TargetRoot $TargetRoot
+Invoke-SkillCatalogProfileCheck -RepoRoot $RepoRoot
 
 if ($Adapter.check_mode -eq 'governed' -and (Get-Command npm -ErrorAction SilentlyContinue)) {
   Write-Host "[OK] npm"

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "foundation-workflow": {
+      "groups": [
+        "workflow-foundation"
+      ],
+      "skills": [],
+      "include_all_bundled": false,
+      "exclude_skills": []
+    },
+    "default-full": {
+      "groups": [
+        "workflow-foundation",
+        "optional-review"
+      ],
+      "skills": [],
+      "include_all_bundled": true,
+      "exclude_skills": [
+        "vibe",
+        "dialectic",
+        "local-vco-roles",
+        "spec-kit-vibe-compat",
+        "superclaude-framework-compat",
+        "ralph-loop",
+        "cancel-ralph",
+        "tdd-guide",
+        "think-harder"
+      ]
+    }
+  }
+}

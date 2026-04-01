@@ -808,6 +808,33 @@ run_runtime_coherence_gate() {
   fi
 }
 
+run_skill_catalog_profile_gate() {
+  if ! canonical_repo_available "${SCRIPT_DIR}"; then
+    warn_note 'skill catalog profile gate skipped: run canonical repo check.sh to execute catalog verification.'
+    return
+  fi
+
+  local gate_path="${SCRIPT_DIR}/scripts/verify/vibe-skill-catalog-profile-gate.ps1"
+  if [[ ! -f "$gate_path" ]]; then
+    echo "[FAIL] vibe skill catalog profile gate script -> $gate_path"
+    FAIL=$((FAIL+1))
+    return
+  fi
+
+  if ! pick_powershell >/dev/null 2>&1; then
+    warn_note 'skill catalog profile gate skipped: no PowerShell host is available in this shell environment.'
+    return
+  fi
+
+  if run_powershell_file "$gate_path"; then
+    echo "[OK] vibe skill catalog profile gate"
+    PASS=$((PASS+1))
+  else
+    echo "[FAIL] vibe skill catalog profile gate"
+    FAIL=$((FAIL+1))
+  fi
+}
+
 ADAPTER_CHECK_MODE="$(adapter_query check_mode)"
 
 echo "=== VCO Adapter Health Check ==="
@@ -1003,6 +1030,7 @@ show_installed_runtime_upgrade_hint
 run_runtime_freshness_gate
 validate_runtime_receipt
 run_runtime_coherence_gate
+run_skill_catalog_profile_gate
 
 if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]] && command -v npm >/dev/null 2>&1; then
   echo "[OK] npm"
