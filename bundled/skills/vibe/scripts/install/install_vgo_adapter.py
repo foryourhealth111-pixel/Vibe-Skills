@@ -6,7 +6,7 @@ import stat
 import shutil
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 COMMON_DIR = Path(__file__).resolve().parents[1] / "common"
@@ -1126,10 +1126,9 @@ def write_install_ledger(
             "package_id": packaging.get("package_id"),
             "copy_bundled_skills": bool(packaging.get("copy_bundled_skills")),
         },
-        "timestamp": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "ownership_source": "install-ledger",
     }
-    write_json_file(ledger_path, ledger)
     ledger["payload_summary"] = build_payload_summary(target_root, ledger)
     write_json_file(ledger_path, ledger)
 

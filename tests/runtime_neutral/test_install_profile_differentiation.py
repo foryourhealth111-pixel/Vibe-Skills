@@ -88,6 +88,7 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertNotIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
             self.assertEqual("minimal", ledger["profile"])
             self.assertEqual(len(installed_skills), ledger["payload_summary"]["installed_skill_count"])
+            # In a fresh temp target, every file should be installer-owned.
             self.assertEqual(count_files(target_root), ledger["payload_summary"]["installed_file_count"])
 
     def test_full_install_extends_minimal_payload_and_records_larger_summary(self) -> None:
