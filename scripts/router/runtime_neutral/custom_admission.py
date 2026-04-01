@@ -73,13 +73,15 @@ def _read_skill_description(skill_md_path: Path | None) -> str | None:
 
 
 def _resolve_dependency_path(repo_root: Path, target_root: Path, skill_id: str) -> Path | None:
+    normalized_skill_id = _normalize_text(skill_id)
     candidates = [
         target_root / "skills" / skill_id / "SKILL.md",
         target_root / "skills" / "custom" / skill_id / "SKILL.md",
+        repo_root / "SKILL.md" if normalized_skill_id == "vibe" else None,
         repo_root / "bundled" / "skills" / skill_id / "SKILL.md",
     ]
     for candidate in candidates:
-        if candidate.exists():
+        if candidate is not None and candidate.exists():
             return candidate.resolve()
     return None
 

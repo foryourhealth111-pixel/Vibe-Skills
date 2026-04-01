@@ -11,7 +11,6 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUNDLED_VIBE_ROOT = REPO_ROOT / "bundled" / "skills" / "vibe"
 STRICT_READY_HOSTS = [
     ("claude-code", "VGO_CLAUDE_CODE_SPECIALIST_BRIDGE_COMMAND"),
     ("cursor", "VGO_CURSOR_SPECIALIST_BRIDGE_COMMAND"),
@@ -297,14 +296,14 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         for wrapper_path in ledger["specialist_wrapper_paths"]:
             self.assertTrue(Path(wrapper_path).exists(), f"wrapper missing: {wrapper_path}")
 
-    def test_bundled_shell_install_supports_minimal_profile(self) -> None:
+    def test_canonical_shell_install_supports_minimal_profile(self) -> None:
         target_root = self.root / "bundled-minimal-target"
         target_root.mkdir(parents=True, exist_ok=True)
 
         result = subprocess.run(
             [
                 "bash",
-                str(BUNDLED_VIBE_ROOT / "install.sh"),
+                str(REPO_ROOT / "install.sh"),
                 "--host",
                 "codex",
                 "--profile",
@@ -312,7 +311,7 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
                 "--target-root",
                 str(target_root),
             ],
-            cwd=BUNDLED_VIBE_ROOT,
+            cwd=REPO_ROOT,
             capture_output=True,
             text=True,
             check=True,
@@ -587,11 +586,15 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         )
 
     def test_install_powershell_entrypoints_do_not_require_as_hashtable_json_parsing(self) -> None:
-        for path in (
+        candidate_paths = [
             REPO_ROOT / "install.ps1",
-            BUNDLED_VIBE_ROOT / "install.ps1",
-            BUNDLED_VIBE_ROOT / "bundled" / "skills" / "vibe" / "install.ps1",
-        ):
+            REPO_ROOT / "bundled" / "skills" / "vibe" / "install.ps1",
+            REPO_ROOT / "bundled" / "skills" / "vibe" / "bundled" / "skills" / "vibe" / "install.ps1",
+        ]
+        self.assertTrue((REPO_ROOT / "install.ps1").exists())
+        existing_paths = [candidate for candidate in candidate_paths if candidate.exists()]
+        self.assertGreaterEqual(len(existing_paths), 1)
+        for path in existing_paths:
             with self.subTest(path=path):
                 self.assertNotIn("ConvertFrom-Json -AsHashtable", path.read_text(encoding="utf-8"))
 

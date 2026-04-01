@@ -31,6 +31,7 @@ REQUIRED_WORKFLOW_SKILLS = {
 }
 
 MINIMAL_REQUIRED_SKILLS = REQUIRED_RUNTIME_SKILLS | REQUIRED_WORKFLOW_SKILLS
+MINIMAL_ALLOWLIST_SKILLS = (REQUIRED_RUNTIME_SKILLS - {"vibe"}) | REQUIRED_WORKFLOW_SKILLS
 REPRESENTATIVE_NON_CORE_SKILL = "scikit-learn"
 
 
@@ -68,7 +69,9 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
 
         self.assertEqual("minimal", minimal["profile"])
         self.assertEqual("full", full["profile"])
-        self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), sorted(minimal["skills_allowlist"]))
+        self.assertEqual(sorted(MINIMAL_ALLOWLIST_SKILLS), sorted(minimal["skills_allowlist"]))
+        self.assertTrue(minimal["canonical_vibe_payload"]["enabled"])
+        self.assertEqual("skills/vibe", minimal["canonical_vibe_payload"]["target_relpath"])
         self.assertTrue(full["copy_bundled_skills"])
         self.assertFalse(minimal["copy_bundled_skills"])
 

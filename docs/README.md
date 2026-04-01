@@ -4,6 +4,9 @@
 
 ## Start Here
 
+- [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md)：面向普通用户的一键安装发布文案与 AI 助手复制提示词
+- [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)：ordinary-user public release copy and copy-paste onboarding prompt
+
 | 你要做什么 | 入口 |
 | --- | --- |
 | 安装或试用 | [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md) |

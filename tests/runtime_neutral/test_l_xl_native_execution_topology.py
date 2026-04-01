@@ -787,25 +787,21 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 )
             )
 
-    def test_bundled_runtime_mirror_matches_primary_runtime_sources(self) -> None:
-        primary_runtime = REPO_ROOT / "scripts" / "runtime"
+    def test_runtime_packaging_uses_canonical_sources_and_install_only_generated_compatibility(self) -> None:
+        governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
+        generated_compat = governance["packaging"]["generated_compatibility"]["nested_runtime_root"]
+        canonical_runtime_root = REPO_ROOT / "scripts" / "runtime"
         bundled_runtime_roots = [
             REPO_ROOT / "bundled" / "skills" / "vibe" / "scripts" / "runtime",
             REPO_ROOT / "bundled" / "skills" / "vibe" / "bundled" / "skills" / "vibe" / "scripts" / "runtime",
         ]
 
-        primary_files = sorted(path.name for path in primary_runtime.glob("*.ps1"))
-        self.assertGreaterEqual(len(primary_files), 1)
-
+        self.assertEqual("bundled/skills/vibe", generated_compat["relative_path"])
+        self.assertEqual("install_only", generated_compat["materialization_mode"])
+        self.assertTrue(canonical_runtime_root.exists())
         for bundled_runtime in bundled_runtime_roots:
             with self.subTest(bundled_runtime=str(bundled_runtime)):
-                bundled_files = sorted(path.name for path in bundled_runtime.glob("*.ps1"))
-                self.assertEqual(primary_files, bundled_files)
-                for file_name in primary_files:
-                    self.assertEqual(
-                        (primary_runtime / file_name).read_text(encoding="utf-8"),
-                        (bundled_runtime / file_name).read_text(encoding="utf-8"),
-                    )
+                self.assertFalse(bundled_runtime.exists())
 
 
 if __name__ == "__main__":

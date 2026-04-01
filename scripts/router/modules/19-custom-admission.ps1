@@ -94,11 +94,15 @@ function Resolve-CustomAdmissionDependencyPath {
         [Parameter(Mandatory)] [string]$SkillId
     )
 
+    $normalizedSkillId = Normalize-Key -InputText $SkillId
     $candidates = @(
         (Join-Path $TargetRoot (Join-Path 'skills' (Join-Path $SkillId 'SKILL.md'))),
-        (Join-Path $TargetRoot (Join-Path 'skills' (Join-Path 'custom' (Join-Path $SkillId 'SKILL.md')))),
-        (Join-Path $RepoRoot (Join-Path 'bundled\skills' (Join-Path $SkillId 'SKILL.md')))
+        (Join-Path $TargetRoot (Join-Path 'skills' (Join-Path 'custom' (Join-Path $SkillId 'SKILL.md'))))
     )
+    if ($normalizedSkillId -eq 'vibe') {
+        $candidates += (Join-Path $RepoRoot 'SKILL.md')
+    }
+    $candidates += (Join-Path $RepoRoot (Join-Path 'bundled\skills' (Join-Path $SkillId 'SKILL.md')))
     foreach ($candidate in $candidates) {
         if (Test-Path -LiteralPath $candidate) {
             return [System.IO.Path]::GetFullPath($candidate)

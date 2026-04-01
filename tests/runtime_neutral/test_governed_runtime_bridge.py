@@ -85,7 +85,7 @@ def resolve_python_command_spec_via_powershell(command_spec: str, path_entries: 
 class GovernedRuntimeBridgeTests(unittest.TestCase):
     def test_version_governance_bridges_governed_runtime_surfaces(self) -> None:
         governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
-        packaging = governance["packaging"]["mirror"]
+        packaging = governance["packaging"]["runtime_payload"]
         runtime = governance["runtime"]["installed_runtime"]
         contract = json.loads((REPO_ROOT / "config" / "runtime-contract.json").read_text(encoding="utf-8"))
 

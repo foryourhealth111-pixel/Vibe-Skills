@@ -10,6 +10,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  python-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run targeted python validation
+        run: >
+          pytest -q
+          tests/runtime_neutral/test_custom_admission_bridge.py
+          tests/runtime_neutral/test_docs_readme_encoding.py
+          tests/runtime_neutral/test_governed_runtime_bridge.py
+          tests/runtime_neutral/test_install_profile_differentiation.py
+          tests/runtime_neutral/test_python_validation_contract.py
+
   gates:
     runs-on: windows-latest
     steps:

@@ -36,6 +36,11 @@ venv/
 .coverage
 coverage/
 
+# Generated example render outputs
+bundled/skills/timesfm-forecasting/examples/**/output/*.png
+bundled/skills/timesfm-forecasting/examples/**/output/*.gif
+bundled/skills/timesfm-forecasting/examples/**/output/*.html
+
 # Node
 node_modules/
 

@@ -719,9 +719,9 @@ cd examples/covariates-forecasting && python demo_covariates.py
 
 | Example | Key output files | Acceptance criteria |
 | ------- | ---------------- | ------------------- |
-| global-temperature | `output/forecast_output.json`, `output/forecast_visualization.png` | `point_forecast` has 12 values; PNG shows context + forecast + PI bands |
-| anomaly-detection | `output/anomaly_detection.json`, `output/anomaly_detection.png` | Sep 2023 flagged CRITICAL (z >= 3.0); >= 2 forecast CRITICAL from injected anomalies |
-| covariates-forecasting | `output/sales_with_covariates.csv`, `output/covariates_data.png` | CSV has 108 rows (3 stores x 36 weeks); stores have **distinct** price arrays |
+| global-temperature | `output/forecast_output.json` | `point_forecast` has 12 values; optional PNG / GIF / HTML renders can be regenerated locally from the example scripts |
+| anomaly-detection | `output/anomaly_detection.json` | Sep 2023 flagged CRITICAL (z >= 3.0); >= 2 forecast CRITICAL from injected anomalies; optional PNG is local-only |
+| covariates-forecasting | `output/sales_with_covariates.csv`, `output/covariates_metadata.json` | CSV has 108 rows (3 stores x 36 weeks); stores have **distinct** price arrays |
 
 ## Quality Checklist
 
@@ -733,7 +733,7 @@ Run this checklist after every TimesFM task before declaring success:
 - [ ] **Series length** -- context must be >= 32 data points (model minimum). Warn if shorter.
 - [ ] **No NaN** -- `np.isnan(point_fc).any()` should be False. Check input series for gaps first.
 - [ ] **Visualization axes** -- if multiple panels share data, use `sharex=True`. All time axes must cover the same span.
-- [ ] **Binary outputs in Git LFS** -- PNG and GIF files must be tracked via `.gitattributes` (repo root already configured).
+- [ ] **Generated renders stay untracked** -- PNG / GIF / HTML example renders are local artifacts; regenerate them from the example scripts instead of committing them.
 - [ ] **No large datasets committed** -- any real dataset > 1 MB should be downloaded to `tempfile.mkdtemp()` and annotated in code.
 - [ ] **`matplotlib.use('Agg')`** -- must appear before any pyplot import when running headless.
 - [ ] **`infer_is_positive`** -- set `False` for temperature anomalies, financial returns, or any series that can be negative.
@@ -790,4 +790,3 @@ prices = df.groupby('store_id')['price'].mean()
 assert prices['store_A'] > prices['store_B'] > prices['store_C'], 'Store price ordering wrong'
 print('Covariates regression: PASS')"
 ```
-
