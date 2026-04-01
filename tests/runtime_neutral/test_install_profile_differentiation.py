@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -46,6 +47,21 @@ def count_files(root: Path) -> int:
     return sum(1 for candidate in root.rglob("*") if candidate.is_file())
 
 
+def resolve_powershell() -> str | None:
+    candidates = [
+        shutil.which("pwsh"),
+        shutil.which("pwsh.exe"),
+        r"C:\Program Files\PowerShell\7\pwsh.exe",
+        r"C:\Program Files\PowerShell\7-preview\pwsh.exe",
+        shutil.which("powershell"),
+        shutil.which("powershell.exe"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return str(Path(candidate))
+    return None
+
+
 class InstallProfileDifferentiationTests(unittest.TestCase):
     def install_profile(self, target_root: Path, *, profile: str) -> dict:
         command = [
@@ -62,6 +78,46 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
         ledger_path = target_root / ".vibeskills" / "install-ledger.json"
         self.assertTrue(ledger_path.exists())
         return load_json(ledger_path)
+
+    def rerun_python_installer_from_installed_runtime(self, target_root: Path, *, profile: str) -> dict:
+        command = [
+            "python3",
+            str(REPO_ROOT / "scripts" / "install" / "install_vgo_adapter.py"),
+            "--repo-root",
+            str(target_root / "skills" / "vibe"),
+            "--target-root",
+            str(target_root),
+            "--host",
+            "codex",
+            "--profile",
+            profile,
+        ]
+        subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+        return load_json(target_root / ".vibeskills" / "install-ledger.json")
+
+    def rerun_powershell_installer_from_installed_runtime(self, target_root: Path, *, profile: str) -> dict:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell is required for installed-runtime rerun verification.")
+
+        command = [
+            powershell,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(REPO_ROOT / "scripts" / "install" / "Install-VgoAdapter.ps1"),
+            "-RepoRoot",
+            str(target_root / "skills" / "vibe"),
+            "-TargetRoot",
+            str(target_root),
+            "-HostId",
+            "codex",
+            "-Profile",
+            profile,
+        ]
+        subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+        return load_json(target_root / ".vibeskills" / "install-ledger.json")
 
     def test_profile_packaging_manifests_exist_and_declare_distinct_payload_models(self) -> None:
         self.assertTrue(MINIMAL_MANIFEST.exists(), "minimal packaging manifest must exist")
@@ -159,6 +215,46 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
                 full_ledger["payload_summary"]["installed_file_count"],
                 minimal_ledger["payload_summary"]["installed_file_count"],
             )
+
+    def test_full_rerun_from_installed_runtime_preserves_catalog_surface_for_python_installer(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "full-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            first_ledger = self.install_profile(target_root, profile="full")
+            rerun_ledger = self.rerun_python_installer_from_installed_runtime(target_root, profile="full")
+
+            installed_skills = {
+                candidate.name
+                for candidate in (target_root / "skills").iterdir()
+                if candidate.is_dir()
+            }
+
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
+            self.assertTrue((target_root / "skills" / REPRESENTATIVE_NON_CORE_SKILL).is_dir())
+            self.assertEqual(["default-full"], rerun_ledger["managed_catalog_profiles"])
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, rerun_ledger["managed_catalog_skill_names"])
+            self.assertEqual(first_ledger["managed_catalog_skill_names"], rerun_ledger["managed_catalog_skill_names"])
+
+    def test_full_rerun_from_installed_runtime_preserves_catalog_surface_for_powershell_installer(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "full-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            first_ledger = self.install_profile(target_root, profile="full")
+            rerun_ledger = self.rerun_powershell_installer_from_installed_runtime(target_root, profile="full")
+
+            installed_skills = {
+                candidate.name
+                for candidate in (target_root / "skills").iterdir()
+                if candidate.is_dir()
+            }
+
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, installed_skills)
+            self.assertTrue((target_root / "skills" / REPRESENTATIVE_NON_CORE_SKILL).is_dir())
+            self.assertEqual(["default-full"], rerun_ledger["managed_catalog_profiles"])
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, rerun_ledger["managed_catalog_skill_names"])
+            self.assertEqual(first_ledger["managed_catalog_skill_names"], rerun_ledger["managed_catalog_skill_names"])
 
     def test_minimal_reinstall_prunes_previously_managed_full_profile_skills(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

@@ -466,6 +466,23 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
             text=True,
             check=True,
         )
+        subprocess.run(
+            [
+                "python3",
+                str(self.repo_root / "scripts" / "install" / "install_vgo_adapter.py"),
+                "--repo-root",
+                str(self.target_root / "skills" / "vibe"),
+                "--target-root",
+                str(self.target_root),
+                "--host",
+                "openclaw",
+                "--profile",
+                "minimal",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
         self.assert_generated_nested_installed()
 
     def test_powershell_fallback_installer_materializes_generated_nested_compatibility_root(self) -> None:
@@ -486,6 +503,28 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
                 str(self.repo_root / "scripts" / "install" / "Install-VgoAdapter.ps1"),
                 "-RepoRoot",
                 str(self.repo_root),
+                "-TargetRoot",
+                str(self.target_root),
+                "-HostId",
+                "openclaw",
+                "-Profile",
+                "minimal",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+        )
+        subprocess.run(
+            [
+                self.powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(self.repo_root / "scripts" / "install" / "Install-VgoAdapter.ps1"),
+                "-RepoRoot",
+                str(self.target_root / "skills" / "vibe"),
                 "-TargetRoot",
                 str(self.target_root),
                 "-HostId",

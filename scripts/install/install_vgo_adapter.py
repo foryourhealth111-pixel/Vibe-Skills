@@ -949,6 +949,15 @@ def excluded_bundled_skill_names(packaging: dict) -> set[str]:
     return configured
 
 
+def default_catalog_profile_id(profile: str) -> str:
+    profile_id = str(profile).strip()
+    if profile_id == "minimal":
+        return "foundation-workflow"
+    if profile_id == "full":
+        return "default-full"
+    return profile_id
+
+
 def load_runtime_core_packaging(repo_root: Path, profile: str) -> dict:
     packaging_path = repo_root / "config" / "runtime-core-packaging.json"
     packaging = load_json(packaging_path)
@@ -963,7 +972,7 @@ def load_runtime_core_packaging(repo_root: Path, profile: str) -> dict:
     packaging.setdefault("profile", profile)
     packaging.setdefault("bundled_skills_source", "bundled/skills")
     packaging.setdefault("skills_allowlist", [])
-    packaging.setdefault("catalog_profile", profile)
+    packaging.setdefault("catalog_profile", default_catalog_profile_id(profile))
     packaging.setdefault("runtime_profile", "core-default")
     packaging.setdefault(
         "copy_bundled_skills",
@@ -1001,8 +1010,11 @@ def load_skill_catalog_packaging(repo_root: Path, target_root: Path | None = Non
     return load_json(packaging_path), base_root
 
 
-def resolve_skill_catalog_root(base_root: Path, catalog_packaging: dict) -> Path:
-    return base_root / str(catalog_packaging.get("catalog_root") or "bundled/skills")
+def resolve_skill_catalog_root(repo_root: Path, catalog_packaging: dict) -> Path:
+    return resolve_bundled_skills_root(
+        repo_root,
+        {"bundled_skills_source": str(catalog_packaging.get("catalog_root") or "bundled/skills")},
+    )
 
 
 def load_skill_catalog_profiles(base_root: Path, catalog_packaging: dict) -> dict:
@@ -1019,6 +1031,7 @@ def resolve_catalog_profile_skill_names(
     catalog_base_root: Path,
     catalog_packaging: dict,
     profile_id: str,
+    catalog_root: Path | None = None,
     _seen: set[str] | None = None,
 ) -> set[str]:
     profiles = load_skill_catalog_profiles(catalog_base_root, catalog_packaging).get("profiles") or {}
@@ -1049,10 +1062,17 @@ def resolve_catalog_profile_skill_names(
         )
 
     for nested_profile in profile.get("include_profiles") or []:
-        names.update(resolve_catalog_profile_skill_names(catalog_base_root, catalog_packaging, str(nested_profile), seen))
+        names.update(
+            resolve_catalog_profile_skill_names(
+                catalog_base_root,
+                catalog_packaging,
+                str(nested_profile),
+                catalog_root,
+                seen,
+            )
+        )
 
-    catalog_root = resolve_skill_catalog_root(catalog_base_root, catalog_packaging)
-    if bool(profile.get("include_all_bundled")) and catalog_root.exists():
+    if bool(profile.get("include_all_bundled")) and catalog_root and catalog_root.exists():
         names.update(
             candidate.name
             for candidate in catalog_root.iterdir()
@@ -1418,11 +1438,16 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
 
 def install_skill_catalog(repo_root: Path, target_root: Path, catalog_profile_id: str, allow_fallback: bool):
     catalog_packaging, catalog_base_root = load_skill_catalog_packaging(repo_root, target_root)
-    desired_skill_names = resolve_catalog_profile_skill_names(catalog_base_root, catalog_packaging, catalog_profile_id)
+    bundled_root = resolve_skill_catalog_root(repo_root, catalog_packaging)
+    desired_skill_names = resolve_catalog_profile_skill_names(
+        catalog_base_root,
+        catalog_packaging,
+        catalog_profile_id,
+        bundled_root,
+    )
     if not desired_skill_names:
         return catalog_packaging, [], []
 
-    bundled_root = resolve_skill_catalog_root(catalog_base_root, catalog_packaging)
     source_roots = [bundled_root]
     for root in external_skill_source_roots(repo_root):
         if not same_path(root, bundled_root):

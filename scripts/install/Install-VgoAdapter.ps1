@@ -191,6 +191,18 @@ function Test-VgoSkillOnlyActivationHost {
     return $HostId -in @('claude-code', 'cursor', 'windsurf', 'openclaw', 'opencode')
 }
 
+function Get-VgoDefaultCatalogProfileId {
+    param([string]$Profile)
+
+    $profileId = [string]$Profile
+    $profileId = $profileId.Trim()
+    switch ($profileId) {
+        'minimal' { return 'foundation-workflow' }
+        'full' { return 'default-full' }
+        default { return $profileId }
+    }
+}
+
 function Test-VgoSkillDirectory {
     param([string]$Path)
 
@@ -232,7 +244,7 @@ function Get-VgoRuntimeCorePackaging {
         $packaging['skills_allowlist'] = @()
     }
     if (-not $packaging.ContainsKey('catalog_profile')) {
-        $packaging['catalog_profile'] = $Profile
+        $packaging['catalog_profile'] = Get-VgoDefaultCatalogProfileId -Profile $Profile
     }
     if (-not $packaging.ContainsKey('runtime_profile')) {
         $packaging['runtime_profile'] = 'core-default'
@@ -317,12 +329,25 @@ function Get-VgoSkillCatalogPackaging {
 
 function Get-VgoSkillCatalogRoot {
     param(
-        [string]$BaseRoot,
+        [string]$RepoRoot,
         [hashtable]$CatalogPackaging
     )
 
     $catalogRootRel = if ($CatalogPackaging.ContainsKey('catalog_root')) { [string]$CatalogPackaging['catalog_root'] } else { 'bundled/skills' }
-    return (Join-Path $BaseRoot $catalogRootRel)
+    $candidates = New-Object System.Collections.Generic.List[string]
+    $parent = Get-VgoParentPath -Path $RepoRoot
+    if ((Split-Path -Leaf $parent) -eq 'skills') {
+        $candidates.Add($parent) | Out-Null
+    }
+    $candidates.Add((Join-Path $RepoRoot $catalogRootRel)) | Out-Null
+
+    foreach ($candidate in $candidates) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate -PathType Container)) {
+            return $candidate
+        }
+    }
+
+    return (Join-Path $RepoRoot $catalogRootRel)
 }
 
 function Get-VgoSkillCatalogProfiles {
@@ -350,15 +375,12 @@ function Resolve-VgoCatalogProfileSkillNames {
         [string]$CatalogBaseRoot,
         [hashtable]$CatalogPackaging,
         [string]$ProfileId,
+        [string]$CatalogRoot = $null,
         [System.Collections.Generic.HashSet[string]]$Seen
     )
 
     if ([string]::IsNullOrWhiteSpace($ProfileId)) {
-        if ($script:SelectedInstallProfile -eq 'minimal') {
-            $ProfileId = 'foundation-workflow'
-        } else {
-            $ProfileId = 'default-full'
-        }
+        $ProfileId = Get-VgoDefaultCatalogProfileId -Profile $script:SelectedInstallProfile
     }
 
     $profiles = (Get-VgoSkillCatalogProfiles -BaseRoot $CatalogBaseRoot -CatalogPackaging $CatalogPackaging)['profiles']
@@ -395,15 +417,14 @@ function Resolve-VgoCatalogProfileSkillNames {
     }
 
     foreach ($nestedProfile in @($profile['include_profiles'])) {
-        $resolved = Resolve-VgoCatalogProfileSkillNames -CatalogBaseRoot $CatalogBaseRoot -CatalogPackaging $CatalogPackaging -ProfileId ([string]$nestedProfile) -Seen $Seen
+        $resolved = Resolve-VgoCatalogProfileSkillNames -CatalogBaseRoot $CatalogBaseRoot -CatalogPackaging $CatalogPackaging -ProfileId ([string]$nestedProfile) -CatalogRoot $CatalogRoot -Seen $Seen
         foreach ($skillName in $resolved) {
             $names.Add([string]$skillName) | Out-Null
         }
     }
 
-    $catalogRoot = Get-VgoSkillCatalogRoot -BaseRoot $CatalogBaseRoot -CatalogPackaging $CatalogPackaging
-    if ([bool]$profile['include_all_bundled'] -and (Test-Path -LiteralPath $catalogRoot -PathType Container)) {
-        foreach ($candidate in @(Get-ChildItem -LiteralPath $catalogRoot -Directory -ErrorAction SilentlyContinue)) {
+    if (-not [string]::IsNullOrWhiteSpace($CatalogRoot) -and [bool]$profile['include_all_bundled'] -and (Test-Path -LiteralPath $CatalogRoot -PathType Container)) {
+        foreach ($candidate in @(Get-ChildItem -LiteralPath $CatalogRoot -Directory -ErrorAction SilentlyContinue)) {
             if (Test-VgoSkillDirectory -Path $candidate.FullName) {
                 $names.Add([string]$candidate.Name) | Out-Null
             }
@@ -1309,17 +1330,14 @@ function Install-SkillCatalogPayload {
     param([string]$CatalogProfile)
 
     if ([string]::IsNullOrWhiteSpace($CatalogProfile)) {
-        if ($script:SelectedInstallProfile -eq 'minimal') {
-            $CatalogProfile = 'foundation-workflow'
-        } else {
-            $CatalogProfile = 'default-full'
-        }
+        $CatalogProfile = Get-VgoDefaultCatalogProfileId -Profile $script:SelectedInstallProfile
     }
 
     $catalogPackagingInfo = Get-VgoSkillCatalogPackaging -RepoRoot $RepoRoot -TargetRoot $TargetRoot
     $catalogPackaging = $catalogPackagingInfo.packaging
     $catalogBaseRoot = [string]$catalogPackagingInfo.base_root
-    $desiredSkillNames = Resolve-VgoCatalogProfileSkillNames -CatalogBaseRoot $catalogBaseRoot -CatalogPackaging $catalogPackaging -ProfileId $CatalogProfile -Seen ([System.Collections.Generic.HashSet[string]]::new())
+    $bundledRoot = Get-VgoSkillCatalogRoot -RepoRoot $RepoRoot -CatalogPackaging $catalogPackaging
+    $desiredSkillNames = Resolve-VgoCatalogProfileSkillNames -CatalogBaseRoot $catalogBaseRoot -CatalogPackaging $catalogPackaging -ProfileId $CatalogProfile -CatalogRoot $bundledRoot -Seen ([System.Collections.Generic.HashSet[string]]::new())
     if (@($desiredSkillNames).Count -eq 0) {
         return [pscustomobject]@{
             catalog_packaging = $catalogPackaging
@@ -1328,7 +1346,6 @@ function Install-SkillCatalogPayload {
         }
     }
 
-    $bundledRoot = Get-VgoSkillCatalogRoot -BaseRoot $catalogBaseRoot -CatalogPackaging $catalogPackaging
     $externalRoots = @(Get-VgoExternalSkillSourceRoots -RepoRoot $RepoRoot)
     $externalFallbackUsed = New-Object System.Collections.Generic.List[string]
     $missingRequiredSkills = New-Object System.Collections.Generic.List[string]
@@ -1422,11 +1439,7 @@ $runtimeResult = Install-RuntimeCorePayload -Adapter $adapter
 $catalogProfile = [string]$runtimeResult.catalog_profile
 $catalogProfile = $catalogProfile.Trim()
 if ([string]::IsNullOrWhiteSpace($catalogProfile)) {
-    if ($script:SelectedInstallProfile -eq 'minimal') {
-        $catalogProfile = 'foundation-workflow'
-    } else {
-        $catalogProfile = 'default-full'
-    }
+    $catalogProfile = Get-VgoDefaultCatalogProfileId -Profile $script:SelectedInstallProfile
 }
 $catalogResult = Install-SkillCatalogPayload -CatalogProfile $catalogProfile
 Sync-VgoCatalogRuntimeSupportFiles -RepoRoot $RepoRoot
