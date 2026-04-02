@@ -22,6 +22,7 @@
     "scripts/router/runtime_neutral",
     "scripts/runtime",
     "scripts/uninstall",
-    "scripts/verify/runtime_neutral"
+    "scripts/verify/runtime_neutral",
+    "packages/verification-core"
   ]
 }

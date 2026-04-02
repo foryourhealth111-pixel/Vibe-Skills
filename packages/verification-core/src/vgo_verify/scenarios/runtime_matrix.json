@@ -1,0 +1,18 @@
+{
+  "name": "runtime_matrix",
+  "description": "Verification scenario for governed workflow acceptance and release truth seams.",
+  "checks": [
+    {
+      "id": "workflow_acceptance",
+      "kind": "contract",
+      "owner": "vgo_verify.workflow_acceptance",
+      "entrypoint": "scripts/verify/runtime_neutral/workflow_acceptance_runner.py"
+    },
+    {
+      "id": "release_truth",
+      "kind": "contract",
+      "owner": "vgo_verify.release_truth",
+      "entrypoint": "scripts/verify/runtime_neutral/release_truth_gate.py"
+    }
+  ]
+}
