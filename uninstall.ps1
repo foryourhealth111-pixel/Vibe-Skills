@@ -10,24 +10,101 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-. (Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1')
+$cliMain = Join-Path $RepoRoot 'apps\vgo-cli\src\vgo_cli\main.py'
+$legacyScript = Join-Path $RepoRoot 'scripts\uninstall\Uninstall-VgoAdapter.ps1'
 
-$HostId = Resolve-VgoHostId -HostId $HostId
-$TargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $HostId
-Assert-VgoTargetRootMatchesHostIntent -TargetRoot $TargetRoot -HostId $HostId
+function Get-PreferredPythonInvocation {
+  $helperPath = Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1'
+  if (Test-Path -LiteralPath $helperPath) {
+    . $helperPath
+    try {
+      return Get-VgoPythonCommand
+    } catch {
+    }
+  }
 
-$wrapperPath = Join-Path $RepoRoot 'scripts\uninstall\Uninstall-VgoAdapter.ps1'
-$invokeArgs = @{
-  RepoRoot = $RepoRoot
-  TargetRoot = $TargetRoot
-  HostId = $HostId
-  Profile = $Profile
+  $absoluteCandidates = @(
+    '/usr/bin/python3',
+    '/usr/local/bin/python3',
+    '/opt/homebrew/bin/python3',
+    '/opt/local/bin/python3',
+    'C:\Python311\python.exe',
+    'C:\Python310\python.exe'
+  )
+  if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+    $absoluteCandidates += @(
+      (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python311\python.exe'),
+      (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python310\python.exe')
+    )
+  }
+
+  foreach ($candidatePath in $absoluteCandidates) {
+    if (-not [string]::IsNullOrWhiteSpace($candidatePath) -and (Test-Path -LiteralPath $candidatePath)) {
+      return [pscustomobject]@{ host_path = $candidatePath; prefix_arguments = @() }
+    }
+  }
+
+  foreach ($candidate in @('python3', 'python', 'py')) {
+    $command = Get-Command $candidate -ErrorAction SilentlyContinue
+    if ($command) {
+      return [pscustomobject]@{ host_path = $command.Source; prefix_arguments = @() }
+    }
+  }
+  throw 'Python 3.10+ is required to launch vgo-cli.'
 }
-if ($Preview) { $invokeArgs.Preview = $true }
-if ($PurgeEmptyDirs) { $invokeArgs.PurgeEmptyDirs = $true }
-if ($StrictOwnedOnly) { $invokeArgs.StrictOwnedOnly = $true }
 
-& $wrapperPath @invokeArgs
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
+
+$pythonInvocation = $null
+$cliLaunchWarning = $null
+if (Test-Path -LiteralPath $cliMain) {
+  try {
+    $pythonInvocation = Get-PreferredPythonInvocation
+  } catch {
+    $cliLaunchWarning = $_.Exception.Message
+  }
 }
+
+if ($null -ne $pythonInvocation) {
+  $pythonPathEntries = @((Join-Path $RepoRoot 'apps\vgo-cli\src'))
+  if (-not [string]::IsNullOrWhiteSpace($env:PYTHONPATH)) {
+    $pythonPathEntries += $env:PYTHONPATH
+  }
+  $env:PYTHONPATH = ($pythonPathEntries -join [System.IO.Path]::PathSeparator)
+
+  $argsList = @($pythonInvocation.prefix_arguments)
+  $argsList += @(
+    '-m', 'vgo_cli.main',
+    'uninstall',
+    '--repo-root', $RepoRoot,
+    '--frontend', 'powershell',
+    '--profile', $Profile,
+    '--host', $HostId
+  )
+  if (-not [string]::IsNullOrWhiteSpace($TargetRoot)) { $argsList += @('--target-root', $TargetRoot) }
+  if ($Preview) { $argsList += '--preview' }
+  if ($PurgeEmptyDirs) { $argsList += '--purge-empty-dirs' }
+  if ($StrictOwnedOnly) { $argsList += '--strict-owned-only' }
+
+  & $pythonInvocation.host_path @argsList
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  exit 0
+}
+
+if (-not [string]::IsNullOrWhiteSpace($cliLaunchWarning)) {
+  Write-Warning "Unable to launch vgo-cli via Python host; falling back to legacy PowerShell uninstall dispatch. $cliLaunchWarning"
+} else {
+  Write-Warning "Missing vgo-cli entrypoint at $cliMain; falling back to legacy PowerShell uninstall dispatch."
+}
+$legacyHost = (Get-Process -Id $PID).Path
+$legacyHostLeaf = [System.IO.Path]::GetFileName($legacyHost).ToLowerInvariant()
+$legacyArgs = @('-NoProfile')
+if ($legacyHostLeaf.StartsWith('powershell')) {
+  $legacyArgs += @('-ExecutionPolicy', 'Bypass')
+}
+$legacyArgs += @('-File', $legacyScript, '-RepoRoot', $RepoRoot, '-HostId', $HostId, '-Profile', $Profile)
+if (-not [string]::IsNullOrWhiteSpace($TargetRoot)) { $legacyArgs += @('-TargetRoot', $TargetRoot) }
+if ($Preview) { $legacyArgs += '-Preview' }
+if ($PurgeEmptyDirs) { $legacyArgs += '-PurgeEmptyDirs' }
+if ($StrictOwnedOnly) { $legacyArgs += '-StrictOwnedOnly' }
+& $legacyHost @legacyArgs
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -97,6 +97,8 @@
         "config/version-governance.json",
         "config/runtime-script-manifest.json",
         "config/runtime-config-manifest.json",
+        "apps/vgo-cli/src/vgo_cli/__init__.py",
+        "apps/vgo-cli/src/vgo_cli/main.py",
         "install.ps1",
         "check.ps1",
         "scripts/common/vibe-governance-helpers.ps1",

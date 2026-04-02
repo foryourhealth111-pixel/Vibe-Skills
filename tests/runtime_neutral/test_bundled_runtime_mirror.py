@@ -28,6 +28,8 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertNotIn("config", directories)
         self.assertIn("config/runtime-script-manifest.json", files)
         self.assertIn("config/runtime-config-manifest.json", files)
+        script_manifest = json.loads((REPO_ROOT / "config" / "runtime-script-manifest.json").read_text(encoding="utf-8"))
+        self.assertIn("apps/vgo-cli", set(script_manifest["directories"]))
 
         manifests = {entry["id"]: entry for entry in packaging["manifests"]}
         self.assertEqual("config/runtime-script-manifest.json", manifests["runtime_scripts"]["path"])

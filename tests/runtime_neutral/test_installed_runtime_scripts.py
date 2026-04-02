@@ -296,6 +296,20 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         for wrapper_path in ledger["specialist_wrapper_paths"]:
             self.assertTrue(Path(wrapper_path).exists(), f"wrapper missing: {wrapper_path}")
 
+    def test_shell_install_materializes_vgo_cli_for_installed_wrappers(self) -> None:
+        self.install_shell_runtime("codex")
+
+        installed_root = self.target_root / "skills" / "vibe"
+        cli_main = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "main.py"
+        cli_package = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "__init__.py"
+        install_wrapper = (installed_root / "install.sh").read_text(encoding="utf-8")
+        install_wrapper_ps1 = (installed_root / "install.ps1").read_text(encoding="utf-8")
+
+        self.assertTrue(cli_main.exists())
+        self.assertTrue(cli_package.exists())
+        self.assertIn("vgo_cli.main", install_wrapper)
+        self.assertIn("vgo_cli.main", install_wrapper_ps1)
+
     def test_canonical_shell_install_supports_minimal_profile(self) -> None:
         target_root = self.root / "bundled-minimal-target"
         target_root.mkdir(parents=True, exist_ok=True)

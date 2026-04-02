@@ -102,6 +102,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
         required_markers = set(runtime["required_runtime_markers"])
         self.assertIn("config/runtime-script-manifest.json", required_markers)
         self.assertIn("config/runtime-config-manifest.json", required_markers)
+        self.assertIn("apps/vgo-cli/src/vgo_cli/__init__.py", required_markers)
+        self.assertIn("apps/vgo-cli/src/vgo_cli/main.py", required_markers)
         self.assertIn("scripts/runtime/VibeRuntime.Common.ps1", required_markers)
         self.assertIn("scripts/runtime/Freeze-RuntimeInputPacket.ps1", required_markers)
         self.assertIn("scripts/runtime/invoke-vibe-runtime.ps1", required_markers)

@@ -15,6 +15,7 @@
     "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
   ],
   "directories": [
+    "apps/vgo-cli",
     "scripts/common",
     "scripts/install",
     "scripts/router/modules",
