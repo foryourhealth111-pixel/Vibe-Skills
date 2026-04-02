@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -34,6 +35,14 @@ def resolve_powershell() -> str | None:
 def write_json(path: Path, data: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def load_uninstaller_module():
+    spec = importlib.util.spec_from_file_location("uninstall_vgo_adapter", UNINSTALLER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class UnifiedUninstallTests(unittest.TestCase):
@@ -121,6 +130,19 @@ class UnifiedUninstallTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual("cursor", payload["host_id"])
         self.assertEqual("preview", payload["mode"])
+
+    def test_parse_managed_skill_names_ignores_malformed_string_fields(self) -> None:
+        uninstaller = load_uninstaller_module()
+
+        managed = uninstaller.parse_managed_skill_names(
+            {
+                "managed_skill_names": ["vibe", "brainstorming"],
+                "managed_runtime_skill_names": "dialectic",
+                "managed_catalog_skill_names": None,
+            }
+        )
+
+        self.assertEqual({"vibe", "brainstorming"}, managed)
 
     def test_planner_prefers_install_ledger_and_skips_foreign_paths(self) -> None:
         managed_file = self.target_root / "commands" / "vibe.md"

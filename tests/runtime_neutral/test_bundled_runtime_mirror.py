@@ -130,6 +130,7 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertIn("vibe", managed)
         self.assertIn("brainstorming", managed)
         self.assertIn("custom-skill", managed)
+        self.assertEqual(len(managed), len(set(managed)))
 
     def test_python_previous_ledger_skill_names_must_be_leaf_names_before_prune(self) -> None:
         installer = load_installer_module()
@@ -140,6 +141,45 @@ class BundledRuntimePayloadTests(unittest.TestCase):
                     target_root,
                     {"managed_runtime_skill_names": ["../../outside"]},
                 )
+
+    def test_python_previous_ledger_canonical_vibe_root_must_be_safe_before_prune(self) -> None:
+        installer = load_installer_module()
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir)
+            with self.assertRaises(SystemExit):
+                installer.derive_managed_skill_names_from_ledger(
+                    target_root,
+                    {"canonical_vibe_root": ".."},
+                )
+
+    def test_python_load_existing_install_ledger_treats_malformed_payload_as_absent(self) -> None:
+        installer = load_installer_module()
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir)
+            ledger_path = target_root / ".vibeskills" / "install-ledger.json"
+            ledger_path.parent.mkdir(parents=True, exist_ok=True)
+            ledger_path.write_text("{\n", encoding="utf-8")
+
+            self.assertIsNone(installer.load_existing_install_ledger(target_root))
+
+    def test_python_runtime_core_packaging_normalizes_blank_catalog_profile(self) -> None:
+        installer = load_installer_module()
+        with tempfile.TemporaryDirectory() as tempdir:
+            repo_root = Path(tempdir)
+            config_root = repo_root / "config"
+            config_root.mkdir(parents=True, exist_ok=True)
+            (config_root / "runtime-core-packaging.json").write_text(
+                json.dumps({"profile_manifests": {"full": "config/runtime-core-packaging.full.json"}}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            (config_root / "runtime-core-packaging.full.json").write_text(
+                json.dumps({"profile": "full", "catalog_profile": "   "}, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            packaging = installer.load_runtime_core_packaging(repo_root, "full")
+
+            self.assertEqual("default-full", packaging["catalog_profile"])
 
     def test_repo_no_longer_tracks_bundled_vibe_mirror(self) -> None:
         self.assertFalse((REPO_ROOT / "bundled" / "skills" / "vibe").exists())

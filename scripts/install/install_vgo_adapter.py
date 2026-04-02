@@ -897,9 +897,12 @@ def load_runtime_core_packaging(repo_root: Path, profile: str) -> dict:
 
     packaging.setdefault("profile", profile)
     packaging.setdefault("bundled_skills_source", "bundled/skills")
-    packaging.setdefault("skills_allowlist", [])
-    packaging.setdefault("catalog_profile", default_catalog_profile_id(profile))
-    packaging.setdefault("runtime_profile", "core-default")
+    if not isinstance(packaging.get("skills_allowlist"), list):
+        packaging["skills_allowlist"] = []
+    catalog_profile = str(packaging.get("catalog_profile") or "").strip()
+    packaging["catalog_profile"] = catalog_profile or default_catalog_profile_id(profile)
+    runtime_profile = str(packaging.get("runtime_profile") or "").strip()
+    packaging["runtime_profile"] = runtime_profile or "core-default"
     packaging.setdefault(
         "copy_bundled_skills",
         any(entry.get("target") == "skills" for entry in packaging.get("copy_directories") or []),
@@ -1014,9 +1017,13 @@ def resolve_installed_runtime_catalog_source(repo_root: Path) -> tuple[Path | No
     if not isinstance(ledger, dict):
         return None, None
 
+    raw_catalog_skill_names = ledger.get("managed_catalog_skill_names")
+    if not isinstance(raw_catalog_skill_names, (list, tuple, set)):
+        return None, None
+
     catalog_skill_names = {
         safe_skill_name(name, field_name="managed_catalog_skill_names")
-        for name in ledger.get("managed_catalog_skill_names") or []
+        for name in raw_catalog_skill_names
         if str(name).strip()
     }
     if not catalog_skill_names:
@@ -1160,7 +1167,10 @@ def load_existing_install_ledger(target_root: Path) -> dict | None:
     ledger_path = target_root / ".vibeskills" / "install-ledger.json"
     if not ledger_path.exists():
         return None
-    return load_json(ledger_path)
+    try:
+        return load_json(ledger_path)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
 
 
 def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | None) -> set[str]:
@@ -1169,9 +1179,12 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
 
     managed: set[str] = set()
     for field_name in ("managed_skill_names", "managed_runtime_skill_names", "managed_catalog_skill_names"):
+        values = ledger.get(field_name)
+        if not isinstance(values, (list, tuple, set)):
+            continue
         managed.update(
             safe_skill_name(name, field_name=field_name)
-            for name in ledger.get(field_name) or []
+            for name in values
             if str(name).strip()
         )
 
@@ -1187,7 +1200,9 @@ def derive_managed_skill_names_from_ledger(target_root: Path, ledger: dict | Non
 
     canonical_vibe_root = str(ledger.get("canonical_vibe_root") or "").strip()
     if canonical_vibe_root:
-        managed.add(Path(canonical_vibe_root).name)
+        canonical_name = Path(canonical_vibe_root).name
+        if canonical_name:
+            managed.add(safe_skill_name(canonical_name, field_name="canonical_vibe_root"))
 
     return managed
 
@@ -1607,7 +1622,8 @@ def main():
         repo_root, target_root, args.profile, args.allow_external_skill_fallback, adapter
     )
     sync_catalog_runtime_support_files(repo_root, target_root)
-    catalog_profile = str(packaging.get("catalog_profile") or "").strip()
+    catalog_profile = str(packaging.get("catalog_profile") or "").strip() or default_catalog_profile_id(args.profile)
+    packaging["catalog_profile"] = catalog_profile
     _catalog_packaging, catalog_external_used, catalog_managed_skill_names = install_skill_catalog(
         repo_root,
         target_root,

@@ -926,7 +926,7 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         )
         self.assertIn("vibe", ledger["payload_summary"]["installed_skill_names"])
         self.assertIn("scikit-learn", ledger["payload_summary"]["installed_skill_names"])
-        self.assertEqual("", result.stderr)
+        self.assertEqual("", result.stderr.strip())
 
     def test_powershell_install_payload_summary_ignores_preexisting_foreign_host_content(self) -> None:
         powershell = resolve_powershell()

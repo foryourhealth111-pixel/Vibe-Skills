@@ -262,12 +262,19 @@ def parse_managed_skill_names(ledger: object) -> set[str]:
     if not isinstance(ledger, dict):
         return set()
 
-    return {
-        str(name).strip()
-        for key in ("managed_skill_names", "managed_runtime_skill_names", "managed_catalog_skill_names")
-        for name in ledger.get(key) or []
-        if str(name).strip() and "/" not in str(name) and "\\" not in str(name) and str(name).strip() not in {".", ".."}
-    }
+    managed: set[str] = set()
+    for key in ("managed_skill_names", "managed_runtime_skill_names", "managed_catalog_skill_names"):
+        values = ledger.get(key)
+        if not isinstance(values, (list, tuple, set)):
+            continue
+        for name in values:
+            normalized = str(name).strip()
+            if not normalized:
+                continue
+            if normalized in {".", ".."} or "/" in normalized or "\\" in normalized or ":" in normalized:
+                continue
+            managed.add(normalized)
+    return managed
 
 
 def parse_merged_files(values: object, target_root: Path) -> dict[str, dict[str, object]]:

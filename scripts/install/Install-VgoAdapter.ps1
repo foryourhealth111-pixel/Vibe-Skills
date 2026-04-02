@@ -299,7 +299,8 @@ function Get-VgoManagedSkillNamesFromLedger {
 
     $canonicalVibeRoot = [string]$Ledger['canonical_vibe_root']
     if (-not [string]::IsNullOrWhiteSpace($canonicalVibeRoot)) {
-        $managed.Add((Split-Path -Leaf $canonicalVibeRoot)) | Out-Null
+        $canonicalSkillName = Get-VgoSafeSkillName -Value (Split-Path -Leaf $canonicalVibeRoot) -FieldName 'canonical_vibe_root'
+        $managed.Add($canonicalSkillName) | Out-Null
     }
 
     return @($managed | Sort-Object)
@@ -540,13 +541,13 @@ function Get-VgoRuntimeCorePackaging {
     if (-not $packaging.ContainsKey('bundled_skills_source')) {
         $packaging['bundled_skills_source'] = 'bundled/skills'
     }
-    if (-not $packaging.ContainsKey('skills_allowlist')) {
+    if (-not $packaging.ContainsKey('skills_allowlist') -or $packaging['skills_allowlist'] -isnot [System.Collections.IEnumerable] -or $packaging['skills_allowlist'] -is [string]) {
         $packaging['skills_allowlist'] = @()
     }
-    if (-not $packaging.ContainsKey('catalog_profile')) {
+    if (-not $packaging.ContainsKey('catalog_profile') -or [string]::IsNullOrWhiteSpace([string]$packaging['catalog_profile'])) {
         $packaging['catalog_profile'] = Get-VgoDefaultCatalogProfileId -Profile $Profile
     }
-    if (-not $packaging.ContainsKey('runtime_profile')) {
+    if (-not $packaging.ContainsKey('runtime_profile') -or [string]::IsNullOrWhiteSpace([string]$packaging['runtime_profile'])) {
         $packaging['runtime_profile'] = 'core-default'
     }
     if (-not $packaging.ContainsKey('copy_bundled_skills')) {
@@ -926,7 +927,72 @@ function Get-VgoDesiredRuntimeManagedSkillNames {
     foreach ($name in @('dialectic', 'local-vco-roles', 'spec-kit-vibe-compat', 'superclaude-framework-compat', 'ralph-loop', 'cancel-ralph', 'tdd-guide', 'think-harder')) {
         $names.Add($name) | Out-Null
     }
+    foreach ($rawName in @($Packaging['skills_allowlist'])) {
+        $text = [string]$rawName
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            continue
+        }
+        $names.Add((Get-VgoSafeSkillName -Value $text -FieldName 'skills_allowlist')) | Out-Null
+    }
     return @($names | Sort-Object)
+}
+
+function Get-VgoBundledSkillsRoot {
+    param(
+        [string]$RepoRoot,
+        [hashtable]$Packaging
+    )
+
+    $sourceRel = [string]$Packaging['bundled_skills_source']
+    if ([string]::IsNullOrWhiteSpace($sourceRel)) {
+        $sourceRel = 'bundled/skills'
+    }
+
+    $parent = Split-Path -Parent $RepoRoot
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and (Split-Path -Leaf $parent) -eq 'skills' -and (Test-Path -LiteralPath $parent -PathType Container)) {
+        return $parent
+    }
+
+    return (Join-Path $RepoRoot $sourceRel)
+}
+
+function Materialize-AllowlistedSkills {
+    param(
+        [string]$RepoRoot,
+        [string]$TargetRoot,
+        [hashtable]$Packaging
+    )
+
+    $bundledRoot = Get-VgoBundledSkillsRoot -RepoRoot $RepoRoot -Packaging $Packaging
+    if (-not (Test-Path -LiteralPath $bundledRoot -PathType Container)) {
+        throw "Bundled skills source missing for allowlisted packaging: $bundledRoot"
+    }
+
+    $canonicalRel = 'skills\vibe'
+    if ($Packaging.ContainsKey('canonical_vibe_payload') -and $Packaging['canonical_vibe_payload']) {
+        $canonicalRel = [string]$Packaging['canonical_vibe_payload']['target_relpath']
+    } elseif ($Packaging.ContainsKey('canonical_vibe_mirror') -and $Packaging['canonical_vibe_mirror']) {
+        $canonicalRel = [string]$Packaging['canonical_vibe_mirror']['target_relpath']
+    }
+    $canonicalVibeName = Split-Path -Leaf $canonicalRel
+
+    foreach ($rawName in @($Packaging['skills_allowlist'])) {
+        $text = [string]$rawName
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            continue
+        }
+        $name = Get-VgoSafeSkillName -Value $text -FieldName 'skills_allowlist'
+        if ($name -eq $canonicalVibeName) {
+            continue
+        }
+        $source = Join-Path $bundledRoot $name
+        if (-not (Test-Path -LiteralPath $source -PathType Container)) {
+            throw "Allowlisted skill packaging source missing: $source"
+        }
+        $destination = Join-Path $TargetRoot ("skills\" + $name)
+        Copy-DirContent -Source $source -Destination $destination
+        Restore-SkillEntryPointIfNeeded -SkillRoot $destination
+    }
 }
 
 $script:VgoCreatedPaths = [System.Collections.Generic.HashSet[string]]::new()
@@ -1726,6 +1792,7 @@ function Install-RuntimeCorePayload {
     }
 
     Sync-VibeCanonicalToTarget -RepoRoot $RepoRoot -TargetRoot $TargetRoot -TargetRel $targetVibeRel
+    Materialize-AllowlistedSkills -RepoRoot $RepoRoot -TargetRoot $TargetRoot -Packaging $packaging
 
     $repoOwnedRoots = @(Get-VgoRepoOwnedSkillSourceRoots -RepoRoot $RepoRoot)
     $externalRoots = @(Get-VgoExternalSkillSourceRoots -RepoRoot $RepoRoot)

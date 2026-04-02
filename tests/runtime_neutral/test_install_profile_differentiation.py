@@ -242,6 +242,36 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertEqual(set(first_ledger["managed_catalog_skill_names"]), set(rerun_ledger["managed_catalog_skill_names"]))
             self.assertEqual([], rerun_ledger["external_fallback_used"])
 
+    def test_python_installed_runtime_rerun_treats_malformed_existing_ledger_as_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "full-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            self.install_profile(target_root, profile="full")
+            (target_root / ".vibeskills" / "install-ledger.json").write_text("{\n", encoding="utf-8")
+
+            rerun_ledger = self.rerun_python_installer_from_installed_runtime(target_root, profile="full")
+
+            self.assertEqual(["default-full"], rerun_ledger["managed_catalog_profiles"])
+            self.assertTrue((target_root / "skills" / "vibe").is_dir())
+            self.assertTrue(rerun_ledger["managed_catalog_skill_names"])
+
+    def test_python_installed_runtime_rerun_normalizes_blank_catalog_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "full-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            self.install_profile(target_root, profile="full")
+            packaging_path = target_root / "skills" / "vibe" / "config" / "runtime-core-packaging.minimal.json"
+            packaging = load_json(packaging_path)
+            packaging["catalog_profile"] = "   "
+            packaging_path.write_text(json.dumps(packaging, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+            rerun_ledger = self.rerun_python_installer_from_installed_runtime(target_root, profile="minimal")
+
+            self.assertEqual(["foundation-workflow"], rerun_ledger["managed_catalog_profiles"])
+            self.assertEqual("foundation-workflow", rerun_ledger["packaging_manifest"]["catalog_profile"])
+
     def test_python_installed_runtime_reruns_do_not_absorb_or_prune_foreign_skill_dirs(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             target_root = Path(tempdir) / "full-root"
@@ -261,6 +291,29 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertTrue(foreign_skill_root.exists())
             self.assertNotIn("foreign-user-skill", rerun_minimal_ledger["managed_catalog_skill_names"])
             self.assertNotIn("foreign-user-skill", rerun_minimal_ledger["managed_skill_names"])
+
+    def test_powershell_installed_runtime_rerun_materializes_allowlisted_skills_and_normalizes_blank_catalog_profile(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell is required for installed-runtime rerun verification.")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / "full-root"
+            target_root.mkdir(parents=True, exist_ok=True)
+
+            self.install_profile(target_root, profile="full")
+            packaging_path = target_root / "skills" / "vibe" / "config" / "runtime-core-packaging.minimal.json"
+            packaging = load_json(packaging_path)
+            packaging["catalog_profile"] = "   "
+            packaging["skills_allowlist"] = [REPRESENTATIVE_NON_CORE_SKILL]
+            packaging_path.write_text(json.dumps(packaging, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+            rerun_ledger = self.rerun_powershell_installer_from_installed_runtime(target_root, profile="minimal")
+
+            self.assertEqual(["foundation-workflow"], rerun_ledger["managed_catalog_profiles"])
+            self.assertEqual("foundation-workflow", rerun_ledger["packaging_manifest"]["catalog_profile"])
+            self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, rerun_ledger["managed_runtime_skill_names"])
+            self.assertTrue((target_root / "skills" / REPRESENTATIVE_NON_CORE_SKILL).is_dir())
 
     def test_full_rerun_from_installed_runtime_preserves_catalog_surface_for_powershell_installer(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
