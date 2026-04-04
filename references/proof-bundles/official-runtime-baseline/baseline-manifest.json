@@ -3,8 +3,8 @@
   "baseline_id": "official-runtime-2026-03-13",
   "frozen_at": "2026-03-13",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "tier": "Tier-1 Official Runtime",
   "gate_script": "scripts/verify/vibe-official-runtime-baseline-gate.ps1",

@@ -8,6 +8,8 @@ outputs/
 # Local operator noise
 .serena/
 .tmp/
+!scripts/verify/fixtures/document-cleanup-safety/**/.tmp/
+!scripts/verify/fixtures/document-cleanup-safety/**/.tmp/**
 third_party/vco-ecosystem-mirror/
 
 # MCP local machine config (keep templates tracked)

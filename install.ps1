@@ -20,6 +20,8 @@ if (Test-Path -LiteralPath $helperPath) {
 }
 
 # Invoke-InstalledRuntimeFreshnessGate semantics are delegated to vgo_cli.main.
+# Codex host payload materialization, including config/plugins-manifest.codex.json,
+# remains delegated to vgo_cli.main / installer-core.
 
 function Get-PreferredPythonInvocation {
   if (Get-Command Get-VgoPythonCommand -ErrorAction SilentlyContinue) {

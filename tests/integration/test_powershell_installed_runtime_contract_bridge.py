@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -25,3 +26,15 @@ def test_powershell_installed_runtime_defaults_delegate_to_contract_bridge_with_
     assert "$runtimeConfig.frontmatter_gate" in baseline
     assert "frontmatter_gate declaration matches effective runtime contract" in baseline
     assert "frontmatter_gate points to vibe-bom-frontmatter-gate.ps1" not in baseline
+
+
+def test_official_runtime_baseline_manifest_tracks_current_release_version() -> None:
+    manifest = json.loads(
+        (REPO_ROOT / "references" / "proof-bundles" / "official-runtime-baseline" / "baseline-manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
+
+    assert manifest["source_release"]["version"] == governance["release"]["version"]
+    assert manifest["source_release"]["updated"] == governance["release"]["updated"]

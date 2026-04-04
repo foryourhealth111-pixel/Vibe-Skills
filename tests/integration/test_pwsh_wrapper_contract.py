@@ -14,3 +14,9 @@ def test_powershell_wrappers_delegate_to_vgo_cli() -> None:
     assert 'scripts\\uninstall\\Uninstall-VgoAdapter.ps1' not in uninstall_content
     assert 'no longer falls back to legacy installer scripts' in install_content
     assert 'no longer falls back to legacy uninstall scripts' in uninstall_content
+
+
+def test_powershell_install_wrapper_keeps_codex_payload_contract_anchor() -> None:
+    install_content = (REPO_ROOT / 'install.ps1').read_text(encoding='utf-8')
+
+    assert 'plugins-manifest.codex.json' in install_content
