@@ -1,0 +1,315 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from .bootstrap_doctor_support import (
+    command_present,
+    os_environ,
+    resolved_setting_state,
+    setting_state,
+    utc_now,
+)
+
+
+def collect_plugins(plugins_manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    plugins: list[dict[str, Any]] = []
+    for plugin in list(plugins_manifest.get("core") or []) + list(plugins_manifest.get("optional") or []):
+        if not plugin:
+            continue
+        install_mode = str(plugin.get("install_mode") or "unknown")
+        if install_mode == "manual-codex":
+            status = "platform_plugin_required"
+        elif install_mode == "scripted" and "claude-flow" in str(plugin.get("install") or ""):
+            status = "ready" if command_present("claude-flow") else "auto_installable_missing"
+        elif install_mode == "scripted":
+            status = "scripted_unknown_probe"
+        else:
+            status = "unknown"
+        if status == "platform_plugin_required":
+            next_step = str(plugin.get("install_hint") or "Provision in Codex host runtime.")
+        elif status == "auto_installable_missing":
+            next_step = str(plugin.get("install") or "Install via documented package manager.")
+        else:
+            next_step = "none"
+        plugins.append(
+            {
+                "name": str(plugin.get("name") or ""),
+                "install_mode": install_mode,
+                "status": status,
+                "required": bool(plugin.get("required")),
+                "next_step": next_step,
+            }
+        )
+    return plugins
+
+
+def collect_external_tools() -> list[dict[str, Any]]:
+    return [
+        {"name": "git", "present": command_present("git"), "required_for": ["bootstrap"]},
+        {"name": "npm", "present": command_present("npm"), "required_for": ["claude-flow", "ralph-wiggum"]},
+        {"name": "python", "present": command_present("python") or command_present("python3"), "required_for": ["default-mcp:scrapling", "ivy"]},
+        {"name": "claude-flow", "present": command_present("claude-flow"), "required_for": ["mcp:claude-flow"]},
+        {"name": "scrapling", "present": command_present("scrapling"), "required_for": ["default-full-profile-mcp:scrapling"]},
+        {"name": "xan", "present": command_present("xan"), "required_for": ["csv-acceleration"]},
+    ]
+
+
+def collect_mcp_servers(profile_object: dict[str, Any], servers_template: dict[str, Any]) -> list[dict[str, Any]]:
+    template_servers = servers_template.get("servers") or {}
+    mcp_servers: list[dict[str, Any]] = []
+    for server_name in profile_object.get("enabled_servers") or []:
+        server = template_servers.get(server_name)
+        if server is None:
+            mcp_servers.append(
+                {
+                    "name": str(server_name),
+                    "mode": "unknown",
+                    "status": "missing_from_template",
+                    "next_step": "Fix mcp/profile definition mismatch.",
+                }
+            )
+            continue
+        mode = str(server.get("mode") or "unknown")
+        status = "ready"
+        next_step = "none"
+        if mode == "plugin":
+            status = "platform_plugin_required"
+            next_step = "Provision the corresponding Codex plugin in the host runtime."
+        elif mode == "stdio":
+            command_name = str(server.get("command") or "")
+            if not command_present(command_name):
+                status = "manual_action_required"
+                next_step = str(server.get("note") or f"Install command '{command_name}' and register the MCP server in the host.")
+        mcp_servers.append(
+            {
+                "name": str(server_name),
+                "mode": mode,
+                "status": status,
+                "next_step": next_step,
+            }
+        )
+    return mcp_servers
+
+
+def collect_secret_surfaces(secrets_policy: dict[str, Any]) -> list[dict[str, Any]]:
+    secret_surfaces: list[dict[str, Any]] = []
+    for secret in secrets_policy.get("allowed_secret_refs") or []:
+        name = str(secret.get("name") or "")
+        env_value = os_environ(name)
+        if name == "COMPOSIO_SESSION_MCP_URL":
+            status = "runtime_present" if env_value else "runtime_not_set"
+        else:
+            status = "configured_in_env" if env_value else "not_configured"
+        secret_surfaces.append(
+            {
+                "name": name,
+                "scope": str(secret.get("scope") or ""),
+                "storage": [str(item) for item in secret.get("storage") or []],
+                "status": status,
+            }
+        )
+    return secret_surfaces
+
+
+def collect_enhancement_surfaces(memory_governance: dict[str, Any]) -> list[dict[str, Any]]:
+    cognee_boundary = ((memory_governance.get("role_boundaries") or {}).get("cognee") or {})
+    task_defaults = memory_governance.get("defaults_by_task") or {}
+    total_task_defaults = sum(1 for config in task_defaults.values() if isinstance(config, dict))
+    cognee_default_count = sum(
+        1 for config in task_defaults.values() if isinstance(config, dict) and str(config.get("long_term") or "") == "cognee"
+    )
+    return [
+        {
+            "name": "cognee",
+            "role": "default_long_term_graph_memory_owner",
+            "status": (
+                "declared_default_owner"
+                if str(cognee_boundary.get("status") or "") == "active"
+                and total_task_defaults > 0
+                and cognee_default_count == total_task_defaults
+                else "governance_review_required"
+            ),
+            "task_default_coverage": f"{cognee_default_count}/{total_task_defaults}" if total_task_defaults else "0/0",
+            "next_step": "Optional enhancement lane. Enable Cognee only when you want governed cross-session graph memory; keep state_store as the session truth-source.",
+        }
+    ]
+
+
+def collect_integration_surfaces(tool_registry: dict[str, Any], secret_status_by_name: dict[str, str]) -> list[dict[str, Any]]:
+    integration_surfaces: list[dict[str, Any]] = []
+    for tool in tool_registry.get("tools") or []:
+        tool_id = str(tool.get("tool_id") or "")
+        if tool_id not in {"activepieces-mcp", "composio-tool-router"}:
+            continue
+        secret_refs = [str(item) for item in tool.get("secret_refs") or []]
+        secret_states = {name: secret_status_by_name.get(name, "not_configured") for name in secret_refs}
+        ready_states = {"configured_in_env", "runtime_present"}
+        status = (
+            "ready_for_host_registration"
+            if secret_refs and all(state in ready_states for state in secret_states.values())
+            else "prewired_setup_required"
+        )
+        if tool_id == "activepieces-mcp":
+            next_step = "Set ACTIVEPIECES_MCP_TOKEN, replace the placeholder project endpoint, and enable the MCP surface only when you need governed external automation."
+        else:
+            next_step = "Set COMPOSIO_API_KEY, create a session-scoped COMPOSIO_SESSION_MCP_URL, and keep Composio actions confirm-gated."
+        integration_surfaces.append(
+            {
+                "name": str(tool.get("display_name") or tool_id),
+                "tool_id": tool_id,
+                "status": status,
+                "risk_tier": str(tool.get("risk_tier") or "unknown"),
+                "confirm_required": bool(((tool.get("human_confirmation") or {}).get("per_action_required"))),
+                "enable_required": bool(((tool.get("human_confirmation") or {}).get("enable_required"))),
+                "secret_refs": secret_refs,
+                "secret_states": secret_states,
+                "next_step": next_step,
+            }
+        )
+    return integration_surfaces
+
+
+def build_summary(
+    *,
+    settings_path: Path,
+    active_mcp_path: Path,
+    settings: dict[str, Any] | None,
+    plugins: list[dict[str, Any]],
+    mcp_servers: list[dict[str, Any]],
+    external_tools: list[dict[str, Any]],
+) -> dict[str, Any]:
+    blocking_issues: list[str] = []
+    manual_actions: list[str] = []
+    warnings: list[str] = []
+
+    if not settings_path.exists():
+        blocking_issues.append("settings.json is missing in target root.")
+    intent_advice_api_key_state, intent_advice_api_key_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_API_KEY")
+    intent_advice_model_state, intent_advice_model_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_MODEL")
+    vector_diff_api_key_state, vector_diff_api_key_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_API_KEY")
+    vector_diff_model_state, vector_diff_model_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_MODEL")
+
+    if intent_advice_api_key_state != "configured":
+        manual_actions.append("VCO_INTENT_ADVICE_API_KEY must be configured for built-in intent advice readiness.")
+    if intent_advice_model_state != "configured":
+        manual_actions.append("VCO_INTENT_ADVICE_MODEL must be configured for built-in intent advice readiness.")
+    if vector_diff_api_key_state != "configured" or vector_diff_model_state != "configured":
+        warnings.append("Vector diff embeddings are not fully configured; large-diff retrieval will degrade gracefully.")
+    if not active_mcp_path.exists():
+        manual_actions.append("MCP active profile has not been materialized yet (servers.active.json missing).")
+    for plugin in plugins:
+        if plugin["status"] == "platform_plugin_required" and plugin["required"]:
+            manual_actions.append(f"Required host plugin pending: {plugin['name']}")
+    for server in mcp_servers:
+        if server["status"] in {"platform_plugin_required", "manual_action_required", "missing_from_template"}:
+            manual_actions.append(f"MCP server pending: {server['name']}")
+    for tool in external_tools:
+        if not tool["present"] and tool["name"] in {"npm", "claude-flow"}:
+            warnings.append(f"Optional external tool missing: {tool['name']}")
+
+    readiness_state = (
+        "core_install_incomplete"
+        if blocking_issues
+        else "manual_actions_pending"
+        if manual_actions
+        else "fully_ready"
+    )
+    return {
+        "readiness_state": readiness_state,
+        "blocking_issue_count": len(blocking_issues),
+        "manual_action_count": len(manual_actions),
+        "warning_count": len(warnings),
+        "blocking_issues": blocking_issues,
+        "manual_actions": manual_actions,
+        "warnings": warnings,
+        "intent_advice_api_key_state": intent_advice_api_key_state,
+        "intent_advice_api_key_source": intent_advice_api_key_source,
+        "intent_advice_model_state": intent_advice_model_state,
+        "intent_advice_model_source": intent_advice_model_source,
+        "vector_diff_api_key_state": vector_diff_api_key_state,
+        "vector_diff_api_key_source": vector_diff_api_key_source,
+        "vector_diff_model_state": vector_diff_model_state,
+        "vector_diff_model_source": vector_diff_model_source,
+    }
+
+
+def build_bootstrap_artifact(
+    *,
+    repo_root: Path,
+    target_root: Path,
+    settings_path: Path,
+    settings: dict[str, Any] | None,
+    profile: str,
+    profile_path: Path,
+    active_mcp_path: Path,
+    plugins_manifest: dict[str, Any],
+    servers_template: dict[str, Any],
+    secrets_policy: dict[str, Any],
+    tool_registry: dict[str, Any],
+    memory_governance: dict[str, Any],
+) -> dict[str, Any]:
+    plugins = collect_plugins(plugins_manifest)
+    external_tools = collect_external_tools()
+    profile_object = {"profile": profile, "enabled_servers": []}
+    if profile_path.exists():
+        with profile_path.open("r", encoding="utf-8-sig") as handle:
+            import json
+
+            profile_object = json.load(handle)
+    mcp_servers = collect_mcp_servers(profile_object, servers_template)
+    secret_surfaces = collect_secret_surfaces(secrets_policy)
+    secret_status_by_name = {item["name"]: item["status"] for item in secret_surfaces}
+    enhancement_surfaces = collect_enhancement_surfaces(memory_governance)
+    integration_surfaces = collect_integration_surfaces(tool_registry, secret_status_by_name)
+    summary = build_summary(
+        settings_path=settings_path,
+        active_mcp_path=active_mcp_path,
+        settings=settings,
+        plugins=plugins,
+        mcp_servers=mcp_servers,
+        external_tools=external_tools,
+    )
+
+    return {
+        "gate": "vibe-bootstrap-doctor-gate",
+        "generated_at": utc_now(),
+        "repo_root": str(repo_root),
+        "target_root": str(target_root.resolve()),
+        "gate_result": "PASS" if not summary["blocking_issues"] else "FAIL",
+        "settings": {
+            "path": str(settings_path),
+            "exists": settings_path.exists(),
+            "intent_advice_api_key_state": summary["intent_advice_api_key_state"],
+            "intent_advice_api_key_source": summary["intent_advice_api_key_source"],
+            "intent_advice_base_url_state": setting_state(settings, "VCO_INTENT_ADVICE_BASE_URL"),
+            "intent_advice_model_state": summary["intent_advice_model_state"],
+            "intent_advice_model_source": summary["intent_advice_model_source"],
+            "vector_diff_api_key_state": summary["vector_diff_api_key_state"],
+            "vector_diff_api_key_source": summary["vector_diff_api_key_source"],
+            "vector_diff_base_url_state": setting_state(settings, "VCO_VECTOR_DIFF_BASE_URL"),
+            "vector_diff_model_state": summary["vector_diff_model_state"],
+            "vector_diff_model_source": summary["vector_diff_model_source"],
+        },
+        "plugins": plugins,
+        "external_tools": external_tools,
+        "enhancement_surfaces": enhancement_surfaces,
+        "mcp": {
+            "profile": profile,
+            "profile_path": str(profile_path.relative_to(repo_root)) if profile_path.exists() else None,
+            "active_file_path": str(active_mcp_path),
+            "active_file_exists": active_mcp_path.exists(),
+            "servers": mcp_servers,
+        },
+        "integration_surfaces": integration_surfaces,
+        "secret_surfaces": secret_surfaces,
+        "summary": {
+            "readiness_state": summary["readiness_state"],
+            "blocking_issue_count": summary["blocking_issue_count"],
+            "manual_action_count": summary["manual_action_count"],
+            "warning_count": summary["warning_count"],
+            "blocking_issues": summary["blocking_issues"],
+            "manual_actions": summary["manual_actions"],
+            "warnings": summary["warnings"],
+        },
+    }

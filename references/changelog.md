@@ -1,5 +1,14 @@
 # VCO Changelog
 
+## v2.3.56 (2026-04-04)
+
+- Completed the frozen `remaining-architecture-closure` program and moved the repository to a regression-backed low-coupling / high-cohesion baseline instead of leaving the closure work as an open-ended refactor stream.
+- Added a dedicated owner-consumer architecture proof surface so contracts, runtime-core, verification-core, CLI, governance wrappers, packaging, and live status pages now point at one explicit sign-off source.
+- Realigned the live status spine and closure language around the same 2026-04-04 truth: the scoped closure work is complete, residual fallbacks are explicit, and deferred cleanup tracks are no longer hidden inside the finished plan.
+- Preserved compatibility honestly rather than over-pruning: retained shims, optional nested topology, release/operator fallbacks, outputs evidence, and protected third-party roots all stay bounded and non-authoritative.
+- Detailed release notes: `docs/releases/v2.3.56.md`.
+
+
 ## v2.3.55 (2026-03-30)
 
 - Promoted the unified owned-only uninstall surface and aligned supported hosts around explicit skill-only / sidecar-first activation, so install and uninstall touch only Vibe-managed content in the normal path.

@@ -83,14 +83,22 @@ $repoRoot = [string]$context.repoRoot
 $uninstallPs1 = [System.IO.Path]::Combine($repoRoot, 'uninstall.ps1')
 $uninstallSh = [System.IO.Path]::Combine($repoRoot, 'uninstall.sh')
 $docPath = [System.IO.Path]::Combine($repoRoot, 'docs', 'uninstall-governance.md')
-$adapterPaths = @(
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'codex', 'closure.json'),
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'claude-code', 'closure.json'),
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'cursor', 'closure.json'),
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'windsurf', 'closure.json'),
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'openclaw', 'closure.json'),
-    [System.IO.Path]::Combine($repoRoot, 'adapters', 'opencode', 'closure.json')
-)
+$adapterRegistryPath = [System.IO.Path]::Combine($repoRoot, 'config', 'adapter-registry.json')
+$adapterClosures = @()
+
+if (Test-Path -LiteralPath $adapterRegistryPath) {
+    try {
+        $adapterRegistry = Get-Content -LiteralPath $adapterRegistryPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $adapterClosures = @($adapterRegistry.adapters | ForEach-Object {
+            [pscustomobject]@{
+                adapter_id = [string]$_.id
+                closure_path = [System.IO.Path]::Combine($repoRoot, ([string]$_.closure -replace '/', [System.IO.Path]::DirectorySeparatorChar))
+            }
+        })
+    } catch {
+        $adapterClosures = @()
+    }
+}
 
 $results = [ordered]@{
     gate = 'vibe-uninstall-coherence-gate'
@@ -104,6 +112,8 @@ $results = [ordered]@{
         uninstall_ps1 = $uninstallPs1
         uninstall_sh = $uninstallSh
         docs = $docPath
+        adapter_registry = $adapterRegistryPath
+        adapter_closures = @()
     }
     summary = [ordered]@{
         failures = 0
@@ -119,6 +129,7 @@ Write-Host ''
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $uninstallPs1) -Message '[repo] uninstall.ps1 entrypoint exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $uninstallSh) -Message '[repo] uninstall.sh entrypoint exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docPath) -Message '[docs] uninstall governance doc exists'
+Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $adapterRegistryPath) -Message '[config] adapter-registry.json exists'
 
 if (Test-Path -LiteralPath $docPath) {
     Add-Assertion -Collection $assertions -Condition (Select-String -LiteralPath $docPath -Pattern 'owned-only' -SimpleMatch -Quiet) -Message '[docs] governance doc states owned-only uninstall'
@@ -128,8 +139,17 @@ if (Test-Path -LiteralPath $docPath) {
     Add-Assertion -Collection $assertions -Condition $false -Message '[docs] governance doc mentions ledger-first ownership'
 }
 
-foreach ($adapterPath in $adapterPaths) {
-    $adapterId = Split-Path -Leaf (Split-Path -Parent $adapterPath)
+if ($adapterClosures.Count -eq 0) {
+    Add-Assertion -Collection $assertions -Condition $false -Message '[config] adapter-registry.json yielded adapter closures'
+} else {
+    Add-Assertion -Collection $assertions -Condition $true -Message '[config] adapter-registry.json yielded adapter closures'
+}
+
+$results.contract.adapter_closures = @($adapterClosures | ForEach-Object { [string]$_.closure_path })
+
+foreach ($adapterEntry in $adapterClosures) {
+    $adapterId = [string]$adapterEntry.adapter_id
+    $adapterPath = [string]$adapterEntry.closure_path
     if (-not (Test-Path -LiteralPath $adapterPath)) {
         Add-Assertion -Collection $assertions -Condition $false -Message ("[closure] {0} adapter closure file exists" -f $adapterId)
         continue

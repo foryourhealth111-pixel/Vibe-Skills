@@ -5,6 +5,7 @@
     "config/agency-overlays.json",
     "config/ai-rerank-policy.json",
     "config/benchmark-execution-policy.json",
+    "config/adapter-registry.json",
     "config/capability-catalog.json",
     "config/closure-overlay.json",
     "config/confirm-ui-policy.json",
@@ -64,10 +65,113 @@
     "config/settings.template.codex.json",
     "config/skills-lock.json",
     "config/system-design-overlay.json",
+    "config/opencode/agents/vibe-implement.md",
+    "config/opencode/agents/vibe-plan.md",
+    "config/opencode/agents/vibe-review.md",
+    "config/opencode/commands/vibe-implement.md",
+    "config/opencode/commands/vibe-review.md",
+    "config/opencode/commands/vibe.md",
+    "config/opencode/opencode.json.example",
     "config/upstream-lock.json",
     "config/version-governance.json"
   ],
-  "directories": [
-    "config/opencode"
-  ]
+  "directories": [],
+  "role_groups": {
+    "files": {
+      "runtime_governance_files": [
+        "config/benchmark-execution-policy.json",
+        "config/confirm-ui-policy.json",
+        "config/execution-topology-policy.json",
+        "config/fallback-governance.json",
+        "config/implementation-guardrails.json",
+        "config/native-specialist-execution-policy.json",
+        "config/pack-manifest.json",
+        "config/phase-cleanup-policy.json",
+        "config/plan-execution-policy.json",
+        "config/proof-class-registry.json",
+        "config/project-delivery-acceptance-contract.json",
+        "config/requirement-doc-policy.json",
+        "config/runtime-config-manifest.json",
+        "config/runtime-contract.json",
+        "config/runtime-core-packaging.json",
+        "config/runtime-input-packet-policy.json",
+        "config/runtime-modes.json",
+        "config/runtime-script-manifest.json",
+        "config/version-governance.json"
+      ],
+      "router_and_discovery_policy_files": [
+        "config/ai-rerank-policy.json",
+        "config/adapter-registry.json",
+        "config/capability-catalog.json",
+        "config/connector-admission-policy.json",
+        "config/connector-provider-policy.json",
+        "config/connector-sandbox-policy.json",
+        "config/deep-discovery-policy.json",
+        "config/docling-provider-policy.json",
+        "config/exploration-domain-map.json",
+        "config/exploration-intent-profiles.json",
+        "config/exploration-policy.json",
+        "config/heartbeat-policy.json",
+        "config/observability-policy.json",
+        "config/openspec-policy.json",
+        "config/retrieval-intent-profiles.json",
+        "config/retrieval-policy.json",
+        "config/retrieval-rerank-weights.json",
+        "config/retrieval-source-registry.json",
+        "config/router-model-governance.json",
+        "config/router-provider-defaults.json",
+        "config/router-provider-registry.json",
+        "config/router-thresholds.json"
+      ],
+      "memory_policy_files": [
+        "config/memory-backend-adapters.json",
+        "config/memory-governance.json",
+        "config/memory-retrieval-budget-policy.json",
+        "config/memory-runtime-v3-policy.json",
+        "config/memory-stage-activation-policy.json",
+        "config/memory-tier-router.json"
+      ],
+      "overlay_and_specialist_policy_files": [
+        "config/agency-overlays.json",
+        "config/closure-overlay.json",
+        "config/cuda-kernel-overlay.json",
+        "config/daily-dialectic-guard.json",
+        "config/data-scale-overlay.json",
+        "config/framework-interop-overlay.json",
+        "config/gsd-overlay.json",
+        "config/llm-acceleration-policy.json",
+        "config/ml-lifecycle-overlay.json",
+        "config/prompt-asset-boost.json",
+        "config/prompt-overlay.json",
+        "config/python-clean-code-overlay.json",
+        "config/quality-debt-overlay.json",
+        "config/system-design-overlay.json"
+      ],
+      "distribution_and_lock_files": [
+        "config/plugins-manifest.codex.json",
+        "config/settings.template.codex.json",
+        "config/skills-lock.json",
+        "config/upstream-lock.json"
+      ],
+      "opencode_preview_files": [
+        "config/opencode/agents/vibe-implement.md",
+        "config/opencode/agents/vibe-plan.md",
+        "config/opencode/agents/vibe-review.md",
+        "config/opencode/commands/vibe-implement.md",
+        "config/opencode/commands/vibe-review.md",
+        "config/opencode/commands/vibe.md",
+        "config/opencode/opencode.json.example"
+      ]
+    },
+    "directories": {
+      "managed_runtime_config_roots": [],
+      "preview_host_config_roots": []
+    }
+  },
+  "notes": {
+    "flat_projection_contract": "The top-level files/directories lists remain the compatibility projection consumed by runtime payload materializers.",
+    "explicit_projection_rule": "Runtime config payloads are projected entirely through explicit files; broad config directory roots remain empty by design.",
+    "semantic_group_rule": "Role groups are exclusive responsibility buckets so governance audits can tighten ownership boundaries without changing payload behavior.",
+    "opencode_projection_rule": "OpenCode preview support is projected as explicit files; runtime payload consumers no longer receive config/opencode as a broad directory root."
+  }
 }

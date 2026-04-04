@@ -1,22 +1,13 @@
 from pathlib import Path
-import json
-
-
-def _load_payload(adapter_id: str):
-    descriptor_name = adapter_id.replace('-', '_') + '.json'
-    path = Path(__file__).resolve().parent / 'descriptors' / descriptor_name
-    return json.loads(path.read_text(encoding='utf-8'))
 
 
 def resolve_default_target_root(descriptor, *, env: dict[str, str] | None = None, home: str | None = None) -> str:
     env = env or {}
     home = home or str(Path.home())
-    payload = _load_payload(descriptor.id)
-    target = payload['default_target_root']
-    env_name = target.get('env')
+    env_name = str(getattr(descriptor, 'default_target_root_env', '') or '').strip()
     if env_name and env.get(env_name):
         return env[env_name]
-    rel = str(target.get('rel') or '').strip()
+    rel = str(getattr(descriptor, 'default_target_root', '') or '').strip()
     if not rel:
         raise ValueError(f'missing default target root for {descriptor.id}')
     if rel.startswith('/'):

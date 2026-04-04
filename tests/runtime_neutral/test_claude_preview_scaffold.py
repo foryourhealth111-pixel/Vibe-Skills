@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTRACTS_SRC = REPO_ROOT / 'packages' / 'contracts' / 'src'
+INSTALLER_CORE_SRC = REPO_ROOT / 'packages' / 'installer-core' / 'src'
 PREVIEW_FILE = 'settings.vibe.preview.json'
 
 
@@ -25,6 +29,31 @@ def resolve_powershell() -> str | None:
         if candidate and Path(candidate).exists():
             return str(Path(candidate))
     return None
+
+
+def run_package_install(*, host: str, target_root: Path, profile: str = "full") -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([str(CONTRACTS_SRC), str(INSTALLER_CORE_SRC), env.get("PYTHONPATH", "")]).strip(os.pathsep)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vgo_installer.install_runtime",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--target-root",
+            str(target_root),
+            "--host",
+            host,
+            "--profile",
+            profile,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    return result, json.loads(result.stdout)
 
 
 class ClaudePreviewScaffoldTests(unittest.TestCase):
@@ -107,21 +136,8 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertIsNone(payload['hooks_root'])
         self.assertIn('temporarily frozen', payload['message'])
 
-    def test_install_script_preserves_existing_settings_and_writes_preview_file(self) -> None:
-        cmd = [
-            'python3',
-            str(REPO_ROOT / 'scripts' / 'install' / 'install_vgo_adapter.py'),
-            '--repo-root',
-            str(REPO_ROOT),
-            '--target-root',
-            str(self.target_root),
-            '--host',
-            'claude-code',
-            '--profile',
-            'full',
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        payload = json.loads(result.stdout)
+    def test_package_installer_preserves_existing_settings_and_writes_preview_file(self) -> None:
+        _, payload = run_package_install(host='claude-code', target_root=self.target_root, profile='full')
 
         settings_path = self.target_root / 'settings.json'
         closure_path = self.target_root / '.vibeskills' / 'host-closure.json'

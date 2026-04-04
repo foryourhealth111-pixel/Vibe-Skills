@@ -1,8 +1,7 @@
 param(
   [ValidateSet("minimal", "full")]
   [string]$Profile = "full",
-  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw", "opencode")]
-  [string]$HostId = "codex",
+    [string]$HostId = "codex",
   [string]$TargetRoot = '',
   [switch]$InstallExternal,
   [switch]$StrictOffline,
@@ -12,15 +11,18 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$helperPath = Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1'
 $cliMain = Join-Path $RepoRoot 'apps\vgo-cli\src\vgo_cli\main.py'
-$legacyScript = Join-Path $RepoRoot 'scripts\install\Install-VgoAdapter.ps1'
+
+if (Test-Path -LiteralPath $helperPath) {
+  . $helperPath
+  $HostId = Resolve-VgoHostId -HostId $HostId
+}
 
 # Invoke-InstalledRuntimeFreshnessGate semantics are delegated to vgo_cli.main.
 
 function Get-PreferredPythonInvocation {
-  $helperPath = Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1'
-  if (Test-Path -LiteralPath $helperPath) {
-    . $helperPath
+  if (Get-Command Get-VgoPythonCommand -ErrorAction SilentlyContinue) {
     try {
       return Get-VgoPythonCommand
     } catch {
@@ -57,15 +59,9 @@ function Get-PreferredPythonInvocation {
   throw 'Python 3.10+ is required to launch vgo-cli.'
 }
 
-
 $pythonInvocation = $null
-$cliLaunchWarning = $null
 if (Test-Path -LiteralPath $cliMain) {
-  try {
-    $pythonInvocation = Get-PreferredPythonInvocation
-  } catch {
-    $cliLaunchWarning = $_.Exception.Message
-  }
+  $pythonInvocation = Get-PreferredPythonInvocation
 }
 
 if ($null -ne $pythonInvocation) {
@@ -96,25 +92,4 @@ if ($null -ne $pythonInvocation) {
   exit 0
 }
 
-if (-not [string]::IsNullOrWhiteSpace($cliLaunchWarning)) {
-  Write-Warning "Unable to launch vgo-cli via Python host; falling back to legacy PowerShell installer dispatch. $cliLaunchWarning"
-} else {
-  Write-Warning "Missing vgo-cli entrypoint at $cliMain; falling back to legacy PowerShell installer dispatch."
-}
-if ($InstallExternal) { Write-Warning 'Legacy PowerShell fallback ignores -InstallExternal because vgo-cli is unavailable.' }
-if ($StrictOffline) { Write-Warning 'Legacy PowerShell fallback ignores -StrictOffline because vgo-cli is unavailable.' }
-if ($SkipRuntimeFreshnessGate) { Write-Warning 'Legacy PowerShell fallback ignores -SkipRuntimeFreshnessGate because vgo-cli is unavailable.' }
-$legacyHost = (Get-Process -Id $PID).Path
-$legacyHostLeaf = [System.IO.Path]::GetFileName($legacyHost).ToLowerInvariant()
-$legacyArgs = @('-NoProfile')
-if ($legacyHostLeaf.StartsWith('powershell')) {
-  $legacyArgs += @('-ExecutionPolicy', 'Bypass')
-}
-$legacyArgs += @('-File', $legacyScript, '-RepoRoot', $RepoRoot, '-HostId', $HostId, '-Profile', $Profile)
-if (-not [string]::IsNullOrWhiteSpace($TargetRoot)) { $legacyArgs += @('-TargetRoot', $TargetRoot) }
-if ($RequireClosedReady) { $legacyArgs += '-RequireClosedReady' }
-if ($AllowExternalSkillFallback) { $legacyArgs += '-AllowExternalSkillFallback' }
-& $legacyHost @legacyArgs
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Write-Output ""
-Write-Output "Installation complete."
+throw "Missing required vgo-cli entrypoint at $cliMain. The PowerShell install wrapper no longer falls back to legacy installer scripts."

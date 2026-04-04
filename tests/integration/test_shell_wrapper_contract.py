@@ -10,5 +10,7 @@ def test_shell_wrappers_delegate_to_vgo_cli() -> None:
 
     assert 'vgo_cli.main' in install_content
     assert 'vgo_cli.main' in uninstall_content
-    assert 'falling back to legacy installer dispatch' in install_content
-    assert 'falling back to legacy uninstall dispatch' in uninstall_content
+    assert 'scripts/install/install_vgo_adapter.py' not in install_content
+    assert 'scripts/uninstall/uninstall_vgo_adapter.py' not in uninstall_content
+    assert 'no longer falls back to legacy installer scripts' in install_content
+    assert 'no longer falls back to legacy uninstall scripts' in uninstall_content

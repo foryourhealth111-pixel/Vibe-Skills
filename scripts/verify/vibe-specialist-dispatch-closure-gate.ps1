@@ -40,6 +40,7 @@ function Invoke-ClosureScenario {
         [Parameter(Mandatory)] [string]$Task,
         [Parameter(Mandatory)] [string]$RunId,
         [Parameter(Mandatory)] [string]$ArtifactRoot,
+        [AllowNull()] [psobject]$RuntimeConfig = $null,
         [AllowEmptyString()] [string]$GovernanceScope = 'root',
         [AllowEmptyString()] [string]$RootRunId = '',
         [AllowEmptyString()] [string]$ParentRunId = '',
@@ -49,7 +50,7 @@ function Invoke-ClosureScenario {
         [string[]]$ApprovedSpecialistSkillIds = @()
     )
 
-    $scriptPath = Join-Path $RepoRoot 'scripts\runtime\invoke-vibe-runtime.ps1'
+    $scriptPath = Get-VgoRuntimeEntrypointPath -RepoRoot $RepoRoot -RuntimeConfig $RuntimeConfig
     return & $scriptPath `
         -Task $Task `
         -Mode benchmark_autonomous `
@@ -78,7 +79,8 @@ try {
         -RepoRoot $repoRoot `
         -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' `
         -RunId ('closure-official-' + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)) `
-        -ArtifactRoot $artifactRoot
+        -ArtifactRoot $artifactRoot `
+        -RuntimeConfig $context.runtimeConfig
     $officialExecutionManifest = Get-Content -LiteralPath $official.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
 
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$officialExecutionManifest.dispatch_integrity.proof_passed) -Message 'official smoke dispatch integrity proof passes'
@@ -129,7 +131,8 @@ try {
             -Task 'Need bioanalysis qc workflow and governed planning for genomics deliverables.' `
             -RunId ('closure-custom-' + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)) `
             -ArtifactRoot $artifactRoot `
-            -ApprovedSpecialistSkillIds @('genomics-qc-flow')
+            -ApprovedSpecialistSkillIds @('genomics-qc-flow') `
+            -RuntimeConfig $context.runtimeConfig
         $customExecutionManifest = Get-Content -LiteralPath $custom.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
 
         Add-Assertion -Results ([ref]$results) -Condition ([bool]$customExecutionManifest.dispatch_integrity.proof_passed) -Message 'custom smoke dispatch integrity proof passes'
@@ -144,7 +147,8 @@ try {
         -RepoRoot $repoRoot `
         -Task 'Root specialist dispatch seed for child escalation closure checks.' `
         -RunId ('closure-root-' + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)) `
-        -ArtifactRoot $artifactRoot
+        -ArtifactRoot $artifactRoot `
+        -RuntimeConfig $context.runtimeConfig
     $rootRuntimeInput = Get-Content -LiteralPath $root.summary.artifacts.runtime_input_packet -Raw -Encoding UTF8 | ConvertFrom-Json
     $rootApprovedDispatch = if ($rootRuntimeInput.specialist_dispatch) { @($rootRuntimeInput.specialist_dispatch.approved_dispatch) } else { @() }
     $approvedSkillIds = @($rootApprovedDispatch | Select-Object -First 1 | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
@@ -160,7 +164,8 @@ try {
         -ParentUnitId 'closure-child-unit' `
         -InheritedRequirementDocPath ([string]$root.summary.artifacts.requirement_doc) `
         -InheritedExecutionPlanPath ([string]$root.summary.artifacts.execution_plan) `
-        -ApprovedSpecialistSkillIds $approvedSkillIds
+        -ApprovedSpecialistSkillIds $approvedSkillIds `
+        -RuntimeConfig $context.runtimeConfig
     $childExecutionManifest = Get-Content -LiteralPath $child.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
 
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$childExecutionManifest.dispatch_integrity.proof_passed) -Message 'child smoke dispatch integrity proof passes'

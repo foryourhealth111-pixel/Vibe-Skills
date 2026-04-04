@@ -1,123 +1,112 @@
 # Roadmap
 
-Updated: 2026-03-12
+Updated: 2026-04-04
 
 ## Positioning
 
-This page is the current sequencing map for the closure program.
+This page is the sequencing map for the active `remaining-architecture-closure` program.
 
 It answers:
 
-1. which track is active now;
-2. which heavier tracks are explicitly deferred;
-3. what must become true before the program can claim closure.
+1. which closure wave is active now;
+2. which heavier cleanup tracks remain deferred;
+3. what must become true before the repository can honestly claim closure.
 
-It is not the proof contract, not the guardrail matrix, and not the blocker census.
+It is not the proof contract, not the blocker census, and not the completion receipt.
 
 ## Operating Rule
 
-Every cleanup batch is executed under a single rule:
+Every closure wave still runs under one rule:
 
-**no proof, no prune**
+**no proof, no completion claim**
 
-That means no unproven prune, no tracked output purge, no third-party externalization, and no bulk archive move until the affected replacement path exists and the relevant proof bundle turns green again.
+That means no semantic-owner retirement, no compatibility-surface deletion, and no broad cleanup claim until the replacement owner exists and fresh verification evidence is in hand.
 
 ## Active Track
 
-The repository is in **closure mode**, not expansion mode.
+The repository is in **architecture-closure mode**, not feature-expansion mode.
 
 That means the current priority is:
 
-1. keep the proof bundle green
-2. keep temp/runtime/operator noise at zero
-3. collapse active navigation onto the current status spine
-4. only reopen heavier cleanup tracks with explicit migration proof
+1. remove or demote remaining duplicated semantic owners
+2. keep contracts and package-owned cores as the canonical owners
+3. refresh live status / closure surfaces so they match current evidence
+4. only then move into the final proof-and-cleanup wave
 
-## Current Closure Track
+## Current Closure Waves
 
-### Closure 1: Docs Spine and Batch Hygiene
+### Wave 1: Remaining Owner Audit
 
-Goal: make the current cleanup state readable, bounded, and operator-safe.
+Goal: identify the remaining script-text truth checks, fallback owners, and compatibility boundaries worth cutting.
 
-- align `config/index.md` and `references/index.md` to the active 2026-03-11 remediation plan
-- keep `docs/status/*` as the single live status surface
-- standardize phase-end hygiene through `scripts/governance/phase-end-cleanup.ps1`
-- write `operator-dry-run.md` and `closure-audit.md`
+Status: completed enough to rank the current microphases and drive the 2026-04-04 cut sequence.
+
+### Wave 2: High-Value Contract Cutovers
+
+Goal: move the highest-value remaining semantic owners onto shared contracts or package-owned cores.
+
+Completed cuts in this wave include:
+
+- frontmatter gate runtime-contract delegation
+- CLI runtime entrypoint delegation
+- verification runtime entrypoint delegation
+- operator preview postcheck contract alignment
+- PowerShell installed-runtime fallback reduction
+- mirror-topology contract delegation
+- release closure gates contract cutover
+
+### Wave 3: Compatibility Boundary Closure
+
+Goal: keep fallbacks and retained shims bounded, explicit, and non-authoritative.
+
+Current rule: compatibility shims remain retained while live callers, manifests, installed payloads, or tests still depend on them.
+
+### Wave 4: Architecture / Status Consistency Refresh
+
+Goal: make the live architecture and status spine match the current closure facts.
+
+Current microphases:
+
+- architecture consistency audit refresh
+- status spine catch-up
+
+### Wave 5: Final Proof And Cleanup
+
+Goal: finish the remaining architecture-consistency proof, residual-risk inventory, and honest closure language.
+
+This wave is not yet complete.
 
 ## Deferred Explicit Tracks
 
-### Batch A: Baseline and Spine
+These tracks remain governed backlog, not active closure claims:
 
-Goal: make the current state explicit and trustworthy before touching runtime structure.
-
-- create `docs/status/*`
-- repair `docs/README.md`
-- repair `scripts/README.md`
-- define the non-regression proof bundle
-- record protected capability and path dependency baselines
-
-### Batch B: Nested Compatibility Softening
-
-Goal: turn `nested_bundled` from a permanently tracked mirror into an explicit compatibility layer.
-
-- soften `require_nested_bundled_root`
-- update version / packaging / runtime docs and config
-- make install / check / runtime flows accept generated-or-optional nested layouts
-
-### Batch C: Output Boundary Completion
-
-Goal: finish the move from tracked legacy outputs to governed fixtures / ledgers.
-
-- restore fixture parity
-- close gaps in `migration-map.json`
-- remove remaining dual-source ambiguity between `outputs/**` and `references/fixtures/**`
-- switch to strict mode only after parity is proven
-
-### Batch D: Third-Party Decoupling
-
-Goal: preserve research / audit flows while shrinking the repo's always-tracked third-party burden.
-
-- parameterize `-SourceRoot`
-- resolve source roots from manifest instead of fixed local paths
-- keep provenance / license / manifest surfaces tracked
-- stop requiring heavy local mirrors for normal repo operation
-
-### Batch E: Archive and Log Normalization
-
-Goal: reduce active file count without losing real history.
-
-- move obsolete dated materials into archive surfaces
-- keep only current state, roadmap, and ledgers in the active surface
-- normalize repeated report classes into one ledger + one human summary
-
-### Batch F: Proof Re-Green and Dry Run
-
-Goal: prove the repository is cleaner and still behaviorally intact.
-
-- rerun the critical proof bundle
-- perform operator dry run from canonical root
-- write closure audit
+- outputs strict-mode adoption and zero-tracked-outputs decision
+- third-party source-root parameterization / externalization
+- archive / prune windows beyond the current live status spine
+- any blanket compatibility-shim deletion program
 
 ## Current Truth
 
-- the critical proof bundle is green
-- the repo is **not** globally zero-dirty
-- remaining pressure is still concentrated in managed backlog and high-risk mirror surfaces
-- therefore the alpha-to-omega program is **not closed**, but the current closure batch can finish once the status spine and operator receipts are complete
+- fresh focused verification exists for the latest contract cutover
+- fresh full regression exists: `403 passed, 66 subtests passed in 510.12s (0:08:30)`
+- `git diff --check` is clean for the latest completed microphase
+- the root `remaining-architecture-closure` plan is still open
+- bounded fallback inventory and retained compatibility surfaces still exist and must remain explicit
 
 ## Cross-Document Boundary
 
-- proof contract lives in [`non-regression-proof-bundle.md`](non-regression-proof-bundle.md)
-- guardrail matrix lives in [`protected-capability-baseline.md`](protected-capability-baseline.md)
+- active root requirement lives in [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
+- active root plan lives in [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- live runtime summary lives in [`current-state.md`](current-state.md)
+- closure receipt lives in [`closure-audit.md`](closure-audit.md)
 - blocker map lives in [`path-dependency-census.md`](path-dependency-census.md)
-- runtime summary lives in [`current-state.md`](current-state.md)
 
 ## Exit Conditions
 
-The program is only closed when all of the following are true:
+The architecture-closure program is only complete when all of the following are true:
 
-- the active docs spine is short and trusted
-- `nested_bundled` remains an optional topology contract and does not return as a permanent tracked burden
-- tracked `outputs/**` are reduced to zero under strict mode
-- third-party heavy roots are no longer a default repo burden
-- the critical proof bundle is green
+- remaining duplicated semantic owners are removed or demoted to bounded compatibility fallbacks
+- live status and architecture surfaces reflect the same current truth
+- residual-risk / fallback inventory is documented honestly
+- fresh regression and hygiene evidence exists for the final closure wave
+- completion language no longer outruns the repository's actually proven state

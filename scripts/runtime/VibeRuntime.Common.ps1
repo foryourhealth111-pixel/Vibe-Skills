@@ -9,44 +9,7 @@ function Get-VibeHostAdapterEntry {
         [AllowEmptyString()] [string]$HostId = ''
     )
 
-    $requestedHostId = if ([string]::IsNullOrWhiteSpace($HostId)) { $env:VCO_HOST_ID } else { $HostId }
-    $resolvedHostId = Resolve-VgoHostId -HostId $requestedHostId
-    $registryPath = Join-Path $RepoRoot 'adapters\index.json'
-    if (-not (Test-Path -LiteralPath $registryPath)) {
-        return [pscustomobject]@{
-            requested_id = if ([string]::IsNullOrWhiteSpace($requestedHostId)) { $null } else { [string]$requestedHostId }
-            id = $resolvedHostId
-            status = $null
-            install_mode = $null
-            check_mode = $null
-            bootstrap_mode = $null
-            default_target_root = $null
-        }
-    }
-
-    $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $adapter = @($registry.adapters | Where-Object { [string]$_.id -eq $resolvedHostId } | Select-Object -First 1)[0]
-    if ($null -eq $adapter) {
-        return [pscustomobject]@{
-            requested_id = if ([string]::IsNullOrWhiteSpace($requestedHostId)) { $null } else { [string]$requestedHostId }
-            id = $resolvedHostId
-            status = $null
-            install_mode = $null
-            check_mode = $null
-            bootstrap_mode = $null
-            default_target_root = $null
-        }
-    }
-
-    return [pscustomobject]@{
-        requested_id = if ([string]::IsNullOrWhiteSpace($requestedHostId)) { $null } else { [string]$requestedHostId }
-        id = [string]$adapter.id
-        status = if ($adapter.PSObject.Properties.Name -contains 'status') { [string]$adapter.status } else { $null }
-        install_mode = if ($adapter.PSObject.Properties.Name -contains 'install_mode') { [string]$adapter.install_mode } else { $null }
-        check_mode = if ($adapter.PSObject.Properties.Name -contains 'check_mode') { [string]$adapter.check_mode } else { $null }
-        bootstrap_mode = if ($adapter.PSObject.Properties.Name -contains 'bootstrap_mode') { [string]$adapter.bootstrap_mode } else { $null }
-        default_target_root = if ($adapter.PSObject.Properties.Name -contains 'default_target_root') { $adapter.default_target_root } else { $null }
-    }
+    return Resolve-VgoAdapterEntry -StartPath $RepoRoot -HostId $HostId
 }
 
 function Resolve-VibeHostTargetRoot {

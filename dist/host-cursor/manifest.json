@@ -5,13 +5,46 @@
   "host_id": "cursor",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "Cursor host adapter preview. The repository can expose runtime-core payload and preview health checks, but does not claim full governed closure yet.",
   "runtime_ownership": {
     "owner": "host_managed",
     "notes": "This lane must not claim official runtime closure. It only exposes configuration artifacts and truthful readiness boundaries."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "host_managed",
+      "notes": "This lane must not claim official runtime closure. It only exposes configuration artifacts and truthful readiness boundaries."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1 --host cursor",
+      "install.sh --host cursor",
+      "check.ps1 --host cursor",
+      "check.sh --host cursor"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "adapters/cursor/host-profile.json",
+      "adapters/cursor/settings-map.json",
+      "adapters/cursor/closure.json",
+      "scripts/router/resolve-pack-route.ps1"
+    ],
+    "boundary_claims": [
+      "official_runtime_install_entrypoints",
+      "official_runtime_check_entrypoints",
+      "host_plugin_provisioning",
+      "cross_platform_parity_claims"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1 --host cursor",
@@ -25,6 +58,7 @@
       "promise_level": "promised",
       "evidence_paths": [
         "adapters/cursor/host-profile.json",
+        "adapters/cursor/settings-map.json",
         "adapters/cursor/closure.json"
       ]
     },

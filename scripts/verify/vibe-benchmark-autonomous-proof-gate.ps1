@@ -51,7 +51,8 @@ foreach ($relativePath in $requiredFiles) {
 
 $runId = "benchmark-proof-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\benchmark-proof-{0}" -f $runId)
-$summary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
+$summary = & $runtimeEntryPath -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
 
 $executeReceiptPath = [string]$summary.summary.artifacts.execute_receipt
 $executionManifestPath = [string]$summary.summary.artifacts.execution_manifest

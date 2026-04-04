@@ -1,18 +1,18 @@
 # Non-Regression Proof Bundle
 
-Updated: 2026-03-12
+Updated: 2026-04-04
 
 ## Positioning
 
-This page is the minimum closure proof contract.
+This page is the minimum proof contract for structure-changing work after the 2026-04-04 architecture-closure sign-off.
 
-It defines which commands must be rerun before a structure-changing cleanup batch can claim success. It does not carry the authoritative PASS/FAIL state itself. Current truth always lives in `outputs/verify/*.json`.
+It defines which commands must be rerun before a later cleanup or topology-changing batch can claim success. It does not carry the authoritative PASS/FAIL state itself. Current truth always lives in `outputs/verify/*.json`, fresh regression output, and the current closure receipt.
 
 ## Rule
 
-Every cleanup batch must name the proof it depends on before it modifies structure.
+Every structure-changing batch must name the proof it depends on before it modifies structure.
 
-If a batch touches routing, compatibility topology, install/runtime behavior, output boundary, or cleanliness policy, it must rerun the affected commands and verify the resulting receipts before claiming success.
+If a batch touches routing, compatibility topology, install/runtime behavior, operator contracts, output boundary, or cleanliness policy, it must rerun the affected commands and verify the resulting receipts before claiming success.
 
 Protected official-runtime main-chain edits remain frozen by default.
 If a batch needs to touch those surfaces, it must also be covered by:
@@ -36,9 +36,11 @@ powershell -NoProfile -File scripts/verify/vibe-installed-runtime-freshness-gate
 powershell -NoProfile -File scripts/verify/vibe-release-install-runtime-coherence-gate.ps1
 powershell -NoProfile -File scripts/verify/vibe-release-truth-consistency-gate.ps1
 powershell -NoProfile -File scripts/verify/vibe-repo-cleanliness-gate.ps1
+python3 -m pytest tests/contract tests/unit tests/integration tests/e2e tests/runtime_neutral -q
+git diff --check
 ```
 
-Phase-end bounded operator entrypoint:
+Historical phase-end wrapper, retained only as an operator aid rather than the active proof owner:
 
 ```powershell
 powershell -NoProfile -File scripts/governance/phase-end-cleanup.ps1 -WriteArtifacts
@@ -64,12 +66,16 @@ powershell -NoProfile -File scripts/governance/phase-end-cleanup.ps1 -WriteArtif
    - validates fallback and degraded-truth consistency across release/promotion surfaces
 9. `vibe-repo-cleanliness-gate.ps1`
    - validates current cleanliness contract
+10. full pytest regression
+   - validates the frozen architecture-closure surface end-to-end across contracts, unit, integration, e2e, and runtime-neutral coverage
+11. `git diff --check`
+   - rejects whitespace / patch hygiene regressions before closure language is allowed
 
 ## Batch-to-Proof Mapping
 
 | Batch Type | Minimum Required Proof |
 | --- | --- |
-| docs spine only | manual link/readability review, then full bundle before closure |
+| docs spine only | manual link/readability review, then full regression + `git diff --check` before closure |
 | routing / router config | routing smoke + router contract |
 | compatibility topology / packaging | version packaging + mirror hygiene |
 | install / check / runtime | installed runtime freshness + release/install/runtime coherence |
@@ -82,7 +88,7 @@ powershell -NoProfile -File scripts/governance/phase-end-cleanup.ps1 -WriteArtif
 
 This page names the required proof. It is not the source of the latest proof outcome.
 
-To determine the current status of a cleanup batch, read the latest receipt for each gate from `outputs/verify/*.json` and inspect `gate_result`.
+To determine the current status of a cleanup batch, read the latest receipt for each gate from `outputs/verify/*.json`, inspect `gate_result`, then pair that with the latest full regression result and current closure receipt.
 
 Artifact anchors:
 
@@ -96,7 +102,12 @@ Artifact anchors:
 - `outputs/verify/vibe-release-truth-consistency-gate.json`
 - `outputs/verify/vibe-repo-cleanliness-gate.json`
 
-Latest known green snapshot for this closure track was recorded on `2026-03-12`. That snapshot is historical evidence, not a standing promise that the current worktree is still green.
+Latest known architecture-closure sign-off regression:
+
+- `python3 -m pytest tests/contract tests/unit tests/integration tests/e2e tests/runtime_neutral -q`
+- result: `403 passed, 66 subtests passed in 509.44s (0:08:29)` on `2026-04-04`
+
+That snapshot is historical evidence, not a standing promise that every later worktree remains green.
 
 ## Contract Rule for Future Expansion
 
@@ -106,4 +117,4 @@ If a new protected capability is introduced, it is not covered by this bundle un
 2. that proof is added to this document; and
 3. the resulting receipt is wired into the current closure flow.
 
-Current mission after re-greening is not to loosen the bundle, but to use it as the minimum closure contract before any further prune or topology reduction.
+Current rule after the 2026-04-04 sign-off is not to loosen the bundle, but to preserve it as the minimum closure contract before any further prune or topology reduction.

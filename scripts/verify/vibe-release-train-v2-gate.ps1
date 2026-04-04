@@ -61,6 +61,7 @@ param(
     $requiredPaths = @(
     'docs/release-train-v2-governance.md',
     'docs/releases/README.md',
+    'config/operator-preview-contract.json',
     'scripts/governance/release-cut.ps1'
 )
     foreach ($relPath in $requiredPaths) {
@@ -79,7 +80,8 @@ param(
     'vibe-release-train-v2-gate.ps1',
     'vibe-wave64-82-closure-gate.ps1'
 ) },
-    [pscustomobject]@{ path = 'scripts/governance/release-cut.ps1'; keywords = @(
+    [pscustomobject]@{ path = 'config/operator-preview-contract.json'; keywords = @(
+    'apply_gates',
     'vibe-memory-runtime-v3-gate.ps1',
     'vibe-release-train-v2-gate.ps1',
     'vibe-wave64-82-closure-gate.ps1'

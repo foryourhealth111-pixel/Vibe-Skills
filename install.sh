@@ -3,7 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLI_MAIN="${SCRIPT_DIR}/apps/vgo-cli/src/vgo_cli/main.py"
-LEGACY_INSTALLER="${SCRIPT_DIR}/scripts/install/install_vgo_adapter.py"
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=10
 
@@ -76,45 +75,11 @@ if [[ -z "${PYTHON_BIN}" ]]; then
   exit 1
 fi
 
-legacy_install_fallback() {
-  local forward_args=()
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --profile|--host|--target-root)
-        if [[ $# -lt 2 ]]; then
-          echo "[FAIL] Missing value for $1" >&2
-          exit 1
-        fi
-        forward_args+=("$1" "$2")
-        shift 2
-        ;;
-      --require-closed-ready|--allow-external-skill-fallback)
-        forward_args+=("$1")
-        shift
-        ;;
-      --install-external|--strict-offline|--skip-runtime-freshness-gate)
-        echo "[WARN] Legacy fallback ignores $1 because vgo-cli is unavailable." >&2
-        shift
-        ;;
-      *)
-        forward_args+=("$1")
-        shift
-        ;;
-    esac
-  done
-
-  "${PYTHON_BIN}" "${LEGACY_INSTALLER}" --repo-root "${SCRIPT_DIR}" "${forward_args[@]}"
-  local rc=$?
-  if (( rc != 0 )); then
-    exit $rc
-  fi
-  echo "Install done. Legacy fallback completed without vgo-cli."
-}
-
 if [[ -f "${CLI_MAIN}" ]]; then
   export PYTHONPATH="${SCRIPT_DIR}/apps/vgo-cli/src${PYTHONPATH:+:${PYTHONPATH}}"
   exec "${PYTHON_BIN}" -m vgo_cli.main install --repo-root "${SCRIPT_DIR}" --frontend shell "$@"
 fi
 
-echo "[WARN] Missing vgo-cli entrypoint at ${CLI_MAIN}; falling back to legacy installer dispatch." >&2
-legacy_install_fallback "$@"
+echo "[FAIL] Missing required vgo-cli entrypoint at ${CLI_MAIN}." >&2
+echo "[FAIL] The shell install wrapper no longer falls back to legacy installer scripts." >&2
+exit 1

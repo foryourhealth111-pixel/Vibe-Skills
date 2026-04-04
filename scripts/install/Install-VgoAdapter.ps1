@@ -11,7 +11,70 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1')
-. (Join-Path $RepoRoot 'scripts\common\Resolve-VgoAdapter.ps1')
+
+function Resolve-InstallAdapterDescriptor {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$HostId = ''
+    )
+
+    $current = [System.IO.Path]::GetFullPath($RepoRoot)
+    $registryPath = $null
+    while (-not [string]::IsNullOrWhiteSpace($current)) {
+        $adapterPath = Join-Path $current 'adapters\index.json'
+        if (Test-Path -LiteralPath $adapterPath) {
+            $registryPath = $adapterPath
+            break
+        }
+
+        $configPath = Join-Path $current 'config\adapter-registry.json'
+        if (Test-Path -LiteralPath $configPath) {
+            $registryPath = $configPath
+            break
+        }
+
+        $parent = Split-Path -Parent $current
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
+            break
+        }
+        $current = $parent
+    }
+
+    if ([string]::IsNullOrWhiteSpace($registryPath)) {
+        throw "VGO adapter registry not found under repo root or ancestors: $RepoRoot"
+    }
+
+    try {
+        $registry = Get-Content -LiteralPath $registryPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        throw ("Failed to parse adapter registry: " + $_.Exception.Message)
+    }
+
+    $resolvedHostId = $HostId
+    if ([string]::IsNullOrWhiteSpace($resolvedHostId)) {
+        $resolvedHostId = if ($registry.PSObject.Properties.Name -contains 'default_adapter_id') { [string]$registry.default_adapter_id } else { 'codex' }
+    }
+
+    $normalized = $resolvedHostId.Trim().ToLowerInvariant()
+    if ($registry.PSObject.Properties.Name -contains 'aliases' -and $null -ne $registry.aliases) {
+        foreach ($alias in $registry.aliases.PSObject.Properties) {
+            if ($alias.Name.ToLowerInvariant() -eq $normalized) {
+                $normalized = [string]$alias.Value
+                break
+            }
+        }
+    }
+
+    $entry = @($registry.adapters | Where-Object { [string]$_.id -eq $normalized } | Select-Object -First 1)[0]
+    if ($null -eq $entry) {
+        throw "Unsupported VGO host id: $HostId"
+    }
+
+    return [pscustomobject]@{
+        id = [string]$entry.id
+        install_mode = [string]$entry.install_mode
+    }
+}
 
 function Get-VgoPreferredPythonCommand {
     foreach ($candidate in @('python', 'python3', 'py')) {
@@ -23,15 +86,24 @@ function Get-VgoPreferredPythonCommand {
     return $null
 }
 
-$pythonInstaller = Join-Path $RepoRoot 'scripts\install\install_vgo_adapter.py'
+$pythonInstallerCore = Join-Path $RepoRoot 'packages\installer-core\src\vgo_installer\install_runtime.py'
 $pythonCommand = Get-VgoPreferredPythonCommand
-if ((Test-Path -LiteralPath $pythonInstaller) -and -not [string]::IsNullOrWhiteSpace($pythonCommand)) {
+if ((Test-Path -LiteralPath $pythonInstallerCore) -and -not [string]::IsNullOrWhiteSpace($pythonCommand)) {
+    $pythonPathEntries = @(
+        (Join-Path $RepoRoot 'packages\contracts\src'),
+        (Join-Path $RepoRoot 'packages\installer-core\src')
+    )
+    if (-not [string]::IsNullOrWhiteSpace($env:PYTHONPATH)) {
+        $pythonPathEntries += $env:PYTHONPATH
+    }
+    $env:PYTHONPATH = ($pythonPathEntries -join [System.IO.Path]::PathSeparator)
+
     $cmd = @($pythonCommand)
     if ([System.IO.Path]::GetFileName($pythonCommand).ToLowerInvariant() -eq 'py') {
         $cmd += '-3'
     }
     $cmd += @(
-        $pythonInstaller,
+        '-m', 'vgo_installer.install_runtime',
         '--repo-root', $RepoRoot,
         '--target-root', $TargetRoot,
         '--host', $HostId,
@@ -45,7 +117,7 @@ if ((Test-Path -LiteralPath $pythonInstaller) -and -not [string]::IsNullOrWhiteS
     }
     & $cmd[0] @($cmd[1..($cmd.Count - 1)])
     if ($LASTEXITCODE -ne 0) {
-        throw ("Python adapter installer failed with exit code {0}." -f $LASTEXITCODE)
+        throw ("installer-core PowerShell shim failed with exit code {0}." -f $LASTEXITCODE)
     }
     return
 }
@@ -838,7 +910,18 @@ function Sync-InstalledGeneratedNestedCompatibilityRoot {
 function Install-RuntimeCorePayload {
     param([psobject]$Adapter)
 
-    $packagingPath = Join-Path $RepoRoot 'config\runtime-core-packaging.json'
+    $basePackagingPath = Join-Path $RepoRoot 'config\runtime-core-packaging.json'
+    $basePackaging = Get-Content -LiteralPath $basePackagingPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $packagingPath = $basePackagingPath
+    if ($basePackaging.PSObject.Properties.Name -contains 'profile_manifests' -and $null -ne $basePackaging.profile_manifests) {
+        $selectedProjection = $basePackaging.profile_manifests.$Profile
+        if (-not [string]::IsNullOrWhiteSpace([string]$selectedProjection)) {
+            $candidatePath = Join-Path $RepoRoot ([string]$selectedProjection)
+            if (Test-Path -LiteralPath $candidatePath) {
+                $packagingPath = $candidatePath
+            }
+        }
+    }
     $packaging = Get-Content -LiteralPath $packagingPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $governancePath = Join-Path $RepoRoot 'config\version-governance.json'
     $governance = Get-Content -LiteralPath $governancePath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -929,9 +1012,14 @@ function Install-RuntimeCorePayload {
         return @($sources | Select-Object -Unique)
     }
 
-    $requiredCore = @('dialectic', 'local-vco-roles', 'spec-kit-vibe-compat', 'superclaude-framework-compat', 'ralph-loop', 'cancel-ralph', 'tdd-guide', 'think-harder')
-    $requiredWorkflow = @('brainstorming', 'writing-plans', 'subagent-driven-development', 'systematic-debugging')
-    $optionalWorkflow = @('requesting-code-review', 'receiving-code-review', 'verification-before-completion')
+    $requiredCore = @()
+    $requiredWorkflow = @()
+    $optionalWorkflow = @()
+    if ($packaging.PSObject.Properties.Name -contains 'managed_skill_inventory' -and $null -ne $packaging.managed_skill_inventory) {
+        $requiredCore = @($packaging.managed_skill_inventory.required_runtime_skills)
+        $requiredWorkflow = @($packaging.managed_skill_inventory.required_workflow_skills)
+        $optionalWorkflow = @($packaging.managed_skill_inventory.optional_workflow_skills)
+    }
 
     $externalFallbackUsed = New-Object System.Collections.Generic.List[string]
     $missingRequiredSkills = New-Object System.Collections.Generic.List[string]
@@ -1023,7 +1111,7 @@ function Install-RuntimeCoreModePayload {
 }
 
 Add-VgoCreatedPath -Path $TargetRoot
-$adapter = Resolve-VgoAdapterDescriptor -RepoRoot $RepoRoot -HostId $HostId
+$adapter = Resolve-InstallAdapterDescriptor -RepoRoot $RepoRoot -HostId $HostId
 $result = Install-RuntimeCorePayload -Adapter $adapter
 $legacyOpenCodeConfigCleanup = $null
 switch ([string]$adapter.install_mode) {

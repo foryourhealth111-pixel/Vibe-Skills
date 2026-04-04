@@ -1,8 +1,7 @@
 param(
   [ValidateSet("minimal", "full")]
   [string]$Profile = "full",
-  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw", "opencode")]
-  [string]$HostId = "codex",
+    [string]$HostId = "codex",
   [string]$TargetRoot = '',
   [switch]$SkipRuntimeFreshnessGate,
   [switch]$Deep
@@ -10,11 +9,12 @@ param(
 
 $RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $RepoRoot 'scripts\common\vibe-governance-helpers.ps1')
-. (Join-Path $RepoRoot 'scripts\common\Resolve-VgoAdapter.ps1')
+
 $HostId = Resolve-VgoHostId -HostId $HostId
+$Adapter = Resolve-VgoAdapterEntry -StartPath $RepoRoot -HostId $HostId
+
 $TargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $HostId
 Assert-VgoTargetRootMatchesHostIntent -TargetRoot $TargetRoot -HostId $HostId
-$Adapter = Resolve-VgoAdapterDescriptor -RepoRoot $RepoRoot -HostId $HostId
 
 function Test-CanonicalRepoExecution {
   param([string]$RepoRoot)
@@ -648,7 +648,7 @@ if ($startupRuntimeConfig.PSObject.Properties.Name -contains 'require_nested_bun
 if ($null -ne $startupGovernance -and $startupGovernance.PSObject.Properties.Name -contains 'mirror_topology' -and $null -ne $startupGovernance.mirror_topology) {
   $topology = $startupGovernance.mirror_topology
   if ($topology.PSObject.Properties.Name -contains 'targets' -and $null -ne $topology.targets) {
-    $nestedBundledTarget = @($topology.targets | Where-Object { [string]$_.id -eq 'nested_bundled' } | Select-Object -First 1)[0]
+    $nestedBundledTarget = $topology.targets | Where-Object { [string]$_.id -eq 'nested_bundled' } | Select-Object -First 1
     if ($null -ne $nestedBundledTarget) {
       if ($nestedBundledTarget.PSObject.Properties.Name -contains 'presence_policy' -and -not [string]::IsNullOrWhiteSpace([string]$nestedBundledTarget.presence_policy)) {
         $nestedBundledPresencePolicy = [string]$nestedBundledTarget.presence_policy

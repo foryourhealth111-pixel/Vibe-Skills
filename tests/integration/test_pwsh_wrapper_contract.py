@@ -10,5 +10,7 @@ def test_powershell_wrappers_delegate_to_vgo_cli() -> None:
 
     assert 'vgo_cli.main' in install_content
     assert 'vgo_cli.main' in uninstall_content
-    assert 'falling back to legacy PowerShell installer dispatch' in install_content
-    assert 'falling back to legacy PowerShell uninstall dispatch' in uninstall_content
+    assert 'scripts\\install\\Install-VgoAdapter.ps1' not in install_content
+    assert 'scripts\\uninstall\\Uninstall-VgoAdapter.ps1' not in uninstall_content
+    assert 'no longer falls back to legacy installer scripts' in install_content
+    assert 'no longer falls back to legacy uninstall scripts' in uninstall_content

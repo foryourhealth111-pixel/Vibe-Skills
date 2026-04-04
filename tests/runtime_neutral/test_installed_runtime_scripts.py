@@ -18,21 +18,12 @@ STRICT_READY_HOSTS = [
     ("openclaw", "VGO_OPENCLAW_SPECIALIST_BRIDGE_COMMAND"),
     ("opencode", "VGO_OPENCODE_SPECIALIST_BRIDGE_COMMAND"),
 ]
-MINIMAL_REQUIRED_SKILLS = {
-    "vibe",
-    "dialectic",
-    "local-vco-roles",
-    "spec-kit-vibe-compat",
-    "superclaude-framework-compat",
-    "ralph-loop",
-    "cancel-ralph",
-    "tdd-guide",
-    "think-harder",
-    "brainstorming",
-    "writing-plans",
-    "subagent-driven-development",
-    "systematic-debugging",
-}
+MINIMAL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.minimal.json"
+MINIMAL_REQUIRED_SKILLS = set(
+    json.loads(MINIMAL_MANIFEST.read_text(encoding="utf-8"))["managed_skill_inventory"]["required_runtime_skills"]
+) | set(
+    json.loads(MINIMAL_MANIFEST.read_text(encoding="utf-8"))["managed_skill_inventory"]["required_workflow_skills"]
+)
 
 
 def resolve_powershell() -> str | None:
@@ -302,11 +293,23 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         installed_root = self.target_root / "skills" / "vibe"
         cli_main = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "main.py"
         cli_package = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "__init__.py"
+        cli_errors = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "errors.py"
+        cli_hosts = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "hosts.py"
+        cli_process = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "process.py"
+        cli_install_support = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "install_support.py"
+        cli_workspace = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "workspace.py"
+        cli_commands = installed_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "commands.py"
         install_wrapper = (installed_root / "install.sh").read_text(encoding="utf-8")
         install_wrapper_ps1 = (installed_root / "install.ps1").read_text(encoding="utf-8")
 
         self.assertTrue(cli_main.exists())
         self.assertTrue(cli_package.exists())
+        self.assertTrue(cli_errors.exists())
+        self.assertTrue(cli_hosts.exists())
+        self.assertTrue(cli_process.exists())
+        self.assertTrue(cli_install_support.exists())
+        self.assertTrue(cli_workspace.exists())
+        self.assertTrue(cli_commands.exists())
         self.assertIn("vgo_cli.main", install_wrapper)
         self.assertIn("vgo_cli.main", install_wrapper_ps1)
 

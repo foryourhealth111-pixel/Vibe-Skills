@@ -64,6 +64,8 @@ pwsh -NoProfile -File .\scripts\governance\phase-end-cleanup.ps1 -WriteArtifacts
 
 Managed node termination is never implicit. Only pass `-ApplyManagedNodeCleanup` after the audit output proves the candidate is `vco-managed`.
 
+Protected-document preview/quarantine capability for `phase-end-cleanup.ps1` is governed by `config/phase-cleanup-policy.json`, not by script-local text as a semantic owner.
+
 ## Maintenance Notes
 
 - 后续清理重点不是新建更多 operator，而是统一 preview 语义、machine-readable 输出、canonical execution lock 与 no-BOM 写入。

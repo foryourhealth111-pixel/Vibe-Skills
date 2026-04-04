@@ -11,32 +11,26 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MINIMAL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.minimal.json"
 FULL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.full.json"
 
-REQUIRED_RUNTIME_SKILLS = {
-    "vibe",
-    "dialectic",
-    "local-vco-roles",
-    "spec-kit-vibe-compat",
-    "superclaude-framework-compat",
-    "ralph-loop",
-    "cancel-ralph",
-    "tdd-guide",
-    "think-harder",
-}
-
-REQUIRED_WORKFLOW_SKILLS = {
-    "brainstorming",
-    "writing-plans",
-    "subagent-driven-development",
-    "systematic-debugging",
-}
-
-MINIMAL_REQUIRED_SKILLS = REQUIRED_RUNTIME_SKILLS | REQUIRED_WORKFLOW_SKILLS
-MINIMAL_ALLOWLIST_SKILLS = (REQUIRED_RUNTIME_SKILLS - {"vibe"}) | REQUIRED_WORKFLOW_SKILLS
 REPRESENTATIVE_NON_CORE_SKILL = "scikit-learn"
 
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def load_skill_inventory(path: Path) -> tuple[set[str], set[str], set[str]]:
+    payload = load_json(path)["managed_skill_inventory"]
+    return (
+        set(payload["required_runtime_skills"]),
+        set(payload["required_workflow_skills"]),
+        set(payload["optional_workflow_skills"]),
+    )
+
+
+MINIMAL_RUNTIME_SKILLS, MINIMAL_WORKFLOW_SKILLS, _ = load_skill_inventory(MINIMAL_MANIFEST)
+FULL_RUNTIME_SKILLS, FULL_WORKFLOW_SKILLS, FULL_OPTIONAL_WORKFLOW_SKILLS = load_skill_inventory(FULL_MANIFEST)
+MINIMAL_REQUIRED_SKILLS = MINIMAL_RUNTIME_SKILLS | MINIMAL_WORKFLOW_SKILLS
+MINIMAL_ALLOWLIST_SKILLS = (MINIMAL_RUNTIME_SKILLS - {"vibe"}) | MINIMAL_WORKFLOW_SKILLS
 
 
 def count_files(root: Path) -> int:

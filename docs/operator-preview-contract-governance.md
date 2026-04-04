@@ -27,6 +27,7 @@ The active write-capable governance operator must expose a machine-readable prev
 3. **Apply**
    - only run after preview review;
    - reuse the same operator inputs, never a hidden alternate write path.
+   - if the operator runs governed gates after apply, the canonical gate list must come from the operator preview contract instead of an inline script-local inventory.
 4. **Postcheck**
    - name the gates or hygiene checks expected after apply;
    - keep the preview/apply boundary auditable.

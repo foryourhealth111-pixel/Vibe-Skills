@@ -33,7 +33,6 @@ It prevents the project from collapsing all hosts into a fake "one runtime fits 
 | OpenClaw | `preview` | official-runtime-adapter | runtime-core host-root install/check exists | host-managed beyond runtime-core payload | runtime-core-preview | attach / copy / bundle are supported, but host-native closure is not claimed |
 | Generic Host | `advisory-only` | contract-consumer | neutral runtime-core only | host-defined | runtime-core-only | canonical skill truth can be consumed without host promise |
 | OpenCode | `preview` | host-adapter-preview | repo installs wrappers + example scaffold, real `opencode.json` stays host-managed | host-managed but documented | preview-scaffold | host-native roots are supported, but runtime discovery proof is incomplete |
-| Generic Host | `advisory-only` | contract-consumer | neutral runtime-core only | host-defined | runtime-core-only | canonical skill truth can be consumed without host promise |
 
 ## Capability Guidance
 

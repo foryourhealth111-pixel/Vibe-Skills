@@ -5,15 +5,60 @@
   "package_name": "VibeSkills for Claude Code",
   "status": "supported-with-constraints",
   "runtime_role": "host-adapter-supported",
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "public_distribution_manifest"
+    },
+    "runtime_authority": {
+      "runtime_role": "host-adapter-supported",
+      "status": "supported-with-constraints",
+      "host_adapter_ref": "adapters/claude-code/host-profile.json"
+    },
+    "truth_surfaces": [
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/platform-parity-contract.md",
+      "config/settings.template.claude.json",
+      "adapters/claude-code/host-profile.json",
+      "adapters/claude-code/settings-map.json",
+      "adapters/claude-code/closure.json",
+      "adapters/claude-code/platform-windows.json",
+      "adapters/claude-code/platform-linux.json",
+      "adapters/claude-code/platform-macos.json",
+      "README.md",
+      "tests/runtime_neutral/test_claude_preview_scaffold.py"
+    ],
+    "repo_provided_install_surfaces": [
+      "install.ps1 --host claude-code",
+      "install.sh --host claude-code",
+      "settings.json managed vibeskills stanza",
+      "settings.json managed Claude PreToolUse hook entry",
+      "hooks/write-guard.js"
+    ],
+    "repo_provided_payload_surfaces": [],
+    "repo_provided_reference_surfaces": [],
+    "host_managed_surfaces": [
+      "plugin enablement",
+      "MCP registration",
+      "provider credentials",
+      "broader Claude host behavior outside the managed vibeskills + write-guard surface"
+    ],
+    "boundary_claims": [
+      "Supported-with-constraints still means host-managed plugins, MCP, credentials, and broader Claude behavior remain outside repo ownership.",
+      "Claude Code is not claimed to be platform-parity with Codex or an official-runtime lane in this repository."
+    ]
+  },
   "summary": "Claude Code now has a bounded managed install/check lane that writes and verifies a Claude settings + hook surface, but it still does not become the Codex official runtime or full platform-parity lane.",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
     "docs/universalization/platform-parity-contract.md",
+    "config/settings.template.claude.json",
     "adapters/claude-code/host-profile.json",
+    "adapters/claude-code/settings-map.json",
     "adapters/claude-code/closure.json",
     "adapters/claude-code/platform-windows.json",
     "adapters/claude-code/platform-linux.json",

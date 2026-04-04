@@ -58,12 +58,13 @@ function Convert-ToNormalizedPathToken {
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
 $results = @()
 
 $runId = "canonical-surface-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\canonical-surface-{0}" -f $runId)
 $task = "Canonical surface uniqueness probe $runId"
-$summary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') -Task $task -Mode benchmark_autonomous -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot
+$summary = & $runtimeEntryPath -Task $task -Mode benchmark_autonomous -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot
 
 Add-Assertion -Results ([ref]$results) -Condition ($null -ne $summary) -Message 'canonical surface probe returned summary payload'
 $hasSummary = ($null -ne $summary) -and ($summary.PSObject.Properties.Name -contains 'summary')
@@ -97,7 +98,7 @@ if ($hasSummary) {
     Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('one canonical execution-plan surface')) -Message 'stable hierarchy doc forbids duplicate execution-plan truth'
 
     $childRunId = "canonical-surface-child-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
-    $childSummary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') `
+    $childSummary = & $runtimeEntryPath `
         -Task ("Child canonical surface uniqueness probe {0}" -f $childRunId) `
         -Mode benchmark_autonomous `
         -GovernanceScope child `

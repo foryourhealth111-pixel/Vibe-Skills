@@ -1,29 +1,25 @@
-import json
-from pathlib import Path
+from __future__ import annotations
 
 from vgo_contracts.adapter_descriptor import AdapterDescriptor
+from vgo_contracts.adapter_registry_support import load_adapter_registry, resolve_adapter_entry
 
 
-_ALIAS_MAP = {
-    'claude': 'claude-code',
-}
-
-
-def _descriptors_root() -> Path:
-    return Path(__file__).resolve().parent / 'descriptors'
-
-
-def _descriptor_file_name(host_id: str) -> str:
-    normalized = _ALIAS_MAP.get(host_id.strip().lower(), host_id.strip().lower())
-    return normalized.replace('-', '_') + '.json'
+def load_descriptor_payload(host_id: str) -> dict:
+    try:
+        registry = load_adapter_registry(__file__)
+        return resolve_adapter_entry(registry, host_id)
+    except ValueError as exc:
+        raise ValueError(f'unsupported adapter id: {host_id}') from exc
+    except RuntimeError as exc:
+        raise RuntimeError('VGO adapter registry not found for adapter-sdk descriptor loading') from exc
 
 
 def load_descriptor(host_id: str) -> AdapterDescriptor:
-    descriptor_path = _descriptors_root() / _descriptor_file_name(host_id)
-    if not descriptor_path.exists():
-        raise ValueError(f'unsupported adapter id: {host_id}')
-    payload = json.loads(descriptor_path.read_text(encoding='utf-8'))
+    payload = load_descriptor_payload(host_id)
+    target_root = dict(payload.get('default_target_root') or {})
     return AdapterDescriptor(
-        id=payload['id'],
-        default_target_root=payload['default_target_root']['rel'],
+        id=str(payload['id']),
+        default_target_root=str(target_root['rel']),
+        default_target_root_env=str(target_root.get('env') or ''),
+        default_target_root_kind=str(target_root.get('kind') or ''),
     )

@@ -2,7 +2,11 @@
 
 本目录是 **Batch D** 的分发面落地：用 *machine-readable* 的 manifest，把 “我们到底支持什么 / 不支持什么 / 需要宿主自己 provision 什么 / 哪些情况下会降级” 说清楚。
 
+这些 `dist/*` manifest 现在是 **生成产物**，唯一人工维护源收口在 `config/distribution-manifest-sources.json`，由 `tools/build/sync_dist_release_manifests.py` 统一物化。
+
 它的定位是 **分发描述与契约**，而不是新的官方运行时，也不是对 `install.*` / `check.*` 主链的替代。
+
+补充边界：`dist/*` 这些 checked-in manifest 是 **public release manifests**，用于说明对外发布 lane 的能力、边界与不承诺项。它们**不**承载内部运行时 payload 角色投影。内部的运行时 payload 证明链，仍由 `tools/build/assemble_distribution.py` 生成的 distribution manifest，以及 `tools/release/build_release_bundle.py` 生成的 release bundle 表达。
 
 ## dist 是什么
 

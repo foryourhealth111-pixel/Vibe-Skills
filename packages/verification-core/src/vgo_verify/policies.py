@@ -3,39 +3,30 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-RUNTIME_IGNORED_DIR_NAMES = frozenset(
-    {
-        "__pycache__",
-        ".pytest_cache",
-        ".mypy_cache",
-        ".ruff_cache",
-        ".venv",
-        "venv",
-    }
-)
-RUNTIME_IGNORED_SUFFIXES = frozenset({".pyc"})
-RUNTIME_IGNORED_FILE_NAMES = frozenset({".coverage"})
-RUNTIME_IGNORED_FILE_PREFIXES = (".coverage.",)
-DEFAULT_PACKAGING_FILES = (
-    "SKILL.md",
-    "check.ps1",
-    "check.sh",
-    "install.ps1",
-    "install.sh",
-)
-DEFAULT_PACKAGING_DIRECTORIES = (
-    "config",
-    "protocols",
-    "references",
-    "docs",
-    "scripts",
-)
-DEFAULT_IGNORE_JSON_KEYS = ("updated", "generated_at")
+from ._bootstrap import ensure_contracts_src_on_path
+from ._io import load_json, utc_now, write_text
+from ._repo import resolve_repo_root
 
+ensure_contracts_src_on_path()
+
+from vgo_contracts.installed_runtime_contract import (
+    default_coherence_runtime_config,
+    default_freshness_runtime_config,
+    merge_installed_runtime_config,
+)
+from vgo_contracts.runtime_surface_contract import (
+    DEFAULT_IGNORE_JSON_KEYS,
+    is_ignored_runtime_artifact,
+    resolve_packaging_contract,
+)
+
+try:
+    from vgo_contracts.mirror_topology_contract import resolve_mirror_topology_targets as _contract_resolve_mirror_targets
+except ImportError:  # contracts helper may be added later in the release train
+    _contract_resolve_mirror_targets = None
 
 @dataclass(slots=True)
 class GovernanceContext:
@@ -48,22 +39,8 @@ class GovernanceContext:
     mirror_targets: list[dict[str, Any]]
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 def to_posix(path: Path | str) -> str:
     return Path(path).as_posix()
-
-
-def write_text(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8", newline="\n")
-
-
-def load_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8-sig") as handle:
-        return json.load(handle)
 
 
 def read_text_if_exists(path: Path) -> str:
@@ -106,19 +83,6 @@ def file_parity(reference: Path, candidate: Path, ignore_json_keys: set[str]) ->
     return file_hash(reference) == file_hash(candidate)
 
 
-def is_ignored_runtime_artifact(path: str | Path) -> bool:
-    candidate = Path(path)
-    if any(part in RUNTIME_IGNORED_DIR_NAMES for part in candidate.parts):
-        return True
-    if candidate.name in RUNTIME_IGNORED_FILE_NAMES:
-        return True
-    if any(candidate.name.startswith(prefix) for prefix in RUNTIME_IGNORED_FILE_PREFIXES):
-        return True
-    if candidate.suffix in RUNTIME_IGNORED_SUFFIXES:
-        return True
-    return False
-
-
 def relative_file_list(root: Path) -> list[str]:
     if not root.exists():
         return []
@@ -129,93 +93,10 @@ def relative_file_list(root: Path) -> list[str]:
     )
 
 
-def resolve_repo_root(start_path: Path) -> Path:
-    current = start_path.resolve()
-    if current.is_file():
-        current = current.parent
-    candidates: list[Path] = []
-    while True:
-        if (current / "config" / "version-governance.json").exists():
-            candidates.append(current)
-        if current.parent == current:
-            break
-        current = current.parent
-    if not candidates:
-        raise RuntimeError(f"Unable to resolve VCO repo root from: {start_path}")
-    git_candidates = [candidate for candidate in candidates if (candidate / ".git").exists()]
-    if git_candidates:
-        return git_candidates[-1]
-    return candidates[-1]
 
-
-def _dedupe_ordered(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        candidate = str(value or "").replace("\\", "/").strip("/")
-        if not candidate or candidate in seen:
-            continue
-        seen.add(candidate)
-        result.append(candidate)
-    return result
-
-
-def _iter_packaging_manifests(raw_manifests: Any) -> list[dict[str, str]]:
-    manifests: list[dict[str, str]] = []
-    if isinstance(raw_manifests, list):
-        for item in raw_manifests:
-            if not isinstance(item, dict):
-                continue
-            manifest_id = str(item.get("id") or "").strip()
-            manifest_path = str(item.get("path") or "").strip()
-            if manifest_path:
-                manifests.append({"id": manifest_id, "path": manifest_path.replace("\\", "/")})
-        return manifests
-    if isinstance(raw_manifests, dict):
-        for key, value in raw_manifests.items():
-            if isinstance(value, dict):
-                manifest_path = str(value.get("path") or "").strip()
-            else:
-                manifest_path = str(value or "").strip()
-            if manifest_path:
-                manifests.append({"id": str(key).strip(), "path": manifest_path.replace("\\", "/")})
-    return manifests
-
-
-def resolve_packaging_contract(governance: dict[str, Any], repo_root: Path) -> dict[str, Any]:
-    packaging = governance.get("packaging") or {}
-    runtime_payload = packaging.get("runtime_payload") or packaging.get("mirror") or {}
-    files = list(runtime_payload.get("files") or DEFAULT_PACKAGING_FILES)
-    directories = list(runtime_payload.get("directories") or DEFAULT_PACKAGING_DIRECTORIES)
-    manifests = _iter_packaging_manifests(packaging.get("manifests") or [])
-    for manifest in manifests:
-        manifest_path = repo_root / manifest["path"]
-        if not manifest_path.exists():
-            raise RuntimeError(f"packaging manifest not found: {manifest_path}")
-        payload = load_json(manifest_path)
-        files.extend(str(item) for item in (payload.get("files") or []))
-        directories.extend(str(item) for item in (payload.get("directories") or []))
-    allow_installed_only = list(packaging.get("allow_installed_only") or packaging.get("allow_bundled_only") or [])
-    return {
-        "runtime_payload": {
-            "files": _dedupe_ordered(files),
-            "directories": _dedupe_ordered(directories),
-        },
-        "mirror": {
-            "files": _dedupe_ordered(files),
-            "directories": _dedupe_ordered(directories),
-        },
-        "manifests": manifests,
-        "target_overrides": packaging.get("target_overrides") or {},
-        "allow_installed_only": allow_installed_only,
-        "allow_bundled_only": allow_installed_only,
-        "normalized_json_ignore_keys": list(packaging.get("normalized_json_ignore_keys") or DEFAULT_IGNORE_JSON_KEYS),
-    }
-
-
-def mirror_topology_targets(governance: dict[str, Any], repo_root: Path) -> list[dict[str, Any]]:
+def _mirror_topology_targets_fallback(governance: dict[str, Any]) -> list[dict[str, Any]]:
     topology = governance.get("mirror_topology") or {}
-    targets = topology.get("targets") or []
+    targets = list(topology.get("targets") or [])
     if not targets:
         source = governance.get("source_of_truth") or {}
         targets = [
@@ -232,6 +113,23 @@ def mirror_topology_targets(governance: dict[str, Any], repo_root: Path) -> list
         if nested_root:
             targets.append({"id": "nested_bundled", "path": nested_root, "role": "mirror"})
 
+    normalized: list[dict[str, Any]] = []
+    for target in targets:
+        target_id = str(target.get("id") or "").strip()
+        target_path = str(target.get("path") or "").replace("\\", "/").strip()
+        if not target_id or not target_path:
+            continue
+        normalized.append(
+            {
+                "id": target_id,
+                "path": target_path,
+                "role": str(target.get("role") or "mirror").strip() or "mirror",
+            }
+        )
+    return normalized
+
+
+def _attach_full_paths(targets: list[dict[str, Any]], repo_root: Path) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for target in targets:
         rel = str(target.get("path") or "").strip()
@@ -251,16 +149,16 @@ def mirror_topology_targets(governance: dict[str, Any], repo_root: Path) -> list
     return normalized
 
 
+def mirror_topology_targets(governance: dict[str, Any], repo_root: Path) -> list[dict[str, Any]]:
+    if _contract_resolve_mirror_targets is not None:
+        raw_targets = _contract_resolve_mirror_targets(governance)
+    else:
+        raw_targets = _mirror_topology_targets_fallback(governance)
+    return _attach_full_paths(raw_targets, repo_root)
+
+
 def merge_runtime_config(governance: dict[str, Any], defaults: dict[str, Any]) -> dict[str, Any]:
-    runtime = ((governance.get("runtime") or {}).get("installed_runtime")) or {}
-    merged = dict(defaults)
-    for key, value in runtime.items():
-        if value is None:
-            continue
-        merged[key] = value
-    if "required_runtime_markers" in defaults:
-        merged["required_runtime_markers"] = list(runtime.get("required_runtime_markers") or defaults["required_runtime_markers"])
-    return merged
+    return merge_installed_runtime_config(governance, defaults)
 
 
 def installed_runtime_materialized(repo_root: Path, runtime_cfg: dict[str, Any]) -> bool:

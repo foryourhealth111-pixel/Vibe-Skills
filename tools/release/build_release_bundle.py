@@ -26,6 +26,10 @@ def build_release_bundle(distribution_manifest_path: Path | str, output_dir: Pat
         'profile': str(distribution_manifest.get('profile') or ''),
         'distribution_manifest': str(manifest_path),
         'inputs': dict(distribution_manifest.get('inputs') or {}),
+        'runtime_payload_roles': dict(distribution_manifest.get('runtime_payload_roles') or {}),
+        'runtime_config_payload_roles': dict(distribution_manifest.get('runtime_config_payload_roles') or {}),
+        'runtime_core_payload_roles': dict(distribution_manifest.get('runtime_core_payload_roles') or {}),
+        'governance_runtime_roles': dict(distribution_manifest.get('governance_runtime_roles') or {}),
         'ownership': {
             'semantic_owner': 'tools/release/build_release_bundle.py',
             'generated_outputs_only': True,

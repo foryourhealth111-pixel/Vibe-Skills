@@ -5,16 +5,61 @@
   "package_name": "VibeSkills for Cursor (Preview)",
   "status": "preview",
   "runtime_role": "host-adapter-preview",
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "public_distribution_manifest"
+    },
+    "runtime_authority": {
+      "runtime_role": "host-adapter-preview",
+      "status": "preview",
+      "host_adapter_ref": "adapters/cursor/host-profile.json"
+    },
+    "truth_surfaces": [
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/platform-parity-contract.md",
+      "docs/universalization/distribution-lanes.md",
+      "adapters/cursor/host-profile.json",
+      "adapters/cursor/settings-map.json",
+      "adapters/cursor/closure.json",
+      "adapters/cursor/platform-windows.json",
+      "adapters/cursor/platform-linux.json",
+      "adapters/cursor/platform-macos.json",
+      "README.md"
+    ],
+    "repo_provided_install_surfaces": [
+      "install.ps1 --host cursor",
+      "install.sh --host cursor",
+      "check.ps1 --host cursor",
+      "check.sh --host cursor"
+    ],
+    "repo_provided_payload_surfaces": [],
+    "repo_provided_reference_surfaces": [
+      "dist/host-cursor/manifest.json"
+    ],
+    "host_managed_surfaces": [
+      "real host settings",
+      "plugin enablement",
+      "MCP registration",
+      "provider credentials"
+    ],
+    "boundary_claims": [
+      "Cursor support here is preview-only.",
+      "Shared entrypoints do not imply takeover of real Cursor settings or host-native closure."
+    ]
+  },
   "summary": "Cursor exposes preview adapter entrypoints and truthful readiness boundaries, but this repository does not claim governed or host-native closure for it.",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
     "docs/universalization/platform-parity-contract.md",
     "docs/universalization/distribution-lanes.md",
     "adapters/cursor/host-profile.json",
+    "adapters/cursor/settings-map.json",
+    "adapters/cursor/closure.json",
     "adapters/cursor/platform-windows.json",
     "adapters/cursor/platform-linux.json",
     "adapters/cursor/platform-macos.json",

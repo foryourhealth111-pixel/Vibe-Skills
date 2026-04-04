@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from vgo_contracts.install_ledger import InstallLedger
+
+from ._io import load_json, write_json_file
 
 if TYPE_CHECKING:
     from .install_plan import InstallPlan
@@ -43,16 +44,6 @@ def sanitize_managed_skill_names(values: list[str] | tuple[str, ...] | set[str] 
         if normalized is not None:
             safe_names.add(normalized)
     return sorted(safe_names)
-
-
-def load_json(path: Path) -> dict:
-    with path.open('r', encoding='utf-8-sig') as handle:
-        return json.load(handle)
-
-
-def write_json_file(path: Path, data: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
 def load_existing_install_ledger(target_root: Path | str) -> dict | None:

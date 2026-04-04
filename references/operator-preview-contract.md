@@ -4,6 +4,7 @@
 - `precheck`: execution-context, mirror-target, and write-scope validation
 - `preview`: machine-readable receipt written before apply
 - `apply`: canonical write flow after human/operator review
+- `apply_gates`: canonical apply-time governed gate list for operators that run bounded post-write verification
 - `postcheck`: named verification gates and hygiene checks after apply
 
 ## Notes

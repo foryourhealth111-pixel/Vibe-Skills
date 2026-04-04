@@ -5,15 +5,66 @@
   "package_name": "VibeSkills for Codex (Supported With Constraints)",
   "status": "supported-with-constraints",
   "runtime_role": "official-runtime-adapter",
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "public_distribution_manifest"
+    },
+    "runtime_authority": {
+      "runtime_role": "official-runtime-adapter",
+      "status": "supported-with-constraints",
+      "host_adapter_ref": "adapters/codex/host-profile.json"
+    },
+    "truth_surfaces": [
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/platform-parity-contract.md",
+      "config/settings.template.codex.json",
+      "config/plugins-manifest.codex.json",
+      "mcp/servers.template.json",
+      "adapters/codex/host-profile.json",
+      "adapters/codex/settings-map.json",
+      "adapters/codex/closure.json",
+      "adapters/codex/platform-windows.json",
+      "adapters/codex/platform-linux.json",
+      "adapters/codex/platform-macos.json",
+      "README.md"
+    ],
+    "repo_provided_install_surfaces": [
+      "install.ps1",
+      "scripts/bootstrap/one-shot-setup.ps1",
+      "check.ps1",
+      "install.sh",
+      "scripts/bootstrap/one-shot-setup.sh",
+      "check.sh"
+    ],
+    "repo_provided_payload_surfaces": [],
+    "repo_provided_reference_surfaces": [],
+    "host_managed_surfaces": [
+      "plugin provisioning",
+      "MCP provider credentials",
+      "external CLI availability",
+      "operator-specific secrets"
+    ],
+    "boundary_claims": [
+      "Codex support does not imply Claude Code or Generic Host closure.",
+      "Supported-with-constraints does not mean 'everything ready' if host provisioning is incomplete.",
+      "macOS remains not-yet-proven in the platform parity contract."
+    ]
+  },
   "summary": "Codex is the current strongest practical reference lane for the governed runtime payload, but some key surfaces remain host-managed and certain platforms are degraded.",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
     "docs/universalization/platform-parity-contract.md",
+    "config/settings.template.codex.json",
+    "config/plugins-manifest.codex.json",
+    "mcp/servers.template.json",
     "adapters/codex/host-profile.json",
+    "adapters/codex/settings-map.json",
+    "adapters/codex/closure.json",
     "adapters/codex/platform-windows.json",
     "adapters/codex/platform-linux.json",
     "adapters/codex/platform-macos.json",

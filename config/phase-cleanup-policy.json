@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-03-19",
+  "updated_at": "2026-04-04",
   "enabled": true,
   "required_after_each_phase": true,
   "receipt_path": "outputs/runtime/vibe-sessions/{run_id}/cleanup-receipt.json",
@@ -69,5 +69,12 @@
     "node_cleanup_script": "scripts/governance/Invoke-NodeZombieCleanup.ps1",
     "process_health_policy": "config/process-health-policy.json",
     "process_ledger_policy": "config/process-ledger-policy.json"
+  },
+  "operator_contract": {
+    "preview_only_supported": true,
+    "preview_only_switch": "PreviewOnly",
+    "protected_tmp_default_action": "quarantine_only",
+    "protected_tmp_quarantine_required": true,
+    "quarantine_handler": "Move-VgoProtectedDocumentsToQuarantine"
   }
 }

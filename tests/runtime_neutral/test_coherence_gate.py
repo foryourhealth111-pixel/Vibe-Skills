@@ -78,6 +78,15 @@ class CoherenceGateTests(unittest.TestCase):
             "Write-Host 'sync'\n", encoding="utf-8"
         )
         self.target_root = self.root / "target"
+        verify_pkg = self.root / "packages" / "verification-core" / "src" / "vgo_verify"
+        verify_pkg.mkdir(parents=True, exist_ok=True)
+        (verify_pkg / "runtime_freshness.py").write_text(
+            "from .runtime_freshness_support import write_freshness_receipt\n", encoding="utf-8"
+        )
+        (verify_pkg / "runtime_freshness_support.py").write_text(
+            "def write_freshness_receipt():\n    return {\"receipt_version\": 1, \"gate_result\": \"PASS\"}\n",
+            encoding="utf-8",
+        )
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -94,6 +103,14 @@ class CoherenceGateTests(unittest.TestCase):
 
         artifact = self.module.evaluate(self.root, self.target_root)
         self.assertEqual("FAIL", artifact["gate_result"])
+
+    def test_split_freshness_gate_contract_can_live_in_support_module(self) -> None:
+        (self.root / "scripts" / "verify" / "vibe-installed-runtime-freshness-gate.ps1").write_text(
+            "Write-Host 'freshness'\n", encoding="utf-8"
+        )
+
+        artifact = self.module.evaluate(self.root, self.target_root)
+        self.assertEqual("PASS", artifact["gate_result"])
 
 
 if __name__ == "__main__":

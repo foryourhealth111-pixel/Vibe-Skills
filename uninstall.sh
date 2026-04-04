@@ -3,7 +3,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLI_MAIN="${SCRIPT_DIR}/apps/vgo-cli/src/vgo_cli/main.py"
-LEGACY_UNINSTALLER="${SCRIPT_DIR}/scripts/uninstall/uninstall_vgo_adapter.py"
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=10
 
@@ -62,5 +61,6 @@ if [[ -f "${CLI_MAIN}" ]]; then
   exec "${PYTHON_BIN}" -m vgo_cli.main uninstall --repo-root "${SCRIPT_DIR}" --frontend shell "$@"
 fi
 
-echo "[WARN] Missing vgo-cli entrypoint at ${CLI_MAIN}; falling back to legacy uninstall dispatch." >&2
-exec "${PYTHON_BIN}" "${LEGACY_UNINSTALLER}" --repo-root "${SCRIPT_DIR}" "$@"
+echo "[FAIL] Missing required vgo-cli entrypoint at ${CLI_MAIN}." >&2
+echo "[FAIL] The shell uninstall wrapper no longer falls back to legacy uninstall scripts." >&2
+exit 1

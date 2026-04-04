@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -10,9 +11,10 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-UNINSTALLER = REPO_ROOT / "scripts" / "uninstall" / "uninstall_vgo_adapter.py"
+CLI_SRC = REPO_ROOT / "apps" / "vgo-cli" / "src"
 SHELL_ENTRYPOINT = REPO_ROOT / "uninstall.sh"
 POWERSHELL_ENTRYPOINT = REPO_ROOT / "uninstall.ps1"
+POWERSHELL_COMPAT_UNINSTALLER = REPO_ROOT / "scripts" / "uninstall" / "Uninstall-VgoAdapter.ps1"
 COHERENCE_GATE = REPO_ROOT / "scripts" / "verify" / "vibe-uninstall-coherence-gate.ps1"
 
 
@@ -53,11 +55,21 @@ class UnifiedUninstallTests(unittest.TestCase):
         preview: bool = False,
         purge_empty_dirs: bool = False,
     ) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+        env = os.environ.copy()
+        python_path_entries = [str(CLI_SRC)]
+        if env.get("PYTHONPATH"):
+            python_path_entries.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(python_path_entries)
+
         cmd = [
             sys.executable,
-            str(UNINSTALLER),
+            "-m",
+            "vgo_cli.main",
+            "uninstall",
             "--repo-root",
             str(REPO_ROOT),
+            "--frontend",
+            "shell",
             "--target-root",
             str(self.target_root),
             "--host",
@@ -69,7 +81,7 @@ class UnifiedUninstallTests(unittest.TestCase):
             cmd.append("--preview")
         if purge_empty_dirs:
             cmd.append("--purge-empty-dirs")
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, env=env)
         return result, json.loads(result.stdout)
 
     def test_entrypoint_shell_preview_routes_to_python_core(self) -> None:
@@ -106,6 +118,35 @@ class UnifiedUninstallTests(unittest.TestCase):
                 "-NoProfile",
                 "-File",
                 str(POWERSHELL_ENTRYPOINT),
+                "-HostId",
+                "cursor",
+                "-TargetRoot",
+                str(self.target_root),
+                "-Profile",
+                "full",
+                "-Preview",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertEqual("cursor", payload["host_id"])
+        self.assertEqual("preview", payload["mode"])
+
+    def test_powershell_compat_uninstaller_preview_routes_to_installer_core(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell not available")
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoLogo",
+                "-NoProfile",
+                "-File",
+                str(POWERSHELL_COMPAT_UNINSTALLER),
+                "-RepoRoot",
+                str(REPO_ROOT),
                 "-HostId",
                 "cursor",
                 "-TargetRoot",

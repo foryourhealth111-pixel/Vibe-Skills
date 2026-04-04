@@ -7,14 +7,10 @@ TARGET_ROOT=""
 SKIP_RUNTIME_FRESHNESS_GATE="false"
 DEEP="false"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ADAPTER_RESOLVER="${SCRIPT_DIR}/scripts/common/resolve_vgo_adapter.py"
+ADAPTER_QUERY_PY="${SCRIPT_DIR}/scripts/common/adapter_registry_query.py"
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=10
 
-if [[ ! -f "${ADAPTER_RESOLVER}" ]]; then
-  echo "[FAIL] Missing adapter resolver: ${ADAPTER_RESOLVER}" >&2
-  exit 1
-fi
 
 python_version_of() {
   local candidate="$1"
@@ -148,7 +144,7 @@ adapter_query_for_host() {
     print_python_requirement_error "Adapter-driven host resolution metadata"
     exit 1
   fi
-  "${python_bin}" "${ADAPTER_RESOLVER}" --repo-root "${SCRIPT_DIR}" --host "${host_id}" --property "${property}"
+  "${python_bin}" "${ADAPTER_QUERY_PY}" --repo-root "${SCRIPT_DIR}" --host "${host_id}" --property "${property}"
 }
 
 resolve_host_id() {
@@ -214,101 +210,37 @@ canonical_repo_available() {
   return 1
 }
 
+target_root_owner_for_path() {
+  local target_root="$1"
+  local python_bin=""
+  python_bin="$(pick_python_for_adapter || true)"
+  if [[ -z "${python_bin}" ]]; then
+    print_python_requirement_error "Adapter-driven target-root intent validation"
+    exit 1
+  fi
+  "${python_bin}" "${ADAPTER_QUERY_PY}" --repo-root "${SCRIPT_DIR}" --target-root-owner "${target_root}"
+}
+
 assert_target_root_matches_host_intent() {
   local target_root="$1"
   local host_id="$2"
-  local leaf normalized_target is_codex_root is_claude_root is_cursor_root is_windsurf_root is_openclaw_root
-  leaf="$(basename "${target_root}")"
-  leaf="$(printf '%s' "${leaf}" | tr '[:upper:]' '[:lower:]')"
-  normalized_target="$(printf '%s' "${target_root}" | tr '\\' '/' | tr '[:upper:]' '[:lower:]')"
-  normalized_target="${normalized_target%/}"
-  is_codex_root="false"
-  is_claude_root="false"
-  is_cursor_root="false"
-  is_windsurf_root="false"
-  is_openclaw_root="false"
-  [[ "${leaf}" == ".codex" ]] && is_codex_root="true"
-  [[ "${leaf}" == ".claude" ]] && is_claude_root="true"
-  [[ "${leaf}" == ".cursor" ]] && is_cursor_root="true"
-  [[ "${normalized_target}" == */.codeium/windsurf ]] && is_windsurf_root="true"
-  [[ "${leaf}" == ".openclaw" ]] && is_openclaw_root="true"
-  local is_opencode_root="false"
-  [[ "${leaf}" == ".opencode" || "${normalized_target}" == */.config/opencode ]] && is_opencode_root="true"
-  if [[ "${host_id}" == "codex" && ( "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a non-Codex host root, but host='codex'." >&2
-    exit 1
+  local foreign_host=""
+  foreign_host="$(target_root_owner_for_path "${target_root}")"
+  if [[ -z "${foreign_host}" || "${foreign_host}" == "${host_id}" ]]; then
+    return 0
   fi
-  if [[ "${host_id}" == "codex" && "${is_cursor_root}" == "true" ]]; then
+  if [[ "${host_id}" == "codex" && "${foreign_host}" == "cursor" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='codex'." >&2
     echo "[FAIL] Pass --host cursor for preview guidance or use a Codex target root." >&2
     exit 1
   fi
-  if [[ "${host_id}" == "claude-code" && ( "${is_codex_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a non-Claude host root, but host='claude-code'." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "codex" && "${is_opencode_root}" == "true" ]]; then
+  if [[ "${host_id}" == "codex" && "${foreign_host}" == "opencode" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like an OpenCode root, but host='codex'." >&2
     echo "[FAIL] Pass --host opencode for the OpenCode preview lane or use a Codex target root." >&2
     exit 1
   fi
-  if [[ "${host_id}" == "claude-code" && "${is_codex_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='claude-code'." >&2
-    echo "[FAIL] Use --host codex for the official closure lane or choose a Claude Code target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "claude-code" && "${is_opencode_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like an OpenCode root, but host='claude-code'." >&2
-    echo "[FAIL] Use --host opencode for the OpenCode preview lane or choose a Claude Code target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "claude-code" && "${is_cursor_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='claude-code'." >&2
-    echo "[FAIL] Pass --host cursor for Cursor preview guidance or choose a Claude Code target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "cursor" && "${is_codex_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='cursor'." >&2
-    echo "[FAIL] Use --host codex for the official closure lane or choose a Cursor target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "cursor" && "${is_claude_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Claude Code home, but host='cursor'." >&2
-    echo "[FAIL] Pass --host claude-code for Claude preview guidance or choose a Cursor target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "cursor" && "${is_windsurf_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Windsurf home, but host='cursor'." >&2
-    echo "[FAIL] Pass --host windsurf for preview runtime-core or choose a Cursor target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "cursor" && "${is_openclaw_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like an OpenClaw home, but host='cursor'." >&2
-    echo "[FAIL] Pass --host openclaw for runtime-core guidance or choose a Cursor target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "windsurf" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a non-Windsurf host root, but host='windsurf'." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "windsurf" && "${is_cursor_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='windsurf'." >&2
-    echo "[FAIL] Pass --host cursor for preview guidance or choose a Windsurf target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "openclaw" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" ) ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a non-OpenClaw host root, but host='openclaw'." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "openclaw" && "${is_cursor_root}" == "true" ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='openclaw'." >&2
-    echo "[FAIL] Pass --host cursor for preview guidance or choose an OpenClaw target root." >&2
-    exit 1
-  fi
-  if [[ "${host_id}" == "opencode" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_cursor_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
-    echo "[FAIL] Target root '${target_root}' looks like a non-OpenCode host root, but host='opencode'." >&2
-    exit 1
-  fi
+  echo "[FAIL] Target root '${target_root}' looks like the default target root for host='${foreign_host}', but host='${host_id}'." >&2
+  exit 1
 }
 
 HOST_ID="$(resolve_host_id "${HOST_ID}")"
@@ -546,13 +478,7 @@ pick_python() {
 
 adapter_query() {
   local property="$1"
-  local python_bin=""
-  python_bin="$(pick_python || true)"
-  if [[ -z "${python_bin}" ]]; then
-    print_python_requirement_error "Adapter-driven health-check metadata"
-    exit 1
-  fi
-  "${python_bin}" "${ADAPTER_RESOLVER}" --repo-root "${SCRIPT_DIR}" --host "${HOST_ID}" --property "${property}"
+  adapter_query_for_host "${HOST_ID}" "${property}"
 }
 
 run_runtime_neutral_freshness_gate() {
@@ -984,14 +910,16 @@ if [[ "${PROFILE}" == "full" ]]; then
   done
 fi
 if [[ "${HOST_ID}" == "opencode" ]]; then
-  for n in vibe vibe-implement vibe-review; do
-    check_path "opencode command/${n}" "${TARGET_ROOT}/commands/${n}.md"
-    check_path "opencode compat command/${n}" "${TARGET_ROOT}/command/${n}.md"
-  done
-  for n in vibe-plan vibe-implement vibe-review; do
-    check_path "opencode agent/${n}" "${TARGET_ROOT}/agents/${n}.md"
-    check_path "opencode compat agent/${n}" "${TARGET_ROOT}/agent/${n}.md"
-  done
+  if [[ "${ADAPTER_CHECK_MODE}" != "preview-guidance" ]]; then
+    for n in vibe vibe-implement vibe-review; do
+      check_path "opencode command/${n}" "${TARGET_ROOT}/commands/${n}.md"
+      check_path "opencode compat command/${n}" "${TARGET_ROOT}/command/${n}.md"
+    done
+    for n in vibe-plan vibe-implement vibe-review; do
+      check_path "opencode agent/${n}" "${TARGET_ROOT}/agents/${n}.md"
+      check_path "opencode compat agent/${n}" "${TARGET_ROOT}/agent/${n}.md"
+    done
+  fi
   check_path "opencode preview config example" "${TARGET_ROOT}/opencode.json.example"
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]]; then

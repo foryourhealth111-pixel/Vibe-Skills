@@ -36,6 +36,7 @@ function Add-Assertion {
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
 $results = @()
 
 $requiredFiles = @(
@@ -77,7 +78,7 @@ Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('root
 
 $runId = "root-child-hierarchy-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\root-child-hierarchy-{0}" -f $runId)
-$summary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') -Task 'Root child hierarchy authority smoke.' -Mode benchmark_autonomous -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot
+$summary = & $runtimeEntryPath -Task 'Root child hierarchy authority smoke.' -Mode benchmark_autonomous -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot
 
 Add-Assertion -Results ([ref]$results) -Condition ($null -ne $summary) -Message 'runtime smoke returned summary payload'
 $hasSummary = ($null -ne $summary) -and ($summary.PSObject.Properties.Name -contains 'summary')

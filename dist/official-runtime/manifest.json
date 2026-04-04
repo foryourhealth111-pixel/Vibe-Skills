@@ -4,13 +4,52 @@
   "lane_kind": "tier-1-official-runtime",
   "stability": "tier-1",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "Reference lane for the current governed official runtime. This dist pack points to it and must not rewrite it.",
   "runtime_ownership": {
     "owner": "canonical_repo",
     "notes": "This lane points to the existing official runtime entrypoints (install/check/router/governance). Dist must not replace or rewrite runtime ownership."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "canonical_repo",
+      "notes": "This lane points to the existing official runtime entrypoints (install/check/router/governance). Dist must not replace or rewrite runtime ownership."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1",
+      "install.sh",
+      "check.ps1",
+      "check.sh"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/official-runtime-baseline.md",
+      "install.ps1",
+      "install.sh",
+      "check.ps1",
+      "check.sh",
+      "scripts/router/resolve-pack-route.ps1",
+      "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
+      "scripts/verify/vibe-bom-frontmatter-gate.ps1",
+      "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+      "scripts/verify/vibe-official-runtime-baseline-gate.ps1"
+    ],
+    "boundary_claims": [
+      "host_dependency_auto_install",
+      "host_credentials_provisioning",
+      "cross_platform_full_parity_claim",
+      "host_plugin_auto_provisioning"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1",

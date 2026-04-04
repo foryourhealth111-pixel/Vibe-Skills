@@ -1,0 +1,171 @@
+{
+  "schema_version": "replay.route.contract-gate.v1",
+  "generated_at": "2026-04-02",
+  "router": {
+    "script": "scripts/router/resolve-pack-route.ps1",
+    "mode": "golden_contract_baseline",
+    "notes": "Frozen contract baseline for vibe-router-contract-gate after legacy-router retirement from active verification paths."
+  },
+  "cases": [
+    {
+      "id": "planning-en",
+      "prompt": "create implementation plan and task breakdown",
+      "grade": "L",
+      "task_type": "planning",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "pack_overlay",
+        "route_reason": "candidate_signal_auto_route",
+        "selected_pack": "orchestration-core",
+        "selected_skill": "writing-plans",
+        "confidence": 0.7,
+        "top1_top2_gap": 0.525,
+        "candidate_signal": 0.615
+      }
+    },
+    {
+      "id": "planning-zh",
+      "prompt": "请输出实施计划和任务拆解",
+      "grade": "L",
+      "task_type": "planning",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "pack_overlay",
+        "route_reason": "candidate_signal_auto_route",
+        "selected_pack": "orchestration-core",
+        "selected_skill": "writing-plans",
+        "confidence": 0.7,
+        "top1_top2_gap": 0.525,
+        "candidate_signal": 0.615
+      }
+    },
+    {
+      "id": "review-en",
+      "prompt": "run code review and quality checks",
+      "grade": "M",
+      "task_type": "review",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "confirm_required",
+        "route_reason": "confidence_requires_confirmation",
+        "selected_pack": "code-quality",
+        "selected_skill": "code-reviewer",
+        "confidence": 0.675,
+        "top1_top2_gap": 0.1658,
+        "candidate_signal": 0.3283
+      }
+    },
+    {
+      "id": "review-zh",
+      "prompt": "做一次代码评审和质量检查",
+      "grade": "M",
+      "task_type": "review",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "confirm_required",
+        "route_reason": "candidate_signal_override",
+        "selected_pack": "code-quality",
+        "selected_skill": "code-reviewer",
+        "confidence": 0.45,
+        "top1_top2_gap": 0.425,
+        "candidate_signal": 0.515
+      }
+    },
+    {
+      "id": "debug-ci",
+      "prompt": "debug github actions ci pipeline failure",
+      "grade": "L",
+      "task_type": "debug",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "pack_overlay",
+        "route_reason": "candidate_signal_auto_route",
+        "selected_pack": "integration-devops",
+        "selected_skill": "gh-fix-ci",
+        "confidence": 0.7,
+        "top1_top2_gap": 0.5875,
+        "candidate_signal": 0.6306
+      }
+    },
+    {
+      "id": "research-openai",
+      "prompt": "look up OpenAI Responses API docs",
+      "grade": "M",
+      "task_type": "research",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "confirm_required",
+        "route_reason": "candidate_signal_override",
+        "selected_pack": "ai-llm",
+        "selected_skill": "openai-docs",
+        "confidence": 0.45,
+        "top1_top2_gap": 0.325,
+        "candidate_signal": 0.3681
+      }
+    },
+    {
+      "id": "data-ml",
+      "prompt": "train classification model with scikit-learn and evaluate metrics",
+      "grade": "L",
+      "task_type": "research",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "confirm_required",
+        "route_reason": "confidence_requires_confirmation",
+        "selected_pack": "data-ml",
+        "selected_skill": "scikit-learn",
+        "confidence": 0.5475,
+        "top1_top2_gap": 0.5325,
+        "candidate_signal": 0.57
+      }
+    },
+    {
+      "id": "docs-media",
+      "prompt": "edit xlsx workbook and preserve formulas",
+      "grade": "M",
+      "task_type": "coding",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "pack_overlay",
+        "route_reason": "candidate_signal_auto_route",
+        "selected_pack": "docs-media",
+        "selected_skill": "xlsx",
+        "confidence": 0.7,
+        "top1_top2_gap": 0.555,
+        "candidate_signal": 0.645
+      }
+    },
+    {
+      "id": "low-signal",
+      "prompt": "help me with this",
+      "grade": "M",
+      "task_type": "research",
+      "requested_skill": null,
+      "expected": {
+        "route_mode": "confirm_required",
+        "route_reason": "legacy_fallback_guard",
+        "selected_pack": "orchestration-core",
+        "selected_skill": "claude-skills",
+        "confidence": 0.45,
+        "top1_top2_gap": 0.0,
+        "candidate_signal": 0.0
+      }
+    },
+    {
+      "id": "explicit-requested-skill",
+      "prompt": "please help with roadmap",
+      "grade": "L",
+      "task_type": "planning",
+      "requested_skill": "writing-plans",
+      "expected": {
+        "route_mode": "pack_overlay",
+        "route_reason": "candidate_signal_auto_route",
+        "selected_pack": "orchestration-core",
+        "selected_skill": "writing-plans",
+        "confidence": 0.7,
+        "top1_top2_gap": 1.0,
+        "candidate_signal": 1.0
+      }
+    }
+  ]
+}

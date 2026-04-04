@@ -21,6 +21,17 @@ def test_catalog_exports_descriptor_without_runtime_imports(tmp_path) -> None:
     assert descriptor['owner'] == 'skill-catalog'
     assert descriptor['profiles_manifest'].endswith('catalog/profiles/index.json')
     assert descriptor['groups_manifest'].endswith('catalog/groups/index.json')
+    assert descriptor['skill_source_root'].endswith('catalog/skills')
+    assert 'bundled/skills' not in str(descriptor['skill_source_root'])
+
+
+def test_skill_catalog_uses_local_bootstrap_helper_for_contract_path_setup() -> None:
+    bootstrap = (ROOT / 'packages' / 'skill-catalog' / 'src' / 'vgo_catalog' / '_bootstrap.py').read_text(encoding='utf-8')
+    exporter = (ROOT / 'packages' / 'skill-catalog' / 'src' / 'vgo_catalog' / 'exporter.py').read_text(encoding='utf-8')
+
+    assert 'def ensure_contracts_src_on_path' in bootstrap
+    assert 'from ._bootstrap import ensure_contracts_src_on_path' in exporter
+    assert 'CONTRACTS_SRC =' not in exporter
 
 
 def test_installer_plan_can_consume_catalog_descriptor_without_topology_traversal(tmp_path) -> None:
@@ -36,8 +47,10 @@ def test_installer_plan_can_consume_catalog_descriptor_without_topology_traversa
             'catalog_root': descriptor['catalog_root'],
             'profiles_manifest': descriptor['profiles_manifest'],
             'groups_manifest': descriptor['groups_manifest'],
+            'skill_source_root': descriptor['skill_source_root'],
         },
     )
 
     assert plan.packaging_manifest['catalog_owner'] == 'skill-catalog'
     assert 'bundled/skills' not in str(plan.packaging_manifest['catalog_root'])
+    assert 'bundled/skills' not in str(plan.packaging_manifest['skill_source_root'])

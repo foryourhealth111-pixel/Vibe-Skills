@@ -36,6 +36,7 @@ function Add-Assertion {
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
 $results = @()
 
 $requiredFiles = @(
@@ -57,7 +58,6 @@ $requiredFiles = @(
     'templates/requirements/governed-requirement-template.md',
     'templates/plans/governed-execution-plan-template.md',
     'scripts/runtime/VibeRuntime.Common.ps1',
-    'scripts/runtime/invoke-vibe-runtime.ps1',
     'scripts/runtime/Invoke-SkeletonCheck.ps1',
     'scripts/runtime/Invoke-DeepInterview.ps1',
     'scripts/runtime/Write-RequirementDoc.ps1',
@@ -76,6 +76,7 @@ foreach ($relativePath in $requiredFiles) {
     $fullPath = Join-Path $repoRoot $relativePath
     Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $fullPath) -Message ("required governed runtime file exists: {0}" -f $relativePath) -Details $fullPath
 }
+Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $runtimeEntryPath) -Message 'effective governed runtime entrypoint exists' -Details $runtimeEntryPath
 
 $runtimeContract = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-contract.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeContract.entry_skill -eq 'vibe') -Message 'runtime contract entry skill is vibe'
@@ -99,7 +100,7 @@ Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('$vibe')) 
 
 $runId = "contract-gate-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\governed-runtime-contract-{0}" -f $runId)
-$summary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
+$summary = & $runtimeEntryPath -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
 
 Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'interactive_governed') -Message 'runtime smoke summary normalizes legacy benchmark mode to interactive_governed'
 

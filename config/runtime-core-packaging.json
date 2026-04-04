@@ -1,7 +1,8 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "package_id": "runtime-core",
-  "summary": "Host-neutral runtime-core payload that can be installed without writing Codex-shaped host state.",
+  "summary": "Host-neutral runtime-core payload base contract. Shared install-time semantics live here; profile manifests are compatibility projections generated from profiles.",
+  "default_profile": "full",
   "profile_manifests": {
     "minimal": "config/runtime-core-packaging.minimal.json",
     "full": "config/runtime-core-packaging.full.json"
@@ -11,17 +12,12 @@
     "commands",
     "config"
   ],
-  "copy_directories": [
-    {
-      "source": "bundled/skills",
-      "target": "skills"
-    },
-    {
-      "source": "commands",
-      "target": "commands"
-    }
-  ],
   "copy_files": [
+    {
+      "source": "config/adapter-registry.json",
+      "target": "config/adapter-registry.json",
+      "optional": false
+    },
     {
       "source": "config/upstream-lock.json",
       "target": "config/upstream-lock.json",
@@ -33,11 +29,192 @@
       "optional": true
     }
   ],
+  "bundled_skills_source": "bundled/skills",
   "exclude_bundled_skill_names": [
     "vibe"
   ],
   "canonical_vibe_payload": {
     "enabled": true,
     "target_relpath": "skills/vibe"
+  },
+  "payload_roles": {
+    "target_directories": {
+      "runtime_targets": [
+        "skills",
+        "config"
+      ],
+      "command_targets": [
+        "commands"
+      ]
+    },
+    "copy_files": {
+      "required_lockfiles": [
+        {
+          "source": "config/upstream-lock.json",
+          "target": "config/upstream-lock.json",
+          "optional": false
+        }
+      ],
+      "optional_lockfiles": [
+        {
+          "source": "config/skills-lock.json",
+          "target": "config/skills-lock.json",
+          "optional": true
+        }
+      ],
+      "required_runtime_config": [
+        {
+          "source": "config/adapter-registry.json",
+          "target": "config/adapter-registry.json",
+          "optional": false
+        }
+      ]
+    },
+    "notes": {
+      "flat_projection_contract": "Resolved profile packaging fields remain the compatibility projection consumed by installer implementations.",
+      "delivery_boundary_rule": "Base manifest owns shared delivery semantics; profile overlays own profile-specific copy and inventory differences; generated profile manifests are compatibility projections only."
+    }
+  },
+  "profiles": {
+    "minimal": {
+      "package_id": "runtime-core-minimal",
+      "profile": "minimal",
+      "summary": "Governed runtime foundation payload with only the canonical vibe runtime and required workflow support skills.",
+      "copy_directories": [
+        {
+          "source": "commands",
+          "target": "commands"
+        }
+      ],
+      "copy_bundled_skills": false,
+      "skills_allowlist": [
+        "brainstorming",
+        "cancel-ralph",
+        "dialectic",
+        "local-vco-roles",
+        "ralph-loop",
+        "spec-kit-vibe-compat",
+        "subagent-driven-development",
+        "superclaude-framework-compat",
+        "systematic-debugging",
+        "tdd-guide",
+        "think-harder",
+        "writing-plans"
+      ],
+      "payload_roles": {
+        "copy_directories": {
+          "active_sources": [
+            {
+              "source": "commands",
+              "target": "commands"
+            }
+          ]
+        },
+        "delivery_model": {
+          "bundled_skill_mode": "allowlist_only_plus_canonical_vibe",
+          "canonical_vibe_target_relpath": "skills/vibe",
+          "skills_allowlist": [
+            "brainstorming",
+            "cancel-ralph",
+            "dialectic",
+            "local-vco-roles",
+            "ralph-loop",
+            "spec-kit-vibe-compat",
+            "subagent-driven-development",
+            "superclaude-framework-compat",
+            "systematic-debugging",
+            "tdd-guide",
+            "think-harder",
+            "writing-plans"
+          ],
+          "excluded_bundled_skill_names": [
+            "vibe"
+          ]
+        }
+      },
+      "managed_skill_inventory": {
+        "required_runtime_skills": [
+          "vibe",
+          "dialectic",
+          "local-vco-roles",
+          "spec-kit-vibe-compat",
+          "superclaude-framework-compat",
+          "ralph-loop",
+          "cancel-ralph",
+          "tdd-guide",
+          "think-harder"
+        ],
+        "required_workflow_skills": [
+          "brainstorming",
+          "writing-plans",
+          "subagent-driven-development",
+          "systematic-debugging"
+        ],
+        "optional_workflow_skills": []
+      }
+    },
+    "full": {
+      "package_id": "runtime-core-full",
+      "profile": "full",
+      "summary": "Broad bundled runtime payload with the governed runtime foundation plus the full bundled skills surface.",
+      "copy_directories": [
+        {
+          "source": "bundled/skills",
+          "target": "skills"
+        },
+        {
+          "source": "commands",
+          "target": "commands"
+        }
+      ],
+      "copy_bundled_skills": true,
+      "skills_allowlist": [],
+      "payload_roles": {
+        "copy_directories": {
+          "active_sources": [
+            {
+              "source": "bundled/skills",
+              "target": "skills"
+            },
+            {
+              "source": "commands",
+              "target": "commands"
+            }
+          ]
+        },
+        "delivery_model": {
+          "bundled_skill_mode": "full_bundled_surface_minus_canonical_vibe",
+          "canonical_vibe_target_relpath": "skills/vibe",
+          "skills_allowlist": [],
+          "excluded_bundled_skill_names": [
+            "vibe"
+          ]
+        }
+      },
+      "managed_skill_inventory": {
+        "required_runtime_skills": [
+          "vibe",
+          "dialectic",
+          "local-vco-roles",
+          "spec-kit-vibe-compat",
+          "superclaude-framework-compat",
+          "ralph-loop",
+          "cancel-ralph",
+          "tdd-guide",
+          "think-harder"
+        ],
+        "required_workflow_skills": [
+          "brainstorming",
+          "writing-plans",
+          "subagent-driven-development",
+          "systematic-debugging"
+        ],
+        "optional_workflow_skills": [
+          "requesting-code-review",
+          "receiving-code-review",
+          "verification-before-completion"
+        ]
+      }
+    }
   }
 }

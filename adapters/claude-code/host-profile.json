@@ -6,7 +6,9 @@
   "source_evidence": [
     "config/settings.template.claude.json",
     "scripts/bootstrap/scaffold-claude-preview.ps1",
-    "scripts/install/install_vgo_adapter.py",
+    "apps/vgo-cli/src/vgo_cli/commands.py",
+    "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+    "packages/installer-core/src/vgo_installer/install_runtime.py",
     "install.ps1",
     "check.ps1",
     "check.sh",

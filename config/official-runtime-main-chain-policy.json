@@ -41,7 +41,6 @@
       "scope": "Allow the Linux regression-closure wave to repair runtime router strict-mode and OpenSpec contract regressions without reopening unrelated official-runtime surfaces.",
       "allowed_paths": [
         "config/version-governance.json",
-        "scripts/router/legacy/resolve-pack-route.legacy.ps1",
         "scripts/router/modules/00-core-utils.ps1",
         "scripts/router/modules/21-capability-interview.ps1",
         "scripts/router/modules/22-intent-contract.ps1",

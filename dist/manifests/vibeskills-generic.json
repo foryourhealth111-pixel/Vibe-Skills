@@ -5,15 +5,54 @@
   "package_name": "VibeSkills Generic Host (Advisory-Only)",
   "status": "advisory-only",
   "runtime_role": "contract-consumer",
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "public_distribution_manifest"
+    },
+    "runtime_authority": {
+      "runtime_role": "contract-consumer",
+      "status": "advisory-only",
+      "host_adapter_ref": "adapters/generic/host-profile.json"
+    },
+    "truth_surfaces": [
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/install-matrix.md",
+      "adapters/generic/host-profile.json",
+      "adapters/generic/settings-map.json",
+      "adapters/generic/closure.json",
+      "config/runtime-core-packaging.json"
+    ],
+    "repo_provided_install_surfaces": [
+      "install.ps1 --host generic",
+      "install.sh --host generic",
+      "check.ps1 --host generic",
+      "check.sh --host generic",
+      "config/runtime-core-packaging.json"
+    ],
+    "repo_provided_payload_surfaces": [],
+    "repo_provided_reference_surfaces": [],
+    "host_managed_surfaces": [
+      "all runtime install surfaces",
+      "all plugin provisioning",
+      "all MCP registration",
+      "all provider secret storage"
+    ],
+    "boundary_claims": [
+      "No official runtime is implied for generic hosts.",
+      "No platform parity is claimed without a host-specific proof lane."
+    ]
+  },
   "summary": "Generic hosts may consume canonical contracts and a repo-provided runtime-core payload in a neutral target root, but the repository still makes no host closure claim.",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
     "docs/universalization/install-matrix.md",
     "adapters/generic/host-profile.json",
+    "adapters/generic/settings-map.json",
     "adapters/generic/closure.json",
     "config/runtime-core-packaging.json"
   ],

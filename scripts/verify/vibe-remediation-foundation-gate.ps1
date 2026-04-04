@@ -36,6 +36,7 @@ function Add-Assertion {
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
 $results = @()
 
 $requiredFiles = @(
@@ -57,7 +58,7 @@ foreach ($relativePath in $requiredFiles) {
 
 $runId = "remediation-foundation-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\remediation-foundation-{0}" -f $runId)
-$summary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') -Task 'remediation foundation runtime proof' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
+$summary = & $runtimeEntryPath -Task 'remediation foundation runtime proof' -Mode benchmark_autonomous -RunId $runId -ArtifactRoot $artifactRoot
 
 $runtimeInputPacketPath = [string]$summary.summary.artifacts.runtime_input_packet
 $executeReceiptPath = [string]$summary.summary.artifacts.execute_receipt
