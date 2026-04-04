@@ -37,8 +37,8 @@ This skill is **not** a replacement for GitNexus (code dependency graph) or web 
 
 2. (Optional) Enable a faster FlashRAG-style BM25 backend (`bm25s`)
 
-   - Preflight (checks vendoring + env; does NOT read secrets):
-     - `pwsh C:\Users\羽裳\.codex\skills\vibe\scripts\ruc-nlpir\preflight.ps1`
+   - Preflight:
+     - validate vendoring and runtime env manually before using the optional bm25s path
    - Manually create an isolated venv for the vendored runtime and install only the minimal packages you need. The old `install-upstreams.ps1` auto-install path has been removed on purpose.
    - Use bm25s engine:
      - `C:\Users\羽裳\.codex\_external\ruc-nlpir\.venv\Scripts\python.exe C:\Users\羽裳\.codex\skills\flashrag-evidence\scripts\flashrag_evidence.py --engine bm25s --query "…" --topk 8`

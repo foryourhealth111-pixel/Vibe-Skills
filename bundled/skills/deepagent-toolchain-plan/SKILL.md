@@ -29,7 +29,7 @@ DeepAgent upstream is vendored for reference / optional advanced runs:
 VCO-managed runtime config and self-check scripts (no secrets stored/printed):
 
 - `C:\Users\羽裳\.codex\skills\vibe\config\ruc-nlpir-runtime.json`
-- `pwsh C:\Users\羽裳\.codex\skills\vibe\scripts\ruc-nlpir\preflight.ps1`
+- validate your local runtime environment manually before enabling vendored DeepAgent helpers
 
 ## Core output (must)
 

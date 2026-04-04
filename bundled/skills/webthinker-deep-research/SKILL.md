@@ -40,7 +40,7 @@ This VCO skill supports a **stable Lite mode** by default, and keeps the upstrea
 - Runtime config (no secrets stored):
   - `C:\Users\羽裳\.codex\skills\vibe\config\ruc-nlpir-runtime.json`
 - Preflight / install (no secrets echoed):
-  - `pwsh C:\Users\羽裳\.codex\skills\vibe\scripts\ruc-nlpir\preflight.ps1`
+  - validate vendoring and runtime env manually before enabling the optional upstream path
   - Manually create an isolated venv for the vendored runtime and install only the minimal packages you need. The old `install-upstreams.ps1` auto-install path has been removed on purpose.
 
 LLM endpoint conventions (recommended):
