@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/docling-contract-v2-governance.md',
+    'docs/governance/docling-contract-v2-governance.md',
     'config/docling-provider-policy.json',
     'references/docling-output-spec.md'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/docling-contract-v2-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/docling-contract-v2-governance.md'; keywords = @(
     'schema completeness',
     'artifact-first',
     'admission filter'

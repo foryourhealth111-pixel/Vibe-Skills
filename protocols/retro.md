@@ -316,7 +316,7 @@ Store summary via Serena write_memory:
 Optionally keep full JSON in local artifact store for trend analytics.
 
 ### 5.8 Update Context Playbook (Optional)
-Update docs/context-retro-advisor-design.md if policy-level changes are accepted.
+Update docs/design/context-retro-advisor-design.md if policy-level changes are accepted.
 
 ### 5.9 Run Retro Regression Checks (Optional but recommended)
 Tool: `scripts/verify/vibe-retro-context-regression-matrix.ps1`

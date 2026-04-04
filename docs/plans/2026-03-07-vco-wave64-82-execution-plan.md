@@ -103,20 +103,20 @@ Planned assets:
 目标：把 `browser-use`、`Agent-S`、`Docling` 从吸收态推进到 plane 候选运行态。
 
 Planned assets:
-- `docs/browserops-scorecard-governance.md`
+- `docs/governance/browserops-scorecard-governance.md`
 - `config/browserops-scorecard.json`
-- `docs/browserops-soft-rollout-governance.md`
-- `docs/desktopops-replay-governance.md`
-- `docs/desktopops-soft-rollout-governance.md`
-- `docs/docling-contract-v2-governance.md`
-- `docs/document-plane-benchmark-governance.md`
+- `docs/governance/browserops-soft-rollout-governance.md`
+- `docs/governance/desktopops-replay-governance.md`
+- `docs/governance/desktopops-soft-rollout-governance.md`
+- `docs/governance/docling-contract-v2-governance.md`
+- `docs/governance/document-plane-benchmark-governance.md`
 - `references/document-golden-corpus.md`
 
 ### Wave73-75 — Connector & Prompt Intelligence Productization
 目标：把外部连接器和 prompt intelligence 从“资料与策略”推进到“可产品化的增强层”。
 
 Planned assets:
-- `docs/connector-scorecard-governance.md`
+- `docs/governance/connector-scorecard-governance.md`
 - `references/connector-action-ledger.md`
 - `docs/prompt-intelligence-productization.md`
 - `references/prompt-pattern-cards.md`
@@ -126,15 +126,15 @@ Planned assets:
 目标：让 plane 不再是孤立 patch，而是进入统一合同、统一回放、统一晋升、统一发布。
 
 Planned assets:
-- `docs/cross-plane-task-contract-governance.md`
+- `docs/governance/cross-plane-task-contract-governance.md`
 - `references/unified-task-contract.md`
-- `docs/cross-plane-replay-governance.md`
+- `docs/governance/cross-plane-replay-governance.md`
 - `references/cross-plane-replay-ledger.md`
 - `docs/promotion-board-v2-governance.md`
 - `references/plane-scorecards.md`
 - `docs/ops-cockpit-governance.md`
-- `docs/rollback-drill-governance.md`
-- `docs/release-train-v2-governance.md`
+- `docs/governance/rollback-drill-governance.md`
+- `docs/governance/release-train-v2-governance.md`
 - `scripts/verify/vibe-wave64-82-closure-gate.ps1`
 
 ## 7. Priority Rules

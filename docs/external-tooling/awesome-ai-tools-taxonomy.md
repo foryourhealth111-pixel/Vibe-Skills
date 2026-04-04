@@ -93,6 +93,5 @@ taxonomy 中某些类别天然高风险，应该触发 VCO 的 `confirm_required
 
 - taxonomy 只做“类别级”更新，优先保持稳定
 - 任何想把具体工具接入 VCO 的变更，必须先走：
-  - `docs/ecosystem-absorption-dedup-governance.md`（去重流程）
+  - `docs/governance/ecosystem-absorption-dedup-governance.md`（去重流程）
   - `docs/external-tooling/mcp-vs-skill-vs-manual.md`（准入门槛）
-

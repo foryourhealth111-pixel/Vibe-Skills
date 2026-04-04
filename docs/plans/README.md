@@ -8,6 +8,7 @@
 
 ## Start Here
 
+- 当前综合强精简刷新计划：[`2026-04-04-comprehensive-repo-slimming-refresh-plan.md`](./2026-04-04-comprehensive-repo-slimming-refresh-plan.md)
 - 当前强精简规划：[`2026-04-04-strong-repo-slimming-program-plan.md`](./2026-04-04-strong-repo-slimming-program-plan.md)
 - 当前根需求：[`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
 - 当前根计划：[`2026-04-04-remaining-architecture-closure-plan.md`](./2026-04-04-remaining-architecture-closure-plan.md)

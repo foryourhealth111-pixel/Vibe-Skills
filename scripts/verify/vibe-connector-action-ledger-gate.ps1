@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/connector-action-ledger-governance.md',
+    'docs/governance/connector-action-ledger-governance.md',
     'references/connector-action-ledger.md',
     'config/connector-admission-policy.json'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/connector-action-ledger-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/connector-action-ledger-governance.md'; keywords = @(
     'Required Ledger Fields',
     'rollback_command',
     'replay_handle'

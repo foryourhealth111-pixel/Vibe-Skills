@@ -12,9 +12,9 @@ This phase closed the registry, disclosure, provenance, and gate-infrastructure
 - Canonical distribution tier registry:
   `config/distribution-tiers.json`
 - Canonical governance policies:
-  - `docs/distribution-governance.md`
-  - `docs/upstream-distribution-governance.md`
-  - `docs/origin-provenance-policy.md`
+  - `docs/governance/distribution-governance.md`
+  - `docs/governance/upstream-distribution-governance.md`
+  - `docs/governance/origin-provenance-policy.md`
 - Vendor retention contract:
   - `vendor/README.md`
   - `vendor/upstreams/.gitkeep`

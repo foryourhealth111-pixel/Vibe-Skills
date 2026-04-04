@@ -77,7 +77,7 @@
 ### Completed
 - Local hygiene baseline 已建立：shared ignore / local exclude / repo cleanliness gate 已落地。
 - `outputs/**` 的历史被跟踪资产已转为显式 policy 管理，而不是继续处于“被忽略但又被提交”的灰区。
-- 新增 `config/outputs-boundary-policy.json`、`docs/output-artifact-boundary-governance.md`、`scripts/verify/vibe-output-artifact-boundary-gate.ps1`。
+- 新增 `config/outputs-boundary-policy.json`、`docs/governance/output-artifact-boundary-governance.md`、`scripts/verify/vibe-output-artifact-boundary-gate.ps1`。
 
 ### Batch 1 Exit Criteria
 - `vibe-repo-cleanliness-gate.ps1` 通过；

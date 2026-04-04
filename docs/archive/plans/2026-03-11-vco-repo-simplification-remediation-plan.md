@@ -107,7 +107,7 @@
 - `config/version-governance.json`
 - `docs/version-packaging-governance.md`
 - `docs/repo-cleanliness-governance.md`
-- `docs/output-artifact-boundary-governance.md`
+- `docs/governance/output-artifact-boundary-governance.md`
 - topology-aware gates
 - release/install/runtime contracts
 
@@ -128,7 +128,7 @@
 
 - repo cleanliness: `docs/repo-cleanliness-governance.md`
 - version / packaging / mirror topology: `docs/version-packaging-governance.md`
-- outputs boundary: `docs/output-artifact-boundary-governance.md`
+- outputs boundary: `docs/governance/output-artifact-boundary-governance.md`
 - docs IA: `docs/docs-information-architecture.md`
 - active cleanup execution plan: `docs/plans/2026-03-11-vco-repo-simplification-remediation-plan.md`
 
@@ -429,7 +429,7 @@
 - Modify: `config/outputs-boundary-policy.json`
 - Modify: `references/fixtures/migration-map.json`
 - Modify: `references/fixtures/README.md`
-- Modify: `docs/output-artifact-boundary-governance.md`
+- Modify: `docs/governance/output-artifact-boundary-governance.md`
 
 **Actions:**
 
@@ -449,7 +449,7 @@
 
 **Files:**
 - Modify: `config/outputs-boundary-policy.json`
-- Modify: `docs/output-artifact-boundary-governance.md`
+- Modify: `docs/governance/output-artifact-boundary-governance.md`
 - Modify: `scripts/verify/vibe-output-artifact-boundary-gate.ps1`
 
 **Actions:**

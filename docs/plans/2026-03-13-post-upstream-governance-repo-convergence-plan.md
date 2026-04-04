@@ -272,7 +272,7 @@
 - Modify: `config/upstream-source-aliases.json`
 - Modify: `THIRD_PARTY_LICENSES.md`
 - Modify: `NOTICE`
-- Create or modify: `docs/upstream-distribution-governance.md`
+- Create or modify: `docs/governance/upstream-distribution-governance.md`
 
 **Actions**
 

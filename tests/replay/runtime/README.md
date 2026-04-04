@@ -1,6 +1,11 @@
 # Runtime Contract Goldens
 
-`runtime-contract-golden.json` stores a curated governed-runtime baseline for public runtime artifacts.
+This directory stores governed-runtime replay baselines for public runtime artifacts.
+
+Files:
+
+- `governed-runtime-contract-golden.json`: canonical field-and-key replay contract.
+- `runtime-contract-golden.json`: curated normalized case baseline aligned to optional `host_adapter.closure_path` semantics.
 
 Rules:
 

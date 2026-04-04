@@ -12,13 +12,9 @@ It does not promote Windows or macOS.
 Primary proof bundle:
 
 - `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/operation-record.md`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/environment.log`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/install.log`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/check.log`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/bootstrap-doctor.log`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/coherence.log`
-- `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/claude-smoke.log`
 - `references/proof-bundles/claude-code-managed-closure-candidate/linux-managed-run-01-local-host/installed-runtime-outputs/runtime-freshness-receipt.json`
+
+Retained live proof is intentionally minimal: the operation record summarizes install/check/bootstrap/coherence/CLI-smoke results, and the runtime-freshness receipt keeps the machine-readable receipt contract.
 
 Supporting command-surface audit:
 

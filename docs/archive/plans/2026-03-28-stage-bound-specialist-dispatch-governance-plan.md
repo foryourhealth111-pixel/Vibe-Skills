@@ -23,7 +23,7 @@ Implement the smallest coherent extension that turns specialist skills into gove
 - Specialist binding policy and runtime freeze: `config/runtime-input-packet-policy.json`, `scripts/runtime/Freeze-RuntimeInputPacket.ps1`
 - Requirement and plan surfacing: `scripts/runtime/Write-RequirementDoc.ps1`, `scripts/runtime/Write-XlPlan.ps1`
 - Specialist topology and delegated execution: `scripts/runtime/VibeExecution.Common.ps1`, `scripts/runtime/Invoke-DelegatedLaneUnit.ps1`, `scripts/runtime/Invoke-PlanExecute.ps1`
-- Stable governance docs: `protocols/runtime.md`, `protocols/team.md`, `docs/root-child-vibe-hierarchy-governance.md`, `docs/specialist-dispatch-governance.md`
+- Stable governance docs: `protocols/runtime.md`, `protocols/team.md`, `docs/root-child-vibe-hierarchy-governance.md`, `docs/governance/specialist-dispatch-governance.md`
 - Verification: `tests/runtime_neutral/test_l_xl_native_execution_topology.py`, `tests/runtime_neutral/test_root_child_hierarchy_bridge.py`
 
 ## Specialist Skill Dispatch Plan

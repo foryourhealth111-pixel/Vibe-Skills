@@ -26,7 +26,7 @@
         "check_mode": "governed",
         "bootstrap_mode": "governed",
         "target_root": "<host_target_root>",
-        "closure_path": "<host_closure_path>"
+        "closure_path": null
       },
       "route_snapshot": {
         "selected_pack": "orchestration-core",

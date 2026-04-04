@@ -7,7 +7,7 @@
   "control_plane_owner": "vco",
   "tool_id": "docling-mcp",
   "contract_reference": "references/docling-output-spec.md",
-  "integration_reference": "docs/docling-document-plane-integration.md",
+  "integration_reference": "docs/design/docling-document-plane-integration.md",
   "selection_policy": {
     "advice_first": true,
     "artifact_first": true,

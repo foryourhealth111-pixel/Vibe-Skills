@@ -13,6 +13,7 @@
 - protected surfaces: [`protected-capability-baseline.md`](protected-capability-baseline.md)
 - transitional blockers: [`path-dependency-census.md`](path-dependency-census.md)
 - slimming inventory freeze: [`repo-slimming-path-role-matrix.md`](./repo-slimming-path-role-matrix.md)
+- slimming refresh inventory: [`repo-slimming-refresh-path-role-matrix.md`](./repo-slimming-refresh-path-role-matrix.md)
 - historical dated material: [`history-index.md`](./history-index.md)
 
 ## Cross-Layer Handoff

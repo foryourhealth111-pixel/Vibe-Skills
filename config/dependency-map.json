@@ -35,31 +35,31 @@
     },
     {
       "source": "${CODEX_HOME}/skills/brainstorming",
-      "target": "bundled/superpowers-skills/brainstorming"
+      "target": "bundled/skills/brainstorming"
     },
     {
       "source": "${CODEX_HOME}/skills/writing-plans",
-      "target": "bundled/superpowers-skills/writing-plans"
+      "target": "bundled/skills/writing-plans"
     },
     {
       "source": "${CODEX_HOME}/skills/subagent-driven-development",
-      "target": "bundled/superpowers-skills/subagent-driven-development"
+      "target": "bundled/skills/subagent-driven-development"
     },
     {
       "source": "${CODEX_HOME}/skills/systematic-debugging",
-      "target": "bundled/superpowers-skills/systematic-debugging"
+      "target": "bundled/skills/systematic-debugging"
     },
     {
       "source": "${CODEX_HOME}/skills/requesting-code-review",
-      "target": "bundled/superpowers-skills/requesting-code-review"
+      "target": "bundled/skills/requesting-code-review"
     },
     {
       "source": "${CODEX_HOME}/skills/receiving-code-review",
-      "target": "bundled/superpowers-skills/receiving-code-review"
+      "target": "bundled/skills/receiving-code-review"
     },
     {
       "source": "${CODEX_HOME}/skills/verification-before-completion",
-      "target": "bundled/superpowers-skills/verification-before-completion"
+      "target": "bundled/skills/verification-before-completion"
     }
   ]
 }

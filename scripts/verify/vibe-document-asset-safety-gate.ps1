@@ -82,7 +82,7 @@ $requiredPaths = @(
     'scripts/common/ProtectedDocumentCleanup.ps1',
     'scripts/governance/phase-end-cleanup.ps1',
     'config/phase-cleanup-policy.json',
-    'docs/document-asset-cleanup-governance.md',
+    'docs/governance/document-asset-cleanup-governance.md',
     'scripts/verify/fixtures/document-cleanup-safety'
 )
 

@@ -19,6 +19,7 @@ Primary policy:
 
 ## Current Entry
 
+- [`2026-04-04-comprehensive-repo-slimming-refresh.md`](./2026-04-04-comprehensive-repo-slimming-refresh.md): 基于当前最新仓库体量与 live/archive 结构，对文档、proof bundles、fixtures、辅助脚本与 bundled payload 做一次更强的精简规划刷新；明确哪些可以先归档、哪些必须先做 consumer mapping、哪些暂时受保护。
 - [`2026-04-04-strong-repo-slimming-program.md`](./2026-04-04-strong-repo-slimming-program.md): 冻结“强精简方案”需求；聚焦在保持 install、runtime、release、verify 行为不退化的前提下，对历史文档、参考资产、脚本与 payload 进行分层瘦身、归档与保留策略设计。
 - [`2026-04-04-install-docs-registry-alignment.md`](./2026-04-04-install-docs-registry-alignment.md): 冻结安装入口文档与公开提示词对齐需求；聚焦把 README、安装索引、one-shot、cold-start 与 prompt surfaces 收口到 adapter registry 的真实宿主模式。
 - [`2026-04-04-remaining-architecture-closure.md`](./2026-04-04-remaining-architecture-closure.md): 当前剩余架构收口 root requirement；约束 owner-consumer 对齐、状态脊柱一致性和 release/runtime truth。

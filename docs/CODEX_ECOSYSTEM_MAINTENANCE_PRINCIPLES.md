@@ -12,7 +12,7 @@ Define a stable, compatibility-first maintenance system for the Codex VCO ecosys
 
 This policy governs:
 - `bundled/skills/*`
-- `bundled/superpowers-skills/*`
+- workflow/compatibility skills that also live under `bundled/skills/*`
 - `rules/*`
 - `hooks/*`
 - `agents/templates/*`

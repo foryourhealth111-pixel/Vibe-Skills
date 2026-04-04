@@ -5,7 +5,7 @@ This directory stores executable verification gates for local and CI use.
 - family map and typical run order: [`gate-family-index.md`](./gate-family-index.md)
 - minimum closure proof contract: [`../../docs/status/non-regression-proof-bundle.md`](../../docs/status/non-regression-proof-bundle.md)
 - broader operator surface: [`../governance/README.md`](../governance/README.md)
-- blackbox/probe workflow: [`../../docs/blackbox-probe-and-enhancement-playbook.md`](../../docs/blackbox-probe-and-enhancement-playbook.md)
+- blackbox/probe workflow: [`../../docs/design/blackbox-probe-and-enhancement-playbook.md`](../../docs/design/blackbox-probe-and-enhancement-playbook.md)
 
 ## Most Common Commands
 
@@ -85,3 +85,4 @@ Installed runtime freshness:
 - Run topology-aware and execution-context-locked gates from the canonical repo root only.
 - Latest PASS / FAIL truth lives in `outputs/verify/*.json`, not in this README.
 - Deep family lists, plane-specific gates, and specialist workflows stay in [`gate-family-index.md`](./gate-family-index.md) and linked topic docs.
+- Flat gate filenames remain compatibility contracts; family regrouping must preserve callable entrypoint stability until an explicit replacement contract exists.

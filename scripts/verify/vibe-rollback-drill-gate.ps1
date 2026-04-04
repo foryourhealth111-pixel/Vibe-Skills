@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/rollback-drill-governance.md',
+    'docs/governance/rollback-drill-governance.md',
     'docs/runtime-freshness-install-sop.md',
     'scripts/verify/vibe-installed-runtime-freshness-gate.ps1',
     'scripts/verify/vibe-nested-bundled-parity-gate.ps1'
@@ -70,7 +70,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/rollback-drill-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/rollback-drill-governance.md'; keywords = @(
     'kill switch drill',
     'freshness rollback',
     'operator SOP'

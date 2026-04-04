@@ -21,7 +21,9 @@ Each frozen run captures:
 - whether `pwsh` was preinstalled or provisioned
 - exact command lines
 - pass/fail summary
-- generated receipts under `installed-runtime-outputs/` and archived repo `repo-outputs-verify/`
+- generated receipts under `installed-runtime-outputs/`
+- operation record plus manifest-required logs as the live proof surface
+- duplicated `repo-outputs-verify/` copies are not part of the current minimum retained bundle
 - operator notes for any manual remediation
 
 ## Current Result

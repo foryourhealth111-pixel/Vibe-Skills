@@ -59,8 +59,8 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/desktopops-soft-rollout-governance.md',
-    'docs/desktopops-replay-governance.md',
+    'docs/governance/desktopops-soft-rollout-governance.md',
+    'docs/governance/desktopops-replay-governance.md',
     'config/desktopops-shadow-policy.json'
 )
     foreach ($relPath in $requiredPaths) {
@@ -69,12 +69,12 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/desktopops-soft-rollout-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/desktopops-soft-rollout-governance.md'; keywords = @(
     'no default takeover',
     'soft candidate',
     'operator-supervised'
 ) },
-    [pscustomobject]@{ path = 'docs/desktopops-replay-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/desktopops-replay-governance.md'; keywords = @(
     'replay suite',
     'failure taxonomy'
 ) },

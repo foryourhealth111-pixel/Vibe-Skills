@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-17",
+  "updated_at": "2026-04-04",
   "dependencies": [
     {
       "id": "obra/superpowers",
@@ -9,13 +9,13 @@
       "integration_mode": "bundled-local",
       "local_rewrite_required": true,
       "bundled_paths": [
-        "bundled/superpowers-skills/brainstorming",
-        "bundled/superpowers-skills/writing-plans",
-        "bundled/superpowers-skills/subagent-driven-development",
-        "bundled/superpowers-skills/systematic-debugging",
-        "bundled/superpowers-skills/requesting-code-review",
-        "bundled/superpowers-skills/receiving-code-review",
-        "bundled/superpowers-skills/verification-before-completion"
+        "bundled/skills/brainstorming",
+        "bundled/skills/writing-plans",
+        "bundled/skills/subagent-driven-development",
+        "bundled/skills/systematic-debugging",
+        "bundled/skills/requesting-code-review",
+        "bundled/skills/receiving-code-review",
+        "bundled/skills/verification-before-completion"
       ],
       "disclosure_required": true,
       "shipped_by_default": true,
@@ -28,7 +28,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "compatibility-and-policy-refresh-only",
-      "packet_memo": "docs/shipped-local-adaptation-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
       "next_action": "Refresh shipped-local policy around delegation isolation and host-plugin priority while keeping VCO-owned mirrors authoritative."
     },
     {
@@ -52,7 +52,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "optional-open-backend-posture-only",
-      "packet_memo": "docs/shipped-local-adaptation-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
       "next_action": "Keep compat engine as the authoritative baseline and treat upstream open-backend fixes as optional operator guidance only."
     },
     {
@@ -105,7 +105,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "defer",
       "admission_scope": "no-host-authority-widening",
-      "packet_memo": "docs/shipped-local-adaptation-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
       "next_action": "Keep think-harder compatibility only; defer any settings-layer authority expansion until an explicit challenger or replacement packet exists."
     },
     {
@@ -128,7 +128,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "compatibility-and-methodology-refresh-only",
-      "packet_memo": "docs/shipped-local-adaptation-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
       "next_action": "Keep spec-kit in methodology/reference posture and refresh only the VCO compatibility bridge wording."
     },
     {
@@ -443,7 +443,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "pattern-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh scatter/gather and bounded handoff language without opening a second orchestrator lane."
     },
     {
@@ -464,7 +464,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "taxonomy-and-quality-evidence-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Use release-scale catalog drift as taxonomy evidence only; do not let marketplace breadth become runtime authority."
     },
     {
@@ -485,7 +485,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "role-card-overlay-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Continue harvesting role-card coverage and problem-shape taxonomy without bulk runtime ingestion."
     },
     {
@@ -506,7 +506,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "team-template-and-review-archetype-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh reviewer and specialist archetypes only; keep VCO templates as the sole execution owner."
     },
     {
@@ -527,7 +527,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "curated-root-and-catalog-quarantine-rule-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Use the restored curated root as distillation evidence and keep the composio automation subtree quarantined behind connector governance."
     },
     {
@@ -548,7 +548,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "skill-distillation-rule-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh skill schema, validation, and quality rules without opening a second skill runtime."
     },
     {
@@ -569,7 +569,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "sandbox-eval-reference-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Keep as sandbox/eval reference corpus only until a fresher governed sandbox challenger exists."
     },
     {
@@ -590,7 +590,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "watchlist-and-gap-evidence-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Use as capability watchlist evidence only; do not convert it into a second tool registry surface."
     },
     {
@@ -611,7 +611,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "workflow-discovery-refresh-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Refresh workflow phrasing and anti-pattern evidence only; do not introduce a new vibe runtime entry."
     },
     {
@@ -632,7 +632,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "localization-and-multilingual-eval-refresh-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Refresh localized phrasing and multilingual eval prompts only; do not open an independent CN router lane."
     }
   ]

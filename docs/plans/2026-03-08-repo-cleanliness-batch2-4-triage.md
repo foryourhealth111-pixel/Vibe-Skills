@@ -56,7 +56,7 @@
 #### Batch 2A — Governance Docs Spine
 - `docs/*-governance.md`
 - `docs/*-integration.md`
-- `docs/output-artifact-boundary-governance.md`
+- `docs/governance/output-artifact-boundary-governance.md`
 - `docs/repo-cleanliness-governance.md`
 
 目标：建立治理主干、去掉平行重复说明、补索引。

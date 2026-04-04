@@ -9,6 +9,8 @@
 - [`plans/README.md`](./plans/README.md): 已归档的 dated plans、batch reports、历史 remediation context
 - [`requirements/README.md`](./requirements/README.md): 已归档的冻结需求包
 - [`releases/README.md`](./releases/README.md): 已归档的旧版 release notes
+- [`root-docs/README.md`](./root-docs/README.md): 已退出 `docs/` 根导航面的历史专题、backlog、旧矩阵与专题 playbook
+- [`reports/README.md`](./reports/README.md): 已退出 live root 的历史 batch / audit / rollout reports
 
 ## Rules
 

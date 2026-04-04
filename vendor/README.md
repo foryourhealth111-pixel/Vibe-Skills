@@ -17,6 +17,12 @@ It is intentionally separate from `third_party/**`.
 2. Every real retained upstream root must include `ORIGIN.md`.
 3. `vendor/**` is not the canonical runtime edit surface.
 4. Promotion from `vendor/**` requires tier, license, notice, and proof-gate closure.
+5. Placeholder-only directories may keep `.gitkeep`, but any real retained payload must also declare fetch or refresh instructions.
+
+## Current State
+
+- the current repo tracks placeholder-only `vendor/upstreams/.gitkeep` and `vendor/mirrors/.gitkeep`
+- no live retained upstream payload should be inferred from the existence of `vendor/**` alone
 
 ## What Does Not Belong Here
 
@@ -28,4 +34,4 @@ It is intentionally separate from `third_party/**`.
 See:
 
 - `../docs/distribution-governance.md`
-- `../docs/origin-provenance-policy.md`
+- `../docs/governance/origin-provenance-policy.md`

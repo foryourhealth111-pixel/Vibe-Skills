@@ -404,7 +404,7 @@ canary 目标不是切换默认运行，而是验证：
 ### Task 1: Freeze Runtime and Record a Baseline
 
 **Files**
-- Modify: `docs/distribution-governance.md` (new evergreen governance doc)
+- Modify: `docs/governance/distribution-governance.md` (new evergreen governance doc)
 - Modify: `docs/runtime-freshness-install-sop.md`
 - Modify: `docs/version-packaging-governance.md`
 - Modify: `references/release-evidence-bundle-contract.md`
@@ -428,7 +428,7 @@ canary 目标不是切换默认运行，而是验证：
 - Modify: `config/upstream-source-aliases.json`
 - Modify: `THIRD_PARTY_LICENSES.md`
 - Modify: `NOTICE`
-- Create: `docs/upstream-distribution-governance.md`
+- Create: `docs/governance/upstream-distribution-governance.md`
 - Create: `scripts/governance/export-upstream-inventory-union.ps1`
 
 **Outcome**
@@ -493,7 +493,7 @@ canary 目标不是切换默认运行，而是验证：
 **Files**
 - Modify: `config/upstream-lock.json`
 - Modify: `config/upstream-corpus-manifest.json`
-- Modify: `docs/upstream-distribution-governance.md`
+- Modify: `docs/governance/upstream-distribution-governance.md`
 - Modify: `docs/upstream-corpus-governance.md`
 
 **Outcome**

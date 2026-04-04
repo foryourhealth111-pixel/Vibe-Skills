@@ -23,6 +23,46 @@ Strong slimming in this repository must follow four owner rules:
 3. active navigation surfaces stay short and current
 4. reproducible snapshots and historical packets need explicit retention policy, not indefinite default retention
 
+## Current Priority Snapshot
+
+The latest repository state changes the priority order from the original broad cleanup framing.
+
+The strongest remaining slimming pressure is concentrated in:
+
+1. `bundled/skills/**`
+   - `2120` files and about `30M`
+   - largest structural hotspot in the repo
+2. `scripts/verify/**`
+   - `205` files
+   - active but highly fragmented gate surface
+3. `docs/**`
+   - `593` files even after the first archive pass
+   - root and live knowledge surfaces still need a second-pass consolidation
+4. `references/**`
+   - smaller than before, but still carries active proof, fixture, and historical bundle pressure
+
+By contrast, these are not first-order slimming targets:
+
+- `dist/**`: only `17` files and explicitly contract-linked generated projections
+- `vendor/**`: only `3` files
+- `benchmarks/**`: only `9` files
+- `third_party/**`: only `7` files and compliance-sensitive
+
+Those smaller trees should be treated as monitor-only unless a specific contract simplification proves worthwhile.
+
+## Architecture Layers And Live Status
+
+| Layer | Current Paths | Live Status | Slimming Rule |
+| --- | --- | --- | --- |
+| semantic authority | `packages/**`, `core/**`, `config/**` | must stay live | refactor only, no repo-slimming deletion objective |
+| execution and routing | `apps/vgo-cli/**`, `scripts/runtime/**`, `scripts/router/**`, install wrappers | must stay live | slim only after owner-to-consumer proof |
+| host compatibility | `adapters/**` | must stay live | keep projections honest, avoid churn for size only |
+| generated release projection | `dist/**`, `distributions/**` | must stay live | regenerate or narrow only if contracts are updated |
+| verification contract | `scripts/verify/**`, `tests/**` | must stay live | reduce by family convergence, not by blind deletion |
+| bundled product payload | `bundled/skills/**` | live but overgrown | partition, deduplicate, alias-normalize |
+| maintainer knowledge | `docs/**`, `references/**`, `protocols/**`, `templates/**` | mixed live/archive | strongest archive and dedup target |
+| compliance/sample edges | `third_party/**`, `vendor/**`, `benchmarks/**` | keep minimal | very low value for current slimming waves |
+
 ## Core Design Rules
 
 The program must preserve high cohesion and low coupling through explicit path roles.
@@ -58,42 +98,36 @@ Every candidate path must be classified into exactly one primary role:
 
 ### Tier A: Immediate High-Value Slimming Candidates
 
-These surfaces are the best first cuts because they are large, noisy, and mostly historical or reproducible.
+These surfaces are the best first cuts because they are still bulky, noisy, or structurally duplicated after the first archive wave.
 
-- `docs/plans/**`
-  - Problem: `169` dated files, heavy historical noise, many old implementation transcripts, and absolute local path leakage.
-  - Strategy: move all non-active dated plans and reports into an archive subtree with a short index; keep only active entries in `docs/plans/README.md`.
-- `docs/requirements/**`
-  - Problem: `136` frozen requirements, many tied to one-off README, release, or delivery tasks long after closure.
-  - Strategy: retain only active or recently referenced requirement docs in the live directory; archive historical packets behind an index.
-- `docs/releases/**`
-  - Problem: active release navigation and historical version records are mixed too closely.
-  - Strategy: keep the current governed release surface and recent versions live; move older release notes and packet artifacts into an archive-oriented layout.
-- `references/changelog.md`
-  - Problem: still useful as a stable path, but too large and full of historical path mentions.
-  - Strategy: split into current window plus archive volumes while preserving the canonical top-level path.
-- `references/awesome-mcp-servers.snapshot.json`
-  - Problem: very large tracked snapshot with low evidence that it must remain fully tracked as canonical source.
-  - Strategy: replace with a generated or reduced snapshot policy; keep provenance and generation command, not necessarily the full tracked blob.
+- root live docs outside the archive spine
+  - Problem: the first archive cut reduced `docs/plans/**`, `docs/requirements/**`, and `docs/releases/**`, but the repo still carries many root or family docs that overlap in governance, rollout, or historical explanation.
+  - Strategy: identify current navigators versus historical leaves; merge or archive leaves that duplicate a stronger family doc.
+- `references/proof-bundles/**`
+  - Problem: proof bundles are now one of the densest remaining historical surfaces.
+  - Strategy: keep manifests, README, and active candidate bundles live; archive raw logs and old bundle detail behind a retention contract.
+- `references/fixtures/**`
+  - Problem: fixtures are canonical only when tests or boundary policies consume them; otherwise they become long-lived tracked outputs in disguise.
+  - Strategy: separate test-backed fixture roots from obsolete or over-wide regression samples.
+- `scripts/verify/**`
+  - Problem: `205` verification scripts create review noise and suggest overlapping gate families.
+  - Strategy: map gate families, centralize family metadata, and retire dead or superseded wrappers only after caller proof.
+- large bundled payload duplication
+  - Problem: the biggest structural duplication now sits in the bundled corpus, especially document tooling and alias-like skill families.
+  - Strategy: deduplicate shared assets, normalize skill aliases, and move heavyweight references to better retention tiers.
 
 ### Tier B: Archive-First or Shrink-by-Policy Surfaces
 
-- `references/proof-bundles/**`
-  - Keep manifests, README, and summary receipts.
-  - Demote raw logs, absolute-path receipts, and bulky historical detail to archive assets or generated bundles.
-- `references/fixtures/**`
-  - Keep fixtures that tests actively consume.
-  - Remove or archive fixture families that no longer back a test or policy.
 - `docs/changes/**` and historical migration or rollout reports under `docs/*.md`
   - Consolidate by family or move behind archive indexes.
 - legacy standalone governance or integration notes that duplicate newer family docs
   - Merge into a family overview or replace with a short redirect note.
+- large single-skill references under `bundled/skills/**`
+  - Example class: oversized `references/*.md`, example payloads, generated JSON, or PDF showcase files that do not need to remain in the primary shipped repo forever.
+  - Strategy: classify into required-at-runtime, required-for-authoring, and archive-or-downloadable.
 
 ### Tier C: Contract-First Refactor Before Slimming
 
-- `scripts/verify/**`
-  - Problem: high file count, but active contract surface.
-  - Strategy: merge thin wrappers only after shared assertion, artifact, and contract plumbing is extracted.
 - `scripts/governance/**`, `scripts/runtime/**`, `scripts/router/**`
   - Problem: some ownership duplication remains, but these are live execution surfaces.
   - Strategy: continue owner-to-consumer cutovers first; delete only dead wrappers after proof.
@@ -102,7 +136,7 @@ These surfaces are the best first cuts because they are large, noisy, and mostly
   - Strategy: parameterize roots via config and scripts before any shrinkage.
 - `bundled/skills/**`
   - Problem: largest payload, but still installer and packaging input.
-  - Strategy: introduce release-tier payload partitions before attempting any broad removal.
+  - Strategy: introduce release-tier payload partitions, shared-asset ownership, and alias policy before attempting any broad removal.
 
 ### Tier D: Protected Surfaces
 
@@ -115,6 +149,7 @@ These should not be part of a strong deletion wave until deeper cutovers happen 
 - `tests/runtime_neutral/**`
 - `tests/integration/**`
 - `config/outputs-boundary-policy.json` and its dependent migration fixtures
+- `vendor/**`, `benchmarks/**`, and `third_party/**` as current low-yield surfaces unless a specific contract proves otherwise
 
 ## Candidate Retention Policy
 
@@ -187,30 +222,31 @@ Verification:
 - `rg -n "/home/lqf/table|Plan complete and saved to|Two execution options:" docs/plans docs/requirements docs/releases -g '*.md'`
 - `rg -n "bundled/skills|references/proof-bundles|references/changelog.md|docs/plans/|docs/requirements/" README.md docs scripts packages tests config adapters core dist .github -g '!node_modules/**'`
 
-### Wave 1: Historical Docs Spine Reduction
+### Wave 1: Live Docs Second-Pass Reduction
 
-- archive non-active `docs/plans/**`
-- archive non-active `docs/requirements/**`
-- archive or regroup stale migration reports, batch reports, and historical rollout notes from `docs/*.md`
-- normalize README navigation to point only at active surfaces
+- audit live `docs/**` after the first archive cut
+- merge or archive root-level governance, rollout, and migration notes that duplicate stronger family pages
+- shorten live navigators so each family has one current entry page and archive pointers
+- remove remaining absolute local path leakage or process transcript residue from live docs
 
 Ownership boundaries:
 
-- `docs/plans/**`
-- `docs/requirements/**`
-- selected historical `docs/*.md`
-- `docs/README.md`, `docs/plans/README.md`, `docs/requirements/README.md`, `docs/releases/README.md`
+- selected live `docs/*.md`
+- `docs/status/**`
+- `docs/install/**`
+- `docs/external-tooling/**`
+- `docs/README.md` and family README pages
 
 Batch decomposition:
 
-1. `docs/plans` archive cut
-2. `docs/requirements` archive cut
-3. root historical reports regrouping
-4. README/index cleanup
+1. live root-doc census
+2. family-doc merge and archive cut
+3. README/index cleanup
+4. path-leakage cleanup for surviving live pages
 
 Expected outcome:
 
-- active docs spine becomes smaller and more legible without losing recoverability
+- live docs surface becomes shorter and more legible without reopening already archived families
 
 Verification:
 
@@ -218,98 +254,111 @@ Verification:
 - `rg -n "/home/lqf/table" docs -g '*.md'`
 - targeted README and index spot checks
 
-### Wave 2: Release and Ledger Surface Compression
+### Wave 2: References Retention Reform
 
-- split `references/changelog.md` into current plus archive volumes
-- move older release notes out of the active release surface
-- keep `docs/releases/README.md` focused on current release, proof handoff, and recent governed versions
-
-Ownership boundaries:
-
-- `references/changelog.md` and new archive volumes
-- `docs/releases/**`
-- release navigation indexes only
-
-Batch decomposition:
-
-1. changelog split with canonical-path preservation
-2. release-note archive cut
-3. release README compression
-
-Verification:
-
-- release README link scan
-- release-cut contract tests
-- changelog path contract checks
-
-### Wave 3: Proof Bundle and Snapshot Retention Reform
-
-- define what a tracked proof bundle must contain
-- externalize or archive oversized raw logs and low-signal detail
-- replace tracked mega-snapshots with reproducible generation rules when feasible
+- classify each `references/**` family as `contract-backed`, `fixture-backed`, `active-proof`, `historical-proof`, or `dead`
+- shrink proof bundles to minimum tracked surfaces
+- archive raw logs and low-signal receipts
+- keep fixtures only where tests or policy explicitly consume them
 
 Ownership boundaries:
 
 - `references/proof-bundles/**`
-- `references/fixtures/**` only where clearly unconsumed
-- `references/awesome-mcp-servers.snapshot.json`
-- docs/config/scripts that define retention policy or generation instructions
+- `references/fixtures/**`
+- `references/promotion-memos/**`
+- `references/candidate-case-files/**`
+- `references/archive/**`
 
 Batch decomposition:
 
 1. proof-bundle minimum tracked schema
-2. proof-bundle raw-log demotion
-3. snapshot generation / reduction policy
+2. fixture consumer matrix
+3. memo/case-file retention review
+4. archive relocation for historical detail
 
 Verification:
 
-- proof-bundle manifest consumers still pass
-- adapters and replay fixtures still resolve manifests
-- no active script assumes a removed raw artifact path
+- `tests/runtime_neutral/test_outputs_boundary_migration.py`
+- proof-bundle manifest consumer checks
+- exact-path reference audit for relocated reference families
 
-### Wave 4: Dead Script Retirement and Verify Surface Consolidation
+### Wave 3: Verify Surface Family Convergence
 
-- retire scripts with zero active consumers
-- consolidate thin verification wrappers after shared helpers are extracted
-- remove deprecated setup or research helpers that no longer back current flows
+- create a machine-readable family map for `scripts/verify/**`
+- separate active release/install/runtime/catalog gates from historical wave or pilot gates
+- retire dead wrappers and merge family-local helpers only after contract evidence is explicit
+- keep path-stable shims where tests or release policies still require them
 
 Ownership boundaries:
 
-- `scripts/setup/**`
-- `scripts/research/**`
-- dead paths under `scripts/governance/**` and `scripts/verify/**`
-- limited supporting doc/reference edits
+- `scripts/verify/**`
+- `config/governance-family-index.json`
+- `scripts/verify/gate-family-index.md`
+- directly coupled tests, config policies, and release docs
 
 Batch decomposition:
 
-1. dead helper retirements
-2. verify wrapper family consolidation
-3. setup / research surface cleanup
+1. gate family census
+2. dead/superseded gate candidate list
+3. family helper extraction
+4. wrapper retirement or re-homing
 
 Verification:
 
-- exact-path reference audit for deleted scripts
-- targeted pytest suites covering release, runtime, installer, and verification bridges
+- targeted release, runtime, and install bridge tests
+- exact-path scans for deleted gate files
 - `git diff --check`
 
-### Wave 5: Payload Partitioning for Bundled Skills
+### Wave 4: Bundled Shared-Asset Deduplication
 
-- define `core`, `profile-required`, and `optional` skill inventories
-- move packaging to manifest-driven allowlists where possible
-- only then consider strong reductions in tracked bundled payload
+- deduplicate triplicated OOXML schema payloads across document-related skills
+- centralize shared authoring assets used by multiple document skills
+- keep path compatibility via generated copies, thin redirects, or manifest-driven materialization if direct path stability is needed
+
+Ownership boundaries:
+
+- `bundled/skills/docx/**`
+- `bundled/skills/document-skills/**`
+- packaging and consumer manifests
+- any tests or docs that reference those assets directly
+
+Batch decomposition:
+
+1. duplicate-asset fingerprint inventory
+2. shared-asset owner introduction
+3. path compatibility decision
+4. payload shrink and parity verification
+
+Verification:
+
+- packaging and skill-surface tests
+- document-skill smoke checks
+- exact-path scans for moved shared assets
+
+### Wave 5: Bundled Skill Alias And Payload Tiering
+
+- resolve alias-like duplicate skill families such as:
+  - `pymc` vs `pymc-bayesian-modeling`
+  - `torch-geometric` vs `torch_geometric`
+- define `core`, `profile-required`, `authoring-only`, and `optional` skill tiers
+- move heavyweight references, examples, and assets out of the default shipped surface where runtime does not need them
 
 Ownership boundaries:
 
 - `config/runtime-core-packaging*.json`
+- `config/skills-lock.json`
+- any future alias map or skill-tier manifest
 - installer and catalog consumers
 - `bundled/skills/**`
 - tests that freeze packaging semantics
 
 Batch decomposition:
 
-1. introduce explicit inventory tiers
-2. migrate packaging to tier-aware allowlists
-3. shrink optional bundled payload only after coverage is green
+1. alias census and canonical-name policy
+2. tier manifest introduction
+3. packaging migration to tier-aware allowlists
+4. optional payload reduction
+5. heavyweight reference retention reform
 
 ### Wave 6: Third-Party Root Decoupling
 
@@ -367,12 +416,21 @@ Verification:
 
 - delete only when exact-path and basename scans prove no live consumers
 - for active script families, reduce by extracting shared logic first and deleting wrappers second
+- prioritize `scripts/verify/**` family convergence over tiny script directories, because that is where the real review and maintenance cost sits
 
 ### `bundled/skills/**`
 
 - do not delete by topical instinct alone
 - first classify by installer/runtime requirement tier
-- only optional tiers are eligible for later repository shrinkage
+- separate shared assets from skill-local semantics
+- normalize alias and duplicate-family ownership before removing payload
+- only optional or archive-tier payloads are eligible for later repository shrinkage
+
+### `dist/**`, `vendor/**`, `benchmarks/**`, `third_party/**`
+
+- treat as low-yield monitor surfaces in the near term
+- avoid spending early slimming budget here unless a specific contract simplification or compliance fix justifies it
+- do not use tiny-directory deletion as a substitute for harder bundled or verify-surface work
 
 ### Delete
 
@@ -447,13 +505,12 @@ Each implementation PR must satisfy all of the following:
 
 Preferred PR sequence:
 
-1. archive `docs/plans`
-2. archive `docs/requirements`
-3. compress `docs/releases` and split changelog
-4. proof-bundle retention reform
-5. dead script retirements
+1. live docs second-pass reduction
+2. references retention reform
+3. verify family convergence
+4. bundled shared-asset dedup
+5. bundled alias and payload tiering
 6. third-party root parameterization
-7. bundled payload partitioning
 
 ## Rollback Rules
 

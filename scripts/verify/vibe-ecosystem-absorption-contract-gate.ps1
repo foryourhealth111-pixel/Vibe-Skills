@@ -9,7 +9,7 @@ function Assert-True {
 }
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$matrixPath = Join-Path $repoRoot "docs\absorption-admission-matrix.md"
+$matrixPath = Join-Path $repoRoot "docs\governance\absorption-admission-matrix.md"
 $docsPath = Join-Path $repoRoot "docs\external-tooling\mcp-vs-skill-vs-manual.md"
 $content = Get-Content -Raw $matrixPath -Encoding UTF8
 $rules = Get-Content -Raw $docsPath -Encoding UTF8

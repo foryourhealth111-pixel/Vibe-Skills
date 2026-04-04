@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/release-train-v2-governance.md',
+    'docs/governance/release-train-v2-governance.md',
     'docs/releases/README.md',
     'config/operator-preview-contract.json',
     'scripts/governance/release-cut.ps1'
@@ -70,7 +70,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/release-train-v2-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/release-train-v2-governance.md'; keywords = @(
     'Release Evidence Stack',
     'runtime freshness',
     'stop-ship'

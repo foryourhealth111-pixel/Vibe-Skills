@@ -14,14 +14,14 @@
         "config/upstream-source-aliases.json",
         "config/upstream-value-ops-board.json",
         "docs/upstream-corpus-governance.md",
-        "docs/upstream-source-alias-governance.md",
+        "docs/governance/upstream-source-alias-governance.md",
         "references/upstream-value-ledger.md",
         "references/upstream-reaudit-matrix-v2.md",
         "references/upstream-mapping-notes.md"
       ],
       "keyword_checks": [
         {
-          "path": "docs/upstream-source-alias-governance.md",
+          "path": "docs/governance/upstream-source-alias-governance.md",
           "keywords": [
             "canonical slug",
             "Prompt-Engineering-Guide",
@@ -55,7 +55,7 @@
       "gate_script": "scripts/verify/vibe-operator-preview-contract-gate.ps1",
       "artifact_basename": "vibe-operator-preview-contract-gate",
       "required_assets": [
-        "docs/operator-preview-contract-governance.md",
+        "docs/governance/operator-preview-contract-governance.md",
         "config/operator-preview-contract.json",
         "references/operator-preview-contract.md",
         "scripts/governance/sync-bundled-vibe.ps1",
@@ -64,7 +64,7 @@
       ],
       "keyword_checks": [
         {
-          "path": "docs/operator-preview-contract-governance.md",
+          "path": "docs/governance/operator-preview-contract-governance.md",
           "keywords": [
             "Precheck -> Preview -> Apply -> Postcheck",
             "machine-readable preview summary",
@@ -116,7 +116,7 @@
       "gate_script": "scripts/verify/vibe-output-fixture-migration-stage2-gate.ps1",
       "artifact_basename": "vibe-output-fixture-migration-stage2-gate",
       "required_assets": [
-        "docs/output-artifact-boundary-governance.md",
+        "docs/governance/output-artifact-boundary-governance.md",
         "config/outputs-boundary-policy.json",
         "references/fixtures/README.md",
         "references/fixtures/migration-map.json",
@@ -124,7 +124,7 @@
       ],
       "keyword_checks": [
         {
-          "path": "docs/output-artifact-boundary-governance.md",
+          "path": "docs/governance/output-artifact-boundary-governance.md",
           "keywords": [
             "Stage 2 — Fixture Migration",
             "references/fixtures/**",
@@ -226,7 +226,7 @@
       "gate_script": "scripts/verify/vibe-wave125-gate-family-convergence-gate.ps1",
       "artifact_basename": "vibe-wave125-gate-family-convergence-gate",
       "required_assets": [
-        "docs/execution-context-lock-governance.md",
+        "docs/governance/execution-context-lock-governance.md",
         "config/execution-context-status.json",
         "scripts/verify/gate-family-index.md",
         "scripts/common/vibe-wave-gate-runner.ps1",
@@ -234,7 +234,7 @@
       ],
       "keyword_checks": [
         {
-          "path": "docs/execution-context-lock-governance.md",
+          "path": "docs/governance/execution-context-lock-governance.md",
           "keywords": [
             "canonical repo tree",
             "mirror targets",

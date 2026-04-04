@@ -19,10 +19,21 @@
 - [`openclaw-path.md`](./openclaw-path.md)：OpenClaw 专用安装与使用说明
 - [`opencode-path.md`](./opencode-path.md)：OpenCode 专用安装与使用说明
 - [`manual-copy-install.md`](./manual-copy-install.md)：离线或无管理员权限时的手动复制路径
+- [`../one-shot-setup.md`](../one-shot-setup.md)：`install/check/one-shot-setup` 三条宿主模式如何对齐的说明页
+- [`../troubleshooting.md`](../troubleshooting.md)：集中式排障入口，避免把故障说明拆成平行安装入口
 - [`framework-only-path.md`](./framework-only-path.md)：旧入口名兼容说明
 - [`full-featured-install-prompts.md`](./full-featured-install-prompts.md)：Codex 深度路径兼容说明
 - [`installation-rules.md`](./installation-rules.md)：安装助手必须遵守的 truth-first 规则
 - [`configuration-guide.md`](./configuration-guide.md)：本地配置说明
+
+## 文档角色收敛
+
+| 文档类 | 当前 canonical surface | 说明 |
+| --- | --- | --- |
+| 公开安装入口 | `one-click-install-release-copy.md` | 唯一对外公开的安装入口 |
+| 宿主补充页 | `openclaw-path.md`, `opencode-path.md` | 只补充宿主差异，不是平行公开入口 |
+| prompt library | `prompts/*.md`, `full-featured-install-prompts.md` | 作为提示词资产库保留，不额外升格为公开 landing page |
+| 兼容/运维参考 | `recommended-full-path.md`, `manual-copy-install.md`, `framework-only-path.md` | 面向高级用户和兼容场景，保留但不抢占公开入口 |
 
 ## 当前安装口径怎么读
 
@@ -41,6 +52,7 @@
 - 通用安装提示词同样支持 `openclaw` 和 `opencode`
 - 单独拆出 [`openclaw-path.md`](./openclaw-path.md) 与 [`opencode-path.md`](./opencode-path.md)，只是为了补充宿主特有细节，不是因为通用安装路径不能安装
 - provider / MCP / 宿主 settings 等补充配置，默认都按“增强建议”处理；基础安装完成后即可直接使用，需要更强集成时再按需补充
+- `framework-only-path.md`、`full-featured-install-prompts.md`、`minimal-path.md`、`enterprise-governed-path.md` 属于兼容/附录层，不应再被当作并列公开入口
 
 ## 公开版本
 

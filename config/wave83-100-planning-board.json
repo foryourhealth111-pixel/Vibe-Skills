@@ -36,7 +36,7 @@
         "all current planes"
       ],
       "candidate_assets": [
-        "docs/gate-reliability-governance.md",
+        "docs/governance/gate-reliability-governance.md",
         "config/gate-reliability-policy.json",
         "references/gate-keyword-alias-contract.md",
         "scripts/verify/vibe-gate-reliability-gate.ps1"
@@ -58,7 +58,7 @@
         "Letta"
       ],
       "candidate_assets": [
-        "docs/memory-quality-eval-governance.md",
+        "docs/governance/memory-quality-eval-governance.md",
         "config/memory-quality-scorecard.json",
         "references/memory-eval-scenarios.md",
         "scripts/verify/vibe-memory-quality-eval-gate.ps1"
@@ -80,7 +80,7 @@
         "Agent-S"
       ],
       "candidate_assets": [
-        "docs/openworld-runtime-eval-governance.md",
+        "docs/governance/openworld-runtime-eval-governance.md",
         "config/openworld-runtime-eval-policy.json",
         "references/openworld-eval-scenarios.md",
         "scripts/verify/vibe-openworld-runtime-eval-gate.ps1"
@@ -101,7 +101,7 @@
         "Docling"
       ],
       "candidate_assets": [
-        "docs/document-failure-taxonomy-governance.md",
+        "docs/governance/document-failure-taxonomy-governance.md",
         "config/document-failure-taxonomy.json",
         "references/document-failure-taxonomy.md",
         "scripts/verify/vibe-document-failure-taxonomy-gate.ps1"
@@ -122,7 +122,7 @@
         "Prompt-Engineering-Guide"
       ],
       "candidate_assets": [
-        "docs/prompt-intelligence-eval-governance.md",
+        "docs/governance/prompt-intelligence-eval-governance.md",
         "config/prompt-intelligence-scorecard.json",
         "references/prompt-eval-scenarios.md",
         "scripts/verify/vibe-prompt-intelligence-eval-gate.ps1"
@@ -146,7 +146,7 @@
         "multiple current planes"
       ],
       "candidate_assets": [
-        "docs/candidate-quality-board-governance.md",
+        "docs/governance/candidate-quality-board-governance.md",
         "config/candidate-quality-board.json",
         "references/candidate-quality-scorecards.md",
         "scripts/verify/vibe-candidate-quality-board-gate.ps1"
@@ -172,7 +172,7 @@
         "claude-skills"
       ],
       "candidate_assets": [
-        "docs/role-pack-v2-governance.md",
+        "docs/governance/role-pack-v2-governance.md",
         "config/role-pack-scorecard.json",
         "references/role-pack-catalog-v2.md",
         "scripts/verify/vibe-role-pack-v2-gate.ps1"
@@ -194,7 +194,7 @@
         "awesome-claude-code-subagents"
       ],
       "candidate_assets": [
-        "docs/subagent-handoff-governance.md",
+        "docs/governance/subagent-handoff-governance.md",
         "config/subagent-handoff-policy.json",
         "references/subagent-pattern-scorecard.md",
         "scripts/verify/vibe-subagent-handoff-gate.ps1"
@@ -218,7 +218,7 @@
         "awesome-ai-agents-e2b"
       ],
       "candidate_assets": [
-        "docs/discovery-intake-scorecard-governance.md",
+        "docs/governance/discovery-intake-scorecard-governance.md",
         "config/discovery-intake-policy.json",
         "references/discovery-intake-watchlist.md",
         "scripts/verify/vibe-discovery-intake-scorecard-gate.ps1"
@@ -240,7 +240,7 @@
         "capability catalog"
       ],
       "candidate_assets": [
-        "docs/capability-lifecycle-governance.md",
+        "docs/governance/capability-lifecycle-governance.md",
         "config/capability-lifecycle-policy.json",
         "references/capability-lifecycle-matrix.md",
         "scripts/verify/vibe-capability-lifecycle-gate.ps1"
@@ -263,7 +263,7 @@
         "awesome-mcp-servers"
       ],
       "candidate_assets": [
-        "docs/connector-sandbox-simulation-governance.md",
+        "docs/governance/connector-sandbox-simulation-governance.md",
         "config/connector-sandbox-policy.json",
         "references/connector-simulation-scenarios.md",
         "scripts/verify/vibe-connector-sandbox-simulation-gate.ps1"
@@ -287,7 +287,7 @@
         "awesome-claude-skills-composio"
       ],
       "candidate_assets": [
-        "docs/skill-harvest-v2-governance.md",
+        "docs/governance/skill-harvest-v2-governance.md",
         "config/skill-harvest-policy.json",
         "references/skill-distillation-scorecard.md",
         "scripts/verify/vibe-skill-harvest-v2-gate.ps1"
@@ -311,7 +311,7 @@
         "all promoted candidates"
       ],
       "candidate_assets": [
-        "docs/ops-dashboard-governance.md",
+        "docs/governance/ops-dashboard-governance.md",
         "outputs/dashboard/ops-dashboard.md",
         "outputs/dashboard/ops-dashboard.json",
         "scripts/verify/vibe-ops-dashboard-gate.ps1"
@@ -332,7 +332,7 @@
         "release train v2 inputs"
       ],
       "candidate_assets": [
-        "docs/release-evidence-bundle-v3-governance.md",
+        "docs/governance/release-evidence-bundle-v3-governance.md",
         "references/release-evidence-bundle-contract.md",
         "outputs/release/release-evidence-bundle.json",
         "scripts/verify/vibe-release-evidence-bundle-gate.ps1"
@@ -353,7 +353,7 @@
         "adaptive routing advisory outputs"
       ],
       "candidate_assets": [
-        "docs/manual-apply-policy-governance.md",
+        "docs/governance/manual-apply-policy-governance.md",
         "config/manual-apply-policy.json",
         "references/manual-apply-checklist.md",
         "scripts/verify/vibe-manual-apply-policy-gate.ps1"
@@ -396,7 +396,7 @@
         "all tracked upstream sources"
       ],
       "candidate_assets": [
-        "docs/upstream-reaudit-matrix-v2-governance.md",
+        "docs/governance/upstream-reaudit-matrix-v2-governance.md",
         "references/upstream-reaudit-matrix-v2.md",
         "config/upstream-reaudit-policy.json",
         "scripts/verify/vibe-upstream-reaudit-matrix-gate.ps1"

@@ -36,4 +36,5 @@ Artifacts are written to `outputs/verify/` when `-WriteArtifacts` is provided.
 
 ## Governed Runtime Contract Fixtures
 
-- `tests/replay/runtime/governed-runtime-contract-golden.json` (stable packet/manifest contract surface for governed runtime replay)
+- `tests/replay/runtime/governed-runtime-contract-golden.json` (canonical field/key contract surface for governed runtime replay)
+- `tests/replay/runtime/runtime-contract-golden.json` (curated normalized case baseline for governed runtime replay)

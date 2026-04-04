@@ -10,14 +10,14 @@
       "gate_script": "scripts/verify/vibe-gate-reliability-gate.ps1",
       "artifact_basename": "vibe-gate-reliability-gate",
       "required_assets": [
-        "docs/gate-reliability-governance.md",
+        "docs/governance/gate-reliability-governance.md",
         "config/gate-reliability-policy.json",
         "references/gate-keyword-alias-contract.md",
         "scripts/verify/vibe-gate-reliability-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/gate-reliability-governance.md",
+          "path": "docs/governance/gate-reliability-governance.md",
           "keywords": [
             "UTF-8 BOM",
             "single VCO control plane",
@@ -51,14 +51,14 @@
       "gate_script": "scripts/verify/vibe-memory-quality-eval-gate.ps1",
       "artifact_basename": "vibe-memory-quality-eval-gate",
       "required_assets": [
-        "docs/memory-quality-eval-governance.md",
+        "docs/governance/memory-quality-eval-governance.md",
         "config/memory-quality-scorecard.json",
         "references/memory-eval-scenarios.md",
         "scripts/verify/vibe-memory-quality-eval-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/memory-quality-eval-governance.md",
+          "path": "docs/governance/memory-quality-eval-governance.md",
           "keywords": [
             "memory-runtime-v3",
             "mem0",
@@ -91,14 +91,14 @@
       "gate_script": "scripts/verify/vibe-openworld-runtime-eval-gate.ps1",
       "artifact_basename": "vibe-openworld-runtime-eval-gate",
       "required_assets": [
-        "docs/openworld-runtime-eval-governance.md",
+        "docs/governance/openworld-runtime-eval-governance.md",
         "config/openworld-runtime-eval-policy.json",
         "references/openworld-eval-scenarios.md",
         "scripts/verify/vibe-openworld-runtime-eval-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/openworld-runtime-eval-governance.md",
+          "path": "docs/governance/openworld-runtime-eval-governance.md",
           "keywords": [
             "browser-use",
             "Agent-S",
@@ -131,14 +131,14 @@
       "gate_script": "scripts/verify/vibe-document-failure-taxonomy-gate.ps1",
       "artifact_basename": "vibe-document-failure-taxonomy-gate",
       "required_assets": [
-        "docs/document-failure-taxonomy-governance.md",
+        "docs/governance/document-failure-taxonomy-governance.md",
         "config/document-failure-taxonomy.json",
         "references/document-failure-taxonomy.md",
         "scripts/verify/vibe-document-failure-taxonomy-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/document-failure-taxonomy-governance.md",
+          "path": "docs/governance/document-failure-taxonomy-governance.md",
           "keywords": [
             "failure_object",
             "Docling",
@@ -172,14 +172,14 @@
       "gate_script": "scripts/verify/vibe-prompt-intelligence-eval-gate.ps1",
       "artifact_basename": "vibe-prompt-intelligence-eval-gate",
       "required_assets": [
-        "docs/prompt-intelligence-eval-governance.md",
+        "docs/governance/prompt-intelligence-eval-governance.md",
         "config/prompt-intelligence-scorecard.json",
         "references/prompt-eval-scenarios.md",
         "scripts/verify/vibe-prompt-intelligence-eval-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/prompt-intelligence-eval-governance.md",
+          "path": "docs/governance/prompt-intelligence-eval-governance.md",
           "keywords": [
             "advisory-first",
             "second prompt router",
@@ -212,14 +212,14 @@
       "gate_script": "scripts/verify/vibe-candidate-quality-board-gate.ps1",
       "artifact_basename": "vibe-candidate-quality-board-gate",
       "required_assets": [
-        "docs/candidate-quality-board-governance.md",
+        "docs/governance/candidate-quality-board-governance.md",
         "config/candidate-quality-board.json",
         "references/candidate-quality-scorecards.md",
         "scripts/verify/vibe-candidate-quality-board-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/candidate-quality-board-governance.md",
+          "path": "docs/governance/candidate-quality-board-governance.md",
           "keywords": [
             "advice-first",
             "promotion board v2",
@@ -253,14 +253,14 @@
       "gate_script": "scripts/verify/vibe-role-pack-v2-gate.ps1",
       "artifact_basename": "vibe-role-pack-v2-gate",
       "required_assets": [
-        "docs/role-pack-v2-governance.md",
+        "docs/governance/role-pack-v2-governance.md",
         "config/role-pack-scorecard.json",
         "references/role-pack-catalog-v2.md",
         "scripts/verify/vibe-role-pack-v2-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/role-pack-v2-governance.md",
+          "path": "docs/governance/role-pack-v2-governance.md",
           "keywords": [
             "agent-squad",
             "Codex Native Team runtime",
@@ -294,14 +294,14 @@
       "gate_script": "scripts/verify/vibe-subagent-handoff-gate.ps1",
       "artifact_basename": "vibe-subagent-handoff-gate",
       "required_assets": [
-        "docs/subagent-handoff-governance.md",
+        "docs/governance/subagent-handoff-governance.md",
         "config/subagent-handoff-policy.json",
         "references/subagent-pattern-scorecard.md",
         "scripts/verify/vibe-subagent-handoff-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/subagent-handoff-governance.md",
+          "path": "docs/governance/subagent-handoff-governance.md",
           "keywords": [
             "execution_owner_remains_vco",
             "orchestrator",
@@ -335,14 +335,14 @@
       "gate_script": "scripts/verify/vibe-discovery-intake-scorecard-gate.ps1",
       "artifact_basename": "vibe-discovery-intake-scorecard-gate",
       "required_assets": [
-        "docs/discovery-intake-scorecard-governance.md",
+        "docs/governance/discovery-intake-scorecard-governance.md",
         "config/discovery-intake-policy.json",
         "references/discovery-intake-watchlist.md",
         "scripts/verify/vibe-discovery-intake-scorecard-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/discovery-intake-scorecard-governance.md",
+          "path": "docs/governance/discovery-intake-scorecard-governance.md",
           "keywords": [
             "discovery feed",
             "runtime surface",
@@ -376,14 +376,14 @@
       "gate_script": "scripts/verify/vibe-capability-lifecycle-gate.ps1",
       "artifact_basename": "vibe-capability-lifecycle-gate",
       "required_assets": [
-        "docs/capability-lifecycle-governance.md",
+        "docs/governance/capability-lifecycle-governance.md",
         "config/capability-lifecycle-policy.json",
         "references/capability-lifecycle-matrix.md",
         "scripts/verify/vibe-capability-lifecycle-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/capability-lifecycle-governance.md",
+          "path": "docs/governance/capability-lifecycle-governance.md",
           "keywords": [
             "productize_only_after_dedup",
             "promotion_ceiling",
@@ -417,14 +417,14 @@
       "gate_script": "scripts/verify/vibe-connector-sandbox-simulation-gate.ps1",
       "artifact_basename": "vibe-connector-sandbox-simulation-gate",
       "required_assets": [
-        "docs/connector-sandbox-simulation-governance.md",
+        "docs/governance/connector-sandbox-simulation-governance.md",
         "config/connector-sandbox-policy.json",
         "references/connector-simulation-scenarios.md",
         "scripts/verify/vibe-connector-sandbox-simulation-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/connector-sandbox-simulation-governance.md",
+          "path": "docs/governance/connector-sandbox-simulation-governance.md",
           "keywords": [
             "Composio",
             "Activepieces",
@@ -458,14 +458,14 @@
       "gate_script": "scripts/verify/vibe-skill-harvest-v2-gate.ps1",
       "artifact_basename": "vibe-skill-harvest-v2-gate",
       "required_assets": [
-        "docs/skill-harvest-v2-governance.md",
+        "docs/governance/skill-harvest-v2-governance.md",
         "config/skill-harvest-policy.json",
         "references/skill-distillation-scorecard.md",
         "scripts/verify/vibe-skill-harvest-v2-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/skill-harvest-v2-governance.md",
+          "path": "docs/governance/skill-harvest-v2-governance.md",
           "keywords": [
             "selective",
             "second skill runtime",
@@ -499,14 +499,14 @@
       "gate_script": "scripts/verify/vibe-ops-dashboard-gate.ps1",
       "artifact_basename": "vibe-ops-dashboard-gate",
       "required_assets": [
-        "docs/ops-dashboard-governance.md",
+        "docs/governance/ops-dashboard-governance.md",
         "outputs/dashboard/ops-dashboard.md",
         "outputs/dashboard/ops-dashboard.json",
         "scripts/verify/vibe-ops-dashboard-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/ops-dashboard-governance.md",
+          "path": "docs/governance/ops-dashboard-governance.md",
           "keywords": [
             "freshness",
             "promotion",
@@ -543,13 +543,13 @@
       "gate_script": "scripts/verify/vibe-release-evidence-bundle-gate.ps1",
       "artifact_basename": "vibe-release-evidence-bundle-gate",
       "required_assets": [
-        "docs/release-evidence-bundle-v3-governance.md",
+        "docs/governance/release-evidence-bundle-v3-governance.md",
         "outputs/release/release-evidence-bundle.json",
         "scripts/verify/vibe-release-evidence-bundle-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/release-evidence-bundle-v3-governance.md",
+          "path": "docs/governance/release-evidence-bundle-v3-governance.md",
           "keywords": [
             "git head",
             "evidence refs",
@@ -584,14 +584,14 @@
       "gate_script": "scripts/verify/vibe-manual-apply-policy-gate.ps1",
       "artifact_basename": "vibe-manual-apply-policy-gate",
       "required_assets": [
-        "docs/manual-apply-policy-governance.md",
+        "docs/governance/manual-apply-policy-governance.md",
         "config/manual-apply-policy.json",
         "references/manual-apply-checklist.md",
         "scripts/verify/vibe-manual-apply-policy-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/manual-apply-policy-governance.md",
+          "path": "docs/governance/manual-apply-policy-governance.md",
           "keywords": [
             "advice-first",
             "report_only",
@@ -681,14 +681,14 @@
       "gate_script": "scripts/verify/vibe-upstream-reaudit-matrix-gate.ps1",
       "artifact_basename": "vibe-upstream-reaudit-matrix-gate",
       "required_assets": [
-        "docs/upstream-reaudit-matrix-v2-governance.md",
+        "docs/governance/upstream-reaudit-matrix-v2-governance.md",
         "config/upstream-reaudit-policy.json",
         "references/upstream-reaudit-matrix-v2.md",
         "scripts/verify/vibe-upstream-reaudit-matrix-gate.ps1"
       ],
       "keyword_checks": [
         {
-          "path": "docs/upstream-reaudit-matrix-v2-governance.md",
+          "path": "docs/governance/upstream-reaudit-matrix-v2-governance.md",
           "keywords": [
             "explicit_no_go",
             "promotion_ceiling",

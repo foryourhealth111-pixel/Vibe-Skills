@@ -506,9 +506,9 @@ Limitations vs XL: no intra-group dialogue (only 1 agent per perspective), no Ph
 - 进入 soft/strict 之前，必须能提供对应 gate 与 rollback command。
 
 相关资产：
-- `docs/browserops-provider-integration.md`
-- `docs/agent-s-shadow-integration.md`
-- `docs/cross-plane-conflict-governance.md`
+- `docs/design/browserops-provider-integration.md`
+- `docs/design/agent-s-shadow-integration.md`
+- `docs/governance/cross-plane-conflict-governance.md`
 - `docs/promotion-board-governance.md`
 
 ## Wave19-30 Specialist Roles

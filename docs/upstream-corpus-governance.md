@@ -17,7 +17,7 @@ Wave34 把 `third_party/vco-ecosystem-mirror` 的 15 个镜像来源纳入 **ups
 - `config/upstream-corpus-manifest.json`：19 项上游来源的 canonical 登记册；
 - `config/upstream-source-aliases.json`：source alias -> canonical slug 的唯一登记表；
 - `docs/upstream-corpus-governance.md`：字段与流程约束；
-- `docs/upstream-source-alias-governance.md`：别名治理与 intake 规范；
+- `docs/governance/upstream-source-alias-governance.md`：别名治理与 intake 规范；
 - `references/upstream-value-ledger.md`：逐项价值与 next action 账本；
 - `references/upstream-reaudit-matrix-v2.md`：remaining value / ceiling / no-go 矩阵；
 - `scripts/governance/audit-upstream.ps1`：辅助审计与摘要导出，只提供证据，不授予自动升级权；

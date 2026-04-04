@@ -78,19 +78,19 @@
 
 ### Wave40-45: Runtime Hardening First
 - `config/frontmatter-integrity-policy.json`
-- `docs/frontmatter-bom-governance.md`
+- `docs/governance/frontmatter-bom-governance.md`
 - `scripts/verify/vibe-bom-frontmatter-gate.ps1`
 - `scripts/governance/release-cut.ps1` 的 no-BOM writer 修复
 - `docs/runtime-freshness-install-sop.md` 的 frontmatter/install SOP 增补
 
 ### Wave46-51: Dedup / Graph / Ownership
-- `docs/capability-dedup-graph-governance.md`
+- `docs/governance/capability-dedup-graph-governance.md`
 - `config/capability-dedup-governance.json`
 - `references/capability-dedup-matrix.md`
 - `scripts/verify/vibe-capability-dedup-gate.ps1`
 
 ### Wave52-57: Eval / Adaptive Routing / Replay
-- `docs/adaptive-routing-eval-governance.md`
+- `docs/governance/adaptive-routing-eval-governance.md`
 - `config/adaptive-routing-eval-governance.json`
 - `references/eval-replay-ledger-contract.md`
 - `scripts/verify/vibe-adaptive-routing-readiness-gate.ps1`

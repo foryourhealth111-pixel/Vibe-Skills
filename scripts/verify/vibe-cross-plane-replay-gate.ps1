@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/cross-plane-replay-governance.md',
+    'docs/governance/cross-plane-replay-governance.md',
     'references/cross-plane-replay-ledger.md'
 )
     foreach ($relPath in $requiredPaths) {
@@ -68,7 +68,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/cross-plane-replay-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/cross-plane-replay-governance.md'; keywords = @(
     'single cross-plane replay ledger',
     'rollback',
     'replay ledger'

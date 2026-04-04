@@ -9,7 +9,7 @@
 
 2. Compatibility dependency layer
 - `bundled/skills/*`
-- `bundled/superpowers-skills/*`
+- compatibility-first workflow skills also ship from `bundled/skills/*`; there is no separate live `bundled/superpowers-skills/*` tree anymore
 - All adapted for Codex behavior
 - `bundled/skills/vibe` is not a tracked repo mirror anymore; compatibility materialization happens only at install/runtime boundaries when explicitly required.
 

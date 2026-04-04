@@ -88,5 +88,5 @@ When a new conflict is discovered:
 5. **No hidden promotion**：任何 plane 未通过 promotion board 前，都不得跳过 `shadow` 直接变成默认面。
 
 规范化锚点：
-- `../docs/cross-plane-conflict-governance.md`
+- `../docs/governance/cross-plane-conflict-governance.md`
 - `../config/cross-plane-conflict-policy.json`

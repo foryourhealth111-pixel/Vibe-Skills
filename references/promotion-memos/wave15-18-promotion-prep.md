@@ -4,10 +4,10 @@
 - Wave15–18 的目的不是继续扩大默认吸收面，而是把 watch lane、eval slicing、XL operator、release handoff 变成 board-readable 资产。
 - 本 memo 作为 promotion prep 使用，回答“哪些项目值得继续推进到 review-ready / pilot-ready 的讨论层”，而不是直接批准 promotion。
 - reviewed upstream artifacts:
-  - `docs/watch-portfolio-rationalization.md`
+  - `docs/archive/root-docs/watch-portfolio-rationalization.md`
   - `docs/eval-slicing-operationalization.md`
-  - `docs/xl-operator-playbook.md`
-  - `docs/wave15-18-execution-backlog.md`
+  - `docs/design/xl-operator-playbook.md`
+  - `docs/archive/root-docs/wave15-18-execution-backlog.md`
 
 ## candidate_snapshot
 - surface: `portfolio`

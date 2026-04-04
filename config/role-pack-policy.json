@@ -42,7 +42,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "pattern-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh scatter/gather and bounded handoff language without opening a second orchestrator lane."
     },
     {
@@ -66,7 +66,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "skill-distillation-rule-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh skill schema, validation, and quality rules without opening a second skill runtime."
     },
     {
@@ -90,7 +90,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "role-card-overlay-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Continue harvesting role-card coverage and problem-shape taxonomy without bulk runtime ingestion."
     },
     {
@@ -114,7 +114,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "team-template-and-review-archetype-refresh-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Refresh reviewer and specialist archetypes only; keep VCO templates as the sole execution owner."
     },
     {
@@ -138,7 +138,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "taxonomy-and-quality-evidence-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Use release-scale catalog drift as taxonomy evidence only; do not let marketplace breadth become runtime authority."
     },
     {
@@ -163,7 +163,7 @@
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "curated-root-and-catalog-quarantine-rule-only",
-      "packet_memo": "docs/role-pack-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/role-pack-upstream-delta-2026-03-17.md",
       "next_action": "Use the restored curated root as distillation evidence and keep the composio automation subtree quarantined behind connector governance."
     }
   ],

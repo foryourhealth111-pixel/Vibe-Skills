@@ -26,7 +26,7 @@ The repository currently has six blocker clusters that still constrain safe clos
 | Dependency Cluster | Current Consumers | Risk | Current Constraint | Safe Migration Direction |
 | --- | --- | --- | --- | --- |
 | `bundled/skills/vibe/bundled/skills/vibe` | `config/version-governance.json`, `scripts/common/vibe-governance-helpers.ps1`, `scripts/verify/vibe-nested-bundled-parity-gate.ps1`, mirror topology docs | high | runtime contract allows absence, but topology-safe absence semantics still matter | keep the optional topology contract, materialize only on demand if legacy compatibility actually needs it |
-| tracked `outputs/**` | `config/outputs-boundary-policy.json`, `references/fixtures/migration-map.json`, `scripts/verify/vibe-output-artifact-boundary-gate.ps1` | high | repo is still `stage2_mirrored`; strict-mode zero-tracked-outputs has not been adopted | keep mirrored parity green, then enable strict mode only after an explicit migration decision |
+| tracked `outputs/**` | `config/outputs-boundary-policy.json`, `references/fixtures/migration-map.json`, `scripts/verify/vibe-output-artifact-boundary-gate.ps1` | high | policy still keeps the legacy migration label `stage2_mirrored`, but tracked `outputs/**` are already required to be zero and fixture mirrors remain the canonical retained surface | keep the compatibility label stable while documenting strict-zero enforcement truthfully |
 | `third_party/system-prompts-mirror` | research scripts, docs examples | high | scripts still default to a fixed local mirror path | make source roots manifest-driven and parameterizable |
 | `third_party/vco-ecosystem-mirror` | `config/upstream-corpus-manifest.json`, registry / curation metadata, mirror-path references, some research flows | medium-high | the local mirror is still treated as the default evidence source | preserve provenance and manifest, allow external checkout / audit-time fetch |
 | live docs / proof / status spine | `docs/status/*`, `docs/proof/*`, `docs/plans/README.md`, `docs/README.md`, `scripts/README.md`, `scripts/verify/gate-family-index.md`, `config/index.md`, `references/index.md` | medium | the scoped live spine is now refreshed; the remaining constraint is keeping proof, status, and residual-boundary language aligned so historical pages do not retake authority | keep a short canonical handoff spine: root requirement -> root plan -> proof -> current-state -> closure-audit |
@@ -55,7 +55,7 @@ Observed hard references include:
 - `references/fixtures/migration-map.json`
 - `scripts/verify/vibe-output-artifact-boundary-gate.ps1`
 - `references/fixtures/README.md`
-- `docs/output-artifact-boundary-governance.md`
+- `docs/governance/output-artifact-boundary-governance.md`
 
 This is why `outputs/**` cannot be described as fully closed or freely deletable yet.
 

@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/desktopops-replay-governance.md',
+    'docs/governance/desktopops-replay-governance.md',
     'references/openworld-task-contract.md',
     'config/desktopops-shadow-policy.json'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/desktopops-replay-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/desktopops-replay-governance.md'; keywords = @(
     'checkpoint corpus',
     'failure taxonomy',
     'shadow contract'

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "purpose": "Declare tiering rules for bundled skills before any payload reduction or detached distribution work.",
+  "tiers": [
+    {
+      "id": "runtime-core",
+      "description": "Skills with mirrored core contracts under core/skills and direct runtime significance.",
+      "selectors": {
+        "core_skill_contract_required": true
+      }
+    },
+    {
+      "id": "host-required",
+      "description": "System-owned bundled skills that preserve host or product-specific integration behavior.",
+      "selectors": {
+        "bundled_path_prefixes": [
+          "bundled/skills/.system/"
+        ]
+      }
+    },
+    {
+      "id": "optional-default-bundled",
+      "description": "Bundled skills still shipped by default today but not yet classified as runtime-core or host-required.",
+      "selectors": {
+        "bundled_path_prefixes": [
+          "bundled/skills/"
+        ],
+        "exclude_prefixes": [
+          "bundled/skills/.system/"
+        ],
+        "exclude_if_core_skill_contract_exists": true
+      }
+    }
+  ],
+  "policy_rules": [
+    "Do not remove or detach a tier until installer, runtime, and adapter callers are mapped.",
+    "Tiering is a precondition for slimming, not a proof that a payload can already be cut.",
+    "New bundled payload families should match one tier explicitly instead of defaulting to ad hoc retention."
+  ]
+}

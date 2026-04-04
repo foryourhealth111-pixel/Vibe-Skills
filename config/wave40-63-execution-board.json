@@ -31,7 +31,7 @@
       "title": "frontmatter integrity policy",
       "status": "completed",
       "required_assets": [
-        "docs/frontmatter-bom-governance.md",
+        "docs/governance/frontmatter-bom-governance.md",
         "config/frontmatter-integrity-policy.json"
       ],
       "verify_gate": "vibe-bom-frontmatter-gate"
@@ -87,7 +87,7 @@
       "title": "capability dedup taxonomy",
       "status": "completed",
       "required_assets": [
-        "docs/capability-dedup-graph-governance.md",
+        "docs/governance/capability-dedup-graph-governance.md",
         "config/capability-dedup-governance.json",
         "references/capability-dedup-matrix.md"
       ],
@@ -99,7 +99,7 @@
       "title": "capability graph governance",
       "status": "completed",
       "required_assets": [
-        "docs/capability-dedup-graph-governance.md",
+        "docs/governance/capability-dedup-graph-governance.md",
         "references/capability-dedup-matrix.md"
       ],
       "verify_gate": "vibe-capability-dedup-gate"
@@ -122,7 +122,7 @@
       "title": "router evidence schema",
       "status": "completed",
       "required_assets": [
-        "docs/adaptive-routing-eval-governance.md",
+        "docs/governance/adaptive-routing-eval-governance.md",
         "config/adaptive-routing-eval-governance.json",
         "references/eval-replay-ledger-contract.md"
       ],
@@ -155,7 +155,7 @@
       "title": "adaptive eval contract",
       "status": "completed",
       "required_assets": [
-        "docs/adaptive-routing-eval-governance.md",
+        "docs/governance/adaptive-routing-eval-governance.md",
         "config/adaptive-routing-eval-governance.json",
         "references/eval-replay-ledger-contract.md"
       ],

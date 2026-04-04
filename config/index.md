@@ -14,11 +14,12 @@
 | [`outputs-boundary-policy.json`](outputs-boundary-policy.json) | `outputs/**` 与 fixtures 边界 |
 | [`official-runtime-main-chain-policy.json`](official-runtime-main-chain-policy.json) | official runtime 主链冻结规则 |
 | [`promotion-board.json`](promotion-board.json) | capability promotion board |
+| [`bundled-skill-tier-policy.json`](bundled-skill-tier-policy.json) | bundled payload tiering precondition for later slimming |
 
 ## Families
 
 - Routing core: `pack-manifest.json`, `router-thresholds.json`, `skill-alias-map.json`
-- Runtime / packaging: `version-governance.json`, `frontmatter-integrity-policy.json`, `execution-context-status.json`
+- Runtime / packaging: `version-governance.json`, `frontmatter-integrity-policy.json`, `execution-context-status.json`, `bundled-skill-tier-policy.json`
 - Cleanliness / outputs: `repo-cleanliness-policy.json`, `outputs-boundary-policy.json`
 - Boards / lifecycle: `candidate-quality-board.json`, `promotion-board.json`, `capability-catalog.json`
 - Upstream / distribution: `upstream-lock.json`, `upstream-corpus-manifest.json`, `distribution-tiers.json`

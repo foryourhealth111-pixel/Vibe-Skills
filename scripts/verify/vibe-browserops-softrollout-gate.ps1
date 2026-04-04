@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/browserops-soft-rollout-governance.md',
+    'docs/governance/browserops-soft-rollout-governance.md',
     'config/browserops-provider-policy.json',
     'config/browserops-scorecard.json'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/browserops-soft-rollout-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/browserops-soft-rollout-governance.md'; keywords = @(
     'BrowserOps Soft Rollout Governance',
     'candidate_soft_only',
     'fallback'

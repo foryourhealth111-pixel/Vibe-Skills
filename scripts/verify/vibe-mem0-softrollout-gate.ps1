@@ -59,7 +59,7 @@ $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecution
 $repoRoot = $context.repoRoot
 $assertions = [System.Collections.Generic.List[object]]::new()
 
-$docPath = Join-Path $repoRoot 'docs/mem0-soft-rollout-governance.md'
+$docPath = Join-Path $repoRoot 'docs/governance/mem0-soft-rollout-governance.md'
 $contractPath = Join-Path $repoRoot 'references/mem0-write-admission-contract.md'
 $mem0PolicyPath = Join-Path $repoRoot 'config/mem0-backend-policy.json'
 $runtimePolicyPath = Join-Path $repoRoot 'config/memory-runtime-v3-policy.json'

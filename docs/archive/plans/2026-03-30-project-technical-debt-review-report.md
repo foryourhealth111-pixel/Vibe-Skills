@@ -59,7 +59,7 @@
 
 几个关键入口脚本的体量已经明显超出轻量治理脚本的维护舒适区：`scripts/router/resolve-pack-route.ps1` 1382 行，`scripts/router/legacy/resolve-pack-route.legacy.ps1` 5481 行，`scripts/runtime/Invoke-PlanExecute.ps1` 1363 行，`scripts/runtime/Freeze-RuntimeInputPacket.ps1` 636 行。这些文件仍是高频治理面，审查和安全修改成本都偏高。
 
-更重要的是，legacy router 不是单纯的历史备份，而是当前 contract gate 和 main-chain policy 仍明确要求保留与比对的活跃基线。也就是说，模块化工作虽然已经开始，但仓库仍要同时维护“现代主入口 + 超大 legacy baseline”两套路由真相面。[scripts/verify/vibe-router-contract-gate.ps1](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/scripts/verify/vibe-router-contract-gate.ps1#L175) [config/official-runtime-main-chain-policy.json](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/config/official-runtime-main-chain-policy.json#L38) [docs/router-modularization-governance.md](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/docs/router-modularization-governance.md#L5)
+更重要的是，legacy router 不是单纯的历史备份，而是当前 contract gate 和 main-chain policy 仍明确要求保留与比对的活跃基线。也就是说，模块化工作虽然已经开始，但仓库仍要同时维护“现代主入口 + 超大 legacy baseline”两套路由真相面。[scripts/verify/vibe-router-contract-gate.ps1](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/scripts/verify/vibe-router-contract-gate.ps1#L175) [config/official-runtime-main-chain-policy.json](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/config/official-runtime-main-chain-policy.json#L38) [docs/governance/router-modularization-governance.md](/home/lqf/table/table5/workspace/release-v2.3.53-candidate/docs/governance/router-modularization-governance.md#L5)
 
 这不是说模块化没有价值，而是说当前模块化仍未把维护负担真正降下来。仓库现在承担的是“新增模块层”与“保留大型 legacy 比对基线”的双重成本。
 

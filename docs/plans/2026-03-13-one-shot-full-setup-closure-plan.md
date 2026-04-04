@@ -115,7 +115,7 @@ Files:
 
 - `README.md`
 - `README.en.md`
-- `docs/deployment.md`
+- `docs/archive/root-docs/deployment.md`
 - `scripts/README.md`
 - `scripts/verify/README.md`
 - `docs/one-shot-setup.md`

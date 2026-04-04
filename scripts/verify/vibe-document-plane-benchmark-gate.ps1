@@ -59,9 +59,9 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/document-plane-benchmark-governance.md',
+    'docs/governance/document-plane-benchmark-governance.md',
     'references/document-golden-corpus.md',
-    'docs/docling-contract-v2-governance.md'
+    'docs/governance/docling-contract-v2-governance.md'
 )
     foreach ($relPath in $requiredPaths) {
         $fullPath = Join-Path $repoRoot $relPath
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/document-plane-benchmark-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/document-plane-benchmark-governance.md'; keywords = @(
     'golden corpus',
     'benchmark',
     'fallback',

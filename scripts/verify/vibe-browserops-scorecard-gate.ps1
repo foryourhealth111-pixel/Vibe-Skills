@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/browserops-scorecard-governance.md',
+    'docs/governance/browserops-scorecard-governance.md',
     'config/browserops-scorecard.json',
     'references/browser-provider-scorecard.md'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/browserops-scorecard-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/browserops-scorecard-governance.md'; keywords = @(
     'scorecard',
     'provider recommendation',
     'candidate_only'

@@ -439,7 +439,7 @@ Notes:
 **State Location**:
 - `config/docling-provider-policy.json`
 - `references/docling-output-spec.md`
-- `docs/docling-document-plane-integration.md`
+- `docs/design/docling-document-plane-integration.md`
 
 **VCO Integration Boundary**:
 - productized as a provider contract only
@@ -481,8 +481,8 @@ Notes:
 **State Location**:
 - `config/capability-catalog.json`
 - `references/capability-catalog.md`
-- `docs/discovery-eval-corpus-governance.md`
-- `docs/upstream-eval-pilot-scenarios.md`
+- `docs/governance/discovery-eval-corpus-governance.md`
+- `docs/external-tooling/upstream-eval-pilot-scenarios.md`
 
 **VCO Integration Boundary**:
 - capability cards are discovery and evaluation aids only

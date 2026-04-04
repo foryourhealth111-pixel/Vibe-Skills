@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/connector-scorecard-governance.md',
+    'docs/governance/connector-scorecard-governance.md',
     'config/connector-admission-policy.json',
     'references/connector-capability-matrix.md'
 )
@@ -69,7 +69,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/connector-scorecard-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/connector-scorecard-governance.md'; keywords = @(
     'scorecard-governed promotion',
     'operator-readable signals',
     'second orchestrator'

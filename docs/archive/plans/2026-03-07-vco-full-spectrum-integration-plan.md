@@ -60,11 +60,11 @@
 ### Task 2: Wave 20 — Memory Runtime v2 Contractization
 
 **Files**
-- `docs/memory-runtime-v2-integration.md`
+- `docs/design/memory-runtime-v2-integration.md`
 - `config/memory-tier-router.json`
 - `references/memory-block-contract.md`
 - `scripts/verify/vibe-memory-tier-gate.ps1`
-- `docs/memory-governance-integration.md`
+- `docs/design/memory-governance-integration.md`
 
 **Outcome**
 - 把 session / project_decision / short_term_semantic / long_term_graph / external_preference / policy_contract 六类 memory tier 明确化。
@@ -80,7 +80,7 @@
 ### Task 3: Wave 21 — Mem0 Opt-in Backend
 
 **Files**
-- `docs/mem0-optin-backend-integration.md`
+- `docs/design/mem0-optin-backend-integration.md`
 - `config/mem0-backend-policy.json`
 - `scripts/governance/invoke-mem0-policy.ps1`
 - `scripts/verify/vibe-mem0-backend-gate.ps1`
@@ -99,7 +99,7 @@
 ### Task 4: Wave 22 — Letta Policy Contracts
 
 **Files**
-- `docs/letta-policy-integration.md`
+- `docs/design/letta-policy-integration.md`
 - `config/letta-governance-contract.json`
 - `references/tool-rule-contract.md`
 - `scripts/verify/vibe-letta-contract-gate.ps1`
@@ -120,10 +120,10 @@
 **Files**
 - `references/prompt-pattern-cards.md`
 - `references/prompt-risk-checklist.md`
-- `docs/prompt-intelligence-governance.md`
+- `docs/governance/prompt-intelligence-governance.md`
 - `config/prompt-intelligence-policy.json`
 - `scripts/verify/vibe-prompt-intelligence-assets-gate.ps1`
-- `docs/prompt-overlay-integration.md`
+- `docs/design/prompt-overlay-integration.md`
 
 **Outcome**
 - Prompt-Engineering-Guide 被吸收为 pattern cards、risk checklist、policy input，而不是第二 prompt router。
@@ -140,12 +140,12 @@
 ### Task 6: Wave 24 — BrowserOps Provider Router
 
 **Files**
-- `docs/browserops-provider-integration.md`
+- `docs/design/browserops-provider-integration.md`
 - `config/browserops-provider-policy.json`
 - `references/browser-task-contract.md`
 - `scripts/overlay/suggest-browserops-provider.ps1`
 - `scripts/verify/vibe-browserops-gate.ps1`
-- `docs/turix-cua-overlay.md`
+- `docs/design/turix-cua-overlay.md`
 
 **Outcome**
 - 把 `browser-use` 定义为 BrowserOps provider candidate。
@@ -161,7 +161,7 @@
 ### Task 7: Wave 25 — DesktopOps Shadow Advisor
 
 **Files**
-- `docs/agent-s-shadow-integration.md`
+- `docs/design/agent-s-shadow-integration.md`
 - `config/desktopops-shadow-policy.json`
 - `references/aci-dsl.md`
 - `references/openworld-task-contract.md`
@@ -180,7 +180,7 @@
 ### Task 8: Wave 26 — Cross-Plane Conflict Governance
 
 **Files**
-- `docs/cross-plane-conflict-governance.md`
+- `docs/governance/cross-plane-conflict-governance.md`
 - `config/cross-plane-conflict-policy.json`
 - `scripts/verify/vibe-cross-plane-conflict-gate.ps1`
 - `references/conflict-rules.md`
@@ -202,7 +202,7 @@
 - `config/promotion-board.json`
 - `scripts/governance/publish-absorption-soft-rollout.ps1`
 - `scripts/verify/vibe-promotion-board-gate.ps1`
-- `docs/observability-consistency-governance.md`
+- `docs/governance/observability-consistency-governance.md`
 
 **Outcome**
 - 定义 shadow → soft → strict → promote 的证据门槛。

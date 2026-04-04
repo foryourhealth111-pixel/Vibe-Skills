@@ -69,14 +69,14 @@
       "canonical_use": "Discovery corpus for workflow terminology and anti-pattern evidence.",
       "boundary": "Material layer only; must not become a new vibe runtime or prompt execution surface.",
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/upstream-eval-pilot-scenarios.md"
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md"
       ],
       "observed_head_sha": "a6171375cca88783eeaa8e2057c0eae9e54aef04",
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "workflow-discovery-refresh-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Refresh workflow phrasing and anti-pattern evidence only; do not introduce a new vibe runtime entry."
     },
     {
@@ -91,14 +91,14 @@
       "canonical_use": "Discovery corpus for capability watchlists and future registry curation.",
       "boundary": "Material layer only; must not become a second tool registry runtime or tool runner.",
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/upstream-eval-pilot-scenarios.md"
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md"
       ],
       "observed_head_sha": "9d8b9d49fa26114fcc635a80ac1db1e950d3542a",
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "watchlist-and-gap-evidence-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Use as capability watchlist evidence only; do not convert it into a second tool registry surface."
     },
     {
@@ -113,14 +113,14 @@
       "canonical_use": "Discovery corpus for Chinese-language discovery and terminology normalization.",
       "boundary": "Material layer only; must not become an independent CN router or separate orchestration track.",
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/upstream-eval-pilot-scenarios.md"
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md"
       ],
       "observed_head_sha": "d1466fc77e770ae127afb53dce18146857147ed4",
       "reviewed_at": "2026-03-17",
       "decision_class": "admit",
       "admission_scope": "localization-and-multilingual-eval-refresh-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Refresh localized phrasing and multilingual eval prompts only; do not open an independent CN router lane."
     },
     {
@@ -135,14 +135,14 @@
       "canonical_use": "Eval corpus for sandbox/remote-execution pilot scenarios and governance evidence.",
       "boundary": "Material layer only; must not become a new sandbox execution owner or runtime surface.",
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/upstream-eval-pilot-scenarios.md"
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md"
       ],
       "observed_head_sha": "6af02e9230dae8a155fe6e49526dd309c04120b7",
       "reviewed_at": "2026-03-17",
       "decision_class": "metadata-only",
       "admission_scope": "sandbox-eval-reference-only",
-      "packet_memo": "docs/discovery-methodology-upstream-delta-2026-03-17.md",
+      "packet_memo": "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
       "next_action": "Keep as sandbox/eval reference corpus only until a fresher governed sandbox challenger exists."
     }
   ],
@@ -1242,9 +1242,9 @@
         "scripts/verify/vibe-keyword-precision-audit.ps1"
       ],
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/discovery-methodology-upstream-delta-2026-03-17.md",
-        "docs/upstream-eval-pilot-scenarios.md",
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md",
         "outputs/governance/capability-catalog-gate.json",
         "references/capability-catalog.md"
       ]
@@ -1315,9 +1315,9 @@
         "scripts/verify/vibe-capability-catalog-gate.ps1"
       ],
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/discovery-methodology-upstream-delta-2026-03-17.md",
-        "docs/upstream-eval-pilot-scenarios.md",
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md",
         "outputs/governance/capability-catalog-gate.json",
         "references/capability-catalog.md"
       ]
@@ -1386,9 +1386,9 @@
         "scripts/verify/vibe-capability-catalog-gate.ps1"
       ],
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/discovery-methodology-upstream-delta-2026-03-17.md",
-        "docs/upstream-eval-pilot-scenarios.md",
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md",
         "outputs/governance/capability-catalog-gate.json",
         "references/capability-catalog.md"
       ]
@@ -1460,9 +1460,9 @@
         "scripts/verify/vibe-keyword-precision-audit.ps1"
       ],
       "evidence_artifacts": [
-        "docs/discovery-eval-corpus-governance.md",
-        "docs/discovery-methodology-upstream-delta-2026-03-17.md",
-        "docs/upstream-eval-pilot-scenarios.md",
+        "docs/governance/discovery-eval-corpus-governance.md",
+        "docs/external-tooling/discovery-methodology-upstream-delta-2026-03-17.md",
+        "docs/external-tooling/upstream-eval-pilot-scenarios.md",
         "outputs/governance/capability-catalog-gate.json",
         "references/capability-catalog.md"
       ]

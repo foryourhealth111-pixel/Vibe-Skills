@@ -88,7 +88,7 @@ class FrontmatterGateScopeActivationTests(unittest.TestCase):
                 "scripts/verify/vibe-bom-frontmatter-gate.ps1",
                 GATE_PATH.read_text(encoding="utf-8"),
             )
-            write("docs/frontmatter-bom-governance.md", "stop-ship\nbyte-0\n")
+            write("docs/governance/frontmatter-bom-governance.md", "stop-ship\nbyte-0\n")
             write("scripts/governance/release-cut.ps1", "Write-VgoUtf8NoBomText\n")
             write(
                 "scripts/verify/custom-installed-runtime-freshness-gate.ps1",

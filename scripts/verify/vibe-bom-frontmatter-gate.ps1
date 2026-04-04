@@ -66,7 +66,7 @@ if ($null -ne $context.runtimeConfig -and $context.runtimeConfig.PSObject.Proper
     $runtimeRel = [string]$context.runtimeConfig.target_relpath
 }
 
-$governanceDocPath = Join-Path $context.repoRoot 'docs\frontmatter-bom-governance.md'
+$governanceDocPath = Join-Path $context.repoRoot 'docs\governance\frontmatter-bom-governance.md'
 $helpersPath = Join-Path $context.repoRoot 'scripts\common\vibe-governance-helpers.ps1'
 $releaseCutPath = Join-Path $context.repoRoot 'scripts\governance\release-cut.ps1'
 $installedFreshnessGateRel = 'scripts/verify/vibe-installed-runtime-freshness-gate.ps1'

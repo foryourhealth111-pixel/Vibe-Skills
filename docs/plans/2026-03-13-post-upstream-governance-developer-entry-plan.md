@@ -117,7 +117,7 @@
 - `CONTRIBUTING.md`
 - `docs/developer-change-governance.md`
 - `docs/repo-cleanliness-governance.md`
-- `docs/output-artifact-boundary-governance.md`
+- `docs/governance/output-artifact-boundary-governance.md`
 
 目标是让开发者从仓库根目录出发，不需要先理解全部治理体系，就能完成路径判断：
 
@@ -172,7 +172,7 @@
 - `docs/README.md`
 - `docs/developer-change-governance.md`
 - `docs/repo-cleanliness-governance.md`
-- `docs/output-artifact-boundary-governance.md`
+- `docs/governance/output-artifact-boundary-governance.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE/**`
 - `docs/plans/README.md`

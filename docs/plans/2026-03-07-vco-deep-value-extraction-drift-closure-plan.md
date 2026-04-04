@@ -170,7 +170,7 @@
 ### Task 5: Wave 35 — Docling Productization
 
 **Files**
-- Create: `docs/docling-document-plane-integration.md`
+- Create: `docs/design/docling-document-plane-integration.md`
 - Create: `references/docling-output-spec.md`
 - Modify: `references/tool-registry.md`
 - Create: `config/docling-provider-policy.json`
@@ -245,11 +245,11 @@
 ### Task 8: Wave 38 — Discovery / Eval Corpus Productization
 
 **Files**
-- Create: `docs/discovery-eval-corpus-governance.md`
+- Create: `docs/governance/discovery-eval-corpus-governance.md`
 - Create: `references/capability-catalog.md`
 - Create: `config/capability-catalog.json`
 - Create: `scripts/verify/vibe-capability-catalog-gate.ps1`
-- Create: `docs/upstream-eval-pilot-scenarios.md`
+- Create: `docs/external-tooling/upstream-eval-pilot-scenarios.md`
 
 **Outcome**
 - 把 `awesome-vibe-coding`、`awesome-ai-tools`、`vibe-coding-cn`、`awesome-ai-agents-e2b` 的价值沉淀成 discovery / eval corpus，而不是新的 runtime 入口。

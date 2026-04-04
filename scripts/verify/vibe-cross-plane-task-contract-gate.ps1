@@ -59,7 +59,7 @@ param(
     $repoRoot = $context.repoRoot
     $assertions = [System.Collections.Generic.List[object]]::new()
     $requiredPaths = @(
-    'docs/cross-plane-task-contract-governance.md',
+    'docs/governance/cross-plane-task-contract-governance.md',
     'references/unified-task-contract.md'
 )
     foreach ($relPath in $requiredPaths) {
@@ -68,7 +68,7 @@ param(
     }
 
     $keywordChecks = @(
-    [pscustomobject]@{ path = 'docs/cross-plane-task-contract-governance.md'; keywords = @(
+    [pscustomobject]@{ path = 'docs/governance/cross-plane-task-contract-governance.md'; keywords = @(
     'single task contract',
     'evidence',
     'second orchestrator'

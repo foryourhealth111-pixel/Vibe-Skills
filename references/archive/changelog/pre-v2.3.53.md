@@ -273,7 +273,7 @@ Current changelog surface: `references/changelog.md`.
   - 新增 strict 缺失阻断断言：`full_missing` 时必须 `enforced=true` 且 `required_action=create_full_spec_change`。
   - 新增 `requested_skill_whitelist` 断言：白名单请求触发 `reason` 匹配 `requested_skill_bypass*`，并标记 `bypass_due_to_requested_skill=true`。
 - OpenSpec 文档改为 Governance-First 口径：
-  - `docs/openspec-vco-integration.md`
+  - `docs/design/openspec-vco-integration.md`
   - `README.md`（仅 OpenSpec 治理段落）
 
 ## v2.3.25 (2026-02-27)
@@ -283,7 +283,7 @@ Current changelog surface: `references/changelog.md`.
   - 新增 `-StrictFullJson` 取证模式，保留完整载荷全等检查能力（仅用于法证/回归定位，不作为默认阻断）。
   - 新增 `low-signal + legacy_fallback_guard` 的预期差异识别，避免将反静默兜底设计误判为回归。
 - 文档同步更新：
-  - `docs/router-modularization-governance.md`
+  - `docs/governance/router-modularization-governance.md`
   - `scripts/verify/README.md`
 
 ## v2.3.24 (2026-02-27)
@@ -332,8 +332,8 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-routing-probe-research.ps1` 与 `scripts/verify/vibe-deep-discovery-scenarios.ps1` 更新 stage chain（含 `overlay.exploration`）
   - `scripts/verify/README.md` 新增 exploration gate 入口
 - 文档与健康检查更新：
-  - `docs/exploration-overlay-integration.md`
-  - `docs/blackbox-probe-and-enhancement-playbook.md`、`docs/deep-discovery-mode-design.md`、`docs/retrieval-overlay-integration.md` 更新路由阶段链
+  - `docs/design/exploration-overlay-integration.md`
+  - `docs/design/blackbox-probe-and-enhancement-playbook.md`、`docs/design/deep-discovery-mode-design.md`、`docs/design/retrieval-overlay-integration.md` 更新路由阶段链
   - `references/index.md` 新增 exploration 文档入口
   - `check.ps1` / `check.sh` 新增 exploration 配置存在性检查
 
@@ -363,8 +363,8 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-routing-probe-research.ps1` 与 `scripts/verify/vibe-deep-discovery-scenarios.ps1` 更新 stage chain（含 `overlay.retrieval`）
   - `scripts/verify/README.md` 新增 retrieval gate 入口
 - 文档与健康检查更新：
-  - `docs/retrieval-overlay-integration.md`
-  - `docs/blackbox-probe-and-enhancement-playbook.md`、`docs/deep-discovery-mode-design.md` 更新路由阶段链
+  - `docs/design/retrieval-overlay-integration.md`
+  - `docs/design/blackbox-probe-and-enhancement-playbook.md`、`docs/design/deep-discovery-mode-design.md` 更新路由阶段链
   - `references/index.md` 新增 retrieval 文档入口
   - `check.ps1` / `check.sh` 新增 retrieval 配置存在性检查
 
@@ -374,7 +374,7 @@ Current changelog surface: `references/changelog.md`.
   - `config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
   - `bundled/skills/vibe/config/heartbeat-policy.json` -> `enabled=true`, `mode=shadow`
 - 新增复检报告：
-  - `docs/heartbeat-unified-vibe-entry-recheck-2026-02-27.md`
+  - `docs/archive/reports/heartbeat-unified-vibe-entry-recheck-2026-02-27.md`
   - 覆盖 M/L/XL 与模糊场景的统一入口触发结果、strict 压测触发结果与门禁通过证据。
 
 ## v2.3.20 (2026-02-26)
@@ -443,15 +443,15 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-config-parity-gate.ps1`
   - `scripts/verify/vibe-pack-routing-smoke.ps1`
   - `check.ps1` / `check.sh`
-  - `docs/deep-discovery-mode-design.md`
-  - `docs/blackbox-probe-and-enhancement-playbook.md`
+  - `docs/design/deep-discovery-mode-design.md`
+  - `docs/design/blackbox-probe-and-enhancement-playbook.md`
   - `references/index.md`
   - `scripts/verify/README.md`
 
 ## v2.3.17 (2026-02-26)
 
 - 新增统一复用文档：
-  - `docs/blackbox-probe-and-enhancement-playbook.md`
+  - `docs/design/blackbox-probe-and-enhancement-playbook.md`
   - 汇总 blackbox 探测、语义增强、阈值扫描、回归门禁的模块职责、运行顺序、产物路径与常用命令。
 - 语义增强脚本可复用性提升：
   - `scripts/research/mine-user-semantic-overlay-signals.ps1` 增加 `/vibe` 与 `$vibe` 前缀归一化、redacted prompt 过滤、报告渲染修复。
@@ -482,7 +482,7 @@ Current changelog surface: `references/changelog.md`.
 - CI 门禁升级：
   - `.github/workflows/vco-gates.yml` 纳入 `vibe-router-contract-gate.ps1`
 - 新增治理文档：
-  - `docs/router-modularization-governance.md`（main + bundled）
+  - `docs/governance/router-modularization-governance.md`（main + bundled）
 - 文档同步：
   - `SKILL.md`、`references/index.md`、`scripts/verify/README.md` 更新模块化与契约门禁入口
 
@@ -522,7 +522,7 @@ Current changelog surface: `references/changelog.md`.
     - `vibe-observability-gate`
     - `vibe-ai-rerank-gate`
 - 新增文档：
-  - `docs/ai-rerank-overlay-integration.md`（main + bundled）
+  - `docs/design/ai-rerank-overlay-integration.md`（main + bundled）
   - `scripts/verify/README.md`、`references/index.md`、`SKILL.md` 同步更新
 
 ## v2.3.14 (2026-02-26)
@@ -542,8 +542,8 @@ Current changelog surface: `references/changelog.md`.
     - `scripts/governance/publish-openspec-soft-rollout.ps1` 禁用自动回退执行
     - 发布失败时仅输出手动回退命令，要求用户显式确认后执行
   - 文档同步：
-    - `docs/observability-consistency-governance.md`（main + bundled）
-    - `docs/openspec-vco-integration.md` 更新为“手动确认回退”策略
+    - `docs/governance/observability-consistency-governance.md`（main + bundled）
+    - `docs/design/openspec-vco-integration.md` 更新为“手动确认回退”策略
     - `scripts/verify/README.md`、`references/index.md`、`check.ps1`、`check.sh` 同步更新
   - 一致性门禁：
     - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `observability-policy` main/bundled parity
@@ -573,7 +573,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `cuda-kernel-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/cuda-kernel-overlay-integration.md`（main + bundled）
+  - `docs/design/cuda-kernel-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 CUDA kernel overlay 说明
 - 第三方与上游映射：
@@ -602,7 +602,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `system-design-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/system-design-overlay-integration.md`（main + bundled）
+  - `docs/design/system-design-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 system-design overlay 说明
 
@@ -628,7 +628,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `python-clean-code-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/python-clean-code-overlay-integration.md`（main + bundled）
+  - `docs/design/python-clean-code-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 Python clean-code overlay 说明
 
@@ -650,7 +650,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `ml-lifecycle-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/ml-lifecycle-overlay-integration.md`（main + bundled）
+  - `docs/design/ml-lifecycle-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 ML lifecycle overlay 说明
 
@@ -672,7 +672,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `framework-interop-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/framework-interop-overlay-integration.md`（main + bundled）
+  - `docs/design/framework-interop-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 framework-interop 说明
 
@@ -694,7 +694,7 @@ Current changelog surface: `references/changelog.md`.
 - 健康检查增强：
   - `check.ps1`、`check.sh` 新增 `quality-debt-overlay` 配置存在性检查
 - 新增设计文档：
-  - `docs/quality-debt-overlay-integration.md`（main + bundled）
+  - `docs/design/quality-debt-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md`、`references/tool-registry.md` 更新 quality-debt overlay 说明
 
@@ -720,7 +720,7 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `data-scale-overlay` main/bundled parity
   - `scripts/verify/README.md` 增加执行入口
 - 新增设计文档：
-  - `docs/data-scale-overlay-integration.md`（main + bundled）
+  - `docs/design/data-scale-overlay-integration.md`（main + bundled）
 - 文档同步：
   - `README.md`、`SKILL.md`、`references/index.md` 更新 data-scale overlay 说明与入口
 - 验证结果（本地）：
@@ -761,7 +761,7 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `memory-governance` main/bundled parity
   - `scripts/verify/README.md` 增加执行入口
 - 新增设计文档：
-  - `docs/memory-governance-integration.md`（main + bundled）
+  - `docs/design/memory-governance-integration.md`（main + bundled）
 - `SKILL.md` 更新内联 Memory Rules 与 Rule 2 摘要，统一到五层边界模型。
 
 ## v2.3.4 (2026-02-25)
@@ -785,7 +785,7 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/vibe-config-parity-gate.ps1` 纳入 `prompt-overlay` main/bundled 一致性检查
   - `scripts/verify/README.md` 更新执行入口
 - 文档更新：
-  - 新增 `docs/prompt-overlay-integration.md`（main + bundled）
+  - 新增 `docs/design/prompt-overlay-integration.md`（main + bundled）
   - 更新 `README.md`、`SKILL.md`、`references/index.md`
   - `THIRD_PARTY_LICENSES.md`、`config/upstream-lock.json` 增加 `f/prompts.chat` 集成边界说明
 
@@ -813,7 +813,7 @@ Current changelog surface: `references/changelog.md`.
 - 路由可观测性增强（不改变路由决策）：
   - `scripts/router/resolve-pack-route.ps1` 输出新增 `gsd_overlay_advice`
 - 文档更新：
-  - 新增 `docs/gsd-vco-overlay-integration.md`
+  - 新增 `docs/design/gsd-vco-overlay-integration.md`
   - 更新 `references/index.md`、`README.md`、`scripts/verify/README.md` 对应入口
 
 ## v2.3.2 (2026-02-25)
@@ -858,7 +858,7 @@ Current changelog surface: `references/changelog.md`.
   - 即使应急回退执行，发布脚本仍以失败退出码返回，避免掩盖问题
 - 文档更新：
   - `README.md`
-  - `docs/openspec-vco-integration.md`
+  - `docs/design/openspec-vco-integration.md`
   - `scripts/verify/README.md`
 - 验证结果（本地）：
   - `vibe-pack-regression-matrix.ps1`：`54/54`
@@ -881,7 +881,7 @@ Current changelog surface: `references/changelog.md`.
 - 验证与文档更新：
   - `scripts/verify/README.md` 增加 `cer-compare.ps1` 说明
   - `scripts/verify/vibe-context-retro-smoke.ps1` 增加 CER compare 引用与脚本存在性断言
-  - `docs/context-retro-advisor-design.md` 增加 CER compare 验证与产物约定
+  - `docs/design/context-retro-advisor-design.md` 增加 CER compare 验证与产物约定
 
 ## v2.2.10 (2026-02-24)
 
@@ -902,7 +902,7 @@ Current changelog surface: `references/changelog.md`.
   - `scripts/verify/README.md`
   - `scripts/verify/vibe-context-retro-smoke.ps1` 增加模板/回归脚本存在性断言
 - 文档更新：
-  - `docs/context-retro-advisor-design.md` 增加量化阈值、CER 产物与验证计划
+  - `docs/design/context-retro-advisor-design.md` 增加量化阈值、CER 产物与验证计划
 
 ## v2.2.9 (2026-02-24)
 
@@ -911,7 +911,7 @@ Current changelog surface: `references/changelog.md`.
   - `protocols/retro.md`：新增 Context Retro Advisor 角色、CF-1..CF-6 失败分类、CER（Context Evidence Report）输出契约
   - `references/fallback-chains.md`：新增 Retro Context Expert Fallback 链路
 - 新增设计与验证资产：
-  - `docs/context-retro-advisor-design.md`
+  - `docs/design/context-retro-advisor-design.md`
   - `scripts/verify/vibe-context-retro-smoke.ps1`
   - `scripts/verify/README.md` 增补脚本说明
 - 引用索引更新：
@@ -931,10 +931,10 @@ Current changelog surface: `references/changelog.md`.
 - 安装器收口为 canonical-first：
   - `install.ps1`、`install.sh` 均优先 `skills/<name>`，仅将 `superpowers/skills/<name>` 作为 fallback
 - 新增最终清理报告：
-  - `docs/hard-migration-batch-e-final-cleanup-report.md`
+  - `docs/archive/reports/hard-migration-batch-e-final-cleanup-report.md`
 - 审计留痕策略：
   - `config/batch-e-alias-whitelist.json` 标记为 historical snapshot（仅审计留痕，不参与运行时路由）
-  - `docs/hard-migration-batch-e-alias-whitelist-audit.md` 标记为已被 final cleanup report 取代
+  - `docs/archive/reports/hard-migration-batch-e-alias-whitelist-audit.md` 标记为已被 final cleanup report 取代
 - 全套验证通过：
   - `vibe-routing-smoke.ps1`: `38/38`
   - `vibe-pack-routing-smoke.ps1`: `49/49`
@@ -947,7 +947,7 @@ Current changelog surface: `references/changelog.md`.
 
 - 完成 Batch E「可删 alias 白名单生成 + 影响面审计（不删先审）」：
   - 新增 `config/batch-e-alias-whitelist.json`（28 个 alias 风险分层与分阶段删除门禁）
-  - 新增 `docs/hard-migration-batch-e-alias-whitelist-audit.md`（影响面审计报告）
+  - 新增 `docs/archive/reports/hard-migration-batch-e-alias-whitelist-audit.md`（影响面审计报告）
 - 验证阶段补充编码兼容性加固（Windows PowerShell）：
   - `scripts/router/resolve-pack-route.ps1` 显式 `-Encoding UTF8` 读取 JSON 配置
   - `scripts/verify/vibe-pack-routing-smoke.ps1` 显式 `-Encoding UTF8` 读取 JSON 配置
@@ -979,7 +979,7 @@ Current changelog surface: `references/changelog.md`.
 - 变更前快照：
   - `outputs/backups/pack-manifest-pre-batch-cd-20260224-225014.json`
 - 新增报告：
-  - `docs/hard-migration-batch-cd-pruning-report.md`
+  - `docs/archive/reports/hard-migration-batch-cd-pruning-report.md`
 - 验证通过：
   - `vibe-routing-smoke.ps1`: `38/38`
   - `vibe-pack-routing-smoke.ps1`: `104/104`
@@ -998,7 +998,7 @@ Current changelog surface: `references/changelog.md`.
 - 为避免迁移后安装流程断裂，升级安装脚本 fallback：
   - `install.ps1`、`install.sh` 改为优先 canonical 路径，缺失时回退 bundled 路径
 - 新增迁移报告：
-  - `docs/hard-migration-batch-a2-report.md`
+  - `docs/archive/reports/hard-migration-batch-a2-report.md`
 - 验证通过：
   - `vibe-routing-smoke.ps1`: `38/38`
   - `vibe-pack-routing-smoke.ps1`: `104/104`
@@ -1070,7 +1070,7 @@ Current changelog surface: `references/changelog.md`.
 - 同步 bundled 配置副本，避免 main/bundled 漂移：
   - `bundled/skills/vibe/config/pack-manifest.json`
   - `bundled/skills/vibe/config/router-thresholds.json`
-- 新增扩容验证报告：`docs/soft-migration-batch-b-expansion-report.md`
+- 新增扩容验证报告：`docs/archive/reports/soft-migration-batch-b-expansion-report.md`
 - 四项验证脚本全通过（routing/pack smoke/practice/regression matrix）
 
 ## v2.2.0 (2026-02-24)
@@ -1083,13 +1083,13 @@ Current changelog surface: `references/changelog.md`.
   - `skills/code-review4`
   - `skills/xlsx1`
 - 保留 canonical 目录与 alias 映射，未破坏 fallback 路径
-- 新增迁移报告：`docs/hard-migration-batch-a-report.md`
+- 新增迁移报告：`docs/archive/reports/hard-migration-batch-a-report.md`
 
 ## v2.1.1 (2026-02-24)
 
 - 新增软迁移路由解析器：`scripts/router/resolve-pack-route.ps1`
 - 新增软迁移实践测试：`scripts/verify/vibe-soft-migration-practice.ps1`
-- 新增软迁移执行手册：`docs/soft-migration-playbook.md`
+- 新增软迁移执行手册：`docs/archive/root-docs/soft-migration-playbook.md`
 - 更新 verify README 与 references index，纳入软迁移验证入口
 
 ## v2.1.0 (2026-02-24)
@@ -1099,7 +1099,7 @@ Current changelog surface: `references/changelog.md`.
   - `config/pack-manifest.json`
   - `config/skill-alias-map.json`
   - `config/router-thresholds.json`
-- 新增大型重构主计划：`docs/skills-consolidation-roadmap.md`
+- 新增大型重构主计划：`docs/archive/root-docs/skills-consolidation-roadmap.md`
 - 新增 Pack 路由 smoke 校验脚本：`scripts/verify/vibe-pack-routing-smoke.ps1`
 - 更新 `SKILL.md` 与 references 文档，明确 pack 路由边界和低置信度回退到 legacy matrix
 

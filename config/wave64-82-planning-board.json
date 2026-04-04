@@ -57,7 +57,7 @@
         "mem0"
       ],
       "candidate_assets": [
-        "docs/mem0-soft-rollout-governance.md",
+        "docs/governance/mem0-soft-rollout-governance.md",
         "config/mem0-backend-policy.json",
         "references/mem0-write-admission-contract.md",
         "scripts/verify/vibe-mem0-softrollout-gate.ps1"
@@ -99,7 +99,7 @@
         "browser-use"
       ],
       "candidate_assets": [
-        "docs/browserops-scorecard-governance.md",
+        "docs/governance/browserops-scorecard-governance.md",
         "config/browserops-scorecard.json",
         "references/browser-provider-scorecard.md",
         "scripts/verify/vibe-browserops-scorecard-gate.ps1"
@@ -119,7 +119,7 @@
         "browser-use"
       ],
       "candidate_assets": [
-        "docs/browserops-soft-rollout-governance.md",
+        "docs/governance/browserops-soft-rollout-governance.md",
         "config/browserops-provider-policy.json",
         "scripts/verify/vibe-browserops-softrollout-gate.ps1"
       ],
@@ -139,7 +139,7 @@
         "Agent-S"
       ],
       "candidate_assets": [
-        "docs/desktopops-replay-governance.md",
+        "docs/governance/desktopops-replay-governance.md",
         "references/openworld-task-contract.md",
         "scripts/verify/vibe-desktopops-replay-gate.ps1"
       ],
@@ -158,7 +158,7 @@
         "Agent-S"
       ],
       "candidate_assets": [
-        "docs/desktopops-soft-rollout-governance.md",
+        "docs/governance/desktopops-soft-rollout-governance.md",
         "config/desktopops-shadow-policy.json",
         "references/aci-dsl.md",
         "scripts/verify/vibe-desktopops-softrollout-gate.ps1"
@@ -179,7 +179,7 @@
         "Docling"
       ],
       "candidate_assets": [
-        "docs/docling-contract-v2-governance.md",
+        "docs/governance/docling-contract-v2-governance.md",
         "config/docling-provider-policy.json",
         "references/docling-output-spec.md",
         "scripts/verify/vibe-docling-contract-v2-gate.ps1"
@@ -200,7 +200,7 @@
         "document-skills"
       ],
       "candidate_assets": [
-        "docs/document-plane-benchmark-governance.md",
+        "docs/governance/document-plane-benchmark-governance.md",
         "references/document-golden-corpus.md",
         "scripts/verify/vibe-document-plane-benchmark-gate.ps1"
       ],
@@ -222,7 +222,7 @@
         "awesome-mcp-servers"
       ],
       "candidate_assets": [
-        "docs/connector-scorecard-governance.md",
+        "docs/governance/connector-scorecard-governance.md",
         "config/connector-admission-policy.json",
         "references/connector-capability-matrix.md",
         "scripts/verify/vibe-connector-scorecard-gate.ps1"
@@ -243,7 +243,7 @@
         "activepieces"
       ],
       "candidate_assets": [
-        "docs/connector-action-ledger-governance.md",
+        "docs/governance/connector-action-ledger-governance.md",
         "references/connector-action-ledger.md",
         "scripts/verify/vibe-connector-action-ledger-gate.ps1"
       ],
@@ -289,7 +289,7 @@
         "multiple absorbed planes"
       ],
       "candidate_assets": [
-        "docs/cross-plane-task-contract-governance.md",
+        "docs/governance/cross-plane-task-contract-governance.md",
         "references/unified-task-contract.md",
         "scripts/verify/vibe-cross-plane-task-contract-gate.ps1"
       ],
@@ -308,7 +308,7 @@
         "multiple absorbed planes"
       ],
       "candidate_assets": [
-        "docs/cross-plane-replay-governance.md",
+        "docs/governance/cross-plane-replay-governance.md",
         "references/cross-plane-replay-ledger.md",
         "scripts/verify/vibe-cross-plane-replay-gate.ps1"
       ],
@@ -367,7 +367,7 @@
         "runtime governance"
       ],
       "candidate_assets": [
-        "docs/rollback-drill-governance.md",
+        "docs/governance/rollback-drill-governance.md",
         "docs/runtime-freshness-install-sop.md",
         "scripts/verify/vibe-rollback-drill-gate.ps1"
       ],
@@ -388,7 +388,7 @@
         "promoted planes"
       ],
       "candidate_assets": [
-        "docs/release-train-v2-governance.md",
+        "docs/governance/release-train-v2-governance.md",
         "docs/releases/README.md",
         "scripts/verify/vibe-release-train-v2-gate.ps1"
       ],
