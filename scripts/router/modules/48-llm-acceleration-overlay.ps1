@@ -76,6 +76,7 @@ function Get-LlmAccelerationPolicyDefaults {
             include_git_diff = $true
             max_git_status_lines = 80
             max_diff_chars = 9000
+            git_diff_task_allow = @("coding", "debug", "review")
             vector_diff = [pscustomobject]@{
                 enabled = $false
                 embedding_model = ""
@@ -225,6 +226,7 @@ function Get-LlmAccelerationPolicy {
             include_git_diff = if ($context.include_git_diff -ne $null) { [bool]$context.include_git_diff } else { [bool]$defaults.context.include_git_diff }
             max_git_status_lines = if ($context.max_git_status_lines -ne $null) { [int]$context.max_git_status_lines } else { [int]$defaults.context.max_git_status_lines }
             max_diff_chars = if ($context.max_diff_chars -ne $null) { [int]$context.max_diff_chars } else { [int]$defaults.context.max_diff_chars }
+            git_diff_task_allow = if ($context -and ($context.PSObject.Properties.Name -contains 'git_diff_task_allow')) { @($context.git_diff_task_allow) } else { @($defaults.context.git_diff_task_allow) }
             vector_diff = [pscustomobject]@{
                 enabled = if ($vectorDiff -and $vectorDiff.enabled -ne $null) { [bool]$vectorDiff.enabled } else { [bool]$defaults.context.vector_diff.enabled }
                 embedding_model = if ($vectorDiff -and $vectorDiff.embedding_model) { [string]$vectorDiff.embedding_model } else {
@@ -779,7 +781,8 @@ function Get-VcoGitContextSnippet {
     param(
         [object]$PolicyResolved,
         [string]$VcoRepoRoot,
-        [string]$QueryText
+        [string]$QueryText,
+        [string]$TaskType
     )
 
     $contextMode = if ($PolicyResolved -and $PolicyResolved.context -and $PolicyResolved.context.mode) { [string]$PolicyResolved.context.mode } else { "none" }
@@ -814,7 +817,17 @@ function Get-VcoGitContextSnippet {
         } catch { }
     }
 
-    if ($contextMode -eq "diff_snippets_ok" -and [bool]$PolicyResolved.context.include_git_diff) {
+    $diffTaskAllow = @()
+    if ($PolicyResolved.context.PSObject.Properties.Name -contains 'git_diff_task_allow') {
+        $diffTaskAllow = @($PolicyResolved.context.git_diff_task_allow)
+    }
+    $taskAllowsDiff = ($diffTaskAllow.Count -eq 0) -or ($diffTaskAllow -contains $TaskType)
+
+    if (-not $taskAllowsDiff) {
+        $diffMode = "skipped_task_type"
+    }
+
+    if ($contextMode -eq "diff_snippets_ok" -and [bool]$PolicyResolved.context.include_git_diff -and $taskAllowsDiff) {
         try {
             $raw = (git diff --patch --unified=0 2>$null | Out-String)
             $raw = $raw.TrimEnd()
@@ -1947,7 +1960,7 @@ function Get-LlmAccelerationAdvice {
             # Safe abstain: do not waste time on git/diff context if provider is unavailable.
         } else {
             $queryText = if ($PromptNormalization -and $PromptNormalization.normalized) { [string]$PromptNormalization.normalized } else { [string]$PromptText }
-            $gitContext = Get-VcoGitContextSnippet -PolicyResolved $policyResolved -VcoRepoRoot $RepoRoot -QueryText $queryText
+            $gitContext = Get-VcoGitContextSnippet -PolicyResolved $policyResolved -VcoRepoRoot $RepoRoot -QueryText $queryText -TaskType $TaskType
 
             # TurboMax: optionally digest diff once, then feed digest (not raw diff) into downstream LLM calls.
             $diffDigestMeta = [pscustomobject]@{ used = $false; reason = "disabled"; latency_ms = 0; api = "none"; chars = 0 }
