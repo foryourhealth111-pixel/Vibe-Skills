@@ -36,8 +36,8 @@ function Get-VgoEmbeddedAdapterRegistry {
                 bootstrap_mode = 'governed'
                 default_target_root = [pscustomobject]@{
                     env = 'CODEX_HOME'
-                    rel = '.codex'
-                    kind = 'host-home'
+                    rel = '.vibeskills/targets/codex'
+                    kind = 'isolated-home'
                 }
                 host_profile = 'adapters/codex/host-profile.json'
                 settings_map = 'adapters/codex/settings-map.json'
@@ -52,8 +52,8 @@ function Get-VgoEmbeddedAdapterRegistry {
                 bootstrap_mode = 'preview-guidance'
                 default_target_root = [pscustomobject]@{
                     env = 'CLAUDE_HOME'
-                    rel = '.claude'
-                    kind = 'host-home'
+                    rel = '.vibeskills/targets/claude-code'
+                    kind = 'isolated-home'
                 }
                 host_profile = 'adapters/claude-code/host-profile.json'
                 settings_map = 'adapters/claude-code/settings-map.json'
@@ -68,8 +68,8 @@ function Get-VgoEmbeddedAdapterRegistry {
                 bootstrap_mode = 'preview-guidance'
                 default_target_root = [pscustomobject]@{
                     env = 'CURSOR_HOME'
-                    rel = '.cursor'
-                    kind = 'host-home'
+                    rel = '.vibeskills/targets/cursor'
+                    kind = 'isolated-home'
                 }
                 host_profile = 'adapters/cursor/host-profile.json'
                 settings_map = 'adapters/cursor/settings-map.json'
@@ -84,8 +84,8 @@ function Get-VgoEmbeddedAdapterRegistry {
                 bootstrap_mode = 'runtime-core'
                 default_target_root = [pscustomobject]@{
                     env = 'WINDSURF_HOME'
-                    rel = '.codeium/windsurf'
-                    kind = 'host-home'
+                    rel = '.vibeskills/targets/windsurf'
+                    kind = 'isolated-home'
                 }
                 host_profile = 'adapters/windsurf/host-profile.json'
                 settings_map = 'adapters/windsurf/settings-map.json'
@@ -100,13 +100,29 @@ function Get-VgoEmbeddedAdapterRegistry {
                 bootstrap_mode = 'runtime-core'
                 default_target_root = [pscustomobject]@{
                     env = 'OPENCLAW_HOME'
-                    rel = '.openclaw'
-                    kind = 'host-home'
+                    rel = '.vibeskills/targets/openclaw'
+                    kind = 'isolated-home'
                 }
                 host_profile = 'adapters/openclaw/host-profile.json'
                 settings_map = 'adapters/openclaw/settings-map.json'
                 closure = 'adapters/openclaw/closure.json'
                 manifest = 'dist/host-openclaw/manifest.json'
+            },
+            [pscustomobject]@{
+                id = 'opencode'
+                status = 'preview'
+                install_mode = 'preview-guidance'
+                check_mode = 'preview-guidance'
+                bootstrap_mode = 'preview-guidance'
+                default_target_root = [pscustomobject]@{
+                    env = 'OPENCODE_HOME'
+                    rel = '.vibeskills/targets/opencode'
+                    kind = 'isolated-home'
+                }
+                host_profile = 'adapters/opencode/host-profile.json'
+                settings_map = 'adapters/opencode/settings-map.json'
+                closure = 'adapters/opencode/closure.json'
+                manifest = 'dist/host-opencode/manifest.json'
             }
         )
     }

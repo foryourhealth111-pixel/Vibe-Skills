@@ -33,7 +33,8 @@ class WindsurfRuntimeCoreTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual("windsurf", payload["id"])
         self.assertEqual("runtime-core", payload["install_mode"])
-        self.assertEqual(".codeium/windsurf", payload["default_target_root"]["rel"])
+        self.assertEqual(".vibeskills/targets/windsurf", payload["default_target_root"]["rel"])
+        self.assertEqual("isolated-home", payload["default_target_root"]["kind"])
 
     def test_python_installer_uses_runtime_core_without_codex_host_state(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

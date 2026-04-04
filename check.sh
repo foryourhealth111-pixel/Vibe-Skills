@@ -114,13 +114,13 @@ assert_target_root_matches_host_intent() {
   is_cursor_root="false"
   is_windsurf_root="false"
   is_openclaw_root="false"
-  [[ "${leaf}" == ".codex" ]] && is_codex_root="true"
-  [[ "${leaf}" == ".claude" ]] && is_claude_root="true"
-  [[ "${leaf}" == ".cursor" ]] && is_cursor_root="true"
-  [[ "${normalized_target}" == */.codeium/windsurf ]] && is_windsurf_root="true"
-  [[ "${leaf}" == ".openclaw" ]] && is_openclaw_root="true"
+  [[ "${leaf}" == ".codex" || "${normalized_target}" == */.vibeskills/targets/codex ]] && is_codex_root="true"
+  [[ "${leaf}" == ".claude" || "${normalized_target}" == */.vibeskills/targets/claude-code ]] && is_claude_root="true"
+  [[ "${leaf}" == ".cursor" || "${normalized_target}" == */.vibeskills/targets/cursor ]] && is_cursor_root="true"
+  [[ "${normalized_target}" == */.codeium/windsurf || "${normalized_target}" == */.vibeskills/targets/windsurf ]] && is_windsurf_root="true"
+  [[ "${leaf}" == ".openclaw" || "${normalized_target}" == */.vibeskills/targets/openclaw ]] && is_openclaw_root="true"
   local is_opencode_root="false"
-  [[ "${leaf}" == ".opencode" || "${normalized_target}" == */.config/opencode ]] && is_opencode_root="true"
+  [[ "${leaf}" == ".opencode" || "${normalized_target}" == */.config/opencode || "${normalized_target}" == */.vibeskills/targets/opencode ]] && is_opencode_root="true"
   if [[ "${host_id}" == "codex" && ( "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a non-Codex host root, but host='codex'." >&2
     exit 1

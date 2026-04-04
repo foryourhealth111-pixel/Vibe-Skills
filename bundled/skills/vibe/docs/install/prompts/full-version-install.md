@@ -21,12 +21,12 @@
 4. 如果我选 `codex`，使用 `--host codex --profile full`；明确说明这是当前最完整的 governed 路径，但 hook 仍冻结。
 5. 如果我选 `claude-code`，使用 `--host claude-code --profile full`；明确说明当前提供支持的安装与使用路径，不覆盖真实 `~/.claude/settings.json`。
 6. 如果我选 `cursor`，使用 `--host cursor --profile full`；明确说明当前提供支持的安装与使用路径，也不接管真实 `~/.cursor/settings.json`。
-7. 如果我选 `windsurf`，使用 `--host windsurf --profile full`；明确说明当前提供支持的安装与使用路径，且已接入 runtime adapter，默认根目录是 `~/.codeium/windsurf`，repo 只负责 shared runtime payload 和按需物化 `mcp_config.json` / `global_workflows/`。
-8. 如果我选 `openclaw`，使用 `--host openclaw --profile full`；明确说明当前按 `preview` / `runtime-core-preview` / `runtime-core` 路径接入，默认目标根目录是 `OPENCLAW_HOME` 或 `~/.openclaw`，并说明 attach / copy / bundle 三路径。
+7. 如果我选 `windsurf`，使用 `--host windsurf --profile full`；明确说明当前提供支持的安装与使用路径，且已接入 runtime adapter，默认目标根目录是 `WINDSURF_HOME` 或 `~/.vibeskills/targets/windsurf`，repo 只负责 shared runtime payload 和按需物化 `mcp_config.json` / `global_workflows/`。
+8. 如果我选 `openclaw`，使用 `--host openclaw --profile full`；明确说明当前按 `preview` / `runtime-core-preview` / `runtime-core` 路径接入，默认目标根目录是 `OPENCLAW_HOME` 或 `~/.vibeskills/targets/openclaw`，并说明 attach / copy / bundle 三路径。
 9. 如果我选 `opencode`，使用 direct install/check，不走 one-shot bootstrap：
    - Windows：`pwsh -NoProfile -File .\\install.ps1 -HostId opencode -Profile full` 与 `pwsh -NoProfile -File .\\check.ps1 -HostId opencode -Profile full`
    - Linux / macOS：`bash ./install.sh --host opencode --profile full` 与 `bash ./check.sh --host opencode --profile full`
-   - 明确说明当前按 preview adapter 路径接入，默认目标根目录是 `OPENCODE_HOME`，否则是 `~/.config/opencode`
+   - 明确说明当前按 preview adapter 路径接入，默认目标根目录是 `OPENCODE_HOME` 或 `~/.vibeskills/targets/opencode`
    - 明确说明 direct install/check 会写入 skills、command/agent wrappers 与 `opencode.json.example`，但不接管真实 `opencode.json`、provider 凭据、plugin 安装和 MCP 信任
 10. 对六个宿主，都不要要求我把密钥、URL 或 model 粘贴到聊天里；只告诉我去本地 settings 或本地环境变量里配置。
 11. 区分“本地安装完成”和“在线能力就绪”。

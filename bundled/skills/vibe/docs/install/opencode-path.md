@@ -4,7 +4,7 @@
 
 - 通用安装提示词同样可以安装 `opencode`
 - 这份专页不是替代通用安装提示词，而是补充 OpenCode 宿主特有说明
-- 单独拆出本页，是因为 OpenCode 还需要展开 direct install/check、默认根目录、项目内隔离安装、实际写入内容与宿主侧本地边界；这些内容如果全部塞进公共安装文档，会让多宿主安装入口变得过重
+- 单独拆出本页，是因为 OpenCode 还需要展开 direct install/check、默认目标根目录、项目内隔离安装、实际写入内容与宿主侧本地边界；这些内容如果全部塞进公共安装文档，会让多宿主安装入口变得过重
 
 ## 当前仓库会安装
 
@@ -40,7 +40,9 @@ pwsh -NoProfile -File ./check.ps1 -HostId opencode
 默认目标根目录：
 
 - 若设置了 `OPENCODE_HOME`，使用该目录
-- 否则使用 `~/.config/opencode`
+- 否则使用 `~/.vibeskills/targets/opencode`
+
+这里的默认目标根目录是隔离安装根，不等于真实宿主配置目录 `~/.config/opencode`。
 
 默认示例省略 `--profile`，等价于 `full`。
 如果你要安装“仅核心框架 + 可自定义添加治理”，请在 install/check 命令后显式追加 `--profile minimal`。

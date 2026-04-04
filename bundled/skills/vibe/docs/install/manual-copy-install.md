@@ -22,12 +22,12 @@
 
 ## 宿主根目录提示
 
-- `codex` -> `~/.codex`
-- `claude-code` -> `~/.claude`
-- `cursor` -> `~/.cursor`
-- `windsurf` -> `~/.codeium/windsurf`
-- `openclaw` -> `OPENCLAW_HOME` 或 `~/.openclaw`
-- `opencode` -> `OPENCODE_HOME` 或 `~/.config/opencode`
+- `codex` -> `CODEX_HOME` 或 `~/.vibeskills/targets/codex`
+- `claude-code` -> `CLAUDE_HOME` 或 `~/.vibeskills/targets/claude-code`
+- `cursor` -> `CURSOR_HOME` 或 `~/.vibeskills/targets/cursor`
+- `windsurf` -> `WINDSURF_HOME` 或 `~/.vibeskills/targets/windsurf`
+- `openclaw` -> `OPENCLAW_HOME` 或 `~/.vibeskills/targets/openclaw`
+- `opencode` -> `OPENCODE_HOME` 或 `~/.vibeskills/targets/opencode`
 
 如果目标是 `windsurf`，还要额外注意：
 
@@ -65,18 +65,18 @@
 
 ### Windsurf
 
-- 确认 `~/.codeium/windsurf` 下的 `mcp_config.json` 与 `global_workflows/`
+- 确认 `WINDSURF_HOME` 或 `~/.vibeskills/targets/windsurf` 下的 `mcp_config.json` 与 `global_workflows/`
 - 宿主侧本地配置仍需在 Windsurf 内完成
 
 ### OpenClaw
 
-- 确认 `OPENCLAW_HOME` 或 `~/.openclaw` 下的 runtime-core payload
+- 确认 `OPENCLAW_HOME` 或 `~/.vibeskills/targets/openclaw` 下的 runtime-core payload
 - 如需与脚本安装结果对齐，优先使用 attach / copy / bundle 三路径说明
 - 宿主侧本地配置仍需在 OpenClaw 内完成
 
 ### OpenCode
 
-- 确认 `OPENCODE_HOME` 或 `~/.config/opencode` 下的 preview payload
+- 确认 `OPENCODE_HOME` 或 `~/.vibeskills/targets/opencode` 下的 preview payload
 - 真实 `opencode.json`、provider 凭据、plugin 安装和 MCP 信任仍需宿主侧本地完成
 - 如需项目内隔离安装结果，对齐 `./.opencode`
 

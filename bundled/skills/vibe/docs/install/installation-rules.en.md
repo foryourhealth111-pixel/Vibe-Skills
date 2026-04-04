@@ -80,7 +80,7 @@ If the user chooses `windsurf`:
 
 - run `--host windsurf`
 - state clearly that it has a supported install-and-use path
-- the default host root is `~/.codeium/windsurf`
+- the default target root is `WINDSURF_HOME` or `~/.vibeskills/targets/windsurf`
 - the repo currently owns only shared install content plus optional materialization of `mcp_config.json` and `global_workflows/`
 - make it clear that Windsurf-local settings still need to be managed on the Windsurf side
 
@@ -90,7 +90,7 @@ If the user chooses `openclaw`:
 
 - run `--host openclaw`
 - state clearly that it has a supported install-and-use path
-- the default target root is `OPENCLAW_HOME` or `~/.openclaw`
+- the default target root is `OPENCLAW_HOME` or `~/.vibeskills/targets/openclaw`
 - if the user needs attach / copy / bundle details, point them to [`openclaw-path.en.md`](./openclaw-path.en.md)
 - leave host-local configuration on the OpenClaw side
 
@@ -100,7 +100,7 @@ If the user chooses `opencode`:
 
 - run `--host opencode`
 - state clearly that it has a supported install-and-use path
-- the default target root is `OPENCODE_HOME`, otherwise `~/.config/opencode`
+- the default target root is `OPENCODE_HOME` or `~/.vibeskills/targets/opencode`
 - direct install/check writes skills, command/agent wrappers, and `opencode.json.example`
 - do not claim ownership of the real `opencode.json`
 - keep provider credentials, plugin installation, and MCP trust on the host-managed side

@@ -504,12 +504,12 @@ function Invoke-AdapterSpecificChecks {
 
   if ([string]$Adapter.id -eq 'opencode') {
     foreach ($name in @('vibe', 'vibe-implement', 'vibe-review')) {
-      Check-Path -Label "opencode command/$name" -Path (Join-Path $TargetRoot "commands\$name.md")
-      Check-Path -Label "opencode compat command/$name" -Path (Join-Path $TargetRoot "command\$name.md")
+      Check-Path -Label "opencode command/$name" -Path (Join-Path (Join-Path $TargetRoot 'commands') "$name.md")
+      Check-Path -Label "opencode compat command/$name" -Path (Join-Path (Join-Path $TargetRoot 'command') "$name.md")
     }
     foreach ($name in @('vibe-plan', 'vibe-implement', 'vibe-review')) {
-      Check-Path -Label "opencode agent/$name" -Path (Join-Path $TargetRoot "agents\$name.md")
-      Check-Path -Label "opencode compat agent/$name" -Path (Join-Path $TargetRoot "agent\$name.md")
+      Check-Path -Label "opencode agent/$name" -Path (Join-Path (Join-Path $TargetRoot 'agents') "$name.md")
+      Check-Path -Label "opencode compat agent/$name" -Path (Join-Path (Join-Path $TargetRoot 'agent') "$name.md")
     }
     Check-Path -Label 'opencode preview config example' -Path (Join-Path $TargetRoot 'opencode.json.example')
   }

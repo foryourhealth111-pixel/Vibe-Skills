@@ -1,7 +1,7 @@
 param(
   [ValidateSet("minimal", "full")]
   [string]$Profile = "full",
-  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw")]
+  [ValidateSet("codex", "claude-code", "cursor", "windsurf", "openclaw", "opencode")]
   [string]$HostId = "codex",
   [string]$TargetRoot = '',
   [switch]$SkipRuntimeFreshnessGate,
@@ -92,6 +92,13 @@ function Check-Condition {
     }
     $script:fail++
   }
+}
+
+function Warn-Note {
+  param([string]$Message)
+
+  Write-Host "[WARN] $Message" -ForegroundColor Yellow
+  $script:warn++
 }
 
 function Get-JsonObject {
@@ -420,7 +427,11 @@ function Invoke-AdapterSpecificChecks {
     Check-Path -Label "settings.json" -Path (Join-Path $TargetRoot 'settings.json')
   }
   if ([string]$Adapter.check_mode -eq 'preview-guidance') {
-    Write-Host ("[INFO] {0} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure" -f $Adapter.id) -ForegroundColor Cyan
+    if ([string]$Adapter.id -eq 'opencode') {
+      Warn-Note -Message 'opencode preview keeps the real opencode.json host-managed; only skills, commands, agents, and an example config scaffold are verified'
+    } else {
+      Write-Host ("[INFO] {0} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure" -f $Adapter.id) -ForegroundColor Cyan
+    }
   }
   if ([string]$Adapter.check_mode -eq 'runtime-core') {
     $commandsRoot = Join-Path $RepoRoot 'commands'
@@ -489,6 +500,18 @@ function Invoke-AdapterSpecificChecks {
     foreach ($name in $optionalWorkflow) {
       Check-Path -Label "optional workflow skill/$name" -Path (Join-Path $TargetRoot "skills\$name\SKILL.md") -Required:$false
     }
+  }
+
+  if ([string]$Adapter.id -eq 'opencode') {
+    foreach ($name in @('vibe', 'vibe-implement', 'vibe-review')) {
+      Check-Path -Label "opencode command/$name" -Path (Join-Path (Join-Path $TargetRoot 'commands') "$name.md")
+      Check-Path -Label "opencode compat command/$name" -Path (Join-Path (Join-Path $TargetRoot 'command') "$name.md")
+    }
+    foreach ($name in @('vibe-plan', 'vibe-implement', 'vibe-review')) {
+      Check-Path -Label "opencode agent/$name" -Path (Join-Path (Join-Path $TargetRoot 'agents') "$name.md")
+      Check-Path -Label "opencode compat agent/$name" -Path (Join-Path (Join-Path $TargetRoot 'agent') "$name.md")
+    }
+    Check-Path -Label 'opencode preview config example' -Path (Join-Path $TargetRoot 'opencode.json.example')
   }
 }
 

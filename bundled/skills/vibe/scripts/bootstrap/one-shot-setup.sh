@@ -94,11 +94,11 @@ ensure_requested_host_id() {
 resolve_default_target_root() {
   local host_id="$1"
   case "${host_id}" in
-    codex) printf '%s' "${CODEX_HOME:-${HOME}/.codex}" ;;
-    claude-code) printf '%s' "${CLAUDE_HOME:-${HOME}/.claude}" ;;
-    cursor) printf '%s' "${CURSOR_HOME:-${HOME}/.cursor}" ;;
-    windsurf) printf '%s' "${WINDSURF_HOME:-${HOME}/.codeium/windsurf}" ;;
-    openclaw) printf '%s' "${OPENCLAW_HOME:-${HOME}/.openclaw}" ;;
+    codex) printf '%s' "${CODEX_HOME:-${HOME}/.vibeskills/targets/codex}" ;;
+    claude-code) printf '%s' "${CLAUDE_HOME:-${HOME}/.vibeskills/targets/claude-code}" ;;
+    cursor) printf '%s' "${CURSOR_HOME:-${HOME}/.vibeskills/targets/cursor}" ;;
+    windsurf) printf '%s' "${WINDSURF_HOME:-${HOME}/.vibeskills/targets/windsurf}" ;;
+    openclaw) printf '%s' "${OPENCLAW_HOME:-${HOME}/.vibeskills/targets/openclaw}" ;;
     *)
       echo "[FAIL] Unsupported VCO host id for target-root resolution: ${host_id}" >&2
       exit 1
@@ -119,11 +119,11 @@ assert_target_root_matches_host_intent() {
   is_cursor_root="false"
   is_windsurf_root="false"
   is_openclaw_root="false"
-  [[ "${leaf}" == ".codex" ]] && is_codex_root="true"
-  [[ "${leaf}" == ".claude" ]] && is_claude_root="true"
-  [[ "${leaf}" == ".cursor" ]] && is_cursor_root="true"
-  [[ "${normalized_target}" == */.codeium/windsurf ]] && is_windsurf_root="true"
-  [[ "${leaf}" == ".openclaw" ]] && is_openclaw_root="true"
+  [[ "${leaf}" == ".codex" || "${normalized_target}" == */.vibeskills/targets/codex ]] && is_codex_root="true"
+  [[ "${leaf}" == ".claude" || "${normalized_target}" == */.vibeskills/targets/claude-code ]] && is_claude_root="true"
+  [[ "${leaf}" == ".cursor" || "${normalized_target}" == */.vibeskills/targets/cursor ]] && is_cursor_root="true"
+  [[ "${normalized_target}" == */.codeium/windsurf || "${normalized_target}" == */.vibeskills/targets/windsurf ]] && is_windsurf_root="true"
+  [[ "${leaf}" == ".openclaw" || "${normalized_target}" == */.vibeskills/targets/openclaw ]] && is_openclaw_root="true"
   if [[ "${host_id}" == "codex" && ( "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a non-Codex host root, but host='codex'." >&2
     exit 1

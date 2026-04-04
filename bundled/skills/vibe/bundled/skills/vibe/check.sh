@@ -114,11 +114,13 @@ assert_target_root_matches_host_intent() {
   is_cursor_root="false"
   is_windsurf_root="false"
   is_openclaw_root="false"
-  [[ "${leaf}" == ".codex" ]] && is_codex_root="true"
-  [[ "${leaf}" == ".claude" ]] && is_claude_root="true"
-  [[ "${leaf}" == ".cursor" ]] && is_cursor_root="true"
-  [[ "${normalized_target}" == */.codeium/windsurf ]] && is_windsurf_root="true"
-  [[ "${leaf}" == ".openclaw" ]] && is_openclaw_root="true"
+  [[ "${leaf}" == ".codex" || "${normalized_target}" == */.vibeskills/targets/codex ]] && is_codex_root="true"
+  [[ "${leaf}" == ".claude" || "${normalized_target}" == */.vibeskills/targets/claude-code ]] && is_claude_root="true"
+  [[ "${leaf}" == ".cursor" || "${normalized_target}" == */.vibeskills/targets/cursor ]] && is_cursor_root="true"
+  [[ "${normalized_target}" == */.codeium/windsurf || "${normalized_target}" == */.vibeskills/targets/windsurf ]] && is_windsurf_root="true"
+  [[ "${leaf}" == ".openclaw" || "${normalized_target}" == */.vibeskills/targets/openclaw ]] && is_openclaw_root="true"
+  local is_opencode_root="false"
+  [[ "${leaf}" == ".opencode" || "${normalized_target}" == */.config/opencode || "${normalized_target}" == */.vibeskills/targets/opencode ]] && is_opencode_root="true"
   if [[ "${host_id}" == "codex" && ( "${is_claude_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a non-Codex host root, but host='codex'." >&2
     exit 1
@@ -132,9 +134,19 @@ assert_target_root_matches_host_intent() {
     echo "[FAIL] Target root '${target_root}' looks like a non-Claude host root, but host='claude-code'." >&2
     exit 1
   fi
+  if [[ "${host_id}" == "codex" && "${is_opencode_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like an OpenCode root, but host='codex'." >&2
+    echo "[FAIL] Pass --host opencode for the OpenCode preview lane or use a Codex target root." >&2
+    exit 1
+  fi
   if [[ "${host_id}" == "claude-code" && "${is_codex_root}" == "true" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Codex home, but host='claude-code'." >&2
     echo "[FAIL] Use --host codex for the official closure lane or choose a Claude Code target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "claude-code" && "${is_opencode_root}" == "true" ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like an OpenCode root, but host='claude-code'." >&2
+    echo "[FAIL] Use --host opencode for the OpenCode preview lane or choose a Claude Code target root." >&2
     exit 1
   fi
   if [[ "${host_id}" == "claude-code" && "${is_cursor_root}" == "true" ]]; then
@@ -178,6 +190,10 @@ assert_target_root_matches_host_intent() {
   if [[ "${host_id}" == "openclaw" && "${is_cursor_root}" == "true" ]]; then
     echo "[FAIL] Target root '${target_root}' looks like a Cursor home, but host='openclaw'." >&2
     echo "[FAIL] Pass --host cursor for preview guidance or choose an OpenClaw target root." >&2
+    exit 1
+  fi
+  if [[ "${host_id}" == "opencode" && ( "${is_codex_root}" == "true" || "${is_claude_root}" == "true" || "${is_cursor_root}" == "true" || "${is_windsurf_root}" == "true" || "${is_openclaw_root}" == "true" ) ]]; then
+    echo "[FAIL] Target root '${target_root}' looks like a non-OpenCode host root, but host='opencode'." >&2
     exit 1
   fi
 }
@@ -653,7 +669,11 @@ if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
   check_path "settings.json" "${TARGET_ROOT}/settings.json"
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "preview-guidance" ]]; then
-  info_note "${HOST_ID} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure"
+  if [[ "${HOST_ID}" == "opencode" ]]; then
+    warn_note "opencode preview keeps the real opencode.json host-managed; only skills, commands, agents, and an example config scaffold are verified"
+  else
+    info_note "${HOST_ID} preview hook/settings scaffold remains intentionally unavailable while the author works through compatibility issues; this is a current product boundary, not an install failure"
+  fi
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "runtime-core" ]]; then
   if [[ -d "${SCRIPT_DIR}/commands" ]]; then
@@ -712,6 +732,17 @@ if [[ "${PROFILE}" == "full" ]]; then
   for n in requesting-code-review receiving-code-review verification-before-completion; do
     check_path "optional/${n}" "${TARGET_ROOT}/skills/${n}/SKILL.md" false
   done
+fi
+if [[ "${HOST_ID}" == "opencode" ]]; then
+  for n in vibe vibe-implement vibe-review; do
+    check_path "opencode command/${n}" "${TARGET_ROOT}/commands/${n}.md"
+    check_path "opencode compat command/${n}" "${TARGET_ROOT}/command/${n}.md"
+  done
+  for n in vibe-plan vibe-implement vibe-review; do
+    check_path "opencode agent/${n}" "${TARGET_ROOT}/agents/${n}.md"
+    check_path "opencode compat agent/${n}" "${TARGET_ROOT}/agent/${n}.md"
+  done
+  check_path "opencode preview config example" "${TARGET_ROOT}/opencode.json.example"
 fi
 if [[ "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
   check_path "rules/common" "${TARGET_ROOT}/rules/common/agents.md"

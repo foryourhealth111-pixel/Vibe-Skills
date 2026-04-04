@@ -13,8 +13,8 @@
       "bootstrap_mode": "governed",
       "default_target_root": {
         "env": "CODEX_HOME",
-        "rel": ".codex",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/codex",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/codex/host-profile.json",
       "settings_map": "adapters/codex/settings-map.json",
@@ -29,8 +29,8 @@
       "bootstrap_mode": "preview-guidance",
       "default_target_root": {
         "env": "CLAUDE_HOME",
-        "rel": ".claude",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/claude-code",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/claude-code/host-profile.json",
       "settings_map": "adapters/claude-code/settings-map.json",
@@ -45,8 +45,8 @@
       "bootstrap_mode": "preview-guidance",
       "default_target_root": {
         "env": "CURSOR_HOME",
-        "rel": ".cursor",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/cursor",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/cursor/host-profile.json",
       "settings_map": "adapters/cursor/settings-map.json",
@@ -61,8 +61,8 @@
       "bootstrap_mode": "runtime-core",
       "default_target_root": {
         "env": "WINDSURF_HOME",
-        "rel": ".codeium/windsurf",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/windsurf",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/windsurf/host-profile.json",
       "settings_map": "adapters/windsurf/settings-map.json",
@@ -77,8 +77,8 @@
       "bootstrap_mode": "runtime-core",
       "default_target_root": {
         "env": "OPENCLAW_HOME",
-        "rel": ".openclaw",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/openclaw",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/openclaw/host-profile.json",
       "settings_map": "adapters/openclaw/settings-map.json",
@@ -93,8 +93,8 @@
       "bootstrap_mode": "preview-guidance",
       "default_target_root": {
         "env": "OPENCODE_HOME",
-        "rel": ".config/opencode",
-        "kind": "host-home"
+        "rel": ".vibeskills/targets/opencode",
+        "kind": "isolated-home"
       },
       "host_profile": "adapters/opencode/host-profile.json",
       "settings_map": "adapters/opencode/settings-map.json",

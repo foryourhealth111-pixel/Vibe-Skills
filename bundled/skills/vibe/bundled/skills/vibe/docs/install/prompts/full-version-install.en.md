@@ -21,12 +21,12 @@ Rules:
 4. For `codex`, run `--host codex --profile full` and describe it as the strongest governed path, while making clear that hooks remain frozen.
 5. For `claude-code`, run `--host claude-code --profile full` and describe it as a supported install-and-use path that does not overwrite the real `~/.claude/settings.json`.
 6. For `cursor`, run `--host cursor --profile full` and describe it as a supported install-and-use path with no takeover of the real `~/.cursor/settings.json`.
-7. For `windsurf`, run `--host windsurf --profile full` and describe it as a supported install-and-use path with runtime-adapter integration; mention the default root `~/.codeium/windsurf` and that the repo only owns shared runtime payload plus optional `mcp_config.json` / `global_workflows/` materialization.
-8. For `openclaw`, run `--host openclaw --profile full` and describe it with the `preview` / `runtime-core-preview` / `runtime-core` wording; mention the default target root `OPENCLAW_HOME` or `~/.openclaw`, plus the attach / copy / bundle paths.
+7. For `windsurf`, run `--host windsurf --profile full` and describe it as a supported install-and-use path with runtime-adapter integration; mention the default target root `WINDSURF_HOME` or `~/.vibeskills/targets/windsurf` and that the repo only owns shared runtime payload plus optional `mcp_config.json` / `global_workflows/` materialization.
+8. For `openclaw`, run `--host openclaw --profile full` and describe it with the `preview` / `runtime-core-preview` / `runtime-core` wording; mention the default target root `OPENCLAW_HOME` or `~/.vibeskills/targets/openclaw`, plus the attach / copy / bundle paths.
 9. For `opencode`, use direct install/check instead of one-shot bootstrap:
    - Windows: `pwsh -NoProfile -File .\\install.ps1 -HostId opencode -Profile full` and `pwsh -NoProfile -File .\\check.ps1 -HostId opencode -Profile full`
    - Linux / macOS: `bash ./install.sh --host opencode --profile full` and `bash ./check.sh --host opencode --profile full`
-   - describe it as a preview-adapter path with default root `OPENCODE_HOME`, otherwise `~/.config/opencode`
+   - describe it as a preview-adapter path with default target root `OPENCODE_HOME` or `~/.vibeskills/targets/opencode`
    - state clearly that direct install/check writes skills, command/agent wrappers, and `opencode.json.example`, but does not take ownership of the real `opencode.json`, provider credentials, plugin installation, or MCP trust
 10. Never ask me to paste secrets, URLs, or model names into chat.
 11. Distinguish “installed locally” from “online-ready”.

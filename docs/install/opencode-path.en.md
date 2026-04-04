@@ -4,7 +4,7 @@
 
 - the generic install prompts can already install `opencode`
 - this guide does not replace the generic install prompts; it expands OpenCode-specific details
-- it is split out because OpenCode also needs clearer coverage of direct install/check, its default root, project-local isolation, the files written by install, and host-local boundaries, which would make the common install docs too heavy
+- it is split out because OpenCode also needs clearer coverage of direct install/check, its default target root, project-local isolation, the files written by install, and host-local boundaries, which would make the common install docs too heavy
 
 ## What The Repository Installs
 
@@ -40,7 +40,9 @@ pwsh -NoProfile -File ./check.ps1 -HostId opencode
 Default target root:
 
 - `OPENCODE_HOME` when set
-- otherwise `~/.config/opencode`
+- otherwise `~/.vibeskills/targets/opencode`
+
+This default target root is an isolated install root, not the real host config directory at `~/.config/opencode`.
 
 The default examples omit `--profile`, which is equivalent to `full`.
 If you need the “Framework Only + Customizable Governance” variant, append `--profile minimal` to install/check explicitly.
