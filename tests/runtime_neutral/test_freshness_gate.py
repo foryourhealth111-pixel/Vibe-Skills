@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import json
 import sys
@@ -204,6 +205,17 @@ class FreshnessGateTests(unittest.TestCase):
             write_receipt=write_receipt,
         )
 
+    def test_load_governance_context_supports_topology_only_governance(self) -> None:
+        self.governance.pop("source_of_truth", None)
+        self.write_governance()
+        self.sync_runtime_governance_copies()
+
+        context = self.module.load_governance_context(self.script_path, enforce_context=True)
+
+        self.assertEqual(self.root.resolve(), context.repo_root)
+        self.assertEqual(self.canonical_root.resolve(), context.canonical_root)
+        self.assertEqual("canonical", next(target["id"] for target in context.mirror_targets if target["is_canonical"]))
+
     def test_freshness_pass_writes_receipt_and_artifacts(self) -> None:
         gate_pass, artifact = self.evaluate(write_artifacts=True, write_receipt=True)
         self.assertTrue(gate_pass)
@@ -339,6 +351,17 @@ class FreshnessGateTests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "resolved repo root is not the outer git root"):
                 self.module.load_governance_context(script_path, enforce_context=True)
+
+    def test_mirror_topology_targets_fallback_uses_source_of_truth(self) -> None:
+        policies = importlib.import_module("vgo_verify.policies")
+        governance_copy = json.loads(json.dumps(self.governance))
+        governance_copy.pop("mirror_topology", None)
+        targets = policies.mirror_topology_targets(governance_copy, self.root)
+        canonical = next(target for target in targets if target["role"] == "canonical")
+        self.assertEqual(str(self.root.resolve()), str(canonical["full_path"]))
+        self.assertEqual("canonical", canonical["id"])
+        mirror_ids = [target["id"] for target in targets if target["role"] != "canonical"]
+        self.assertEqual(["bundled", "nested_bundled"], mirror_ids)
 
 
 if __name__ == "__main__":

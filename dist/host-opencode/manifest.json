@@ -5,13 +5,59 @@
   "host_id": "opencode",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "OpenCode host adapter preview. The repo can install runtime-core plus OpenCode-native command and agent wrapper payload into OpenCode roots, but final host config and platform closure remain incomplete.",
   "runtime_ownership": {
     "owner": "host_managed",
     "notes": "This lane stays at preview because the repository does not take ownership of the real opencode.json, provider credentials, plugin provisioning, or unresolved runtime discovery gaps."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "host_managed",
+      "notes": "This lane stays at preview because the repository does not take ownership of the real opencode.json, provider credentials, plugin provisioning, or unresolved runtime discovery gaps."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1 --host opencode",
+      "install.sh --host opencode",
+      "check.ps1 --host opencode",
+      "check.sh --host opencode"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "config/opencode/commands/vibe.md",
+      "config/opencode/commands/vibe-implement.md",
+      "config/opencode/commands/vibe-review.md",
+      "config/opencode/agents/vibe-plan.md",
+      "config/opencode/agents/vibe-implement.md",
+      "config/opencode/agents/vibe-review.md",
+      "config/opencode/opencode.json.example",
+      "adapters/opencode/host-profile.json",
+      "adapters/opencode/settings-map.json",
+      "adapters/opencode/closure.json",
+      "docs/universalization/router-model-neutrality.md",
+      "scripts/router/resolve-pack-route.ps1",
+      "install.ps1",
+      "install.sh",
+      "check.ps1",
+      "check.sh",
+      "docs/install/opencode-path.en.md"
+    ],
+    "boundary_claims": [
+      "full_opencode_json_ownership",
+      "host_plugin_provisioning",
+      "cross_platform_parity_claims",
+      "supported-with-constraints_promotion"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1 --host opencode",
@@ -25,8 +71,21 @@
       "promise_level": "promised",
       "evidence_paths": [
         "config/opencode/commands/vibe.md",
+        "config/opencode/commands/vibe-implement.md",
+        "config/opencode/commands/vibe-review.md",
         "config/opencode/agents/vibe-plan.md",
+        "config/opencode/agents/vibe-implement.md",
+        "config/opencode/agents/vibe-review.md",
         "config/opencode/opencode.json.example"
+      ]
+    },
+    {
+      "id": "opencode_adapter_contract_exists",
+      "promise_level": "promised",
+      "evidence_paths": [
+        "adapters/opencode/host-profile.json",
+        "adapters/opencode/settings-map.json",
+        "adapters/opencode/closure.json"
       ]
     },
     {

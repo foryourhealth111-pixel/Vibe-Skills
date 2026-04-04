@@ -19,6 +19,12 @@ Public version maps to:
 - `Full Version + Customizable Governance` -> `full`
 - `Framework Only + Customizable Governance` -> `minimal`
 
+Notes:
+
+- host mode is resolved from [`../../config/adapter-registry.json`](../../config/adapter-registry.json)
+- the same public entry can resolve into `governed`, `preview-guidance`, or `runtime-core`
+- `opencode` can still prefer the thinner direct install/check path in the public prompts, but the registry-driven one-shot wrapper is also available
+
 ## Copy One Prompt
 
 The four retained base prompt docs cover install / update and full / minimal.
@@ -38,6 +44,7 @@ Outside these four docs, the other pages no longer act as public install prompt 
   - [`minimal-path.en.md`](./minimal-path.en.md)
 - More install commands and host details:
   - [`recommended-full-path.en.md`](./recommended-full-path.en.md)
+  - [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
   - [`manual-copy-install.en.md`](./manual-copy-install.en.md)
   - [`host-plugin-policy.en.md`](./host-plugin-policy.en.md)
 - If you want to bring in your own workflows or skills afterward:

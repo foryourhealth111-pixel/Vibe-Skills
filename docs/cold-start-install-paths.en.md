@@ -15,14 +15,16 @@ The current public surface supports six hosts:
 
 Within that scope:
 
-- `codex`: governed path
-- `claude-code`: supported install-and-use path with bounded managed closure
-- `cursor`: preview guidance
-- `windsurf`: preview runtime-core
-- `openclaw`: `preview` / `runtime-core-preview` / `runtime-core`
-- `opencode`: preview adapter
+- `codex`: strongest governed lane
+- `claude-code`: supported install/use path with bounded managed closure
+- `cursor`: preview-guidance path
+- `windsurf`: runtime-core path
+- `openclaw`: preview runtime-core adapter path
+- `opencode`: preview-guidance adapter path, with a thinner direct install/check public path
 
 Other hosts should not currently be described as supported installation targets.
+
+Note: `one-shot-setup.*` is now a registry-driven wrapper across all six public hosts. `opencode` still keeps direct install/check as the thinner default command path.
 
 ## Codex
 
@@ -34,7 +36,7 @@ bash ./check.sh --host codex --profile full --deep
 What you get:
 
 - governed runtime payload
-- local settings / MCP guidance
+- local Codex settings / MCP guidance
 - deep health check
 
 What you do not get:
@@ -89,7 +91,7 @@ bash ./check.sh --host windsurf --profile full --deep
 What you get:
 
 - shared runtime payload
-- a runtime-core preview install under `~/.codeium/windsurf`
+- a runtime-core install under `~/.codeium/windsurf`
 - `.vibeskills/host-settings.json` and `.vibeskills/host-closure.json`
 - a skills-only activation path that stays dormant until Vibe is explicitly invoked
 
@@ -108,14 +110,13 @@ bash ./check.sh --host openclaw --profile full --deep
 What you get:
 
 - shared runtime payload
-- an OpenClaw runtime-core preview install path, with default target root from `OPENCLAW_HOME` or `~/.openclaw`
+- an OpenClaw runtime-core install path, with default target root from `OPENCLAW_HOME` or `~/.openclaw`
 - `.vibeskills/host-settings.json` and `.vibeskills/host-closure.json`
 - explicit attach / copy / bundle path semantics:
   - attach: connect and validate an existing `OPENCLAW_HOME` (or `~/.openclaw`) target root
   - copy: use install/check entrypoints to copy runtime-core payload into the target root
   - bundle: consume runtime-core distribution manifests from `dist/host-openclaw/manifest.json` and `dist/manifests/vibeskills-openclaw.json`
 - explicit host-managed boundaries
-- a runtime-core-focused install, validation, and distribution path
 
 What you do not get:
 
@@ -124,21 +125,29 @@ What you do not get:
 
 ## OpenCode
 
+The thinner default path is:
+
 ```bash
-bash ./install.sh --host opencode
-bash ./check.sh --host opencode
+bash ./install.sh --host opencode --profile full
+bash ./check.sh --host opencode --profile full
+```
+
+If you want to keep the same bootstrap wrapper as other hosts, this is also valid:
+
+```bash
+bash ./scripts/bootstrap/one-shot-setup.sh --host opencode --profile full
+bash ./check.sh --host opencode --profile full --deep
 ```
 
 What you get:
 
-- runtime-core payload
-- Vibe-Skills skill payload
+- a preview-guidance adapter path
+- runtime payload
 - `.vibeskills/host-settings.json` and `.vibeskills/host-closure.json`
 - `opencode.json.example`
 
 What you do not get:
 
-- one-shot bootstrap
 - overwrite of the real `~/.config/opencode/opencode.json`
 - automatic plugin installation
 - automatic provider credential wiring
@@ -153,6 +162,6 @@ Next actions:
 ## Boundaries That Must Hold During Cold Start
 
 - `HostId` / `--host` decides host semantics
-- hooks are not uniform across the current public surface: Codex/Cursor keep hooks frozen, while Claude has a bounded managed write-guard hook surface
+- the current public surface is not a claim that every host is fully managed
 - if local provider fields are not configured, the environment must not be described as online-ready
 - do not ask users to paste secrets into chat

@@ -1,0 +1,1067 @@
+{
+  "schema_version": 1,
+  "release_source": {
+    "governance_path": "config/version-governance.json",
+    "version_pointer": "release.version",
+    "updated_pointer": "release.updated"
+  },
+  "lane_manifests": [
+    {
+      "output_path": "dist/core/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "core",
+        "lane_kind": "universal-core",
+        "stability": "preview",
+        "summary": "Universal contracts only. No install/check runtime closure is promised by this lane.",
+        "runtime_ownership": {
+          "owner": "none",
+          "notes": "This lane must not claim official runtime ownership. It only provides contracts and schemas for reuse."
+        },
+        "capability_promises": [
+          {
+            "id": "core_contract_docs_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "docs/universalization/core-contract.md"
+            ]
+          },
+          {
+            "id": "router_authority_remains_local",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "docs/universalization/router-model-neutrality.md",
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          }
+        ],
+        "non_goals": [
+          "one_shot_host_dependency_install",
+          "official_runtime_install_entrypoints",
+          "host_plugin_provisioning",
+          "cross_platform_parity_claims"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_applicable"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "contract_consumer_only"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/official-runtime/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "official-runtime",
+        "lane_kind": "tier-1-official-runtime",
+        "stability": "tier-1",
+        "summary": "Reference lane for the current governed official runtime. This dist pack points to it and must not rewrite it.",
+        "runtime_ownership": {
+          "owner": "canonical_repo",
+          "notes": "This lane points to the existing official runtime entrypoints (install/check/router/governance). Dist must not replace or rewrite runtime ownership."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1",
+          "install_secondary": "install.sh",
+          "check_primary": "check.ps1",
+          "check_secondary": "check.sh"
+        },
+        "capability_promises": [
+          {
+            "id": "governed_install_entrypoints_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "install.ps1",
+              "install.sh"
+            ]
+          },
+          {
+            "id": "governed_check_entrypoints_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "check.ps1",
+              "check.sh"
+            ]
+          },
+          {
+            "id": "router_authority_local",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          },
+          {
+            "id": "installed_runtime_gates_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
+              "scripts/verify/vibe-bom-frontmatter-gate.ps1",
+              "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
+            ]
+          },
+          {
+            "id": "baseline_frozen",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "docs/universalization/official-runtime-baseline.md",
+              "scripts/verify/vibe-official-runtime-baseline-gate.ps1"
+            ]
+          }
+        ],
+        "non_goals": [
+          "host_dependency_auto_install",
+          "host_credentials_provisioning",
+          "cross_platform_full_parity_claim",
+          "host_plugin_auto_provisioning"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md",
+          "official_runtime_baseline": "docs/universalization/official-runtime-baseline.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "inherit_official_runtime",
+            "ratings": {
+              "windows": "full-authoritative",
+              "linux_pwsh": "supported-with-constraints",
+              "linux_no_pwsh": "degraded-but-supported",
+              "macos_pwsh": "not-yet-proven",
+              "macos_no_pwsh": "not-yet-proven"
+            }
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "official_runtime_lane",
+            "ratings": {
+              "codex": "supported-with-constraints",
+              "claude_code": "preview",
+              "opencode": "preview",
+              "generic": "advisory-only"
+            }
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-codex/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-codex",
+        "lane_kind": "host-adapter",
+        "host_id": "codex",
+        "stability": "supported-with-constraints",
+        "summary": "Codex host adapter lane. Uses the official runtime entrypoints, but remains honest about host-managed plugin and credential surfaces.",
+        "runtime_ownership": {
+          "owner": "canonical_repo",
+          "notes": "This lane does not replace the official runtime. It expresses Codex-specific configuration and install closure as documented in current repo tooling."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1",
+          "install_secondary": "install.sh",
+          "check_primary": "check.ps1",
+          "check_secondary": "check.sh"
+        },
+        "capability_promises": [
+          {
+            "id": "codex_settings_template_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "config/settings.template.codex.json"
+            ]
+          },
+          {
+            "id": "plugins_manifest_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "config/plugins-manifest.codex.json"
+            ]
+          },
+          {
+            "id": "codex_adapter_contract_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "adapters/codex/host-profile.json",
+              "adapters/codex/settings-map.json",
+              "adapters/codex/closure.json"
+            ]
+          },
+          {
+            "id": "mcp_template_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "mcp/servers.template.json"
+            ]
+          },
+          {
+            "id": "official_runtime_entrypoints_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "install.ps1",
+              "check.ps1",
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          }
+        ],
+        "non_goals": [
+          "automatic_host_plugin_installation",
+          "automatic_credential_provisioning",
+          "cross_platform_full_parity_claim"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md",
+          "official_runtime_baseline": "docs/universalization/official-runtime-baseline.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "inherit_official_runtime",
+            "ratings": {
+              "windows": "full-authoritative",
+              "linux_pwsh": "supported-with-constraints",
+              "linux_no_pwsh": "degraded-but-supported",
+              "macos_pwsh": "not-yet-proven",
+              "macos_no_pwsh": "not-yet-proven"
+            }
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "supported-with-constraints"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-claude-code/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-claude-code",
+        "lane_kind": "host-adapter",
+        "host_id": "claude-code",
+        "stability": "supported-with-constraints",
+        "summary": "Claude Code host adapter lane with bounded managed closure. The repo can write and verify a managed Claude settings + hook surface, while still keeping broader host behavior outside repo ownership.",
+        "runtime_ownership": {
+          "owner": "host_managed",
+          "notes": "This lane must not claim official runtime closure. It owns only the bounded vibeskills-managed Claude settings and write-guard hook surface plus truthful readiness boundaries."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1 --host claude-code",
+          "install_secondary": "install.sh --host claude-code",
+          "check_primary": "check.ps1 --host claude-code",
+          "check_secondary": "check.sh --host claude-code"
+        },
+        "capability_promises": [
+          {
+            "id": "claude_code_managed_settings_surface_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "apps/vgo-cli/src/vgo_cli/commands.py",
+              "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+              "packages/installer-core/src/vgo_installer/install_runtime.py",
+              "config/settings.template.claude.json",
+              "adapters/claude-code/host-profile.json",
+              "adapters/claude-code/settings-map.json",
+              "adapters/claude-code/closure.json",
+              "tests/runtime_neutral/test_claude_preview_scaffold.py"
+            ]
+          },
+          {
+            "id": "router_authority_remains_local",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "docs/universalization/router-model-neutrality.md",
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          },
+          {
+            "id": "claude_code_managed_hook_surface_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "hooks/write-guard.js",
+              "check.sh",
+              "tests/runtime_neutral/test_claude_preview_scaffold.py"
+            ]
+          }
+        ],
+        "non_goals": [
+          "official_runtime_install_entrypoints",
+          "official_runtime_check_entrypoints",
+          "host_plugin_provisioning",
+          "cross_platform_parity_claims"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_yet_proven_for_this_lane"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "supported-with-constraints"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-cursor/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-cursor",
+        "lane_kind": "host-adapter",
+        "host_id": "cursor",
+        "stability": "preview",
+        "summary": "Cursor host adapter preview. The repository can expose runtime-core payload and preview health checks, but does not claim full governed closure yet.",
+        "runtime_ownership": {
+          "owner": "host_managed",
+          "notes": "This lane must not claim official runtime closure. It only exposes configuration artifacts and truthful readiness boundaries."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1 --host cursor",
+          "install_secondary": "install.sh --host cursor",
+          "check_primary": "check.ps1 --host cursor",
+          "check_secondary": "check.sh --host cursor"
+        },
+        "capability_promises": [
+          {
+            "id": "cursor_preview_adapter_contract_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "adapters/cursor/host-profile.json",
+              "adapters/cursor/settings-map.json",
+              "adapters/cursor/closure.json"
+            ]
+          },
+          {
+            "id": "router_authority_remains_local",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          }
+        ],
+        "non_goals": [
+          "official_runtime_install_entrypoints",
+          "official_runtime_check_entrypoints",
+          "host_plugin_provisioning",
+          "cross_platform_parity_claims"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_yet_proven_for_this_lane"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "preview"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-windsurf/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-windsurf",
+        "lane_kind": "host-adapter",
+        "host_id": "windsurf",
+        "stability": "preview",
+        "summary": "Windsurf host adapter preview. Uses the shared runtime-core installer and host-root payloads without claiming governed closure.",
+        "runtime_ownership": {
+          "owner": "canonical_repo",
+          "notes": "This lane stays inside the shared adapter and runtime-core architecture. Windsurf host login and model surfaces remain host-managed."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1 --host windsurf",
+          "install_secondary": "install.sh --host windsurf",
+          "check_primary": "check.ps1 --host windsurf",
+          "check_secondary": "check.sh --host windsurf"
+        },
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "capability_promises": [
+          {
+            "id": "windsurf_adapter_contract_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "adapters/windsurf/host-profile.json",
+              "adapters/windsurf/settings-map.json",
+              "adapters/windsurf/closure.json"
+            ]
+          },
+          {
+            "id": "shared_runtime_core_installer_is_used",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "install.ps1",
+              "apps/vgo-cli/src/vgo_cli/commands.py",
+              "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+              "packages/installer-core/src/vgo_installer/install_runtime.py"
+            ]
+          }
+        ],
+        "non_goals": [
+          "governed_closure_claim",
+          "undocumented_host_settings_claims",
+          "workspace_projection_by_default"
+        ],
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_yet_proven_for_this_lane"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "preview"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-openclaw/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-openclaw",
+        "lane_kind": "host-adapter",
+        "host_id": "openclaw",
+        "stability": "preview",
+        "summary": "OpenClaw host adapter preview. Uses the shared runtime-core installer and host-root payloads without claiming governed closure.",
+        "runtime_ownership": {
+          "owner": "canonical_repo",
+          "notes": "This lane stays inside the shared adapter and runtime-core architecture. OpenClaw login, model access, and editor-native settings surfaces remain host-managed."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1 --host openclaw",
+          "install_secondary": "install.sh --host openclaw",
+          "check_primary": "check.ps1 --host openclaw",
+          "check_secondary": "check.sh --host openclaw"
+        },
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "capability_promises": [
+          {
+            "id": "openclaw_adapter_contract_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "adapters/openclaw/host-profile.json",
+              "adapters/openclaw/settings-map.json",
+              "adapters/openclaw/closure.json"
+            ]
+          },
+          {
+            "id": "shared_runtime_core_installer_is_used",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "install.ps1",
+              "apps/vgo-cli/src/vgo_cli/commands.py",
+              "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+              "packages/installer-core/src/vgo_installer/install_runtime.py"
+            ]
+          }
+        ],
+        "non_goals": [
+          "governed_closure_claim",
+          "undocumented_host_settings_claims",
+          "workspace_projection_by_default"
+        ],
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_yet_proven_for_this_lane"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "preview"
+          }
+        }
+      }
+    },
+    {
+      "output_path": "dist/host-opencode/manifest.json",
+      "payload": {
+        "schema_version": 1,
+        "lane_id": "host-opencode",
+        "lane_kind": "host-adapter",
+        "host_id": "opencode",
+        "stability": "preview",
+        "summary": "OpenCode host adapter preview. The repo can install runtime-core plus OpenCode-native command and agent wrapper payload into OpenCode roots, but final host config and platform closure remain incomplete.",
+        "runtime_ownership": {
+          "owner": "host_managed",
+          "notes": "This lane stays at preview because the repository does not take ownership of the real opencode.json, provider credentials, plugin provisioning, or unresolved runtime discovery gaps."
+        },
+        "entrypoints": {
+          "install_primary": "install.ps1 --host opencode",
+          "install_secondary": "install.sh --host opencode",
+          "check_primary": "check.ps1 --host opencode",
+          "check_secondary": "check.sh --host opencode"
+        },
+        "capability_promises": [
+          {
+            "id": "opencode_preview_payload_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "config/opencode/commands/vibe.md",
+              "config/opencode/commands/vibe-implement.md",
+              "config/opencode/commands/vibe-review.md",
+              "config/opencode/agents/vibe-plan.md",
+              "config/opencode/agents/vibe-implement.md",
+              "config/opencode/agents/vibe-review.md",
+              "config/opencode/opencode.json.example"
+            ]
+          },
+          {
+            "id": "opencode_adapter_contract_exists",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "adapters/opencode/host-profile.json",
+              "adapters/opencode/settings-map.json",
+              "adapters/opencode/closure.json"
+            ]
+          },
+          {
+            "id": "router_authority_remains_local",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "docs/universalization/router-model-neutrality.md",
+              "scripts/router/resolve-pack-route.ps1"
+            ]
+          },
+          {
+            "id": "opencode_install_check_entrypoints_exist",
+            "promise_level": "promised",
+            "evidence_paths": [
+              "install.ps1",
+              "install.sh",
+              "check.ps1",
+              "check.sh",
+              "docs/install/opencode-path.en.md"
+            ]
+          }
+        ],
+        "non_goals": [
+          "full_opencode_json_ownership",
+          "host_plugin_provisioning",
+          "cross_platform_parity_claims",
+          "supported-with-constraints_promotion"
+        ],
+        "docs": {
+          "distribution_lanes": "docs/universalization/distribution-lanes.md",
+          "install_matrix": "docs/universalization/install-matrix.md",
+          "platform_install_matrix": "docs/universalization/platform-install-matrix.md",
+          "platform_support_matrix": "docs/universalization/platform-support-matrix.md",
+          "host_capability_matrix": "docs/universalization/host-capability-matrix.md"
+        },
+        "support": {
+          "platform_support": {
+            "truth_source": "docs/universalization/platform-support-matrix.md",
+            "interpretation": "not_yet_proven_for_this_lane"
+          },
+          "host_support": {
+            "truth_source": "docs/universalization/host-capability-matrix.md",
+            "interpretation": "host_matrix_rating",
+            "rating": "preview"
+          }
+        }
+      }
+    }
+  ],
+  "public_manifests": [
+    {
+      "output_path": "dist/manifests/vibeskills-core.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-core",
+        "package_name": "VibeSkills Core Contracts",
+        "status": "supported-with-constraints",
+        "runtime_role": "contract-layer",
+        "summary": "Host-agnostic contracts and schemas that stabilize skill metadata without claiming a governed runtime on any host.",
+        "truth_sources": [
+          "docs/universalization/core-contract.md",
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "docs/plans/2026-03-13-universal-vibeskills-execution-program.md"
+        ],
+        "delivers": {
+          "contracts": [
+            "core/skill-contracts/index.json",
+            "core/skill-contracts/v1/*.json"
+          ],
+          "schemas": [
+            "schemas/skill.schema.json",
+            "schemas/skill-contract.v1.schema.json",
+            "schemas/skill-contract-index.v1.schema.json",
+            "schemas/host-capability.schema.json",
+            "schemas/skill-compatibility.schema.json"
+          ],
+          "docs": [
+            "docs/universalization/core-contract.md"
+          ]
+        },
+        "host_managed_surfaces": [
+          "all runtime install surfaces",
+          "all host plugin provisioning",
+          "all MCP registration and authorization",
+          "all provider secret storage and availability"
+        ],
+        "degrade_states": {
+          "missing_provider_or_mcp": "advisory-only",
+          "host_without_required_exec_capabilities": "advisory-only"
+        },
+        "anti_overclaim": [
+          "This package does not claim Codex/Claude Code/OpenCode parity.",
+          "This package does not imply an install/check closure lane exists on any host."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-codex.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-codex",
+        "package_name": "VibeSkills for Codex (Supported With Constraints)",
+        "status": "supported-with-constraints",
+        "runtime_role": "official-runtime-adapter",
+        "summary": "Codex is the current strongest practical reference lane for the governed runtime payload, but some key surfaces remain host-managed and certain platforms are degraded.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "config/settings.template.codex.json",
+          "config/plugins-manifest.codex.json",
+          "mcp/servers.template.json",
+          "adapters/codex/host-profile.json",
+          "adapters/codex/settings-map.json",
+          "adapters/codex/closure.json",
+          "adapters/codex/platform-windows.json",
+          "adapters/codex/platform-linux.json",
+          "adapters/codex/platform-macos.json",
+          "README.md"
+        ],
+        "host_adapter_ref": "adapters/codex/host-profile.json",
+        "platform_contracts": [
+          "adapters/codex/platform-windows.json",
+          "adapters/codex/platform-linux.json",
+          "adapters/codex/platform-macos.json"
+        ],
+        "install_entrypoints": {
+          "windows_authoritative": [
+            "install.ps1",
+            "scripts/bootstrap/one-shot-setup.ps1",
+            "check.ps1"
+          ],
+          "linux_supported_with_constraints": [
+            "install.sh",
+            "scripts/bootstrap/one-shot-setup.sh",
+            "check.sh"
+          ],
+          "notes": [
+            "This manifest does not change or replace install/check chains; it documents their support boundary.",
+            "Linux without pwsh is a degraded state, not silently equivalent to Windows."
+          ]
+        },
+        "host_managed_surfaces": [
+          "plugin provisioning",
+          "MCP provider credentials",
+          "external CLI availability",
+          "operator-specific secrets"
+        ],
+        "degrade_states": {
+          "linux_without_pwsh": "degraded-but-supported",
+          "missing_host_plugins": "degraded-but-supported",
+          "missing_provider_credentials": "degraded-but-supported"
+        },
+        "anti_overclaim": [
+          "Codex support does not imply Claude Code or Generic Host closure.",
+          "Supported-with-constraints does not mean 'everything ready' if host provisioning is incomplete.",
+          "macOS remains not-yet-proven in the platform parity contract."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-claude-code.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-claude-code",
+        "package_name": "VibeSkills for Claude Code",
+        "status": "supported-with-constraints",
+        "runtime_role": "host-adapter-supported",
+        "summary": "Claude Code now has a bounded managed install/check lane that writes and verifies a Claude settings + hook surface, but it still does not become the Codex official runtime or full platform-parity lane.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "config/settings.template.claude.json",
+          "adapters/claude-code/host-profile.json",
+          "adapters/claude-code/settings-map.json",
+          "adapters/claude-code/closure.json",
+          "adapters/claude-code/platform-windows.json",
+          "adapters/claude-code/platform-linux.json",
+          "adapters/claude-code/platform-macos.json",
+          "README.md",
+          "tests/runtime_neutral/test_claude_preview_scaffold.py"
+        ],
+        "host_adapter_ref": "adapters/claude-code/host-profile.json",
+        "platform_contracts": [
+          "adapters/claude-code/platform-windows.json",
+          "adapters/claude-code/platform-linux.json",
+          "adapters/claude-code/platform-macos.json"
+        ],
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host claude-code",
+            "install.sh --host claude-code",
+            "settings.json managed vibeskills stanza",
+            "settings.json managed Claude PreToolUse hook entry",
+            "hooks/write-guard.js"
+          ],
+          "host_managed": [
+            "plugin enablement",
+            "MCP registration",
+            "provider credentials",
+            "broader Claude host behavior outside the managed vibeskills + write-guard surface"
+          ],
+          "notes": [
+            "The repo preserves existing Claude settings while merging a bounded managed surface.",
+            "Do not market this as Codex-equivalent official-runtime ownership or full platform parity."
+          ]
+        },
+        "degrade_states": {
+          "unverified_platform_lane": "not-yet-proven",
+          "missing_plugins": "degraded-but-supported",
+          "missing_provider_credentials": "degraded-but-supported"
+        },
+        "anti_overclaim": [
+          "Supported-with-constraints still means host-managed plugins, MCP, credentials, and broader Claude behavior remain outside repo ownership.",
+          "Claude Code is not claimed to be platform-parity with Codex or an official-runtime lane in this repository."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-cursor.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-cursor",
+        "package_name": "VibeSkills for Cursor (Preview)",
+        "status": "preview",
+        "runtime_role": "host-adapter-preview",
+        "summary": "Cursor exposes preview adapter entrypoints and truthful readiness boundaries, but this repository does not claim governed or host-native closure for it.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "docs/universalization/distribution-lanes.md",
+          "adapters/cursor/host-profile.json",
+          "adapters/cursor/settings-map.json",
+          "adapters/cursor/closure.json",
+          "adapters/cursor/platform-windows.json",
+          "adapters/cursor/platform-linux.json",
+          "adapters/cursor/platform-macos.json",
+          "README.md"
+        ],
+        "host_adapter_ref": "adapters/cursor/host-profile.json",
+        "platform_contracts": [
+          "adapters/cursor/platform-windows.json",
+          "adapters/cursor/platform-linux.json",
+          "adapters/cursor/platform-macos.json"
+        ],
+        "entry_manifest": "dist/host-cursor/manifest.json",
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host cursor",
+            "install.sh --host cursor",
+            "check.ps1 --host cursor",
+            "check.sh --host cursor"
+          ],
+          "host_managed": [
+            "real host settings",
+            "plugin enablement",
+            "MCP registration",
+            "provider credentials"
+          ],
+          "notes": [
+            "This remains a preview-scaffold lane.",
+            "Preview entrypoints do not imply host-native governed closure."
+          ]
+        },
+        "degrade_states": {
+          "missing_provider_credentials": "degraded-but-supported",
+          "missing_host_plugins": "degraded-but-supported",
+          "unverified_platform_lane": "not-yet-proven"
+        },
+        "anti_overclaim": [
+          "Cursor support here is preview-only.",
+          "Shared entrypoints do not imply takeover of real Cursor settings or host-native closure."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-windsurf.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-windsurf",
+        "package_name": "VibeSkills for Windsurf (Preview Runtime-Core)",
+        "status": "preview",
+        "runtime_role": "official-runtime-adapter",
+        "summary": "Windsurf may consume the shared runtime-core payload through a documented host root, but this repository does not claim host-native governed closure for it.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "docs/universalization/distribution-lanes.md",
+          "adapters/windsurf/host-profile.json",
+          "adapters/windsurf/settings-map.json",
+          "adapters/windsurf/closure.json",
+          "adapters/windsurf/platform-windows.json",
+          "adapters/windsurf/platform-linux.json",
+          "adapters/windsurf/platform-macos.json",
+          "README.md"
+        ],
+        "host_adapter_ref": "adapters/windsurf/host-profile.json",
+        "platform_contracts": [
+          "adapters/windsurf/platform-windows.json",
+          "adapters/windsurf/platform-linux.json",
+          "adapters/windsurf/platform-macos.json"
+        ],
+        "entry_manifest": "dist/host-windsurf/manifest.json",
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host windsurf",
+            "install.sh --host windsurf",
+            "check.ps1 --host windsurf",
+            "check.sh --host windsurf"
+          ],
+          "host_managed": [
+            "login and account state",
+            "provider credentials",
+            "plugin provisioning",
+            "workspace projection and undocumented settings surfaces"
+          ],
+          "notes": [
+            "This is a preview runtime-core lane, not a governed host-native closure claim.",
+            "Attach / copy / bundle stay valid delivery paths for the documented host root."
+          ]
+        },
+        "degrade_states": {
+          "missing_provider_credentials": "degraded-but-supported",
+          "missing_host_plugins": "degraded-but-supported",
+          "unverified_platform_lane": "not-yet-proven"
+        },
+        "anti_overclaim": [
+          "Preview means the repo only claims runtime-core payload install and truthful health checks for the documented host root.",
+          "Windsurf support does not imply host-native settings, login, or plugin closure."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-openclaw.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-openclaw",
+        "package_name": "VibeSkills for OpenClaw (Preview Runtime-Core)",
+        "status": "preview",
+        "runtime_role": "official-runtime-adapter",
+        "summary": "OpenClaw may consume the shared runtime-core payload through a documented host root, but this repository does not claim host-native governed closure for it.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "docs/universalization/distribution-lanes.md",
+          "adapters/openclaw/host-profile.json",
+          "adapters/openclaw/settings-map.json",
+          "adapters/openclaw/closure.json",
+          "adapters/openclaw/platform-windows.json",
+          "adapters/openclaw/platform-linux.json",
+          "adapters/openclaw/platform-macos.json",
+          "README.md"
+        ],
+        "host_adapter_ref": "adapters/openclaw/host-profile.json",
+        "platform_contracts": [
+          "adapters/openclaw/platform-windows.json",
+          "adapters/openclaw/platform-linux.json",
+          "adapters/openclaw/platform-macos.json"
+        ],
+        "entry_manifest": "dist/host-openclaw/manifest.json",
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host openclaw",
+            "install.sh --host openclaw",
+            "check.ps1 --host openclaw",
+            "check.sh --host openclaw"
+          ],
+          "host_managed": [
+            "login and account state",
+            "provider credentials",
+            "plugin provisioning",
+            "workspace projection and editor-specific settings surfaces"
+          ],
+          "notes": [
+            "This is a preview runtime-core lane, not a governed host-native closure claim.",
+            "Attach / copy / bundle stay valid delivery paths for the documented host root."
+          ]
+        },
+        "degrade_states": {
+          "missing_provider_credentials": "degraded-but-supported",
+          "missing_host_plugins": "degraded-but-supported",
+          "unverified_platform_lane": "not-yet-proven"
+        },
+        "anti_overclaim": [
+          "Preview means the repo only claims runtime-core payload install and truthful health checks for the documented host root.",
+          "OpenClaw support does not imply host-native settings, login, or plugin closure."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-opencode.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-opencode",
+        "package_name": "VibeSkills for OpenCode (Preview)",
+        "status": "preview",
+        "runtime_role": "host-adapter-preview",
+        "summary": "OpenCode now has a truthful preview adapter lane with bounded install/check entrypoints, skills payload, and wrapper scaffolds, but the repository still avoids claiming full host closure or platform parity.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/platform-parity-contract.md",
+          "adapters/opencode/host-profile.json",
+          "adapters/opencode/settings-map.json",
+          "adapters/opencode/closure.json",
+          "adapters/opencode/platform-windows.json",
+          "adapters/opencode/platform-linux.json",
+          "adapters/opencode/platform-macos.json",
+          "docs/install/opencode-path.en.md",
+          "README.md"
+        ],
+        "host_adapter_ref": "adapters/opencode/host-profile.json",
+        "platform_contracts": [
+          "adapters/opencode/platform-windows.json",
+          "adapters/opencode/platform-linux.json",
+          "adapters/opencode/platform-macos.json"
+        ],
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host opencode",
+            "install.sh --host opencode",
+            "config/opencode/commands/vibe.md",
+            "config/opencode/commands/vibe-implement.md",
+            "config/opencode/commands/vibe-review.md",
+            "config/opencode/agents/vibe-plan.md",
+            "config/opencode/agents/vibe-implement.md",
+            "config/opencode/agents/vibe-review.md",
+            "config/opencode/opencode.json.example"
+          ],
+          "host_managed": [
+            "final opencode.json ownership",
+            "plugin provisioning",
+            "MCP registration",
+            "provider credential storage"
+          ],
+          "notes": [
+            "Preview means the repo can install a bounded OpenCode payload without taking ownership of final host config.",
+            "Do not market this package as supported-with-constraints until replay-backed proof closes the remaining runtime discovery gaps."
+          ]
+        },
+        "degrade_states": {
+          "unverified_platform_lane": "not-yet-proven",
+          "missing_provider_credentials": "degraded-but-supported",
+          "skill_debug_surface_diverges_from_docs": "preview-guidance-only"
+        },
+        "anti_overclaim": [
+          "Preview does not mean full host closure.",
+          "No platform parity is claimed without host-specific proof and install isolation evidence."
+        ]
+      }
+    },
+    {
+      "output_path": "dist/manifests/vibeskills-generic.json",
+      "payload": {
+        "manifest_kind": "vibeskills-distribution-manifest",
+        "manifest_version": 1,
+        "package_id": "vibeskills-generic",
+        "package_name": "VibeSkills Generic Host (Advisory-Only)",
+        "status": "advisory-only",
+        "runtime_role": "contract-consumer",
+        "summary": "Generic hosts may consume canonical contracts and a repo-provided runtime-core payload in a neutral target root, but the repository still makes no host closure claim.",
+        "truth_sources": [
+          "docs/universalization/host-capability-matrix.md",
+          "docs/universalization/install-matrix.md",
+          "adapters/generic/host-profile.json",
+          "adapters/generic/settings-map.json",
+          "adapters/generic/closure.json",
+          "config/runtime-core-packaging.json"
+        ],
+        "host_adapter_ref": "adapters/generic/host-profile.json",
+        "install_entrypoints": {
+          "repo_provided": [
+            "install.ps1 --host generic",
+            "install.sh --host generic",
+            "check.ps1 --host generic",
+            "check.sh --host generic",
+            "config/runtime-core-packaging.json"
+          ],
+          "host_managed": [
+            "all runtime install surfaces",
+            "all plugin provisioning",
+            "all MCP registration",
+            "all provider secret storage"
+          ]
+        },
+        "degrade_states": {
+          "current_state": "advisory-only"
+        },
+        "anti_overclaim": [
+          "No official runtime is implied for generic hosts.",
+          "No platform parity is claimed without a host-specific proof lane."
+        ]
+      }
+    }
+  ]
+}

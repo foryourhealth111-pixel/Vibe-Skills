@@ -5,15 +5,63 @@
   "package_name": "VibeSkills for OpenCode (Preview)",
   "status": "preview",
   "runtime_role": "host-adapter-preview",
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "public_distribution_manifest"
+    },
+    "runtime_authority": {
+      "runtime_role": "host-adapter-preview",
+      "status": "preview",
+      "host_adapter_ref": "adapters/opencode/host-profile.json"
+    },
+    "truth_surfaces": [
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/platform-parity-contract.md",
+      "adapters/opencode/host-profile.json",
+      "adapters/opencode/settings-map.json",
+      "adapters/opencode/closure.json",
+      "adapters/opencode/platform-windows.json",
+      "adapters/opencode/platform-linux.json",
+      "adapters/opencode/platform-macos.json",
+      "docs/install/opencode-path.en.md",
+      "README.md"
+    ],
+    "repo_provided_install_surfaces": [
+      "install.ps1 --host opencode",
+      "install.sh --host opencode",
+      "config/opencode/commands/vibe.md",
+      "config/opencode/commands/vibe-implement.md",
+      "config/opencode/commands/vibe-review.md",
+      "config/opencode/agents/vibe-plan.md",
+      "config/opencode/agents/vibe-implement.md",
+      "config/opencode/agents/vibe-review.md",
+      "config/opencode/opencode.json.example"
+    ],
+    "repo_provided_payload_surfaces": [],
+    "repo_provided_reference_surfaces": [],
+    "host_managed_surfaces": [
+      "final opencode.json ownership",
+      "plugin provisioning",
+      "MCP registration",
+      "provider credential storage"
+    ],
+    "boundary_claims": [
+      "Preview does not mean full host closure.",
+      "No platform parity is claimed without host-specific proof and install isolation evidence."
+    ]
+  },
   "summary": "OpenCode now has a truthful preview adapter lane with bounded install/check entrypoints, skills payload, and wrapper scaffolds, but the repository still avoids claiming full host closure or platform parity.",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
     "docs/universalization/platform-parity-contract.md",
     "adapters/opencode/host-profile.json",
+    "adapters/opencode/settings-map.json",
+    "adapters/opencode/closure.json",
     "adapters/opencode/platform-windows.json",
     "adapters/opencode/platform-linux.json",
     "adapters/opencode/platform-macos.json",
@@ -31,7 +79,11 @@
       "install.ps1 --host opencode",
       "install.sh --host opencode",
       "config/opencode/commands/vibe.md",
+      "config/opencode/commands/vibe-implement.md",
+      "config/opencode/commands/vibe-review.md",
       "config/opencode/agents/vibe-plan.md",
+      "config/opencode/agents/vibe-implement.md",
+      "config/opencode/agents/vibe-review.md",
       "config/opencode/opencode.json.example"
     ],
     "host_managed": [

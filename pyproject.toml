@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibe-skills-workspace"
+version = "0.1.0"
+description = "Clean architecture workspace scaffold for Vibe-Skills"
+requires-python = ">=3.10"
+

@@ -5,13 +5,48 @@
   "host_id": "openclaw",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "OpenClaw host adapter preview. Uses the shared runtime-core installer and host-root payloads without claiming governed closure.",
   "runtime_ownership": {
     "owner": "canonical_repo",
     "notes": "This lane stays inside the shared adapter and runtime-core architecture. OpenClaw login, model access, and editor-native settings surfaces remain host-managed."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "canonical_repo",
+      "notes": "This lane stays inside the shared adapter and runtime-core architecture. OpenClaw login, model access, and editor-native settings surfaces remain host-managed."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1 --host openclaw",
+      "install.sh --host openclaw",
+      "check.ps1 --host openclaw",
+      "check.sh --host openclaw"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "adapters/openclaw/host-profile.json",
+      "adapters/openclaw/settings-map.json",
+      "adapters/openclaw/closure.json",
+      "install.ps1",
+      "apps/vgo-cli/src/vgo_cli/commands.py",
+      "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+      "packages/installer-core/src/vgo_installer/install_runtime.py"
+    ],
+    "boundary_claims": [
+      "governed_closure_claim",
+      "undocumented_host_settings_claims",
+      "workspace_projection_by_default"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1 --host openclaw",
@@ -40,8 +75,10 @@
       "id": "shared_runtime_core_installer_is_used",
       "promise_level": "promised",
       "evidence_paths": [
-        "scripts/install/install_vgo_adapter.py",
-        "scripts/install/Install-VgoAdapter.ps1"
+        "install.ps1",
+        "apps/vgo-cli/src/vgo_cli/commands.py",
+        "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+        "packages/installer-core/src/vgo_installer/install_runtime.py"
       ]
     }
   ],

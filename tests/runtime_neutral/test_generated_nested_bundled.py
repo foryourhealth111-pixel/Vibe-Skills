@@ -14,8 +14,10 @@ HELPERS = REPO_ROOT / "scripts" / "common" / "vibe-governance-helpers.ps1"
 PS_RESOLVER = REPO_ROOT / "scripts" / "common" / "Resolve-VgoAdapter.ps1"
 PY_RESOLVER = REPO_ROOT / "scripts" / "common" / "resolve_vgo_adapter.py"
 PY_RUNTIME_CONTRACTS = REPO_ROOT / "scripts" / "common" / "runtime_contracts.py"
+CONTRACTS_SRC = REPO_ROOT / "packages" / "contracts" / "src"
+INSTALLER_CORE_SRC = REPO_ROOT / "packages" / "installer-core" / "src"
+CLI_SRC = REPO_ROOT / "apps" / "vgo-cli" / "src"
 PS_INSTALLER = REPO_ROOT / "scripts" / "install" / "Install-VgoAdapter.ps1"
-PY_INSTALLER = REPO_ROOT / "scripts" / "install" / "install_vgo_adapter.py"
 SYNC_SCRIPT = REPO_ROOT / "scripts" / "governance" / "sync-bundled-vibe.ps1"
 INSTALL_REQUIRED_SKILLS = (
     "dialectic",
@@ -74,6 +76,8 @@ class GeneratedNestedBundledTests(unittest.TestCase):
     def _write_fixture(self) -> None:
         self._write("scripts/common/vibe-governance-helpers.ps1", HELPERS.read_text(encoding="utf-8"))
         self._write("scripts/governance/sync-bundled-vibe.ps1", SYNC_SCRIPT.read_text(encoding="utf-8"))
+        shutil.copytree(CONTRACTS_SRC / "vgo_contracts", self.root / "packages" / "contracts" / "src" / "vgo_contracts", dirs_exist_ok=True)
+        shutil.copytree(INSTALLER_CORE_SRC / "vgo_installer", self.root / "packages" / "installer-core" / "src" / "vgo_installer", dirs_exist_ok=True)
         self._write("config/operator-preview-contract.json", json.dumps({"contract_version": 1, "preview_output_root": "outputs/governance/preview"}, indent=2) + "\n")
         self._write(
             "config/version-governance.json",
@@ -285,8 +289,11 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
         self._write("scripts/common/Resolve-VgoAdapter.ps1", PS_RESOLVER.read_text(encoding="utf-8"))
         self._write("scripts/common/resolve_vgo_adapter.py", PY_RESOLVER.read_text(encoding="utf-8"))
         self._write("scripts/common/runtime_contracts.py", PY_RUNTIME_CONTRACTS.read_text(encoding="utf-8"))
+        self._write("config/adapter-registry.json", (REPO_ROOT / "config" / "adapter-registry.json").read_text(encoding="utf-8"))
         self._write("scripts/install/Install-VgoAdapter.ps1", PS_INSTALLER.read_text(encoding="utf-8"))
-        self._write("scripts/install/install_vgo_adapter.py", PY_INSTALLER.read_text(encoding="utf-8"))
+        shutil.copytree(CLI_SRC / "vgo_cli", self.repo_root / "apps" / "vgo-cli" / "src" / "vgo_cli", dirs_exist_ok=True)
+        shutil.copytree(CONTRACTS_SRC / "vgo_contracts", self.repo_root / "packages" / "contracts" / "src" / "vgo_contracts", dirs_exist_ok=True)
+        shutil.copytree(INSTALLER_CORE_SRC / "vgo_installer", self.repo_root / "packages" / "installer-core" / "src" / "vgo_installer", dirs_exist_ok=True)
         self._write("config/upstream-lock.json", json.dumps({"lock_version": 1}, indent=2) + "\n")
         self._write(
             "config/runtime-core-packaging.json",
@@ -298,6 +305,11 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
                     "copy_directories": [{"source": "bundled/skills", "target": "skills"}],
                     "copy_files": [{"source": "config/upstream-lock.json", "target": "config/upstream-lock.json", "optional": False}],
                     "canonical_vibe_mirror": {"enabled": True, "target_relpath": "skills/vibe"},
+                    "managed_skill_inventory": {
+                        "required_runtime_skills": ["vibe", "dialectic", "local-vco-roles", "spec-kit-vibe-compat", "superclaude-framework-compat", "ralph-loop", "cancel-ralph", "tdd-guide", "think-harder"],
+                        "required_workflow_skills": ["brainstorming", "writing-plans", "subagent-driven-development", "systematic-debugging"],
+                        "optional_workflow_skills": []
+                    },
                 },
                 indent=2,
             )
@@ -388,18 +400,57 @@ class InstallTimeGeneratedNestedBundledTests(unittest.TestCase):
             (nested_root / "scripts" / "runtime" / "sample.ps1").read_text(encoding="utf-8"),
         )
 
-    def test_python_installer_materializes_generated_nested_compatibility_root(self) -> None:
+    def test_vgo_cli_installer_materializes_generated_nested_compatibility_root(self) -> None:
+        env = os.environ.copy()
+        python_path_entries = [str(self.repo_root / "apps" / "vgo-cli" / "src")]
+        if env.get("PYTHONPATH"):
+            python_path_entries.append(env["PYTHONPATH"])
+        env["PYTHONPATH"] = os.pathsep.join(python_path_entries)
+
         subprocess.run(
             [
                 "python3",
-                str(self.repo_root / "scripts" / "install" / "install_vgo_adapter.py"),
+                "-m",
+                "vgo_cli.main",
+                "install",
                 "--repo-root",
                 str(self.repo_root),
-                "--target-root",
-                str(self.target_root),
+                "--frontend",
+                "shell",
                 "--host",
                 "openclaw",
                 "--profile",
+                "minimal",
+                "--target-root",
+                str(self.target_root),
+                "--skip-runtime-freshness-gate",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+        )
+        self.assert_generated_nested_installed()
+
+    def test_powershell_installer_prefers_installer_core_module_when_python_available(self) -> None:
+        if self.powershell is None:
+            self.skipTest("PowerShell is required for PowerShell installer test.")
+
+        subprocess.run(
+            [
+                self.powershell,
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(self.repo_root / "scripts" / "install" / "Install-VgoAdapter.ps1"),
+                "-RepoRoot",
+                str(self.repo_root),
+                "-TargetRoot",
+                str(self.target_root),
+                "-HostId",
+                "openclaw",
+                "-Profile",
                 "minimal",
             ],
             capture_output=True,

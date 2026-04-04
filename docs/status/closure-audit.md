@@ -1,95 +1,109 @@
 # Closure Audit
 
-Updated: 2026-03-12
+Updated: 2026-04-04
 
 ## Summary
 
-This audit covers the current closure batch for the non-regression-first cleanup program.
+The root `remaining-architecture-closure` plan is complete in its frozen scope.
 
-Primary objective:
+That completion means the repository now has:
 
-- make the active repo state simpler and more navigable
-- standardize phase-end hygiene
-- keep routing, packaging, generated compatibility topology, outputs boundary, and installed runtime behavior non-regressed
+- a final owner -> consumer sign-off surface
+- aligned live architecture / status / proof pages
+- fresh regression and hygiene evidence
+- explicit residual-boundary and non-claim language
 
-## Anti-Drift Closure Contract
+It does **not** mean the repository has deleted every fallback or compatibility surface.
 
-This closure surface now uses the same anti-proxy-goal-drift vocabulary as requirement, plan, review, retro, and CER artifacts.
+## Final Sign-Off Surfaces
 
-For closure reporting:
+- root requirement: [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
+- root plan: [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- final proof-wave requirement: [`../requirements/2026-04-04-final-architecture-consistency-proof.md`](../requirements/2026-04-04-final-architecture-consistency-proof.md)
+- final proof-wave plan: [`../plans/2026-04-04-final-architecture-consistency-proof-plan.md`](../plans/2026-04-04-final-architecture-consistency-proof-plan.md)
+- owner -> consumer proof: [`../proof/2026-04-04-owner-consumer-consistency-proof.md`](../proof/2026-04-04-owner-consumer-consistency-proof.md)
+- live summary: [`current-state.md`](current-state.md)
 
-- state the primary objective and current completion state honestly,
-- record report-only warning codes when wording needed correction,
-- distinguish bounded specialization from generalized completion,
-- treat anti-drift findings as closure-language governance evidence, not as a hidden hard gate.
+## Completed In The Active 2026-04-04 Track
 
-## Completed In This Batch
+The completed closure track includes these architecture cuts and reporting waves:
 
-- repaired `phase-end-cleanup.ps1` so it matches the current governance helper contract
-- repaired wrapper switch forwarding for Node audit / cleanup scripts
-- added a reusable phase-end cleanup operator entrypoint and documented it in governance / verify docs
-- aligned `config/index.md` and `references/index.md` to the active 2026-03-11 remediation plan
-- refreshed `docs/status/*` to describe the current green proof state rather than earlier failure state
-- reclassified `docs/status` supporting baselines into guardrail / proof contract / transitional blocker / dated baseline roles
-- removed stale cleanliness-dashboard wording by separating frozen inventory baseline from current gate-backed cleanliness truth
-- retired mirror-first wording in active docs and verified that `nested_bundled` can remain absent under the current topology contract
-- re-greened compatibility-aware packaging proof after the docs and script updates
-- refreshed routing and installed-runtime proof artifacts
+- frontmatter gate runtime-contract delegation
+- CLI runtime entrypoint delegation
+- verification runtime entrypoint delegation
+- operator preview postcheck contract alignment
+- PowerShell installed-runtime fallback reduction
+- mirror-topology contract delegation
+- release closure gates contract cutover
+- architecture consistency audit refresh
+- status spine catch-up
+- final owner -> consumer proof and closure-language alignment
 
-## Verified Green Contracts
+## Fresh Final Evidence
 
-- `vibe-pack-routing-smoke.ps1`: `PASS`
-- `vibe-router-contract-gate.ps1`: `PASS`
-- `vibe-version-packaging-gate.ps1`: `PASS`
-- `vibe-mirror-edit-hygiene-gate.ps1`: `PASS`
-- `vibe-output-artifact-boundary-gate.ps1`: `PASS`
-- `vibe-installed-runtime-freshness-gate.ps1`: `PASS`
-- `vibe-release-install-runtime-coherence-gate.ps1`: `PASS`
-- `vibe-repo-cleanliness-gate.ps1`: `PASS`
-- `scripts/governance/phase-end-cleanup.ps1 -WriteArtifacts -IncludeMirrorGates`: `PASS`
+Focused verification retained from the latest contract cutover:
 
-## Evidence Anchors
+- `python3 -m pytest tests/integration/test_release_cut_gate_contract_cutover.py tests/runtime_neutral/test_release_cut_operator.py -q`
+- result: `5 passed in 2.09s`
 
-- `outputs/verify/vibe-pack-routing-smoke.summary.json`
-- `outputs/verify/vibe-router-contract-gate.json`
-- `outputs/verify/vibe-version-packaging-gate.json`
-- `outputs/verify/vibe-mirror-edit-hygiene-gate.json`
-- `outputs/verify/vibe-nested-bundled-parity-gate.json`
-- `outputs/verify/vibe-output-artifact-boundary-gate.json`
-- `outputs/verify/vibe-installed-runtime-freshness-gate.json`
-- `outputs/verify/vibe-release-install-runtime-coherence-gate.json`
-- `outputs/verify/vibe-repo-cleanliness-gate.json`
-- `outputs/runtime/process-health/audits/node-process-audit-20260312-203003.json`
-- `outputs/runtime/process-health/cleanups/node-process-cleanup-20260312-203003.json`
+Direct gate evidence retained from the latest cutover:
 
-## Still Not Completed
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-wave64-82-closure-gate.ps1`
+- result: `PASS`
 
-- the repository is not globally zero-dirty
-- `nested_bundled` is still a governed compatibility surface, but it no longer has to remain as a tracked physical payload
-- tracked `outputs/**` are still present under `stage2_mirrored`
-- `third_party/system-prompts-mirror` and `third_party/vco-ecosystem-mirror` are still protected dependency roots
-- the alpha-to-omega cleanup program is not closed
+Artifact-dependent gate note retained explicitly:
+
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-wave83-100-closure-gate.ps1`
+- historical failure source: missing generated evidence artifacts under `outputs/dashboard/ops-dashboard.json`, `outputs/release/release-evidence-bundle.json`, and `outputs/learn/vibe-adaptive-suggestions.json`
+- interpretation: artifact availability is still required for that gate, but the contract-backed membership assertions are not the failing boundary
+
+Final full regression and hygiene for root closure:
+
+- `python3 -m pytest tests/contract tests/unit tests/integration tests/e2e tests/runtime_neutral -q`
+- result: `403 passed, 66 subtests passed in 509.44s (0:08:29)`
+- `git diff --check` -> clean
+- no `table5`-owned verification or node processes remained alive after the final verification pass
+
+## Residual-Risk / Fallback Inventory
+
+These remaining surfaces are still bounded and intentional:
+
+- release closure gates keep degraded fallback behavior if `config/operator-preview-contract.json` is unavailable
+- `release-cut.ps1` keeps a bounded fallback from `postcheck_gates` to `apply_gates`
+- PowerShell installed-runtime helpers keep an emergency fallback shape when the Python contract bridge is unavailable
+- mirror-topology consumption still tolerates legacy governance inputs through a bounded helper fallback
+- uninstall cleanup still keeps a conservative legacy fallback chain for ownership-safe removal
+- compatibility shims remain retained where live callers, manifests, or tests still depend on them
+- `nested_bundled` remains an optional topology / on-demand materialization surface rather than a guaranteed physical payload
+- `outputs/**` remains a governed evidence surface and is not yet a zero-residual cleanup area
+- `third_party/system-prompts-mirror` and `third_party/vco-ecosystem-mirror` remain protected dependency roots
+- platform-proof ceilings and host-managed plugin / MCP surfaces still bound what can be claimed as repo-proven
+
+## Deferred Post-Closure Backlog
+
+The following work remains valid, but no longer belongs to the completed root plan:
+
+- outputs strict-mode adoption and the zero-tracked-outputs decision
+- third-party source-root parameterization / externalization
+- archive / prune windows beyond the current live status spine
+- blanket compatibility-shim deletion as a general cleanup program
 
 ## Misclaims Explicitly Rejected
 
-Do **not** claim any of the following based on this batch:
+Do **not** claim any of the following from the completed 2026-04-04 track:
 
-- “the repo is fully clean”
-- “all mirror layers are freely removable now”
-- “all outputs can now be deleted”
-- “all node zombies were cleaned”
-- “the whole remediation program is complete”
-- “a report-only anti-drift warning automatically fails closure”
+- “all bounded fallbacks are gone”
+- “all retained compatibility shims are now deletion candidates”
+- “every closure gate will pass without its required generated evidence artifacts”
+- “the current work proves global repository cleanliness”
+- “the repo has no more governance backlog of any kind”
 
 ## Honest Conclusion
 
-This batch is a **closure success** for the current operator and documentation slice.
+The correct final statement is:
 
-- It means the active status spine is materially cleaner, the supporting baseline layer is materially less drift-prone, phase-end hygiene is standardized, and proof surfaces are green again after the latest edits.
-- It does not mean the broader repository simplification program is finished; the remaining work is now a governed backlog rather than random repo noise.
+The `remaining-architecture-closure` root plan is complete **within its frozen scope**. Shared canonical owners now hold the targeted semantics, retained fallbacks are explicit and non-authoritative, live status surfaces agree with the proof surface, and fresh regression plus hygiene evidence exists for the current worktree.
 
 ## Next Hop
 
-- current runtime summary: [`current-state.md`](current-state.md)
-- latest operator receipt: [`operator-dry-run.md`](operator-dry-run.md)
-- active execution plan: [`../plans/2026-03-11-vco-repo-simplification-remediation-plan.md`](../plans/2026-03-11-vco-repo-simplification-remediation-plan.md)
+Any further structural cleanup should start from a new root requirement and should not reuse this completed plan as if it were still open.

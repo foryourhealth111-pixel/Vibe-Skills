@@ -1,113 +1,108 @@
 # Current State
 
-Updated: 2026-03-12
+Updated: 2026-04-04
 
 ## What This Page Is
 
-This page is the runtime-entry summary for the current closure batch.
+This page is the live runtime-entry summary for the completed `remaining-architecture-closure` batch.
 
 It exists to answer three questions only:
 
-1. current truth lives where;
-2. this batch is trying to finish what;
-3. the next operator hop is where.
+1. where the current closure truth lives;
+2. what is proven complete in the frozen scope versus still deferred;
+3. what the next governed operator hop should be.
 
-It is not the canonical contract layer, and it is not the place to restate long-lived governance text.
+It is not the canonical contract layer and it must not over-claim beyond the frozen root plan.
 
 ## Authority
 
 This page is a live summary, not the source of truth.
 
-Authoritative receipts for the current closure batch:
+Authoritative surfaces for the completed closure batch:
 
-- repo cleanliness: [`../../outputs/verify/vibe-repo-cleanliness-gate.json`](../../outputs/verify/vibe-repo-cleanliness-gate.json)
-- other gate receipts: `../../outputs/verify/*.json`
-- latest node/process hygiene audits: [`../../outputs/runtime/process-health/audits/`](../../outputs/runtime/process-health/audits/)
-- latest node/process cleanup receipts: [`../../outputs/runtime/process-health/cleanups/`](../../outputs/runtime/process-health/cleanups/)
+- root requirement: [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
+- root plan: [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- final proof-wave requirement: [`../requirements/2026-04-04-final-architecture-consistency-proof.md`](../requirements/2026-04-04-final-architecture-consistency-proof.md)
+- final proof-wave plan: [`../plans/2026-04-04-final-architecture-consistency-proof-plan.md`](../plans/2026-04-04-final-architecture-consistency-proof-plan.md)
+- architecture sign-off proof: [`../proof/2026-04-04-owner-consumer-consistency-proof.md`](../proof/2026-04-04-owner-consumer-consistency-proof.md)
+- live architecture audit: [`../architecture/legacy-topology-audit.md`](../architecture/legacy-topology-audit.md)
+- closure receipt: [`closure-audit.md`](closure-audit.md)
 
-## Mission
+## Mission Outcome
 
-当前仓库仍处于 `non-regression-first cleanup` 收口期。目标已经从“继续扩展治理面”切换为“压缩入口、收敛叙事、保持 proof 绿色”，也就是把已修复的 routing、canonical-only packaging、generated compatibility、runtime、cleanliness 结果稳定固化下来。
+当前 `remaining-architecture-closure` 根计划已经在冻结范围内完成。
 
-## Runtime Handoff
+这里的“完成”只表示以下事情已经同时成立：
 
-- current execution entry: [`../plans/README.md`](../plans/README.md)
-- active remediation plan: [`../plans/2026-03-11-vco-repo-simplification-remediation-plan.md`](../plans/2026-03-11-vco-repo-simplification-remediation-plan.md)
-- closure proof contract: [`non-regression-proof-bundle.md`](non-regression-proof-bundle.md)
-- operator script surface: [`../../scripts/README.md`](../../scripts/README.md)
-- verify family navigation: [`../../scripts/verify/gate-family-index.md`](../../scripts/verify/gate-family-index.md)
-
-## Canonical Background Contracts
-
-- repo cleanliness: [`../repo-cleanliness-governance.md`](../repo-cleanliness-governance.md)
-- version / packaging / generated compatibility topology: [`../version-packaging-governance.md`](../version-packaging-governance.md)
-- outputs boundary: [`../output-artifact-boundary-governance.md`](../output-artifact-boundary-governance.md)
-- docs IA: [`../docs-information-architecture.md`](../docs-information-architecture.md)
+- 剩余高价值 duplicated semantic owners 已经被切到 shared contracts / package-owned cores，或被明确降级为 bounded compatibility fallbacks
+- live status spine、架构审计面、proof surface 与 closure language 已经对齐到同一份 2026-04-04 真相
+- fresh regression、focused verification、hygiene evidence 都已经重新获得
+- residual boundaries 和 non-claims 已经被写明，不再靠含糊措辞掩盖
 
 ## Live Snapshot
 
-Current cleanliness authority is the receipt at [`../../outputs/verify/vibe-repo-cleanliness-gate.json`](../../outputs/verify/vibe-repo-cleanliness-gate.json), generated at `2026-03-12T20:27:28`.
+Fresh verification evidence for the final sign-off state:
 
-Key summary fields from that receipt:
+- latest focused microphase verification: `python3 -m pytest tests/integration/test_release_cut_gate_contract_cutover.py tests/runtime_neutral/test_release_cut_operator.py -q` -> `5 passed in 2.09s`
+- latest direct gate evidence: `scripts/verify/vibe-wave64-82-closure-gate.ps1` -> `PASS`
+- artifact-dependent gate note: `scripts/verify/vibe-wave83-100-closure-gate.ps1` still requires generated evidence under `outputs/dashboard`, `outputs/release`, and `outputs/learn`; its historical failure mode is missing artifacts, not a reopened semantic-owner regression
+- final full regression: `python3 -m pytest tests/contract tests/unit tests/integration tests/e2e tests/runtime_neutral -q` -> `403 passed, 66 subtests passed in 509.44s (0:08:29)`
+- hygiene: `git diff --check` -> clean
+- phase cleanup: no `table5`-owned `pytest`, `pwsh`, or `node` processes remained after final verification
 
-- changed paths: `1164`
-- local noise visible: `0`
-- runtime generated visible: `0`
-- managed workset visible: `475`
-- high-risk managed visible: `689`
-- repo zero-dirty: `false`
+## Completed 2026-04-04 Closure Scope
 
-Interpretation:
+The completed frozen scope now includes:
 
-- 当前 pressure 主要来自 governed managed workset，不是操作者垃圾或运行时残留。
-- `nested_bundled` 现在应被视为 optional compatibility topology surface，而不是必须常驻的物理 payload。
-- `outputs/**` 继续承担 evidence 职责；这里不再重复抄写每个 gate 的详细结果。
+- frontmatter gate runtime-contract delegation
+- CLI runtime entrypoint delegation
+- verification runtime entrypoint delegation
+- operator preview postcheck contract alignment
+- PowerShell installed-runtime fallback reduction
+- mirror-topology contract delegation
+- release closure gates contract cutover
+- live status-spine catch-up for `roadmap`, `operator-dry-run`, `plans/README`, and `path-dependency-census`
+- final owner -> consumer proof assembly and closure-language alignment
 
-## Anti-Drift Observability Snapshot
+## Residual Boundaries That Remain By Design
 
-This page is not the anti-drift source of truth.
-It is only the live status surface that tells operators whether completion-honesty evidence is present.
+The following surfaces remain intentionally bounded after closure:
 
-Current rule:
+1. Fallbacks remain explicit.
+   - release closure gates still keep degraded fallback behavior if `config/operator-preview-contract.json` is unavailable; `release-cut.ps1` still falls back from `postcheck_gates` to `apply_gates`; PowerShell installed-runtime helpers still keep an emergency fallback shape when the Python contract bridge is unavailable; mirror-topology and uninstall flows still keep conservative compatibility fallbacks.
 
-- anti-drift remains `report_only`,
-- authoritative wording lives in requirement / plan / review / retro / CER / closure artifacts,
-- status surfaces should summarize whether those artifacts exist and whether report-only warnings were emitted,
-- status surfaces must not convert report-only warnings into hidden release or execution failure.
+2. Compatibility surfaces remain retained.
+   - retained Python shims, runtime-neutral verification shims, and public wrapper entrypoints still exist while live callers, tests, or packaging surfaces depend on them; `nested_bundled` remains an optional topology surface rather than a guaranteed always-materialized payload.
 
-## Proof Surface
+3. Evidence and dependency boundaries remain governed.
+   - `outputs/**` remains a governed evidence surface; protected `third_party/*` mirrors remain dependency roots; host-managed plugin / MCP / dependency surfaces and platform-proof ceilings still limit what this repo can honestly prove.
 
-当前 closure batch 的核心 proof surface 由以下 gate receipts组成：
+## Deferred Post-Closure Backlog
 
-- `vibe-upstream-corpus-manifest-gate`
-- `vibe-upstream-mirror-freshness-gate`
-- `vibe-mirror-edit-hygiene-gate`
-- `vibe-nested-bundled-parity-gate`
-- `vibe-version-packaging-gate`
-- `vibe-installed-runtime-freshness-gate`
-- `vibe-release-install-runtime-coherence-gate`
-- `vibe-repo-cleanliness-gate`
+These are no longer hidden blockers inside the closed root plan. They are separate follow-up tracks:
 
-这些 gate 的最新 PASS/FAIL 以 `../../outputs/verify/*.json` 为准，不再在本页维护手写状态表。
+- outputs strict-mode adoption and the zero-tracked-outputs decision
+- third-party source-root parameterization / externalization
+- archive / prune windows beyond the current live status spine
+- any blanket compatibility-shim deletion program
 
-## Primary Blockers
+## Non-Claims
 
-1. 文档入口仍然过宽。
-   - 虽然 `status/` supporting baselines 已经分层，但 `plans/`、`releases/`、历史报告面仍有继续压缩的空间，避免“当前入口”和“背景材料”继续并列暴露。
+Do **not** claim any of the following from the completed 2026-04-04 closure batch:
 
-2. worktree 仍然处于高压 managed state。
-   - 虽然 cleanliness gate 通过，但 `managed_workset_visible` 与 `high_risk_managed_visible` 仍然很高，只能按受管 backlog 波次继续收口，不能做 blanket deletion。
+- every bounded fallback is gone
+- every retained compatibility shim is now deletable
+- every artifact-dependent closure gate will pass without its required generated evidence artifacts
+- the repository is globally zero-dirty
+- the repo has proven host-managed plugin / MCP surfaces or platform ceilings beyond its own governance scope
 
-3. phase-end hygiene 必须持续 attribution-safe。
-   - 最新 node/process 审计显示 `cleanup_candidate_count = 0`，所以本轮只能继续使用 report-only cleanup，而不是误杀外部 Node 进程。
+## Next Operator Hop
 
-4. anti-drift observability still depends on artifact discipline.
-   - 如果 requirement / plan / review / CER / closure surface 没有诚实记录 completion state，`current-state` 也不能替它捏造 green summary。
+The next governed hop should start from a new requirement document for one deferred backlog track at a time.
 
-## Current Closure Focus
+Recommended next options are:
 
-1. 压缩 `docs/`、`status/`、`plans/`、`releases/`、`references/` 的入口面，不改变治理合同与运行时行为。
-2. 让 `current-state`、README、索引页统一回指 authoritative artifacts，停止手工复制快照数字。
-3. 每完成一个批次都执行 proof bundle 复验、compatibility topology 相关 gate 复验，以及 phase-end hygiene。
-
-Compatibility-layer stabilization、larger prune windows、以及更大范围的 archive/move/delete 仍然是后续显式波次，不在本页隐式推进。
+- outputs strict-mode / tracked-output retirement
+- third-party source-root parameterization
+- archive / prune follow-up work
+- targeted shim-retirement only where live callers can be proven gone

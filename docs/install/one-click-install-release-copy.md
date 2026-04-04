@@ -19,6 +19,12 @@
 - `全量版本 + 可自定义添加治理` -> `full`
 - `仅核心框架 + 可自定义添加治理` -> `minimal`
 
+补充说明：
+
+- 宿主模式由 [`../../config/adapter-registry.json`](../../config/adapter-registry.json) 决定
+- 同一个公开入口可能最终落到 `governed`、`preview-guidance` 或 `runtime-core` 三种模式
+- `opencode` 的公开提示词仍可优先走更薄的 direct install/check，但 registry-driven 的 one-shot wrapper 也可用
+
 ## 复制对应提示词
 
 这里保留 4 份基础提示词文档，覆盖安装 / 更新 与 full / minimal 四种场景。
@@ -38,6 +44,7 @@
   - [`minimal-path.md`](./minimal-path.md)
 - 更多安装命令和宿主细节：
   - [`recommended-full-path.md`](./recommended-full-path.md)
+  - [`../cold-start-install-paths.md`](../cold-start-install-paths.md)
   - [`manual-copy-install.md`](./manual-copy-install.md)
   - [`host-plugin-policy.md`](./host-plugin-policy.md)
 - 后续接自己的 workflow / skill：

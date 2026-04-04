@@ -10,10 +10,43 @@ if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 }
 
-. (Join-Path $RepoRoot 'scripts\common\Resolve-VgoAdapter.ps1')
+function Resolve-ClosureGateRegistry {
+    param([Parameter(Mandatory)] [string]$RepoRoot)
 
-$registryResolution = Resolve-VgoAdapterRegistry -RepoRoot $RepoRoot
-$registry = $registryResolution.registry
+    $current = [System.IO.Path]::GetFullPath($RepoRoot)
+    $registryPath = $null
+    while (-not [string]::IsNullOrWhiteSpace($current)) {
+        $adapterPath = Join-Path $current 'adapters\index.json'
+        if (Test-Path -LiteralPath $adapterPath) {
+            $registryPath = $adapterPath
+            break
+        }
+
+        $configPath = Join-Path $current 'config\adapter-registry.json'
+        if (Test-Path -LiteralPath $configPath) {
+            $registryPath = $configPath
+            break
+        }
+
+        $parent = Split-Path -Parent $current
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
+            break
+        }
+        $current = $parent
+    }
+
+    if ([string]::IsNullOrWhiteSpace($registryPath)) {
+        throw "VGO adapter registry not found under repo root or ancestors: $RepoRoot"
+    }
+
+    try {
+        return Get-Content -LiteralPath $registryPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        throw ("Failed to parse adapter registry: " + $_.Exception.Message)
+    }
+}
+
+$registry = Resolve-ClosureGateRegistry -RepoRoot $RepoRoot
 $failures = @()
 $rows = @()
 

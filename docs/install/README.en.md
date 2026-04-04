@@ -24,6 +24,15 @@ This directory contains the public install, upgrade, and custom-integration docs
 - [`installation-rules.en.md`](./installation-rules.en.md): truth-first rules every install assistant must follow
 - [`configuration-guide.en.md`](./configuration-guide.en.md): local configuration guidance
 
+## How to Read the Current Install Surface
+
+The public install docs are now registry-driven:
+
+- `HostId` / `--host` decides host semantics
+- `install.*`, `check.*`, and `one-shot-setup.*` should follow [`../../config/adapter-registry.json`](../../config/adapter-registry.json)
+- the current public hosts resolve into three install modes: `governed`, `preview-guidance`, and `runtime-core`
+- `opencode` still keeps a thinner direct install/check path in the public docs, but that does not mean the registry-driven one-shot wrapper is unavailable
+
 Notes:
 
 - for normal users, the public install surface now keeps only [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md) as the primary entry
@@ -31,7 +40,6 @@ Notes:
 - other install-related pages now act only as compatibility notes, host-specific references, or command references instead of parallel public entrypoints
 - the generic install prompts still support `openclaw` and `opencode`
 - [`openclaw-path.en.md`](./openclaw-path.en.md) and [`opencode-path.en.md`](./opencode-path.en.md) are split out only to expand host-specific details, not because the generic install path cannot handle those hosts
-- these host guides mainly cover default roots, extra install styles, verification details, and host-local boundaries so the common install docs stay readable
 - provider / MCP / host settings follow-up should be treated as optional enhancement guidance when the base install already works
 
 ## Public Versions
@@ -50,21 +58,14 @@ Keep the public wording user-friendly, then map to the real profile at execution
 
 ## Publicly Supported Hosts
 
-- `codex`
-- `claude-code`
-- `cursor`
-- `windsurf`
-- `openclaw`
-- `opencode`
+The public surface currently supports six hosts, but not under one identical mode:
 
-Within that scope:
-
-- `codex`: the default recommended path
-- `claude-code`: supported install-and-use path
-- `cursor`: supported install-and-use path
-- `windsurf`: supported install-and-use path
-- `openclaw`: supported install-and-use path; the generic install prompts can already install it, and the host guide only expands the details
-- `opencode`: supported install-and-use path; the generic install prompts can already install it, and the host guide only expands the details
+- `codex`: the strongest governed lane and the default recommended path
+- `claude-code`: a supported install-and-use path with bounded managed closure
+- `cursor`: a preview-guidance path
+- `windsurf`: a runtime-core path; the repo owns shared runtime payload plus `.vibeskills/*` sidecar state only
+- `openclaw`: a preview runtime-core adapter path; the host guide expands the attach / copy / bundle details
+- `opencode`: a preview-guidance adapter path; the public docs still keep direct install/check as the thinner default command surface
 
 Other hosts should not currently be described as supported installation targets.
 
@@ -73,15 +74,17 @@ Other hosts should not currently be described as supported installation targets.
 If you are a regular user:
 
 1. [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md)
-2. choose the matching prompt only inside that one entry
-3. [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
-4. [`custom-skill-governance-rules.en.md`](./custom-skill-governance-rules.en.md)
+2. [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
+3. choose the matching prompt or command path only from those entrypoints
+4. [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
+5. [`custom-skill-governance-rules.en.md`](./custom-skill-governance-rules.en.md)
 
 If you are an advanced user:
 
 1. [`recommended-full-path.en.md`](./recommended-full-path.en.md)
 2. [`manual-copy-install.en.md`](./manual-copy-install.en.md)
 3. [`host-plugin-policy.en.md`](./host-plugin-policy.en.md)
+4. [`configuration-guide.en.md`](./configuration-guide.en.md)
 
 ## Custom Extension Docs
 

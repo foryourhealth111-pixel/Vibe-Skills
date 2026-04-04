@@ -4,13 +4,40 @@
   "lane_kind": "universal-core",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "Universal contracts only. No install/check runtime closure is promised by this lane.",
   "runtime_ownership": {
     "owner": "none",
     "notes": "This lane must not claim official runtime ownership. It only provides contracts and schemas for reuse."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "none",
+      "notes": "This lane must not claim official runtime ownership. It only provides contracts and schemas for reuse."
+    },
+    "repo_provided_entrypoints": [],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/core-contract.md",
+      "docs/universalization/router-model-neutrality.md",
+      "scripts/router/resolve-pack-route.ps1"
+    ],
+    "boundary_claims": [
+      "one_shot_host_dependency_install",
+      "official_runtime_install_entrypoints",
+      "host_plugin_provisioning",
+      "cross_platform_parity_claims"
+    ]
   },
   "capability_promises": [
     {

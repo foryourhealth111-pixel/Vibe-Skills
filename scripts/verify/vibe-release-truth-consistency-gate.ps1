@@ -59,20 +59,21 @@ $assertions = [System.Collections.Generic.List[object]]::new()
 $releaseReadmePath = Join-Path $repoRoot 'docs\releases\README.md'
 $proofBundlePath = Join-Path $repoRoot 'docs\status\non-regression-proof-bundle.md'
 $routerTruthPath = Join-Path $repoRoot 'docs\status\router-platform-truth-matrix-2026-03-15.md'
-$releaseCutPath = Join-Path $repoRoot 'scripts\governance\release-cut.ps1'
+$previewContractPath = Join-Path $repoRoot 'config\operator-preview-contract.json'
 $promotionBoardPath = Join-Path $repoRoot 'config\promotion-board.json'
 
 $releaseReadme = Get-Content -LiteralPath $releaseReadmePath -Raw -Encoding UTF8
 $proofBundle = Get-Content -LiteralPath $proofBundlePath -Raw -Encoding UTF8
 $routerTruth = Get-Content -LiteralPath $routerTruthPath -Raw -Encoding UTF8
-$releaseCut = Get-Content -LiteralPath $releaseCutPath -Raw -Encoding UTF8
+$previewContract = Get-Content -LiteralPath $previewContractPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$releaseCutOperator = $previewContract.operators.'release-cut'
 $promotionBoard = Get-Content -LiteralPath $promotionBoardPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $releasePlane = @($promotionBoard.planes | Where-Object { [string]$_.plane_id -eq 'operator-release-train' }) | Select-Object -First 1
 
 Add-Assertion -Assertions $assertions -Pass ($releaseReadme.Contains('fallback-truth consistency proof')) -Message 'release README documents fallback-truth consistency proof'
 Add-Assertion -Assertions $assertions -Pass ($proofBundle.Contains('vibe-release-truth-consistency-gate.ps1')) -Message 'non-regression proof bundle requires release-truth consistency gate'
 Add-Assertion -Assertions $assertions -Pass ($routerTruth.Contains('release-truth consistency proof')) -Message 'router platform truth matrix names release-truth consistency proof'
-Add-Assertion -Assertions $assertions -Pass ($releaseCut.Contains('vibe-release-truth-consistency-gate.ps1')) -Message 'release-cut includes release-truth consistency gate'
+Add-Assertion -Assertions $assertions -Pass (@($releaseCutOperator.apply_gates) -contains 'scripts/verify/vibe-release-truth-consistency-gate.ps1') -Message 'release-cut contract includes release-truth consistency gate'
 Add-Assertion -Assertions $assertions -Pass ($null -ne $releasePlane) -Message 'promotion board contains operator-release-train plane'
 if ($releasePlane) {
     Add-Assertion -Assertions $assertions -Pass (@($releasePlane.required_gates) -contains 'vibe-release-truth-consistency-gate') -Message 'operator-release-train plane requires release-truth consistency gate'

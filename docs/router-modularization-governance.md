@@ -1,4 +1,4 @@
-﻿# Router Modularization Governance (Zero-Regression)
+# Router Modularization Governance (Zero-Regression)
 
 ## Objective
 
@@ -8,8 +8,8 @@ Refactor `scripts/router/resolve-pack-route.ps1` into maintainable modules while
 
 - Unified entrypoint remains: `scripts/router/resolve-pack-route.ps1`
 - Function modules live in: `scripts/router/modules/*.ps1`
-- Legacy baseline preserved for contract comparison:
-  - `scripts/router/legacy/resolve-pack-route.legacy.ps1`
+- Frozen contract baseline preserved for contract comparison:
+  - `tests/replay/route/router-contract-gate-golden.json`
 
 ## Module Boundaries
 
@@ -25,7 +25,7 @@ Refactor `scripts/router/resolve-pack-route.ps1` into maintainable modules while
 
 A modular change is allowed only when all conditions hold:
 
-1. `legacy` and `modular` outputs are contract-equal on the core routing matrix (core decision fields must match; additive advisory fields may differ).
+1. The modular router matches the frozen contract baseline on the core routing matrix (core decision fields must match; additive advisory fields may differ).
 2. Existing routing gates remain green.
 3. Config parity gate remains 100%.
 4. No automatic rollback behavior is introduced.
@@ -38,7 +38,7 @@ Primary gate:
 pwsh -File .\scripts\verify\vibe-router-contract-gate.ps1 -WriteArtifacts
 ```
 
-The gate compares `legacy` vs `modular` on fixed bilingual and cross-task cases and fails on any **core routing contract** mismatch:
+The gate compares the current modular router against a frozen bilingual and cross-task contract fixture and fails on any **core routing contract** mismatch:
 
 - `route_mode`
 - `route_reason`
@@ -81,6 +81,6 @@ includes the contract gate in the default pipeline.
 
 ## Progressive Migration Guidance
 
-1. Keep legacy script snapshot updated before major refactors.
+1. Refresh `tests/replay/route/router-contract-gate-golden.json` only when a governed router contract change is intentionally approved.
 2. If a planned strategy change is needed, do it in a separate commit after contract-stable modularization.
 3. Use `check.ps1 -Deep` / `check.sh --deep` before release.

@@ -39,7 +39,7 @@ Protected documents must not be destructively targeted by name fragments, wildca
 
 ### 2. Preview Before Stronger Action
 
-If a cleanup action could touch protected documents, the system must be able to emit a preview manifest that shows exactly which assets were considered.
+If a cleanup action could touch protected documents, the system must be able to emit a preview manifest that shows exactly which assets were considered, and the cleanup policy contract must declare that preview capability explicitly.
 
 ### 3. Quarantine Before Destruction
 

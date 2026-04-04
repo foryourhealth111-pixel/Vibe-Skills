@@ -1,0 +1,6 @@
+{
+  "schema_version": "vgo-skill-catalog.metadata.v1",
+  "owner": "skill-catalog",
+  "contract_index": "catalog/metadata/official-skill-contracts.json",
+  "notes": "Detached catalog metadata for installer/distribution consumption. Runtime semantics stay outside this package."
+}

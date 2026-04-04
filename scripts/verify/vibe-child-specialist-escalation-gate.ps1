@@ -36,6 +36,7 @@ function Add-Assertion {
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
+$runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
 $results = @()
 
 $policyText = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-input-packet-policy.json') -Raw -Encoding UTF8
@@ -51,7 +52,7 @@ Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('same
 $runId = "child-specialist-escalation-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\child-specialist-escalation-{0}" -f $runId)
 
-$rootSummary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') `
+$rootSummary = & $runtimeEntryPath `
     -Task 'Root specialist dispatch seed for child escalation gate.' `
     -Mode benchmark_autonomous `
     -GovernanceScope root `
@@ -85,7 +86,7 @@ if ($hasRootSummary) {
 
 $childSummary = $null
 if ($hasRootSummary) {
-    $childSummary = & (Join-Path $repoRoot 'scripts\runtime\invoke-vibe-runtime.ps1') `
+    $childSummary = & $runtimeEntryPath `
         -Task 'Child specialist escalation advisory smoke.' `
         -Mode benchmark_autonomous `
         -GovernanceScope child `

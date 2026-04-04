@@ -29,48 +29,50 @@ function Test-IsInteractiveBootstrap {
 }
 
 function Prompt-VgoHostId {
+    $choices = @(Get-VgoBootstrapHostChoices -StartPath $PSScriptRoot)
+    if ($choices.Count -eq 0) {
+        throw 'No bootstrap host choices were available from the adapter registry.'
+    }
+
     while ($true) {
         Write-Host 'Select the install target before bootstrap:'
-        Write-Host '  1) codex        - strongest governed lane'
-        Write-Host '  2) claude-code  - supported install/use path'
-        Write-Host '  3) cursor       - supported install/use path'
-        Write-Host '  4) windsurf     - supported path + runtime adapter'
-        Write-Host '  5) openclaw     - preview runtime-core adapter'
-        $choice = [string](Read-Host 'Install into which agent? [1-5]')
-        $normalized = $choice.Trim().ToLowerInvariant()
-        switch ($normalized) {
-            '1' { return 'codex' }
-            'codex' { return 'codex' }
-            '2' { return 'claude-code' }
-            'claude' { return 'claude-code' }
-            'claude-code' { return 'claude-code' }
-            '3' { return 'cursor' }
-            'cursor' { return 'cursor' }
-            '4' { return 'windsurf' }
-            'windsurf' { return 'windsurf' }
-            '5' { return 'openclaw' }
-            'openclaw' { return 'openclaw' }
-            default { Write-Warning "Unsupported choice: $choice. Enter 1, 2, 3, 4, 5, or a supported host name." }
+        foreach ($entry in $choices) {
+            Write-Host ("  {0}) {1,-12} - {2}" -f $entry.index, $entry.id, $entry.summary)
         }
+
+        $choice = [string](Read-Host ("Install into which agent? [1-{0}]" -f $choices.Count))
+        $normalized = $choice.Trim().ToLowerInvariant()
+        foreach ($entry in $choices) {
+            if ($normalized -eq [string]$entry.index -or $normalized -eq [string]$entry.id) {
+                return [string]$entry.id
+            }
+            foreach ($alias in @($entry.aliases)) {
+                if ($normalized -eq [string]$alias) {
+                    return [string]$entry.id
+                }
+            }
+        }
+
+        Write-Warning ("Unsupported choice: {0}. Enter 1-{1}, or a supported host name." -f $choice, $choices.Count)
     }
 }
 
 . (Join-Path $PSScriptRoot '..\common\vibe-governance-helpers.ps1')
-. (Join-Path $PSScriptRoot '..\common\Resolve-VgoAdapter.ps1')
+
 if (-not (Test-NonEmptyString -Value $HostId)) {
     if (Test-NonEmptyString -Value $env:VCO_HOST_ID) {
         $HostId = $env:VCO_HOST_ID
     } elseif (Test-IsInteractiveBootstrap) {
         $HostId = Prompt-VgoHostId
     } else {
-        throw 'No host was provided for one-shot bootstrap. Pass -HostId codex|claude-code|cursor|windsurf|openclaw when running non-interactively.'
+        throw ("No host was provided for one-shot bootstrap. Pass -HostId {0} when running non-interactively." -f (Get-VgoSupportedHostHint -StartPath $PSScriptRoot))
     }
 }
 $HostId = Resolve-VgoHostId -HostId $HostId
 $TargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $HostId
 Assert-VgoTargetRootMatchesHostIntent -TargetRoot $TargetRoot -HostId $HostId
 $repoRoot = Resolve-VgoRepoRoot -StartPath $PSCommandPath
-$Adapter = Resolve-VgoAdapterDescriptor -RepoRoot $repoRoot -HostId $HostId
+$Adapter = Resolve-VgoAdapterEntry -StartPath $repoRoot -HostId $HostId
 
 function Get-ExistingSettingEnvValue {
     param(

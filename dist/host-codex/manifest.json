@@ -5,13 +5,51 @@
   "host_id": "codex",
   "stability": "supported-with-constraints",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "Codex host adapter lane. Uses the official runtime entrypoints, but remains honest about host-managed plugin and credential surfaces.",
   "runtime_ownership": {
     "owner": "canonical_repo",
     "notes": "This lane does not replace the official runtime. It expresses Codex-specific configuration and install closure as documented in current repo tooling."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "canonical_repo",
+      "notes": "This lane does not replace the official runtime. It expresses Codex-specific configuration and install closure as documented in current repo tooling."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1",
+      "install.sh",
+      "check.ps1",
+      "check.sh"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "docs/universalization/official-runtime-baseline.md",
+      "config/settings.template.codex.json",
+      "config/plugins-manifest.codex.json",
+      "adapters/codex/host-profile.json",
+      "adapters/codex/settings-map.json",
+      "adapters/codex/closure.json",
+      "mcp/servers.template.json",
+      "install.ps1",
+      "check.ps1",
+      "scripts/router/resolve-pack-route.ps1"
+    ],
+    "boundary_claims": [
+      "automatic_host_plugin_installation",
+      "automatic_credential_provisioning",
+      "cross_platform_full_parity_claim"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1",
@@ -32,6 +70,15 @@
       "promise_level": "promised",
       "evidence_paths": [
         "config/plugins-manifest.codex.json"
+      ]
+    },
+    {
+      "id": "codex_adapter_contract_exists",
+      "promise_level": "promised",
+      "evidence_paths": [
+        "adapters/codex/host-profile.json",
+        "adapters/codex/settings-map.json",
+        "adapters/codex/closure.json"
       ]
     },
     {

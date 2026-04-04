@@ -5,13 +5,54 @@
   "host_id": "claude-code",
   "stability": "supported-with-constraints",
   "source_release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30"
+    "version": "2.3.56",
+    "updated": "2026-04-04"
   },
   "summary": "Claude Code host adapter lane with bounded managed closure. The repo can write and verify a managed Claude settings + hook surface, while still keeping broader host behavior outside repo ownership.",
   "runtime_ownership": {
     "owner": "host_managed",
     "notes": "This lane must not claim official runtime closure. It owns only the bounded vibeskills-managed Claude settings and write-guard hook surface plus truthful readiness boundaries."
+  },
+  "surface_roles": {
+    "notes": {
+      "flat_projection_contract": true,
+      "projection_scope": "release_lane_manifest"
+    },
+    "runtime_authority": {
+      "owner": "host_managed",
+      "notes": "This lane must not claim official runtime closure. It owns only the bounded vibeskills-managed Claude settings and write-guard hook surface plus truthful readiness boundaries."
+    },
+    "repo_provided_entrypoints": [
+      "install.ps1 --host claude-code",
+      "install.sh --host claude-code",
+      "check.ps1 --host claude-code",
+      "check.sh --host claude-code"
+    ],
+    "proof_surfaces": [
+      "docs/universalization/distribution-lanes.md",
+      "docs/universalization/install-matrix.md",
+      "docs/universalization/platform-install-matrix.md",
+      "docs/universalization/platform-support-matrix.md",
+      "docs/universalization/host-capability-matrix.md",
+      "apps/vgo-cli/src/vgo_cli/commands.py",
+      "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+      "packages/installer-core/src/vgo_installer/install_runtime.py",
+      "config/settings.template.claude.json",
+      "adapters/claude-code/host-profile.json",
+      "adapters/claude-code/settings-map.json",
+      "adapters/claude-code/closure.json",
+      "tests/runtime_neutral/test_claude_preview_scaffold.py",
+      "docs/universalization/router-model-neutrality.md",
+      "scripts/router/resolve-pack-route.ps1",
+      "hooks/write-guard.js",
+      "check.sh"
+    ],
+    "boundary_claims": [
+      "official_runtime_install_entrypoints",
+      "official_runtime_check_entrypoints",
+      "host_plugin_provisioning",
+      "cross_platform_parity_claims"
+    ]
   },
   "entrypoints": {
     "install_primary": "install.ps1 --host claude-code",
@@ -24,8 +65,13 @@
       "id": "claude_code_managed_settings_surface_exists",
       "promise_level": "promised",
       "evidence_paths": [
-        "scripts/install/install_vgo_adapter.py",
+        "apps/vgo-cli/src/vgo_cli/commands.py",
+        "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+        "packages/installer-core/src/vgo_installer/install_runtime.py",
+        "config/settings.template.claude.json",
         "adapters/claude-code/host-profile.json",
+        "adapters/claude-code/settings-map.json",
+        "adapters/claude-code/closure.json",
         "tests/runtime_neutral/test_claude_preview_scaffold.py"
       ]
     },

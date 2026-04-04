@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "2.3.55",
-    "updated": "2026-03-30",
+    "version": "2.3.56",
+    "updated": "2026-04-04",
     "channel": "stable",
-    "notes": "owned-only uninstall and skill-only host alignment / OpenCode startup safety / explicit intent-vs-vector AI config split / macOS bootstrap compatibility"
+    "notes": "remaining architecture closure / owner-consumer proof / live status truth alignment / bounded fallback honesty / regression-backed baseline"
   },
   "source_of_truth": {
     "canonical_root": "."
@@ -73,15 +73,42 @@
         "path": "config/runtime-config-manifest.json"
       }
     ],
-    "target_overrides": {
-    },
+    "target_overrides": {},
     "allow_installed_only": [
       "docs/CODEX_ECOSYSTEM_MAINTENANCE_PRINCIPLES.md"
     ],
     "normalized_json_ignore_keys": [
       "updated",
       "generated_at"
-    ]
+    ],
+    "runtime_payload_roles": {
+      "files": {
+        "root_entrypoints": [
+          "SKILL.md",
+          "check.ps1",
+          "check.sh",
+          "install.ps1",
+          "install.sh"
+        ],
+        "governance_manifests": [
+          "config/runtime-core-packaging.json",
+          "config/runtime-core-packaging.minimal.json",
+          "config/runtime-core-packaging.full.json",
+          "config/runtime-script-manifest.json",
+          "config/runtime-config-manifest.json"
+        ]
+      },
+      "directories": {
+        "runtime_support_assets": [
+          "templates",
+          "mcp"
+        ]
+      },
+      "notes": {
+        "flat_projection_contract": "runtime_payload.files and runtime_payload.directories remain the compatibility projection for existing payload consumers.",
+        "owner_boundary_rule": "Runtime payload root files bootstrap the installed runtime, while semantic ownership for runtime behavior stays in the CLI app and package-owned cores referenced by required_runtime_markers."
+      }
+    }
   },
   "runtime": {
     "installed_runtime": {
@@ -97,15 +124,46 @@
         "config/version-governance.json",
         "config/runtime-script-manifest.json",
         "config/runtime-config-manifest.json",
+        "apps/vgo-cli/src/vgo_cli/__init__.py",
+        "apps/vgo-cli/src/vgo_cli/main.py",
+        "apps/vgo-cli/src/vgo_cli/errors.py",
+        "apps/vgo-cli/src/vgo_cli/hosts.py",
+        "apps/vgo-cli/src/vgo_cli/process.py",
+        "apps/vgo-cli/src/vgo_cli/install_support.py",
+        "apps/vgo-cli/src/vgo_cli/workspace.py",
+        "apps/vgo-cli/src/vgo_cli/commands.py",
+        "apps/vgo-cli/src/vgo_cli/repo.py",
+        "apps/vgo-cli/src/vgo_cli/external.py",
+        "apps/vgo-cli/src/vgo_cli/output.py",
+        "apps/vgo-cli/src/vgo_cli/install_gates.py",
+        "apps/vgo-cli/src/vgo_cli/installer_bridge.py",
+        "apps/vgo-cli/src/vgo_cli/skill_surface.py",
+        "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+        "packages/contracts/src/vgo_contracts/__init__.py",
+        "packages/contracts/src/vgo_contracts/install_ledger.py",
+        "packages/installer-core/src/vgo_installer/__init__.py",
+        "packages/installer-core/src/vgo_installer/install_runtime.py",
+        "packages/installer-core/src/vgo_installer/uninstall_runtime.py",
+        "packages/installer-core/src/vgo_installer/ledger_service.py",
         "install.ps1",
         "check.ps1",
         "scripts/common/vibe-governance-helpers.ps1",
+        "scripts/common/adapter_registry_query.py",
         "scripts/runtime/VibeRuntime.Common.ps1",
         "scripts/runtime/VibeMemoryBackends.Common.ps1",
         "scripts/runtime/Freeze-RuntimeInputPacket.ps1",
         "scripts/runtime/invoke-vibe-runtime.ps1",
         "scripts/runtime/Invoke-PlanExecute.ps1",
         "scripts/runtime/native_specialist_runner.py",
+        "scripts/runtime/Invoke-AntiProxyGoalDriftCompaction.ps1",
+        "scripts/runtime/Invoke-DeepInterview.ps1",
+        "scripts/runtime/Invoke-DelegatedLaneUnit.ps1",
+        "scripts/runtime/Invoke-PhaseCleanup.ps1",
+        "scripts/runtime/Invoke-SkeletonCheck.ps1",
+        "scripts/runtime/VibeExecution.Common.ps1",
+        "scripts/runtime/VibeMemoryActivation.Common.ps1",
+        "scripts/runtime/Write-RequirementDoc.ps1",
+        "scripts/runtime/Write-XlPlan.ps1",
         "scripts/runtime/memory_backend_driver.py",
         "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
         "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
@@ -115,6 +173,9 @@
         "scripts/router/resolve-pack-route.ps1",
         "scripts/router/invoke-pack-route.py",
         "scripts/router/runtime_neutral/router_contract.py",
+        "packages/runtime-core/src/vgo_runtime/router_bridge.py",
+        "packages/runtime-core/src/vgo_runtime/router_contract_runtime.py",
+        "packages/runtime-core/src/vgo_runtime/custom_admission.py",
         "scripts/verify/runtime_neutral/router_bridge_gate.py",
         "config/runtime-contract.json",
         "config/runtime-modes.json",
@@ -126,7 +187,89 @@
         "config/plan-execution-policy.json",
         "config/phase-cleanup-policy.json"
       ],
-      "require_nested_bundled_root": false
+      "require_nested_bundled_root": false,
+      "required_runtime_marker_groups": {
+        "governance_and_manifests": [
+          "SKILL.md",
+          "config/version-governance.json",
+          "config/runtime-script-manifest.json",
+          "config/runtime-config-manifest.json",
+          "config/runtime-contract.json",
+          "config/runtime-modes.json",
+          "config/runtime-input-packet-policy.json",
+          "config/benchmark-execution-policy.json",
+          "config/memory-backend-adapters.json",
+          "config/proof-class-registry.json",
+          "config/requirement-doc-policy.json",
+          "config/plan-execution-policy.json",
+          "config/phase-cleanup-policy.json"
+        ],
+        "semantic_owners": [
+          "apps/vgo-cli/src/vgo_cli/__init__.py",
+          "apps/vgo-cli/src/vgo_cli/main.py",
+          "apps/vgo-cli/src/vgo_cli/errors.py",
+          "apps/vgo-cli/src/vgo_cli/hosts.py",
+          "apps/vgo-cli/src/vgo_cli/process.py",
+          "apps/vgo-cli/src/vgo_cli/install_support.py",
+          "apps/vgo-cli/src/vgo_cli/workspace.py",
+          "apps/vgo-cli/src/vgo_cli/commands.py",
+          "apps/vgo-cli/src/vgo_cli/repo.py",
+          "apps/vgo-cli/src/vgo_cli/external.py",
+          "apps/vgo-cli/src/vgo_cli/output.py",
+          "apps/vgo-cli/src/vgo_cli/install_gates.py",
+          "apps/vgo-cli/src/vgo_cli/installer_bridge.py",
+          "apps/vgo-cli/src/vgo_cli/skill_surface.py",
+          "apps/vgo-cli/src/vgo_cli/core_bridge.py",
+          "packages/contracts/src/vgo_contracts/__init__.py",
+          "packages/contracts/src/vgo_contracts/install_ledger.py",
+          "packages/installer-core/src/vgo_installer/__init__.py",
+          "packages/installer-core/src/vgo_installer/install_runtime.py",
+          "packages/installer-core/src/vgo_installer/uninstall_runtime.py",
+          "packages/installer-core/src/vgo_installer/ledger_service.py",
+          "packages/runtime-core/src/vgo_runtime/router_bridge.py",
+          "packages/runtime-core/src/vgo_runtime/router_contract_runtime.py",
+          "packages/runtime-core/src/vgo_runtime/custom_admission.py"
+        ],
+        "runtime_entrypoints_and_support": [
+          "install.ps1",
+          "check.ps1",
+          "scripts/common/vibe-governance-helpers.ps1",
+          "scripts/common/adapter_registry_query.py",
+          "scripts/runtime/VibeRuntime.Common.ps1",
+          "scripts/runtime/VibeMemoryBackends.Common.ps1",
+          "scripts/runtime/Freeze-RuntimeInputPacket.ps1",
+          "scripts/runtime/invoke-vibe-runtime.ps1",
+          "scripts/runtime/Invoke-PlanExecute.ps1",
+          "scripts/runtime/native_specialist_runner.py",
+          "scripts/runtime/Invoke-AntiProxyGoalDriftCompaction.ps1",
+          "scripts/runtime/Invoke-DeepInterview.ps1",
+          "scripts/runtime/Invoke-DelegatedLaneUnit.ps1",
+          "scripts/runtime/Invoke-PhaseCleanup.ps1",
+          "scripts/runtime/Invoke-SkeletonCheck.ps1",
+          "scripts/runtime/VibeExecution.Common.ps1",
+          "scripts/runtime/VibeMemoryActivation.Common.ps1",
+          "scripts/runtime/Write-RequirementDoc.ps1",
+          "scripts/runtime/Write-XlPlan.ps1",
+          "scripts/runtime/memory_backend_driver.py"
+        ],
+        "verification_surfaces": [
+          "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
+          "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+          "scripts/verify/vibe-governed-runtime-contract-gate.ps1",
+          "scripts/verify/vibe-benchmark-autonomous-proof-gate.ps1",
+          "scripts/verify/vibe-linux-router-no-pwsh-gate.ps1"
+        ],
+        "router_and_compatibility_surfaces": [
+          "scripts/router/resolve-pack-route.ps1",
+          "scripts/router/invoke-pack-route.py",
+          "scripts/router/runtime_neutral/router_contract.py",
+          "scripts/verify/runtime_neutral/router_bridge_gate.py"
+        ]
+      },
+      "required_runtime_marker_notes": {
+        "flat_projection_contract": "required_runtime_markers remains the flat compatibility projection consumed by installed-runtime checks and gates.",
+        "grouping_scope": "required_runtime_marker_groups classify the same marker set by responsibility; they are parity sentinels, not an exhaustive inventory of every file shipped under each package-owned directory."
+      }
     }
   },
   "metrics": {

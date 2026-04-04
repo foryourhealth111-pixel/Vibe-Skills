@@ -91,13 +91,15 @@ foreach ($relPath in $requiredPaths) {
 }
 
 $policyRaw = Get-Content -LiteralPath (Join-Path $repoRoot 'config\phase-cleanup-policy.json') -Raw -Encoding UTF8
-$cleanupRaw = Get-Content -LiteralPath (Join-Path $repoRoot 'scripts\governance\phase-end-cleanup.ps1') -Raw -Encoding UTF8
 $governanceRaw = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\document-asset-cleanup-governance.md') -Raw -Encoding UTF8
 
 Add-Assertion -Assertions $assertions -Pass ($policyRaw.Contains('"preview_only"')) -Message 'cleanup policy declares preview_only mode' -Family 'usability'
 Add-Assertion -Assertions $assertions -Pass ($policyRaw.Contains('"quarantine_only"')) -Message 'cleanup policy declares quarantine_only mode' -Family 'stability'
-Add-Assertion -Assertions $assertions -Pass ($cleanupRaw.Contains('PreviewOnly')) -Message 'cleanup script exposes PreviewOnly execution path' -Family 'usability'
-Add-Assertion -Assertions $assertions -Pass ($cleanupRaw.Contains('Move-VgoProtectedDocumentsToQuarantine')) -Message 'cleanup script uses quarantine handling for protected tmp documents' -Family 'stability'
+Add-Assertion -Assertions $assertions -Pass ($policy.operator_contract.preview_only_supported -eq $true) -Message 'cleanup policy contract declares preview-only support' -Family 'usability'
+Add-Assertion -Assertions $assertions -Pass ([string]$policy.operator_contract.preview_only_switch -eq 'PreviewOnly') -Message 'cleanup policy contract declares PreviewOnly switch name' -Family 'usability'
+Add-Assertion -Assertions $assertions -Pass ([string]$policy.operator_contract.protected_tmp_default_action -eq 'quarantine_only') -Message 'cleanup policy contract declares quarantine_only protected tmp action' -Family 'stability'
+Add-Assertion -Assertions $assertions -Pass ($policy.operator_contract.protected_tmp_quarantine_required -eq $true) -Message 'cleanup policy contract requires quarantine for protected tmp documents' -Family 'stability'
+Add-Assertion -Assertions $assertions -Pass ([string]$policy.operator_contract.quarantine_handler -eq 'Move-VgoProtectedDocumentsToQuarantine') -Message 'cleanup policy contract declares quarantine handler' -Family 'stability'
 Add-Assertion -Assertions $assertions -Pass ($governanceRaw.Contains('No Fuzzy Destructive Cleanup')) -Message 'governance doc forbids fuzzy destructive cleanup' -Family 'intelligence'
 
 $scenarioDirs = @(Get-ChildItem -LiteralPath $fixturesRoot -Directory | Sort-Object Name)

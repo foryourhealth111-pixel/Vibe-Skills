@@ -61,6 +61,7 @@ $planPath = Join-Path $repoRoot 'docs\plans\2026-03-07-vco-wave64-82-execution-p
 $boardPath = Join-Path $repoRoot 'config\wave64-82-planning-board.json'
 $releaseReadme = Join-Path $repoRoot 'docs\releases\README.md'
 $releaseCut = Join-Path $repoRoot 'scripts\governance\release-cut.ps1'
+$releaseCutApplyGates = @(Get-VgoOperatorPreviewStringListProperty -RepoRoot $repoRoot -OperatorId 'release-cut' -PropertyName 'apply_gates')
 $requiredAssets = @(
     'docs/memory-runtime-v3-governance.md',
     'docs/browserops-scorecard-governance.md',
@@ -110,10 +111,14 @@ if (Test-Path -LiteralPath $releaseReadme) {
     }
 }
 
-if (Test-Path -LiteralPath $releaseCut) {
+if ($releaseCutApplyGates.Count -gt 0) {
+    foreach ($keyword in @('scripts/verify/vibe-memory-runtime-v3-gate.ps1', 'scripts/verify/vibe-promotion-scorecard-gate.ps1', 'scripts/verify/vibe-wave64-82-closure-gate.ps1')) {
+        Add-Assertion -Assertions $assertions -Pass ($releaseCutApplyGates -contains $keyword) -Message ('release-cut contract includes ' + (Split-Path $keyword -Leaf)) -Details $keyword
+    }
+} elseif (Test-Path -LiteralPath $releaseCut) {
     $raw = Get-Content -LiteralPath $releaseCut -Raw -Encoding UTF8
     foreach ($keyword in @('vibe-memory-runtime-v3-gate.ps1', 'vibe-promotion-scorecard-gate.ps1', 'vibe-wave64-82-closure-gate.ps1')) {
-        Add-Assertion -Assertions $assertions -Pass ($raw.Contains($keyword)) -Message ('release cut includes ' + $keyword) -Details $keyword
+        Add-Assertion -Assertions $assertions -Pass ($raw.Contains($keyword)) -Message ('release-cut fallback includes ' + $keyword) -Details $keyword
     }
 }
 

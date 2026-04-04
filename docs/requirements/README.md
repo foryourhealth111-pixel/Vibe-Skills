@@ -19,6 +19,7 @@ Primary policy:
 
 ## Current Entry
 
+- [`2026-04-04-install-docs-registry-alignment.md`](./2026-04-04-install-docs-registry-alignment.md): 冻结安装入口文档与公开提示词对齐需求；聚焦把 README、安装索引、one-shot、cold-start 与 prompt surfaces 收口到 adapter registry 的真实宿主模式。
 - [`2026-03-30-runtime-contract-baseline-docs-and-goldens.md`](./2026-03-30-runtime-contract-baseline-docs-and-goldens.md): 冻结 Runtime Contract Wave 2 的 baseline docs/goldens 子波次需求；聚焦补齐 packet/manifest/summary 字段文档，以及 packet/manifest curated golden snapshots。
 - [`2026-03-30-outputs-boundary-routing-stability-migration.md`](./2026-03-30-outputs-boundary-routing-stability-migration.md): 冻结 Wave 3 第一批 outputs boundary migration 需求；聚焦把 `routing-stability` legacy tracked outputs 退役为 fixture-root canonical baseline。
 - [`2026-03-30-runtime-summary-projection.md`](./2026-03-30-runtime-summary-projection.md): 冻结 Runtime Contract Wave 2 的 runtime summary projection 子波次需求；聚焦把 runtime summary 的 hierarchy、artifact、memory/delivery 摘要构造收口为共享 helper。

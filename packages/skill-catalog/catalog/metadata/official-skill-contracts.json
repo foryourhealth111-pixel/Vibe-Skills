@@ -1,0 +1,34 @@
+{
+  "schema_version": "vgo-skill-catalog.contracts.v1",
+  "owner": "skill-catalog",
+  "contracts": [
+    {
+      "skill_id": "vibe",
+      "canonical_contract_ref": "core/skill-contracts/v1/vibe.json"
+    },
+    {
+      "skill_id": "tdd-guide",
+      "canonical_contract_ref": "core/skill-contracts/v1/tdd-guide.json"
+    },
+    {
+      "skill_id": "systematic-debugging",
+      "canonical_contract_ref": "core/skill-contracts/v1/systematic-debugging.json"
+    },
+    {
+      "skill_id": "code-reviewer",
+      "canonical_contract_ref": "core/skill-contracts/v1/code-reviewer.json"
+    },
+    {
+      "skill_id": "brainstorming",
+      "canonical_contract_ref": "core/skill-contracts/v1/brainstorming.json"
+    },
+    {
+      "skill_id": "writing-plans",
+      "canonical_contract_ref": "core/skill-contracts/v1/writing-plans.json"
+    },
+    {
+      "skill_id": "subagent-driven-development",
+      "canonical_contract_ref": "core/skill-contracts/v1/subagent-driven-development.json"
+    }
+  ]
+}

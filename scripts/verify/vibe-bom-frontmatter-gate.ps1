@@ -69,7 +69,11 @@ if ($null -ne $context.runtimeConfig -and $context.runtimeConfig.PSObject.Proper
 $governanceDocPath = Join-Path $context.repoRoot 'docs\frontmatter-bom-governance.md'
 $helpersPath = Join-Path $context.repoRoot 'scripts\common\vibe-governance-helpers.ps1'
 $releaseCutPath = Join-Path $context.repoRoot 'scripts\governance\release-cut.ps1'
-$installedFreshnessGatePath = Join-Path $context.repoRoot 'scripts\verify\vibe-installed-runtime-freshness-gate.ps1'
+$installedFreshnessGateRel = 'scripts/verify/vibe-installed-runtime-freshness-gate.ps1'
+if ($null -ne $context.runtimeConfig -and $context.runtimeConfig.PSObject.Properties.Name -contains 'post_install_gate' -and -not [string]::IsNullOrWhiteSpace([string]$context.runtimeConfig.post_install_gate)) {
+    $installedFreshnessGateRel = [string]$context.runtimeConfig.post_install_gate
+}
+$installedFreshnessGatePath = Join-Path $context.repoRoot $installedFreshnessGateRel
 
 $results = [ordered]@{
     gate = 'vibe-bom-frontmatter-gate'
@@ -95,10 +99,16 @@ foreach ($scope in @($policy.scopes)) {
 
     switch ($scope.root) {
         'canonical' { $basePath = $context.canonicalRoot }
-        'bundled' { $basePath = $context.bundledRoot }
+        'bundled' {
+            $basePath = $context.bundledRoot
+            if ($null -eq $context.bundledTarget -or [string]::IsNullOrWhiteSpace([string]$context.bundledRoot)) {
+                $active = $false
+                $skipReason = 'bundled target absent'
+            }
+        }
         'nested_bundled' {
             $basePath = $context.nestedBundledRoot
-            if ($null -eq $context.nestedTarget -or -not [bool]$context.nestedTarget.exists) {
+            if ($null -eq $context.nestedTarget -or [string]::IsNullOrWhiteSpace([string]$context.nestedBundledRoot) -or -not [bool]$context.nestedTarget.exists) {
                 $active = $false
                 $skipReason = 'nested_bundled target absent'
             }
@@ -197,7 +207,7 @@ $extraChecks = @(
         scope = 'installed_runtime_closure'
         path = $installedFreshnessGatePath
         pass = (Test-Path -LiteralPath $installedFreshnessGatePath)
-        reason = 'installed runtime freshness gate exists for runtime closure'
+        reason = 'installed runtime freshness gate from effective runtime config exists for runtime closure'
     }
 )
 

@@ -71,6 +71,8 @@ if (-not [string]::IsNullOrWhiteSpace($OutputDirectory)) {
 }
 
 $policy = Get-VgoProtectedDocumentCleanupPolicy -RepoRoot $repoRoot
+$cleanupOperatorContract = if ($policy.PSObject.Properties.Name -contains 'operator_contract' -and $null -ne $policy.operator_contract) { $policy.operator_contract } else { [pscustomobject]@{ preview_only_supported = $false; preview_only_switch = ''; protected_tmp_default_action = [string]$policy.protected_document_policy.default_action_mode; protected_tmp_quarantine_required = $false; quarantine_handler = '' } }
+if ($PreviewOnly -and -not [bool]$cleanupOperatorContract.preview_only_supported) { throw 'phase cleanup policy does not declare preview-only support.' }
 $tmpRoot = if ([string]::IsNullOrWhiteSpace($TmpRootOverride)) {
     [System.IO.Path]::GetFullPath((Join-Path $repoRoot '.tmp'))
 } else {
@@ -245,6 +247,13 @@ if (-not $SkipNodeCleanup) {
     write_artifacts = [bool]$WriteArtifacts
     include_mirror_gates = [bool]$IncludeMirrorGates
     apply_managed_node_cleanup = [bool]$ApplyManagedNodeCleanup
+    operator_contract = [pscustomobject]@{
+        preview_only_supported = [bool]$cleanupOperatorContract.preview_only_supported
+        preview_only_switch = [string]$cleanupOperatorContract.preview_only_switch
+        protected_tmp_default_action = [string]$cleanupOperatorContract.protected_tmp_default_action
+        protected_tmp_quarantine_required = [bool]$cleanupOperatorContract.protected_tmp_quarantine_required
+        quarantine_handler = [string]$cleanupOperatorContract.quarantine_handler
+    }
     protected_document_summary = [pscustomobject]@{
         protected_total = $protectedManifest.summary.protected_total
         tmp_protected_total = $protectedManifest.summary.tmp_protected_total

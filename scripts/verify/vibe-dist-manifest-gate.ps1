@@ -78,7 +78,7 @@ function Split-MarkdownTableCells {
     param([Parameter(Mandatory)] [string]$Line)
 
     $cells = @()
-    foreach ($part in ($Line -split '\\|')) {
+    foreach ($part in ($Line -split '\|')) {
         $t = $part.Trim()
         if (-not [string]::IsNullOrWhiteSpace($t)) {
             $cells += $t
@@ -173,35 +173,58 @@ $docsInstallMatrix = Join-Path $repoRoot 'docs\universalization\install-matrix.m
 $docsPlatformInstallMatrix = Join-Path $repoRoot 'docs\universalization\platform-install-matrix.md'
 $docsPlatformSupportMatrix = Join-Path $repoRoot 'docs\universalization\platform-support-matrix.md'
 $docsHostCapabilityMatrix = Join-Path $repoRoot 'docs\universalization\host-capability-matrix.md'
+$distSourceConfigPath = Join-Path $repoRoot 'config\distribution-manifest-sources.json'
+$adapterRegistryPath = Join-Path $repoRoot 'config\adapter-registry.json'
 
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docsDistributionLanes) -Message '[docs] distribution-lanes.md exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docsInstallMatrix) -Message '[docs] install-matrix.md exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docsPlatformInstallMatrix) -Message '[docs] platform-install-matrix.md exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docsPlatformSupportMatrix) -Message '[docs] platform-support-matrix.md exists'
 Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $docsHostCapabilityMatrix) -Message '[docs] host-capability-matrix.md exists'
+Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $distSourceConfigPath) -Message '[config] distribution-manifest-sources.json exists'
+Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $adapterRegistryPath) -Message '[config] adapter-registry.json exists'
 
-$requiredManifests = @(
-    [pscustomobject]@{ lane_id = 'core'; path = 'dist/core/manifest.json' },
-    [pscustomobject]@{ lane_id = 'official-runtime'; path = 'dist/official-runtime/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-codex'; path = 'dist/host-codex/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-claude-code'; path = 'dist/host-claude-code/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-cursor'; path = 'dist/host-cursor/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-windsurf'; path = 'dist/host-windsurf/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-openclaw'; path = 'dist/host-openclaw/manifest.json' },
-    [pscustomobject]@{ lane_id = 'host-opencode'; path = 'dist/host-opencode/manifest.json' }
-)
+$distSourceConfig = $null
+if (Test-Path -LiteralPath $distSourceConfigPath) {
+    try {
+        $distSourceConfig = Read-JsonFile -Path $distSourceConfigPath
+        Add-Assertion -Collection $assertions -Condition $true -Message '[config] distribution-manifest-sources.json parses as JSON'
+    } catch {
+        Add-Assertion -Collection $assertions -Condition $false -Message ("[config] distribution-manifest-sources.json parses as JSON -> {0}" -f $_.Exception.Message)
+    }
+}
+
+$adapterRegistry = $null
+if (Test-Path -LiteralPath $adapterRegistryPath) {
+    try {
+        $adapterRegistry = Read-JsonFile -Path $adapterRegistryPath
+        Add-Assertion -Collection $assertions -Condition $true -Message '[config] adapter-registry.json parses as JSON'
+    } catch {
+        Add-Assertion -Collection $assertions -Condition $false -Message ("[config] adapter-registry.json parses as JSON -> {0}" -f $_.Exception.Message)
+    }
+}
+
+$requiredManifests = @()
+if ($null -ne $distSourceConfig) {
+    $requiredManifests = @($distSourceConfig.lane_manifests | ForEach-Object {
+        [pscustomobject]@{
+            lane_id = [string]$_.payload.lane_id
+            path = [string]$_.output_path
+        }
+    })
+}
 $results.dist.required_manifests = @($requiredManifests | ForEach-Object { $_.path })
 
-$requiredPublicManifests = @(
-    [pscustomobject]@{ package_id = 'vibeskills-core'; path = 'dist/manifests/vibeskills-core.json'; expected_status = 'supported-with-constraints' },
-    [pscustomobject]@{ package_id = 'vibeskills-codex'; path = 'dist/manifests/vibeskills-codex.json'; expected_status = 'supported-with-constraints' },
-    [pscustomobject]@{ package_id = 'vibeskills-claude-code'; path = 'dist/manifests/vibeskills-claude-code.json'; expected_status = 'supported-with-constraints' },
-    [pscustomobject]@{ package_id = 'vibeskills-cursor'; path = 'dist/manifests/vibeskills-cursor.json'; expected_status = 'preview' },
-    [pscustomobject]@{ package_id = 'vibeskills-windsurf'; path = 'dist/manifests/vibeskills-windsurf.json'; expected_status = 'preview' },
-    [pscustomobject]@{ package_id = 'vibeskills-openclaw'; path = 'dist/manifests/vibeskills-openclaw.json'; expected_status = 'preview' },
-    [pscustomobject]@{ package_id = 'vibeskills-opencode'; path = 'dist/manifests/vibeskills-opencode.json'; expected_status = 'preview' },
-    [pscustomobject]@{ package_id = 'vibeskills-generic'; path = 'dist/manifests/vibeskills-generic.json'; expected_status = 'advisory-only' }
-)
+$requiredPublicManifests = @()
+if ($null -ne $distSourceConfig) {
+    $requiredPublicManifests = @($distSourceConfig.public_manifests | ForEach-Object {
+        [pscustomobject]@{
+            package_id = [string]$_.payload.package_id
+            path = [string]$_.output_path
+            expected_status = [string]$_.payload.status
+        }
+    })
+}
 $results.dist.public_manifests = @($requiredPublicManifests | ForEach-Object { $_.path })
 
 $allowedLaneKinds = @('tier-1-official-runtime', 'universal-core', 'host-adapter')
@@ -273,7 +296,14 @@ foreach ($item in $requiredManifests) {
         }
     }
 
-    if ($manifest.lane_id -eq 'official-runtime' -or $manifest.lane_id -eq 'host-codex') {
+    $platformSupport = if ($manifest.PSObject.Properties.Name -contains 'support' -and $null -ne $manifest.support) { $manifest.support.platform_support } else { $null }
+    $inheritsOfficialRuntimeEntrypoints = (
+        $null -ne $platformSupport -and
+        $platformSupport.PSObject.Properties.Name -contains 'interpretation' -and
+        [string]$platformSupport.interpretation -eq 'inherit_official_runtime'
+    )
+
+    if ($inheritsOfficialRuntimeEntrypoints) {
         Add-Assertion -Collection $assertions -Condition ($manifest.PSObject.Properties.Name -contains 'entrypoints' -and $null -ne $manifest.entrypoints) -Message ("[dist] entrypoints are declared: {0}" -f $manifestRel)
         if ($manifest.PSObject.Properties.Name -contains 'entrypoints' -and $null -ne $manifest.entrypoints) {
             Add-Assertion -Collection $assertions -Condition ([string]$manifest.entrypoints.install_primary -eq 'install.ps1') -Message ("[dist] install_primary is install.ps1: {0}" -f $manifestRel)
@@ -292,7 +322,6 @@ foreach ($item in $requiredManifests) {
     }
 
     if ($manifest.PSObject.Properties.Name -contains 'support' -and $null -ne $manifest.support) {
-        $platformSupport = $manifest.support.platform_support
         if ($null -ne $platformSupport -and ($platformSupport.PSObject.Properties.Name -contains 'interpretation')) {
             $interp = [string]$platformSupport.interpretation
             Add-Assertion -Collection $assertions -Condition (-not [string]::IsNullOrWhiteSpace($interp)) -Message ("[dist] platform_support.interpretation is present: {0}" -f $manifestRel)
@@ -349,29 +378,40 @@ foreach ($item in $requiredPublicManifests) {
 
 # Truth checks against existing host/platform truth docs (conservative, table-row based)
 
-$hostCodexRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Codex |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostCodexRow) -Message '[truth] host capability row for Codex exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Codex | `supported-with-constraints` |') -Message '[truth] Codex host status remains supported-with-constraints in host capability matrix'
+if ($null -ne $adapterRegistry) {
+    foreach ($adapter in @($adapterRegistry.adapters)) {
+        $profilePath = Join-Path $repoRoot ([string]$adapter.host_profile)
+        Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $profilePath) -Message ("[truth] host profile exists: {0}" -f [string]$adapter.host_profile)
 
-$hostClaudeRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Claude Code |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostClaudeRow) -Message '[truth] host capability row for Claude Code exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Claude Code | `supported-with-constraints` |') -Message '[truth] Claude Code host status remains supported-with-constraints in host capability matrix'
+        if (-not (Test-Path -LiteralPath $profilePath)) {
+            continue
+        }
 
-$hostCursorRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Cursor |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostCursorRow) -Message '[truth] host capability row for Cursor exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Cursor | `preview` |') -Message '[truth] Cursor host status remains preview in host capability matrix'
+        $profile = $null
+        try {
+            $profile = Read-JsonFile -Path $profilePath
+            Add-Assertion -Collection $assertions -Condition $true -Message ("[truth] host profile parses as JSON: {0}" -f [string]$adapter.host_profile)
+        } catch {
+            Add-Assertion -Collection $assertions -Condition $false -Message ("[truth] host profile parses as JSON: {0} -> {1}" -f [string]$adapter.host_profile, $_.Exception.Message)
+            continue
+        }
 
-$hostWindsurfRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| Windsurf |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostWindsurfRow) -Message '[truth] host capability row for Windsurf exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| Windsurf | `preview` |') -Message '[truth] Windsurf host status remains preview in host capability matrix'
+        $hostName = [string]$profile.host_name
+        $row = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith ("| {0} |" -f $hostName)
+        Add-Assertion -Collection $assertions -Condition ($null -ne $row) -Message ("[truth] host capability row for {0} exists" -f $hostName)
 
-$hostOpenClawRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| OpenClaw |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostOpenClawRow) -Message '[truth] host capability row for OpenClaw exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| OpenClaw | `preview` |') -Message '[truth] OpenClaw host status remains preview in host capability matrix'
-
-$hostOpenCodeRow = Find-MarkdownTableRow -Path $docsHostCapabilityMatrix -RowStartsWith '| OpenCode |'
-Add-Assertion -Collection $assertions -Condition ($null -ne $hostOpenCodeRow) -Message '[truth] host capability row for OpenCode exists'
-Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsHostCapabilityMatrix -Pattern '| OpenCode | `preview` |') -Message '[truth] OpenCode host status remains preview in host capability matrix'
+        if ($null -ne $row) {
+            $cells = Split-MarkdownTableCells -Line $row
+            Add-Assertion -Collection $assertions -Condition ($cells.Count -ge 3) -Message ("[truth] host capability row is parseable for {0}" -f $hostName)
+            if ($cells.Count -ge 3) {
+                $statusCell = ([string]$cells[1]) -replace '`', ''
+                $runtimeRoleCell = ([string]$cells[2]) -replace '`', ''
+                Add-Assertion -Collection $assertions -Condition ($statusCell -eq [string]$profile.status) -Message ("[truth] {0} host status matches host profile" -f $hostName)
+                Add-Assertion -Collection $assertions -Condition ($runtimeRoleCell -eq [string]$profile.runtime_role) -Message ("[truth] {0} runtime role matches host profile" -f $hostName)
+            }
+        }
+    }
+}
 
 $platformWindowsRow = Find-MarkdownTableRow -Path $docsPlatformSupportMatrix -RowStartsWith '| Windows |'
 Add-Assertion -Collection $assertions -Condition ($null -ne $platformWindowsRow) -Message '[truth] platform row for Windows exists'
@@ -379,7 +419,7 @@ Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $doc
 
 Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsPlatformSupportMatrix -Pattern 'Linux without `pwsh` is an honest degraded path') -Message '[truth] platform support matrix documents degraded-without-pwsh truth'
 
-foreach ($lane in @('official-runtime','core','host-codex','host-claude-code','host-cursor','host-windsurf','host-openclaw','host-opencode')) {
+foreach ($lane in @($requiredManifests | ForEach-Object { [string]$_.lane_id })) {
     Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsDistributionLanes -Pattern ('`{0}`' -f $lane)) -Message ("[docs] distribution-lanes.md mentions lane {0}" -f $lane)
     Add-Assertion -Collection $assertions -Condition (Test-ContentPattern -Path $docsInstallMatrix -Pattern ('`{0}`' -f $lane)) -Message ("[docs] install-matrix.md mentions lane {0}" -f $lane)
 }

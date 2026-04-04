@@ -1,0 +1,14 @@
+{
+  "schema_version": "vgo-skill-catalog.profiles.v1",
+  "owner": "skill-catalog",
+  "profiles": [
+    {
+      "profile_id": "minimal",
+      "manifest": "catalog/profiles/minimal.json"
+    },
+    {
+      "profile_id": "full",
+      "manifest": "catalog/profiles/full.json"
+    }
+  ]
+}

@@ -24,6 +24,15 @@
 - [`installation-rules.md`](./installation-rules.md)：安装助手必须遵守的 truth-first 规则
 - [`configuration-guide.md`](./configuration-guide.md)：本地配置说明
 
+## 当前安装口径怎么读
+
+当前安装说明已经改成 registry-driven：
+
+- `HostId` / `--host` 决定宿主语义
+- `install.*`、`check.*` 与 `one-shot-setup.*` 的宿主模式都应以 [`../../config/adapter-registry.json`](../../config/adapter-registry.json) 为准
+- 当前公开宿主会落到三类模式：`governed`、`preview-guidance`、`runtime-core`
+- `opencode` 仍保留更薄的 direct install/check 路径，但这不代表 registry-driven 的 one-shot wrapper 不可用
+
 说明：
 
 - 面向普通用户时，公开安装入口只保留 [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)
@@ -31,7 +40,6 @@
 - 其他安装相关页面只作为兼容说明、宿主补充说明或命令参考，不再作为平行公开入口
 - 通用安装提示词同样支持 `openclaw` 和 `opencode`
 - 单独拆出 [`openclaw-path.md`](./openclaw-path.md) 与 [`opencode-path.md`](./opencode-path.md)，只是为了补充宿主特有细节，不是因为通用安装路径不能安装
-- 这些宿主专页主要展开默认根目录、额外安装方式、验证方式与宿主侧本地边界，避免把公共安装文档写得过重
 - provider / MCP / 宿主 settings 等补充配置，默认都按“增强建议”处理；基础安装完成后即可直接使用，需要更强集成时再按需补充
 
 ## 公开版本
@@ -50,21 +58,14 @@
 
 ## 当前公开支持宿主
 
-- `codex`
-- `claude-code`
-- `cursor`
-- `windsurf`
-- `openclaw`
-- `opencode`
+当前公开支持六个宿主，但模式并不相同：
 
-其中：
-
-- `codex`：默认推荐路径
-- `claude-code`：支持的安装与使用路径
-- `cursor`：支持的安装与使用路径
-- `windsurf`：支持的安装与使用路径
-- `openclaw`：支持的安装与使用路径，通用安装提示词可直接安装，宿主专页只补充细节
-- `opencode`：支持的安装与使用路径，通用安装提示词可直接安装，宿主专页只补充细节
+- `codex`：最强 governed lane，也是默认推荐路径
+- `claude-code`：支持的安装与使用路径，带 bounded managed closure
+- `cursor`：preview-guidance 路径
+- `windsurf`：runtime-core 路径，repo 只负责 shared runtime payload 与 `.vibeskills/*` sidecar 状态
+- `openclaw`：preview runtime-core adapter 路径，宿主专页展开 attach / copy / bundle 细节
+- `opencode`：preview-guidance adapter 路径；public surface 仍保留更薄的 direct install/check 作为默认命令参考
 
 其他宿主当前不应被描述成“已支持安装”。
 
@@ -73,15 +74,17 @@
 如果你是普通用户：
 
 1. [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)
-2. 只在这一个入口里选择对应提示词
-3. [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md)
-4. [`custom-skill-governance-rules.md`](./custom-skill-governance-rules.md)
+2. [`cold-start-install-paths.md`](../cold-start-install-paths.md)
+3. 只在这些入口里选择对应提示词或命令路径
+4. [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md)
+5. [`custom-skill-governance-rules.md`](./custom-skill-governance-rules.md)
 
 如果你是高级用户：
 
 1. [`recommended-full-path.md`](./recommended-full-path.md)
 2. [`manual-copy-install.md`](./manual-copy-install.md)
 3. [`host-plugin-policy.md`](./host-plugin-policy.md)
+4. [`configuration-guide.md`](./configuration-guide.md)
 
 ## 自定义扩展
 

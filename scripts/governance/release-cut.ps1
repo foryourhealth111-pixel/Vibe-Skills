@@ -81,53 +81,46 @@ function Ensure-ChangelogHeader {
     Write-Text -Path $Path -Content $updated
 }
 
-function Get-DistManifestRelativePaths {
-    return @(
-        'dist/core/manifest.json',
-        'dist/official-runtime/manifest.json',
-        'dist/host-codex/manifest.json',
-        'dist/host-claude-code/manifest.json',
-        'dist/host-cursor/manifest.json',
-        'dist/host-windsurf/manifest.json',
-        'dist/host-openclaw/manifest.json',
-        'dist/host-opencode/manifest.json',
-        'dist/manifests/vibeskills-core.json',
-        'dist/manifests/vibeskills-codex.json',
-        'dist/manifests/vibeskills-claude-code.json',
-        'dist/manifests/vibeskills-cursor.json',
-        'dist/manifests/vibeskills-windsurf.json',
-        'dist/manifests/vibeskills-openclaw.json',
-        'dist/manifests/vibeskills-opencode.json',
-        'dist/manifests/vibeskills-generic.json'
-    )
-}
-
-function Get-ExistingDistManifestRelativePaths {
+function Get-DistManifestOutputRelativePaths {
     param([Parameter(Mandatory)] [string]$RepoRoot)
 
-    return @(
-        Get-DistManifestRelativePaths | Where-Object {
-            Test-Path -LiteralPath (Join-Path $RepoRoot $_)
+    $sourceConfigPath = Join-Path $RepoRoot 'config/distribution-manifest-sources.json'
+    if (-not (Test-Path -LiteralPath $sourceConfigPath)) {
+        throw "distribution manifest source config missing: $sourceConfigPath"
+    }
+
+    $sourceConfig = Read-Json -Path $sourceConfigPath
+    $outputs = New-Object System.Collections.Generic.List[string]
+
+    foreach ($item in @($sourceConfig.lane_manifests)) {
+        if ($null -ne $item -and $item.PSObject.Properties.Name -contains 'output_path' -and -not [string]::IsNullOrWhiteSpace([string]$item.output_path)) {
+            [void]$outputs.Add([string]$item.output_path)
         }
-    )
+    }
+
+    foreach ($item in @($sourceConfig.public_manifests)) {
+        if ($null -ne $item -and $item.PSObject.Properties.Name -contains 'output_path' -and -not [string]::IsNullOrWhiteSpace([string]$item.output_path)) {
+            [void]$outputs.Add([string]$item.output_path)
+        }
+    }
+
+    return @($outputs.ToArray())
 }
 
-function Update-DistManifestRelease {
-    param(
-        [Parameter(Mandatory)] [string]$Path,
-        [Parameter(Mandatory)] [string]$Version,
-        [Parameter(Mandatory)] [string]$Updated
-    )
+function Sync-DistManifestOutputs {
+    param([Parameter(Mandatory)] [string]$RepoRoot)
 
-    $payload = Read-Json -Path $Path
-    if (-not ($payload.PSObject.Properties.Name -contains 'source_release') -or $null -eq $payload.source_release) {
-        $payload | Add-Member -NotePropertyName 'source_release' -NotePropertyValue ([pscustomobject]@{}) -Force
+    $toolPath = Join-Path $RepoRoot 'tools/build/sync_dist_release_manifests.py'
+    if (-not (Test-Path -LiteralPath $toolPath)) {
+        throw "distribution manifest sync tool missing: $toolPath"
     }
-    $payload.source_release = [pscustomobject]@{
-        version = $Version
-        updated = $Updated
+
+    $pythonSpec = Resolve-VgoPythonCommandSpec
+    $arguments = @($pythonSpec.prefix_arguments) + @($toolPath, '--repo-root', $RepoRoot)
+    & $pythonSpec.host_path @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw 'distribution manifest sync failed'
     }
-    Write-Json -Path $Path -Payload $payload
 }
 
 function Get-ReleaseSummary {
@@ -243,7 +236,7 @@ function New-ReleaseNoteTemplate {
     ) -join "`n"
 }
 
-function Get-ReleaseGateScripts {
+function Get-ReleaseGateFallbackScripts {
     return @(
         'scripts/verify/vibe-version-consistency-gate.ps1',
         'scripts/verify/vibe-dist-manifest-gate.ps1',
@@ -313,6 +306,71 @@ function Get-ReleaseGateScripts {
     )
 }
 
+function Get-ReleaseGateScriptsFromContract {
+    param([psobject]$PreviewContract)
+
+    if ($null -ne $PreviewContract -and
+        $PreviewContract.PSObject.Properties.Name -contains 'operators' -and
+        $null -ne $PreviewContract.operators) {
+        $operators = $PreviewContract.operators
+        $releaseCutOperator = $null
+        if ($operators -is [System.Collections.IDictionary]) {
+            if ($operators.Contains('release-cut')) {
+                $releaseCutOperator = $operators['release-cut']
+            }
+        } elseif ($null -ne $operators.PSObject -and $operators.PSObject.Properties.Name -contains 'release-cut') {
+            $releaseCutOperator = $operators.'release-cut'
+        }
+
+        if ($null -ne $releaseCutOperator -and
+            $releaseCutOperator.PSObject.Properties.Name -contains 'apply_gates' -and
+            $null -ne $releaseCutOperator.apply_gates) {
+            $applyGates = @($releaseCutOperator.apply_gates | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            if ($applyGates.Count -gt 0) {
+                return @($applyGates)
+            }
+        }
+    }
+
+    return @(Get-ReleaseGateFallbackScripts)
+}
+
+function Get-ReleasePostcheckScriptsFromContract {
+    param(
+        [psobject]$PreviewContract,
+        [string[]]$FallbackScripts = @()
+    )
+
+    if ($null -ne $PreviewContract -and
+        $PreviewContract.PSObject.Properties.Name -contains 'operators' -and
+        $null -ne $PreviewContract.operators) {
+        $operators = $PreviewContract.operators
+        $releaseCutOperator = $null
+        if ($operators -is [System.Collections.IDictionary]) {
+            if ($operators.Contains('release-cut')) {
+                $releaseCutOperator = $operators['release-cut']
+            }
+        } elseif ($null -ne $operators.PSObject -and $operators.PSObject.Properties.Name -contains 'release-cut') {
+            $releaseCutOperator = $operators.'release-cut'
+        }
+
+        if ($null -ne $releaseCutOperator -and
+            $releaseCutOperator.PSObject.Properties.Name -contains 'postcheck_gates' -and
+            $null -ne $releaseCutOperator.postcheck_gates) {
+            $postcheckGates = @($releaseCutOperator.postcheck_gates | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            if ($postcheckGates.Count -gt 0) {
+                return @($postcheckGates)
+            }
+        }
+    }
+
+    if ($FallbackScripts.Count -gt 0) {
+        return @($FallbackScripts)
+    }
+
+    return @(Get-ReleaseGateFallbackScripts)
+}
+
 function Get-PreviewReceiptPath {
     param(
         [string]$RepoRoot,
@@ -359,9 +417,10 @@ $releaseNotesDir = Join-Path $repoRoot ([string]$governance.logs.release_notes_d
 $releaseNotePath = Join-Path $releaseNotesDir ("v{0}.md" -f $Version)
 $releaseReadmeRel = 'docs/releases/README.md'
 $releaseReadmePath = Join-Path $repoRoot $releaseReadmeRel
-$existingDistManifestRels = @(Get-ExistingDistManifestRelativePaths -RepoRoot $repoRoot)
+$distManifestRels = @(Get-DistManifestOutputRelativePaths -RepoRoot $repoRoot)
 $releaseSummary = Get-ReleaseSummary -Governance $governance -Version $Version
-$gateScripts = if ($RunGates) { Get-ReleaseGateScripts } else { @() }
+$applyGateScripts = if ($RunGates) { Get-ReleaseGateScriptsFromContract -PreviewContract $previewContract } else { @() }
+$postcheckGateScripts = if ($RunGates) { Get-ReleasePostcheckScriptsFromContract -PreviewContract $previewContract -FallbackScripts $applyGateScripts } else { @() }
 $head = (git -C $repoRoot rev-parse --short HEAD).Trim()
 
 if ($Preview) {
@@ -375,8 +434,8 @@ if ($Preview) {
         [ordered]@{ path = $releaseReadmeRel; action = 'update current release surface and recent governed releases entry' }
     ) + @($maintenanceFiles | ForEach-Object {
         [ordered]@{ path = [string]$_; action = 'update maintenance section version/updated' }
-    }) + @($existingDistManifestRels | ForEach-Object {
-        [ordered]@{ path = [string]$_; action = 'update source_release version/updated' }
+    }) + @($distManifestRels | ForEach-Object {
+        [ordered]@{ path = [string]$_; action = 'sync generated dist manifest from authoritative source config' }
     })
 
     $artifact = [ordered]@{
@@ -396,10 +455,10 @@ if ($Preview) {
         preview = [ordered]@{
             generated_at = (Get-Date).ToString('s')
             planned_file_actions = $plannedFileActions
-            planned_gates = $gateScripts
+            planned_gates = $applyGateScripts
         }
         postcheck = [ordered]@{
-            verify_after_apply = $gateScripts
+            verify_after_apply = $postcheckGateScripts
         }
     }
     Write-VgoUtf8NoBomText -Path $previewPath -Content ($artifact | ConvertTo-Json -Depth 100)
@@ -442,12 +501,10 @@ if (Test-Path -LiteralPath $releaseReadmePath) {
     Update-ReleasesReadmeSurface -Path $releaseReadmePath -Version $Version -Updated $Updated -Summary $releaseSummary
 }
 
-foreach ($manifestRel in $existingDistManifestRels) {
-    Update-DistManifestRelease -Path (Join-Path $repoRoot $manifestRel) -Version $Version -Updated $Updated
-}
+Sync-DistManifestOutputs -RepoRoot $repoRoot
 
 if ($RunGates) {
-    foreach ($rel in $gateScripts) {
+    foreach ($rel in $applyGateScripts) {
         $gatePath = Join-Path $repoRoot $rel
         if (-not (Test-Path -LiteralPath $gatePath)) {
             throw "required gate script missing: $rel"

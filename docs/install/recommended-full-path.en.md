@@ -7,7 +7,7 @@
 > - [`openclaw-path.en.md`](./openclaw-path.en.md)
 > - [`opencode-path.en.md`](./opencode-path.en.md)
 
-This document summarizes the install commands and default roots for the six supported hosts.
+This document summarizes the install commands, default roots, and current host-mode wording for the six public hosts.
 
 Public Linux / macOS prerequisites:
 
@@ -15,16 +15,16 @@ Public Linux / macOS prerequisites:
 - `python3` / `python` must satisfy **Python 3.10+**
 - launching from `zsh` is not the actual problem; the real compatibility boundary is the resolved `bash` / `python3` version
 
-## Supported Hosts and Install Styles
+## Supported Hosts and Default Paths
 
-| Host | Install style | Default root | Notes |
+| Host | Default command surface | Default root | Current wording |
 | --- | --- | --- | --- |
-| `codex` | one-shot setup + check | `~/.codex` | default recommended path |
-| `claude-code` | one-shot setup + check | `~/.claude` | supported install-and-use path |
-| `cursor` | one-shot setup + check | `~/.cursor` | supported install-and-use path |
-| `windsurf` | one-shot setup + check | `~/.codeium/windsurf` | supported install-and-use path |
-| `openclaw` | one-shot setup + check | `OPENCLAW_HOME` or `~/.openclaw` | host-specific details: [`openclaw-path.en.md`](./openclaw-path.en.md) |
-| `opencode` | direct install + check | `OPENCODE_HOME` or `~/.config/opencode` | host-specific details: [`opencode-path.en.md`](./opencode-path.en.md) |
+| `codex` | one-shot setup + check | `~/.codex` | strongest governed lane |
+| `claude-code` | one-shot setup + check | `~/.claude` | supported install/use path with bounded managed closure |
+| `cursor` | one-shot setup + check | `~/.cursor` | preview-guidance path |
+| `windsurf` | one-shot setup + check | `~/.codeium/windsurf` | runtime-core path |
+| `openclaw` | one-shot setup + check | `OPENCLAW_HOME` or `~/.openclaw` | preview runtime-core adapter path |
+| `opencode` | direct install + check (thinner) or one-shot wrapper | `OPENCODE_HOME` or `~/.config/opencode` | preview-guidance adapter path |
 
 `TargetRoot` is only a path.
 `HostId` / `--host` decides host semantics.
@@ -95,6 +95,8 @@ bash ./check.sh --host openclaw --profile full --deep
 
 ### OpenCode
 
+The thinner default path is:
+
 ```powershell
 pwsh -NoProfile -File .\install.ps1 -HostId opencode -Profile full
 pwsh -NoProfile -File .\check.ps1 -HostId opencode -Profile full
@@ -103,6 +105,18 @@ pwsh -NoProfile -File .\check.ps1 -HostId opencode -Profile full
 ```bash
 bash ./install.sh --host opencode --profile full
 bash ./check.sh --host opencode --profile full
+```
+
+If you prefer to keep the same bootstrap wrapper as other hosts, this is also valid:
+
+```powershell
+pwsh -File .\scripts\bootstrap\one-shot-setup.ps1 -HostId opencode -Profile full
+pwsh -File .\check.ps1 -HostId opencode -Profile full -Deep
+```
+
+```bash
+bash ./scripts/bootstrap/one-shot-setup.sh --host opencode --profile full
+bash ./check.sh --host opencode --profile full --deep
 ```
 
 If you want the “Framework Only + Customizable Governance” variant, replace `full` with `minimal`.
@@ -131,18 +145,17 @@ git checkout vX.Y.Z
   - `VCO_INTENT_ADVICE_API_KEY`
   - optional `VCO_INTENT_ADVICE_BASE_URL`
   - `VCO_INTENT_ADVICE_MODEL`
-  - `VCO_VECTOR_DIFF_API_KEY` / `VCO_VECTOR_DIFF_BASE_URL` / `VCO_VECTOR_DIFF_MODEL` (optional embeddings that degrade gracefully)
+- add `VCO_VECTOR_DIFF_*` only when you also want vector diff embeddings
 
 ### Claude Code
 
-- this host has a supported install-and-use path
 - it preserves the real `~/.claude/settings.json` while merging a bounded managed `vibeskills` + write-guard hook surface
-- broader Claude plugins, MCP registration, credentials, and host behavior still remain host-managed
-- for the built-in governance-advice path, prefer `VCO_INTENT_ADVICE_API_KEY` + optional `VCO_INTENT_ADVICE_BASE_URL` + `VCO_INTENT_ADVICE_MODEL`; configure `VCO_VECTOR_DIFF_*` only when you also want vector-diff embeddings
+- broader Claude plugins, MCP registration, credentials, and host behavior remain host-managed
+- AI governance advice uses `VCO_INTENT_ADVICE_*`, with optional `VCO_VECTOR_DIFF_*`
 
 ### Cursor
 
-- this host has a supported install-and-use path
+- this host is currently a preview-guidance path
 - it does not overwrite the real `~/.cursor/settings.json`
 - Cursor-native settings and extension surfaces remain managed on the Cursor side
 
@@ -161,6 +174,6 @@ git checkout vX.Y.Z
 ### OpenCode
 
 - the default target root is `OPENCODE_HOME`, otherwise `~/.config/opencode`
-- direct install/check writes skills, `.vibeskills/*` sidecars, and `opencode.json.example`
+- both direct install/check and the one-shot wrapper keep host-managed boundaries intact
 - the real `opencode.json`, provider credentials, plugin installation, and MCP trust remain host-managed
 - use `--target-root ./.opencode` when you want project-local isolation

@@ -1,0 +1,29 @@
+{
+  "schema_version": "vgo-skill-catalog.groups.v1",
+  "owner": "skill-catalog",
+  "groups": [
+    {
+      "group_id": "governed-core",
+      "skill_ids": [
+        "vibe",
+        "brainstorming",
+        "writing-plans",
+        "systematic-debugging",
+        "tdd-guide"
+      ]
+    },
+    {
+      "group_id": "compat-support",
+      "skill_ids": [
+        "cancel-ralph",
+        "dialectic",
+        "local-vco-roles",
+        "ralph-loop",
+        "spec-kit-vibe-compat",
+        "subagent-driven-development",
+        "superclaude-framework-compat",
+        "think-harder"
+      ]
+    }
+  ]
+}

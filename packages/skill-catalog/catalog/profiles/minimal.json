@@ -1,0 +1,20 @@
+{
+  "schema_version": "vgo-skill-catalog.profile.v1",
+  "profile_id": "minimal",
+  "owner": "skill-catalog",
+  "selection_mode": "allowlist",
+  "skill_ids": [
+    "brainstorming",
+    "cancel-ralph",
+    "dialectic",
+    "local-vco-roles",
+    "ralph-loop",
+    "spec-kit-vibe-compat",
+    "subagent-driven-development",
+    "superclaude-framework-compat",
+    "systematic-debugging",
+    "tdd-guide",
+    "think-harder",
+    "writing-plans"
+  ]
+}

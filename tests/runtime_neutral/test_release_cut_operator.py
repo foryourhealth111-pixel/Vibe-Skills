@@ -49,6 +49,7 @@ class ReleaseCutOperatorTests(unittest.TestCase):
     def _write_fixture(self) -> None:
         self._write("scripts/common/vibe-governance-helpers.ps1", (REPO_ROOT / "scripts/common/vibe-governance-helpers.ps1").read_text(encoding="utf-8"))
         self._write("scripts/governance/release-cut.ps1", (REPO_ROOT / "scripts/governance/release-cut.ps1").read_text(encoding="utf-8"))
+        self._write("tools/build/sync_dist_release_manifests.py", (REPO_ROOT / "tools/build/sync_dist_release_manifests.py").read_text(encoding="utf-8"))
         self._write(
             "scripts/governance/sync-bundled-vibe.ps1",
             textwrap.dedent(
@@ -109,7 +110,36 @@ class ReleaseCutOperatorTests(unittest.TestCase):
                 "normalized_json_ignore_keys": ["updated", "generated_at"],
             },
         }
+
         self._write("config/version-governance.json", json.dumps(governance, ensure_ascii=False, indent=2) + "\n")
+        self._write(
+            "config/operator-preview-contract.json",
+            json.dumps(
+                {
+                    "contract_version": 1,
+                    "updated_at": "2026-04-04",
+                    "preview_output_root": "outputs/governance/preview",
+                    "machine_readable_preview_required": True,
+                    "operators": {
+                        "release-cut": {
+                            "script": "scripts/governance/release-cut.ps1",
+                            "preview_switch": "-Preview",
+                            "preview_output_param": "-PreviewOutputPath",
+                            "apply_gates": [
+                                "scripts/verify/vibe-release-train-v2-gate.ps1",
+                                "scripts/verify/vibe-release-truth-consistency-gate.ps1",
+                            ],
+                            "postcheck_gates": [
+                                "scripts/verify/vibe-version-packaging-gate.ps1",
+                                "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+                            ],
+                        }
+                    },
+                },
+                indent=2,
+            )
+            + "\n",
+        )
         self._write(
             "SKILL.md",
             textwrap.dedent(
@@ -169,6 +199,14 @@ class ReleaseCutOperatorTests(unittest.TestCase):
                     "stability": "preview",
                     "source_release": {"version": "9.9.8", "updated": "2026-03-29"},
                     "summary": "core lane",
+                    "runtime_ownership": {"owner": "none", "notes": "contracts only"},
+                    "surface_roles": {
+                        "notes": {"flat_projection_contract": True, "projection_scope": "release_lane_manifest"},
+                        "runtime_authority": {"owner": "none", "notes": "contracts only"},
+                        "repo_provided_entrypoints": [],
+                        "proof_surfaces": [],
+                        "boundary_claims": ["host_runtime"],
+                    },
                     "docs": {},
                     "capability_promises": [{"id": "core"}],
                     "non_goals": ["host_runtime"],
@@ -185,13 +223,65 @@ class ReleaseCutOperatorTests(unittest.TestCase):
                     "manifest_version": 1,
                     "package_id": "vibeskills-core",
                     "status": "supported-with-constraints",
+                    "runtime_role": "contract-layer",
+                    "surface_roles": {
+                        "notes": {"flat_projection_contract": True, "projection_scope": "public_distribution_manifest"},
+                        "runtime_authority": {"runtime_role": "contract-layer", "status": "supported-with-constraints", "host_adapter_ref": None},
+                        "truth_surfaces": ["docs/universalization/core-contract.md"],
+                        "repo_provided_install_surfaces": [],
+                        "repo_provided_payload_surfaces": [],
+                        "repo_provided_reference_surfaces": [],
+                        "host_managed_surfaces": [],
+                        "boundary_claims": ["no runtime closure"],
+                    },
                     "truth_sources": ["docs/universalization/core-contract.md"],
+                    "anti_overclaim": ["no runtime closure"],
                 },
                 indent=2,
             )
             + "\n",
         )
         self._write("docs/universalization/core-contract.md", "# Core Contract\n")
+        distribution_source = {
+            "schema_version": 1,
+            "release_source": {
+                "governance_path": "config/version-governance.json",
+                "version_pointer": "release.version",
+                "updated_pointer": "release.updated",
+            },
+            "lane_manifests": [
+                {
+                    "output_path": "dist/core/manifest.json",
+                    "payload": {
+                        "schema_version": 1,
+                        "lane_id": "core",
+                        "lane_kind": "universal-core",
+                        "stability": "preview",
+                        "summary": "core lane",
+                        "runtime_ownership": {"owner": "none", "notes": "contracts only"},
+                        "docs": {},
+                        "capability_promises": [{"id": "core"}],
+                        "non_goals": ["host_runtime"],
+                    },
+                }
+            ],
+            "public_manifests": [
+                {
+                    "output_path": "dist/manifests/vibeskills-core.json",
+                    "payload": {
+                        "manifest_kind": "vibeskills-distribution-manifest",
+                        "manifest_version": 1,
+                        "package_id": "vibeskills-core",
+                        "status": "supported-with-constraints",
+                        "runtime_role": "contract-layer",
+                        "summary": "fixture core package",
+                        "truth_sources": ["docs/universalization/core-contract.md"],
+                        "anti_overclaim": ["no runtime closure"],
+                    },
+                }
+            ],
+        }
+        self._write("config/distribution-manifest-sources.json", json.dumps(distribution_source, ensure_ascii=False, indent=2) + "\n")
 
     def _init_git_repo(self) -> None:
         subprocess.run(["git", "init"], cwd=self.root, capture_output=True, text=True, check=True)
@@ -214,12 +304,39 @@ class ReleaseCutOperatorTests(unittest.TestCase):
 
     def test_preview_lists_release_readme_and_manifest_surfaces(self) -> None:
         preview_path = self.root / "outputs" / "governance" / "preview" / "release-cut.json"
-        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30", "-Preview", "-PreviewOutputPath", str(preview_path))
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30", "-Preview", "-PreviewOutputPath", str(preview_path), "-RunGates")
         payload = json.loads(preview_path.read_text(encoding="utf-8"))
         planned = {item["path"]: item["action"] for item in payload["preview"]["planned_file_actions"]}
         self.assertIn("docs/releases/README.md", planned)
         self.assertIn("dist/core/manifest.json", planned)
         self.assertIn("dist/manifests/vibeskills-core.json", planned)
+        self.assertEqual(
+            [
+                "scripts/verify/vibe-release-train-v2-gate.ps1",
+                "scripts/verify/vibe-release-truth-consistency-gate.ps1",
+            ],
+            payload["preview"]["planned_gates"],
+        )
+        self.assertEqual(
+            [
+                "scripts/verify/vibe-version-packaging-gate.ps1",
+                "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+            ],
+            payload["postcheck"]["verify_after_apply"],
+        )
+
+
+    def test_preview_postcheck_falls_back_to_apply_gates_when_contract_field_is_missing(self) -> None:
+        contract_path = self.root / "config" / "operator-preview-contract.json"
+        payload = json.loads(contract_path.read_text(encoding="utf-8"))
+        del payload["operators"]["release-cut"]["postcheck_gates"]
+        contract_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+        preview_path = self.root / "outputs" / "governance" / "preview" / "release-cut.json"
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30", "-Preview", "-PreviewOutputPath", str(preview_path), "-RunGates")
+        receipt = json.loads(preview_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(receipt["preview"]["planned_gates"], receipt["postcheck"]["verify_after_apply"])
 
     def test_apply_updates_release_surfaces_and_creates_non_todo_note(self) -> None:
         self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30")
@@ -232,10 +349,14 @@ class ReleaseCutOperatorTests(unittest.TestCase):
         core_manifest = json.loads((self.root / "dist" / "core" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual("9.9.9", core_manifest["source_release"]["version"])
         self.assertEqual("2026-03-30", core_manifest["source_release"]["updated"])
+        self.assertEqual("none", core_manifest["surface_roles"]["runtime_authority"]["owner"])
+        self.assertEqual(["host_runtime"], core_manifest["surface_roles"]["boundary_claims"])
 
         public_manifest = json.loads((self.root / "dist" / "manifests" / "vibeskills-core.json").read_text(encoding="utf-8"))
         self.assertEqual("9.9.9", public_manifest["source_release"]["version"])
         self.assertEqual("2026-03-30", public_manifest["source_release"]["updated"])
+        self.assertEqual("contract-layer", public_manifest["surface_roles"]["runtime_authority"]["runtime_role"])
+        self.assertEqual(["no runtime closure"], public_manifest["surface_roles"]["boundary_claims"])
 
         note = (self.root / "docs" / "releases" / "v9.9.9.md").read_text(encoding="utf-8")
         self.assertIn("## Validation Notes", note)

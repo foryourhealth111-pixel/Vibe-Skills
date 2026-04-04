@@ -1,22 +1,22 @@
 # Operator Dry Run
 
-Updated: 2026-03-12
+Updated: 2026-04-04
 
 ## Summary
 
-This page is the latest human-readable phase-end receipt.
+This page is a historical human-readable phase-end receipt for the 2026-03-12 cleanup-era dry run.
 
-Authoritative gate outcomes still live in `outputs/verify/*.json`, and authoritative process receipts live in `outputs/runtime/process-health/**`.
+It is still useful as evidence that the old phase-end cleanup wrapper worked, but it is **not** the latest overall closure receipt for the active 2026-04-04 architecture-closure program. Current closure truth now lives in [`current-state.md`](current-state.md) and [`closure-audit.md`](closure-audit.md).
 
 ## Command
 
-Canonical batch-close entrypoint used for this receipt:
+Canonical batch-close entrypoint used for this historical receipt:
 
 ```powershell
 powershell -NoProfile -File scripts/governance/phase-end-cleanup.ps1 -WriteArtifacts -IncludeMirrorGates
 ```
 
-## Receipt Snapshot
+## Historical Receipt Snapshot
 
 Observed on `2026-03-12T12:30:03Z`.
 
@@ -34,24 +34,20 @@ Observed on `2026-03-12T12:30:03Z`.
 - node process audit: `PASS`
 - node zombie cleanup: `PASS` in report-only mode
 
-## Key Metrics
+## What This Still Proves
 
-- repo cleanliness remains governed rather than globally clean
-  - changed paths: `1164`
-  - local noise visible: `0`
-  - runtime generated visible: `0`
-  - managed workset visible: `475`
-  - high-risk managed visible: `689`
-- output boundary remains stable under `stage2_mirrored`
-  - tracked outputs: `21`
-  - tracked allowlist parity: `PASS`
-- node audit remained attribution-safe
-  - audited node processes: `222`
-  - classified external / audit-only: `222`
-  - cleanup candidates: `0`
-  - managed termination applied: `false`
+This historical receipt still proves that the old phase-end closure wrapper could:
+
+- purge temp state in a bounded way
+- refresh local excludes
+- rerun bounded non-regression gates
+- audit node processes without unsafe broad termination
+
+It does **not** prove the current 2026-04-04 architecture-closure state, current repo cleanliness, or current completion readiness.
 
 ## Evidence Anchors
+
+Historical anchors for this dry run remain:
 
 - `outputs/verify/vibe-repo-cleanliness-gate.json`
 - `outputs/verify/vibe-output-artifact-boundary-gate.json`
@@ -61,14 +57,11 @@ Observed on `2026-03-12T12:30:03Z`.
 - `outputs/runtime/process-health/audits/node-process-audit-20260312-203003.json`
 - `outputs/runtime/process-health/cleanups/node-process-cleanup-20260312-203003.json`
 
-## Next Hop
+## Current Next Hop
 
-- runtime summary: [`current-state.md`](current-state.md)
-- batch closure assessment: [`closure-audit.md`](closure-audit.md)
+For the active closure program, use these pages instead:
+
+- current runtime summary: [`current-state.md`](current-state.md)
+- current closure receipt: [`closure-audit.md`](closure-audit.md)
+- active root plan: [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
 - verify family navigation: [`../../scripts/verify/gate-family-index.md`](../../scripts/verify/gate-family-index.md)
-
-## Boundaries
-
-This receipt proves only that the current phase-end closure wrapper can purge temp state, refresh local excludes, rerun bounded non-regression gates, and audit node processes without unsafe broad termination.
-
-It does **not** prove that the repository is globally zero-dirty, that `nested_bundled` is removable, that tracked `outputs/**` can already be hard-pruned, or that third-party mirror roots can already be deleted.

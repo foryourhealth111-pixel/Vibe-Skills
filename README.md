@@ -527,6 +527,8 @@ This keeps host install state separate from governed workspace/runtime artifacts
 
 </div>
 
+The install surface is now registry-driven. `HostId` / `--host` selects host semantics, and the same public entry can resolve into `governed`, `preview-guidance`, or `runtime-core` depending on the adapter. If you are not sure which path matches your host, start with the [cold-start host matrix](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/cold-start-install-paths.en.md) or the [multi-host command reference](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/recommended-full-path.en.md).
+
 ### Customize: Add your own skills
 
 → [Custom workflow & skill onboarding guide](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/custom-workflow-onboarding.en.md)
@@ -574,7 +576,7 @@ _You know what this is now. All it takes from here is one prompt:_
 
 > 💡 **Tip**: To keep every message within the VibeSkills governed workflow, append `$vibe` or `/vibe` to each of your messages. A message without the invocation syntax is treated as a regular request outside the governed runtime.
 
-**Currently supported platforms**: `codex` (most complete governed path) · `claude-code` · `cursor` · `windsurf` (supported install-and-use path with runtime-adapter integration) · `openclaw` (preview runtime-core path) · `opencode` (preview adapter path)
+**Currently supported public host surface**: `codex` (strongest governed lane) · `claude-code` (supported install-and-use path with bounded managed closure) · `cursor` (preview-guidance path) · `windsurf` (runtime-core path with sidecar host-adapter state) · `openclaw` (preview runtime-core adapter path) · `opencode` (preview-guidance adapter path; direct install/check remains the thinner public path)
 
 <br/>
 

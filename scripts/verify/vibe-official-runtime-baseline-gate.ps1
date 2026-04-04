@@ -216,11 +216,13 @@ if ($null -ne $manifest) {
         'scripts/verify/vibe-pack-routing-smoke.ps1',
         'scripts/verify/vibe-router-contract-gate.ps1',
         'scripts/verify/vibe-version-consistency-gate.ps1',
-        'scripts/verify/vibe-version-packaging-gate.ps1',
-        'scripts/verify/vibe-installed-runtime-freshness-gate.ps1',
-        'scripts/verify/vibe-bom-frontmatter-gate.ps1',
-        'scripts/verify/vibe-release-install-runtime-coherence-gate.ps1'
+        'scripts/verify/vibe-version-packaging-gate.ps1'
     )
+    foreach ($runtimeGate in @([string]$runtimeConfig.post_install_gate, [string]$runtimeConfig.frontmatter_gate, [string]$runtimeConfig.coherence_gate)) {
+        if (-not [string]::IsNullOrWhiteSpace($runtimeGate) -and -not (@($requiredGates) -contains $runtimeGate)) {
+            $requiredGates += $runtimeGate
+        }
+    }
     foreach ($requiredGate in $requiredGates) {
         Add-Assertion -Collection $assertions -Condition (@($manifest.minimum_non_regression_gates) -contains [string]$requiredGate) -Message ("[manifest] minimum_non_regression_gates includes {0}" -f $requiredGate)
         Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath (Join-Path $repoRoot $requiredGate)) -Message ("[repo] required gate exists: {0}" -f $requiredGate)
@@ -272,17 +274,19 @@ if ($governance.PSObject.Properties.Name -contains 'runtime' -and $null -ne $gov
 }
 Add-Assertion -Collection $assertions -Condition (-not [string]::IsNullOrWhiteSpace([string]$declaredFrontmatterGate)) -Message '[runtime] frontmatter_gate is declared in config/version-governance.json'
 if (-not [string]::IsNullOrWhiteSpace([string]$declaredFrontmatterGate)) {
-    Add-Assertion -Collection $assertions -Condition ([string]$declaredFrontmatterGate -eq 'scripts/verify/vibe-bom-frontmatter-gate.ps1') -Message '[runtime] frontmatter_gate points to vibe-bom-frontmatter-gate.ps1'
+    Add-Assertion -Collection $assertions -Condition ([string]$declaredFrontmatterGate -eq [string]$runtimeConfig.frontmatter_gate) -Message '[runtime] frontmatter_gate declaration matches effective runtime contract'
 }
 
 $postInstallGatePath = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeConfig.post_install_gate)) { Join-Path $repoRoot ([string]$runtimeConfig.post_install_gate) } else { $null }
-$frontmatterGatePath = if ($runtimeConfig.PSObject.Properties.Name -contains 'frontmatter_gate' -and -not [string]::IsNullOrWhiteSpace([string]$runtimeConfig.frontmatter_gate)) { Join-Path $repoRoot ([string]$runtimeConfig.frontmatter_gate) } else { Join-Path $repoRoot 'scripts/verify/vibe-bom-frontmatter-gate.ps1' }
+$frontmatterGatePath = if ($runtimeConfig.PSObject.Properties.Name -contains 'frontmatter_gate' -and -not [string]::IsNullOrWhiteSpace([string]$runtimeConfig.frontmatter_gate)) { Join-Path $repoRoot ([string]$runtimeConfig.frontmatter_gate) } else { $null }
 $coherenceGatePath = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeConfig.coherence_gate)) { Join-Path $repoRoot ([string]$runtimeConfig.coherence_gate) } else { $null }
 
 if ($null -ne $postInstallGatePath) {
     Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $postInstallGatePath) -Message '[runtime] post-install gate script exists'
 }
-Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $frontmatterGatePath) -Message '[runtime] BOM/frontmatter gate script exists'
+if ($null -ne $frontmatterGatePath) {
+    Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $frontmatterGatePath) -Message '[runtime] BOM/frontmatter gate script exists'
+}
 if ($null -ne $coherenceGatePath) {
     Add-Assertion -Collection $assertions -Condition (Test-Path -LiteralPath $coherenceGatePath) -Message '[runtime] coherence gate script exists'
 }
