@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
+from _python_source_roots import PYTHON_SOURCE_ROOTS, REPO_ROOT
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-APPS_ROOT = REPO_ROOT / "apps"
-VGO_CLI_ROOT = APPS_ROOT / "vgo-cli" / "src" / "vgo_cli"
+VGO_CLI_ROOT = REPO_ROOT / "apps" / "vgo-cli" / "src" / "vgo_cli"
 
 
 class AppsSurfaceHygieneTests(unittest.TestCase):
-    def test_apps_tree_contains_no_python_bytecode_residue(self) -> None:
+    def test_repo_owned_python_surfaces_contain_no_python_bytecode_residue(self) -> None:
         forbidden = sorted(
             path.relative_to(REPO_ROOT).as_posix()
-            for path in APPS_ROOT.rglob("*")
-            if path.is_file()
-            and (path.suffix == ".pyc" or "__pycache__" in path.parts)
+            for root in PYTHON_SOURCE_ROOTS
+            if root.exists()
+            for path in root.rglob("*")
+            if path.is_file() and (path.suffix == ".pyc" or "__pycache__" in path.parts)
         )
 
         self.assertEqual([], forbidden)

@@ -12,6 +12,8 @@ on:
 jobs:
   python-validation:
     runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,14 +26,12 @@ jobs:
       - name: Install pytest
         run: python -m pip install --upgrade pip pytest
 
-      - name: Run targeted python validation
-        run: >
-          pytest -q
-          tests/runtime_neutral/test_custom_admission_bridge.py
-          tests/runtime_neutral/test_docs_readme_encoding.py
-          tests/runtime_neutral/test_governed_runtime_bridge.py
-          tests/runtime_neutral/test_install_profile_differentiation.py
-          tests/runtime_neutral/test_python_validation_contract.py
+      - name: Run canonical python validation surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t targets < <(grep -v '^[[:space:]]*#' config/python-validation-targets.txt | sed '/^[[:space:]]*$/d')
+          python -B -m pytest -q "${targets[@]}"
 
   gates:
     runs-on: windows-latest

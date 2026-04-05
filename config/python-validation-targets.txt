@@ -1,0 +1,10 @@
+# Canonical Python validation surface for CI and local gate-parity runs.
+# Keep this list aligned with architecture, contract, and hygiene invariants.
+tests/contract/test_repo_layout_contract.py
+tests/integration/test_runtime_surface_contract_cutover.py
+tests/runtime_neutral/test_apps_surface_hygiene.py
+tests/runtime_neutral/test_custom_admission_bridge.py
+tests/runtime_neutral/test_docs_readme_encoding.py
+tests/runtime_neutral/test_governed_runtime_bridge.py
+tests/runtime_neutral/test_install_profile_differentiation.py
+tests/runtime_neutral/test_python_validation_contract.py
