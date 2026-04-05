@@ -13,8 +13,8 @@
 
 ## Start Here
 
-- 当前 docs 清理治理计划：[`2026-04-05-github-visible-docs-worklog-purge-plan.md`](./2026-04-05-github-visible-docs-worklog-purge-plan.md)
-- 配套冻结需求：[`../requirements/2026-04-05-github-visible-docs-worklog-purge.md`](../requirements/2026-04-05-github-visible-docs-worklog-purge.md)
+- 当前 `platform/` 与 `references/` 精简计划：[`2026-04-05-platform-references-priority-slimming-plan.md`](./2026-04-05-platform-references-priority-slimming-plan.md)
+- 配套冻结需求：[`../requirements/2026-04-05-platform-references-priority-slimming.md`](../requirements/2026-04-05-platform-references-priority-slimming.md)
 
 ## Contract-Retained Plans
 

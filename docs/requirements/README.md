@@ -21,7 +21,7 @@ Primary policy:
 
 ## Current Entry
 
-- [`2026-04-05-github-visible-docs-worklog-purge.md`](./2026-04-05-github-visible-docs-worklog-purge.md): 冻结本轮“移除 GitHub 可见 docs 工作日志面”的治理范围、保留边界和验收标准。
+- [`2026-04-05-platform-references-priority-slimming.md`](./2026-04-05-platform-references-priority-slimming.md): 冻结本轮 `platform/` 空壳清理与 `references/` 优先级精简的治理范围、保留边界和验收标准。
 
 ## Contract-Retained Baselines
 
