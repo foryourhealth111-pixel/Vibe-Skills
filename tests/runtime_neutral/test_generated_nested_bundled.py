@@ -35,7 +35,7 @@ INSTALL_REQUIRED_SKILLS = (
 )
 MIRROR_DIRECTORIES = ["config", "templates", "scripts", "mcp"]
 BUNDLED_RELEASE_FILES = ["README.md", "LICENSE"]
-BUNDLED_RELEASE_DIRECTORIES = [".internal", "agents"]
+BUNDLED_RELEASE_DIRECTORIES = ["agents"]
 
 
 def resolve_powershell() -> str | None:
@@ -124,7 +124,6 @@ class GeneratedNestedBundledTests(unittest.TestCase):
         self._write("SKILL.md", "---\nname: vibe\ndescription: fixture\n---\n")
         self._write("README.md", "# bundled release readme\n")
         self._write("LICENSE", "fixture license\n")
-        self._write(".internal/vibe-maintenance-checklist.md", "checklist\n")
         self._write("agents/templates/debugger.md", "# debugger\n")
         self._write("config/sample.json", json.dumps({"version": 1}, indent=2) + "\n")
         self._write("scripts/sample.ps1", "Write-Host 'sample'\n")
@@ -238,12 +237,10 @@ class GeneratedNestedBundledTests(unittest.TestCase):
 
         self.assertTrue((bundled_root / "README.md").exists())
         self.assertTrue((bundled_root / "LICENSE").exists())
-        self.assertTrue((bundled_root / ".internal" / "vibe-maintenance-checklist.md").exists())
         self.assertTrue((bundled_root / "agents" / "templates" / "debugger.md").exists())
 
         self.assertFalse((nested_root / "README.md").exists())
         self.assertFalse((nested_root / "LICENSE").exists())
-        self.assertFalse((nested_root / ".internal").exists())
         self.assertFalse((nested_root / "agents").exists())
 
     def test_manifest_declared_script_and_config_subsets_sync_without_broad_directories(self) -> None:

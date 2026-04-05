@@ -1,8 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Developer Change Governance
-    url: https://github.com/foryourhealth111-pixel/vco-skills-codex/blob/main/docs/developer-change-governance.md
-    about: Read the zone model, change classes, proof requirements, and stop-ship rules before opening a high-risk change.
-  - name: Developer Entry Plan
-    url: https://github.com/foryourhealth111-pixel/vco-skills-codex/blob/main/docs/plans/2026-03-13-post-upstream-governance-developer-entry-plan.md
-    about: Review the intended contributor workflow surface and required declarations for plan, proof, and escalation.
