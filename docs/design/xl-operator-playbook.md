@@ -90,7 +90,7 @@ Wave17 把 intake 拆成四个优先带：
 Wave17 完成后，应至少具备：
 
 - `config/skill-intake-priority.json`
-- `config/xl-operator-checkpoints.json`
+- `docs/archive/config/xl-operator-checkpoints.json`
 - `outputs/governance/xl-operator/xl-operator-checklist.json|md`
 - 本 playbook 文档
 

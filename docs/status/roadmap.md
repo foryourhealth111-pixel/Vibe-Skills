@@ -1,14 +1,14 @@
 # Roadmap
 
-Updated: 2026-04-04
+Updated: 2026-04-05
 
 ## Positioning
 
-This page is the sequencing map for the active `remaining-architecture-closure` program.
+This page is the sequencing map for the post-closure cleanup program.
 
 It answers:
 
-1. which closure wave is active now;
+1. which governed follow-up wave is active now;
 2. which heavier cleanup tracks remain deferred;
 3. what must become true before the repository can honestly claim closure.
 
@@ -24,57 +24,36 @@ That means no semantic-owner retirement, no compatibility-surface deletion, and 
 
 ## Active Track
 
-The repository is in **architecture-closure mode**, not feature-expansion mode.
+The repository is in **post-closure cleanup mode**, not feature-expansion mode.
 
 That means the current priority is:
 
-1. remove or demote remaining duplicated semantic owners
-2. keep contracts and package-owned cores as the canonical owners
-3. refresh live status / closure surfaces so they match current evidence
-4. only then move into the final proof-and-cleanup wave
+1. keep the completed architecture-closure truth stable
+2. remove zero-consumer public docs worklog leaves
+3. preserve only active proof, verify, and governance documentation
+4. avoid reopening closed semantic-owner claims while slimming docs
 
-## Current Closure Waves
+## Current Cleanup Waves
 
-### Wave 1: Remaining Owner Audit
+### Wave 1: Closure Truth Preservation
 
-Goal: identify the remaining script-text truth checks, fallback owners, and compatibility boundaries worth cutting.
+Goal: keep the completed 2026-04-04 closure proof, status spine, and residual-boundary wording intact.
 
-Status: completed enough to rank the current microphases and drive the 2026-04-04 cut sequence.
+Status: complete and retained as the authority stack.
 
-### Wave 2: High-Value Contract Cutovers
+### Wave 2: Public Docs Worklog Purge
 
-Goal: move the highest-value remaining semantic owners onto shared contracts or package-owned cores.
+Goal: remove GitHub-visible docs leaves that are only personal execution history, while preserving contract-retained documents.
 
-Completed cuts in this wave include:
+Current rule:
 
-- frontmatter gate runtime-contract delegation
-- CLI runtime entrypoint delegation
-- verification runtime entrypoint delegation
-- operator preview postcheck contract alignment
-- PowerShell installed-runtime fallback reduction
-- mirror-topology contract delegation
-- release closure gates contract cutover
+- current requirement and plan must stay frozen
+- verify-retained historical docs may stay if they still have hard consumers
+- zero-consumer logs should exit the public docs surface rather than move into another visible bucket
 
-### Wave 3: Compatibility Boundary Closure
+### Wave 3: Deferred Structural Tracks
 
-Goal: keep fallbacks and retained shims bounded, explicit, and non-authoritative.
-
-Current rule: compatibility shims remain retained while live callers, manifests, installed payloads, or tests still depend on them.
-
-### Wave 4: Architecture / Status Consistency Refresh
-
-Goal: make the live architecture and status spine match the current closure facts.
-
-Current microphases:
-
-- architecture consistency audit refresh
-- status spine catch-up
-
-### Wave 5: Final Proof And Cleanup
-
-Goal: finish the remaining architecture-consistency proof, residual-risk inventory, and honest closure language.
-
-This wave is not yet complete.
+Goal: keep heavier cleanup items explicitly deferred until their own governed requirement exists.
 
 ## Deferred Explicit Tracks
 
@@ -90,23 +69,26 @@ These tracks remain governed backlog, not active closure claims:
 - fresh focused verification exists for the latest contract cutover
 - fresh full regression exists: `403 passed, 66 subtests passed in 510.12s (0:08:30)`
 - `git diff --check` is clean for the latest completed microphase
-- the root `remaining-architecture-closure` plan is still open
+- the root `remaining-architecture-closure` plan is complete within frozen scope
+- the active governed follow-up is GitHub-visible docs worklog purge
 - bounded fallback inventory and retained compatibility surfaces still exist and must remain explicit
 
 ## Cross-Document Boundary
 
-- active root requirement lives in [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
-- active root plan lives in [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- completed closure requirement lives in [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
+- completed closure plan lives in [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- active cleanup requirement lives in [`../requirements/2026-04-05-github-visible-docs-worklog-purge.md`](../requirements/2026-04-05-github-visible-docs-worklog-purge.md)
+- active cleanup plan lives in [`../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md`](../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md)
 - live runtime summary lives in [`current-state.md`](current-state.md)
 - closure receipt lives in [`closure-audit.md`](closure-audit.md)
 - blocker map lives in [`path-dependency-census.md`](path-dependency-census.md)
 
 ## Exit Conditions
 
-The architecture-closure program is only complete when all of the following are true:
+The current cleanup wave is only complete when all of the following are true:
 
-- remaining duplicated semantic owners are removed or demoted to bounded compatibility fallbacks
-- live status and architecture surfaces reflect the same current truth
-- residual-risk / fallback inventory is documented honestly
-- fresh regression and hygiene evidence exists for the final closure wave
-- completion language no longer outruns the repository's actually proven state
+- zero-consumer public docs worklog leaves are removed
+- live status and proof surfaces still reflect the same current truth
+- verify-retained historical docs remain intact where hard consumers still exist
+- navigation and proof wording no longer point at deleted worklog leaves
+- completion language still does not outrun the repository's actually proven state

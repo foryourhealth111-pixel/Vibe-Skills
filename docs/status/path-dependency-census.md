@@ -29,7 +29,7 @@ The repository currently has six blocker clusters that still constrain safe clos
 | tracked `outputs/**` | `config/outputs-boundary-policy.json`, `references/fixtures/migration-map.json`, `scripts/verify/vibe-output-artifact-boundary-gate.ps1` | high | policy still keeps the legacy migration label `stage2_mirrored`, but tracked `outputs/**` are already required to be zero and fixture mirrors remain the canonical retained surface | keep the compatibility label stable while documenting strict-zero enforcement truthfully |
 | `third_party/system-prompts-mirror` | research scripts, docs examples | high | scripts still default to a fixed local mirror path | make source roots manifest-driven and parameterizable |
 | `third_party/vco-ecosystem-mirror` | `config/upstream-corpus-manifest.json`, registry / curation metadata, mirror-path references, some research flows | medium-high | the local mirror is still treated as the default evidence source | preserve provenance and manifest, allow external checkout / audit-time fetch |
-| live docs / proof / status spine | `docs/status/*`, `docs/proof/*`, `docs/plans/README.md`, `docs/README.md`, `scripts/README.md`, `scripts/verify/gate-family-index.md`, `config/index.md`, `references/index.md` | medium | the scoped live spine is now refreshed; the remaining constraint is keeping proof, status, and residual-boundary language aligned so historical pages do not retake authority | keep a short canonical handoff spine: root requirement -> root plan -> proof -> current-state -> closure-audit |
+| live docs / proof / status spine | `docs/status/*`, `docs/proof/*`, `docs/plans/README.md`, `docs/requirements/README.md`, `docs/README.md`, `scripts/README.md`, `scripts/verify/gate-family-index.md`, `config/index.md`, `references/index.md` | medium | the scoped live spine is now refreshed; the remaining constraint is keeping proof, status, and residual-boundary language aligned while zero-consumer worklog leaves stay off the public docs surface | keep a short canonical handoff spine: current requirement -> current plan -> proof -> current-state -> closure-audit |
 | dated plan / report surfaces | `docs/plans/**`, `docs/releases/**`, older status / closure pages | medium | historical material still sits close to active navigation surfaces | keep active state in `docs/status/` and `docs/proof/`, and progressively demote history to archive-style access patterns |
 
 ## Notable Hard References
@@ -85,8 +85,8 @@ The order below is the current safe sequencing recommendation after the 2026-04-
 ## Cross-Document Boundary
 
 - active sequencing lives in [`roadmap.md`](roadmap.md)
-- active root requirement lives in [`../requirements/2026-04-04-remaining-architecture-closure.md`](../requirements/2026-04-04-remaining-architecture-closure.md)
-- active root plan lives in [`../plans/2026-04-04-remaining-architecture-closure-plan.md`](../plans/2026-04-04-remaining-architecture-closure-plan.md)
+- current governed cleanup requirement lives in [`../requirements/2026-04-05-github-visible-docs-worklog-purge.md`](../requirements/2026-04-05-github-visible-docs-worklog-purge.md)
+- current governed cleanup plan lives in [`../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md`](../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md)
 - architecture sign-off proof lives in [`../proof/2026-04-04-owner-consumer-consistency-proof.md`](../proof/2026-04-04-owner-consumer-consistency-proof.md)
 - live runtime summary lives in [`current-state.md`](current-state.md)
 - closure receipt lives in [`closure-audit.md`](closure-audit.md)

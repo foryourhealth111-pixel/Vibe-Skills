@@ -1,6 +1,6 @@
 # VCO 文档索引
 
-`docs/` 只负责长期说明、当前状态入口和执行计划导航，不承担运行时真相本身。
+`docs/` 只负责长期说明、当前状态入口和最小治理导航，不承担运行时真相本身，也不再公开堆放大批个人执行日志。
 
 ## Start Here
 
@@ -14,7 +14,7 @@
 | 看懂宿主模式和命令参考 | [`install/README.md`](./install/README.md) |
 | 判断自己该走哪条冷启动路径 | [`cold-start-install-paths.md`](./cold-start-install-paths.md) |
 | 查看当前状态 | [`status/README.md`](./status/README.md) |
-| 跟踪当前执行计划 | [`plans/README.md`](./plans/README.md) |
+| 查看当前治理执行面 | [`plans/README.md`](./plans/README.md) |
 | 查看治理专题和 guardrails | [`governance/README.md`](./governance/README.md) |
 | 查看设计说明和 playbook | [`design/README.md`](./design/README.md) |
 | 查看外部工具和 overlay 边界 | [`external-tooling/README.md`](./external-tooling/README.md) |
@@ -56,4 +56,4 @@
 - specialized governance、design、external-tooling 叶子页优先放入对应 family 目录，而不是继续堆回 `docs/*.md` 根层。
 - 当前状态以 [`status/current-state.md`](./status/current-state.md) 和 `outputs/verify/**` 为准，不在索引页手工维护状态表。
 - 新增长期入口时更新本页；dated 材料只更新对应子目录 `README.md`。
-- 历史 dated 材料默认进入 [`archive/README.md`](./archive/README.md)，不要把 archive 内容重新堆回 live 根索引。
+- 历史 dated 材料默认从 git history 或 [`archive/README.md`](./archive/README.md) 的最小索引恢复，不再把整批日志叶子长期挂在 live docs surface。

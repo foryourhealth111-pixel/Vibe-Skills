@@ -37,7 +37,7 @@ Older release notes now live behind [`../archive/releases/README.md`](../archive
 
 ## Historical Packetization
 
-- [`wave15-18-release-packet.md`](wave15-18-release-packet.md) - historical packetization artifact, not the current release-note format
+- [`../archive/releases/wave15-18-release-packet.md`](../archive/releases/wave15-18-release-packet.md) - historical packetization artifact, not the current release-note format
 
 ## Release Operator Entry
 

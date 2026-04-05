@@ -45,6 +45,7 @@
 - [`../docs/status/non-regression-proof-bundle.md`](../docs/status/non-regression-proof-bundle.md)
 - [`../scripts/verify/gate-family-index.md`](../scripts/verify/gate-family-index.md)
 - [`../docs/plans/README.md`](../docs/plans/README.md)
+- [`../docs/requirements/README.md`](../docs/requirements/README.md)
 
 ## Reading Order
 
@@ -56,6 +57,6 @@
 ## Rules
 
 - 新增长期 reference 资产必须更新本页。
-- time-bound execution 正文不进 `references/`，继续留在 `docs/plans/` 或 `docs/status/`。
+- time-bound execution 正文不进 `references/`；若某批次材料不再承担契约作用，应优先退出 GitHub 可见 `docs/` 面，而不是长期堆在 `references/`。
 - reference 资产新增后至少补一条 docs 或 gate 锚点。
 - 稳定路径如果因为历史长尾而需要瘦身，应优先拆成 current + archive volume，而不是让 stable path 消失。

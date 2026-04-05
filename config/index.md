@@ -21,7 +21,7 @@
 - Routing core: `pack-manifest.json`, `router-thresholds.json`, `skill-alias-map.json`
 - Runtime / packaging: `version-governance.json`, `frontmatter-integrity-policy.json`, `execution-context-status.json`, `bundled-skill-tier-policy.json`
 - Cleanliness / outputs: `repo-cleanliness-policy.json`, `outputs-boundary-policy.json`
-- Boards / lifecycle: `candidate-quality-board.json`, `promotion-board.json`, `capability-catalog.json`
+- Boards / lifecycle: `promotion-board.json`, `capability-catalog.json`
 - Upstream / distribution: `upstream-lock.json`, `upstream-corpus-manifest.json`, `distribution-tiers.json`
 
 ## Reading Order
@@ -29,6 +29,7 @@
 1. 先看 [`version-governance.json`](version-governance.json)、[`repo-cleanliness-policy.json`](repo-cleanliness-policy.json)、[`outputs-boundary-policy.json`](outputs-boundary-policy.json)。
 2. 再看 [`pack-manifest.json`](pack-manifest.json)、[`router-thresholds.json`](router-thresholds.json)、[`skill-alias-map.json`](skill-alias-map.json)。
 3. 需要 rollout / admission 时再进入 boards。
+4. 历史 wave boards / scorecards / archived governance-board snapshots 进入 [`../docs/archive/config/README.md`](../docs/archive/config/README.md)。
 
 ## Rules
 

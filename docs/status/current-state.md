@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-04-04
+Updated: 2026-04-05
 
 ## What This Page Is
 
@@ -10,9 +10,9 @@ It exists to answer three questions only:
 
 1. where the current closure truth lives;
 2. what is proven complete in the frozen scope versus still deferred;
-3. what the next governed operator hop should be.
+3. what the next governed operator hop should be after closure.
 
-It is not the canonical contract layer and it must not over-claim beyond the frozen root plan.
+It is not the canonical contract layer and it must not over-claim beyond the frozen closure proof or the current governed follow-up requirement.
 
 ## Authority
 
@@ -27,6 +27,8 @@ Authoritative surfaces for the completed closure batch:
 - architecture sign-off proof: [`../proof/2026-04-04-owner-consumer-consistency-proof.md`](../proof/2026-04-04-owner-consumer-consistency-proof.md)
 - live architecture audit: [`../architecture/legacy-topology-audit.md`](../architecture/legacy-topology-audit.md)
 - closure receipt: [`closure-audit.md`](closure-audit.md)
+- current follow-up requirement: [`../requirements/2026-04-05-github-visible-docs-worklog-purge.md`](../requirements/2026-04-05-github-visible-docs-worklog-purge.md)
+- current follow-up plan: [`../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md`](../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md)
 
 ## Mission Outcome
 
@@ -104,5 +106,5 @@ Recommended next options are:
 
 - outputs strict-mode / tracked-output retirement
 - third-party source-root parameterization
-- archive / prune follow-up work
+- GitHub-visible docs worklog purge and archive-surface shrinkage
 - targeted shim-retirement only where live callers can be proven gone

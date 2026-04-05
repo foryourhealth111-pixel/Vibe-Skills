@@ -112,7 +112,7 @@
 ### 6.2 Deliverables
 
 - `config/skill-intake-priority.json`
-- `config/xl-operator-checkpoints.json`
+- `docs/archive/config/xl-operator-checkpoints.json`
 - `scripts/research/build-xl-operator-checklist.ps1`
 - `docs/design/xl-operator-playbook.md`
 - `outputs/governance/xl-operator/xl-operator-checklist.json|md`
@@ -143,7 +143,7 @@
 - `scripts/verify/wave15-18-consistency-gate.ps1`
 - `docs/archive/root-docs/wave15-18-verification-spec.md`
 - `references/promotion-memos/wave15-18-promotion-prep.md`
-- `docs/releases/wave15-18-release-packet.md`
+- `docs/archive/releases/wave15-18-release-packet.md`
 - `outputs/verify/wave15-18-consistency-gate.json|md`
 
 ### 7.3 Definition of Done

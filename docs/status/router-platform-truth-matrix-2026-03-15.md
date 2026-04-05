@@ -11,7 +11,7 @@ It is the operator-facing truth matrix for the Linux router host-neutrality and 
 Primary execution sources:
 
 - [Linux Router Host-Neutrality And Route Quality Recovery Requirement](../requirements/2026-03-15-linux-router-host-neutrality-and-route-quality-recovery.md)
-- [Linux Router Host-Neutrality And Route Quality Recovery Implementation Plan](../plans/2026-03-15-linux-router-host-neutrality-and-route-quality-recovery-plan.md)
+- Supporting execution-plan leaves for this historical recovery wave are no longer kept on the public docs surface.
 
 ## Frozen Facts At Wave Start
 

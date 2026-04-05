@@ -191,14 +191,13 @@ following are true — do not guess your way through these situations:
 - change proof matrix:
   [`references/change-proof-matrix.md`](references/change-proof-matrix.md)
 - developer entry baseline:
-  [`docs/status/developer-entry-baseline-2026-03-13.md`](docs/status/developer-entry-baseline-2026-03-13.md)
-- developer entry canary:
-  [`docs/status/developer-entry-canary-report-2026-03-13.md`](docs/status/developer-entry-canary-report-2026-03-13.md)
-- developer entry closure:
-  [`docs/status/developer-entry-closure-report-2026-03-13.md`](docs/status/developer-entry-closure-report-2026-03-13.md)
+  [`references/developer-entry-contract.md`](references/developer-entry-contract.md)
+- current docs cleanup governance:
+  [`docs/requirements/2026-04-05-github-visible-docs-worklog-purge.md`](docs/requirements/2026-04-05-github-visible-docs-worklog-purge.md)
 
 ## Scope Note
 
 This contributor guide is the human entry surface for the developer-entry
 rollout. Formal enforcement evidence for templates, gating, and non-regression
-proof lives in the dated status reports under `docs/status/`.
+proof lives in the developer-entry contract and the active verify surfaces,
+not in a large tracked archive of dated status logs.

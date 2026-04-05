@@ -1,6 +1,6 @@
 # Closure Audit
 
-Updated: 2026-04-04
+Updated: 2026-04-05
 
 ## Summary
 
@@ -107,3 +107,8 @@ The `remaining-architecture-closure` root plan is complete **within its frozen s
 ## Next Hop
 
 Any further structural cleanup should start from a new root requirement and should not reuse this completed plan as if it were still open.
+
+The current follow-up track is:
+
+- [`../requirements/2026-04-05-github-visible-docs-worklog-purge.md`](../requirements/2026-04-05-github-visible-docs-worklog-purge.md)
+- [`../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md`](../plans/2026-04-05-github-visible-docs-worklog-purge-plan.md)

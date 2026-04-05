@@ -19,7 +19,7 @@
 - `config/candidate-watch-decisions.json`
 - `config/eval-slicing-policy.json`
 - `config/skill-intake-priority.json`
-- `config/xl-operator-checkpoints.json`
+- `docs/archive/config/xl-operator-checkpoints.json`
 - `config/watch-lane-priority-bands.json`
 - `docs/archive/root-docs/watch-portfolio-rationalization.md`
 - `docs/eval-slicing-operationalization.md`
@@ -27,7 +27,7 @@
 - `docs/archive/root-docs/wave15-18-execution-backlog.md`
 - `docs/archive/root-docs/watch-lane-remaining-value-cases.md`
 - `references/promotion-memos/wave15-18-promotion-prep.md`
-- `docs/releases/wave15-18-release-packet.md`
+- `docs/archive/releases/wave15-18-release-packet.md`
 
 ### 2. Structural assertions
 

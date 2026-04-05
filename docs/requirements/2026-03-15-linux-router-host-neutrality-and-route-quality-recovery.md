@@ -97,13 +97,7 @@ The implementation is not complete until all of the following are green:
 
 ## Traceability
 
-Primary execution plan:
-
-- [2026-03-15-linux-router-host-neutrality-and-route-quality-recovery-plan.md](../plans/2026-03-15-linux-router-host-neutrality-and-route-quality-recovery-plan.md)
-
-Primary governed runtime context:
-
-- [2026-03-15-vco-governed-runtime-contract-plan.md](../plans/2026-03-15-vco-governed-runtime-contract-plan.md)
+Primary execution-plan leaves for this historical recovery wave are no longer kept on the public docs surface.
 
 Primary supporting truth surfaces expected to stay aligned:
 

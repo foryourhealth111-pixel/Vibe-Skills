@@ -12,7 +12,6 @@
 
 - consolidation / watch / roadmap packets:
   - `skills-consolidation-roadmap.md`
-  - `skills-overlap-matrix.md` (retained as audit evidence for active slimming work)
   - `watch-portfolio-rationalization.md`
   - `watch-lane-remaining-value-cases.md`
   - `wave15-18-execution-backlog.md`
