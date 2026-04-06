@@ -839,6 +839,81 @@ function New-VibeDegradedSpecialistDispatchResult {
     }
 }
 
+function New-VibeBlockedSpecialistDispatchResult {
+    param(
+        [Parameter(Mandatory)] [string]$UnitId,
+        [Parameter(Mandatory)] [object]$Dispatch,
+        [Parameter(Mandatory)] [string]$SessionRoot,
+        [Parameter(Mandatory)] [string]$Reason,
+        [AllowEmptyString()] [string]$WriteScope = '',
+        [AllowEmptyString()] [string]$ReviewMode = 'native_contract'
+    )
+
+    $logsRoot = Join-Path $SessionRoot 'execution-logs'
+    $resultsRoot = Join-Path $SessionRoot 'execution-results'
+    New-Item -ItemType Directory -Path $logsRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path $resultsRoot -Force | Out-Null
+
+    $stdoutPath = Join-Path $logsRoot ("{0}.stdout.log" -f $UnitId)
+    $stderrPath = Join-Path $logsRoot ("{0}.stderr.log" -f $UnitId)
+    $startedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')
+    $reasonCodes = if ($Dispatch.PSObject.Properties.Name -contains 'destructive_reason_codes') { @($Dispatch.destructive_reason_codes) } else { @() }
+    $stdoutLines = @(
+        'Specialist dispatch blocked before execution.',
+        ("skill_id={0}" -f [string]$Dispatch.skill_id),
+        ("block_reason={0}" -f $Reason),
+        ("destructive_reason_codes={0}" -f (@($reasonCodes) -join ','))
+    )
+    Write-VgoUtf8NoBomText -Path $stdoutPath -Content (($stdoutLines -join [Environment]::NewLine) + [Environment]::NewLine)
+    Write-VgoUtf8NoBomText -Path $stderrPath -Content ''
+
+    $finishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')
+    $unitResult = [pscustomobject]@{
+        unit_id = $UnitId
+        kind = 'specialist_dispatch'
+        status = 'blocked'
+        started_at = $startedAt
+        finished_at = $finishedAt
+        command = ("specialist:{0}" -f [string]$Dispatch.skill_id)
+        arguments = @()
+        display_command = ("specialist:{0}" -f [string]$Dispatch.skill_id)
+        cwd = $SessionRoot
+        timeout_seconds = 0
+        expected_exit_code = 0
+        exit_code = 0
+        timed_out = $false
+        stdout_path = $stdoutPath
+        stderr_path = $stderrPath
+        stdout_preview = @($stdoutLines)
+        stderr_preview = @()
+        expected_artifacts = @()
+        verification_passed = $false
+        specialist_skill_id = [string]$Dispatch.skill_id
+        bounded_role = [string]$Dispatch.bounded_role
+        native_usage_required = [bool]$Dispatch.native_usage_required
+        must_preserve_workflow = [bool]$Dispatch.must_preserve_workflow
+        write_scope = $WriteScope
+        review_mode = $ReviewMode
+        execution_driver = 'blocked_specialist_contract_receipt'
+        live_native_execution = $false
+        degraded = $false
+        blocked = $true
+        block_reason = $Reason
+        destructive_reason_codes = @($reasonCodes)
+        changed_files = @()
+        verification_notes = @()
+        bounded_output_notes = @()
+    }
+
+    $resultPath = Join-Path $resultsRoot ("{0}.json" -f $UnitId)
+    Write-VibeJsonArtifact -Path $resultPath -Value $unitResult
+
+    return [pscustomobject]@{
+        result = $unitResult
+        result_path = $resultPath
+    }
+}
+
 function Invoke-VibeSpecialistDispatchUnit {
     param(
         [Parameter(Mandatory)] [string]$UnitId,

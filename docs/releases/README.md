@@ -17,6 +17,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 - [`../runtime-freshness-install-sop.md`](../runtime-freshness-install-sop.md): install, freshness, and coherence SOP
 - [`../../scripts/verify/gate-family-index.md`](../../scripts/verify/gate-family-index.md): gate family navigation and typical run order
 - [`../../scripts/verify/README.md`](../../scripts/verify/README.md): verify surface entrypoint
+- `scripts/verify/vibe-skill-promotion-execution-gate.ps1`: skill-promotion closure gate proving non-destructive dispatch resolution, destructive blocking, and zero ghost-match coverage
 - [`../status/non-regression-proof-bundle.md`](../status/non-regression-proof-bundle.md): minimum closure proof contract
 - `scripts/verify/vibe-release-truth-consistency-gate.ps1`: fallback and degraded-truth consistency proof for release and promotion surfaces
 - archived release notes: [`../archive/releases/README.md`](../archive/releases/README.md)

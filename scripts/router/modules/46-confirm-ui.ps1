@@ -341,6 +341,8 @@ function Build-ConfirmSkillOptions {
         [object]$Result,
         [object]$ConfirmUiPolicy,
         [string]$RepoRoot,
+        [AllowEmptyString()] [string]$PromptText = '',
+        [AllowNull()] [object]$SkillPromotionPolicy = $null,
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = ''
     )
@@ -383,6 +385,14 @@ function Build-ConfirmSkillOptions {
         } else {
             $null
         }
+        $promotionMetadata = Get-VgoSkillPromotionMetadata `
+            -Prompt $PromptText `
+            -SkillMdPath $(if ($desc) { [string]$desc.skill_md_path } else { '' }) `
+            -Description $(if ($desc) { [string]$desc.description } else { '' }) `
+            -RequiredInputs @('bounded specialist subtask contract') `
+            -ExpectedOutputs @('bounded specialist result') `
+            -VerificationExpectation 'Preserve the selected skill native workflow.' `
+            -PromotionPolicy $SkillPromotionPolicy
 
         $options += [pscustomobject]@{
             option_id = $idx
@@ -396,6 +406,13 @@ function Build-ConfirmSkillOptions {
             canonical_for_task_hit = if ($row.canonical_for_task_hit -ne $null) { [double]$row.canonical_for_task_hit } else { $null }
             description = if ($desc) { [string]$desc.description } else { $null }
             skill_md_path = if ($desc) { [string]$desc.skill_md_path } else { $null }
+            promotion_eligible = [bool]$promotionMetadata.promotion_eligible
+            destructive = [bool]$promotionMetadata.destructive
+            destructive_reason_codes = [object[]]@($promotionMetadata.destructive_reason_codes)
+            rollback_possible = [bool]$promotionMetadata.rollback_possible
+            snapshot_required = [bool]$promotionMetadata.snapshot_required
+            contract_complete = [bool]$promotionMetadata.contract_complete
+            recommended_promotion_action = [string]$promotionMetadata.recommended_promotion_action
         }
     }
 
@@ -447,4 +464,3 @@ function Build-ConfirmUiText {
 
     return ($lines -join "`n")
 }
-

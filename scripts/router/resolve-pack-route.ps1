@@ -95,6 +95,7 @@ $capabilityCatalogPath = Join-Path $configRoot "capability-catalog.json"
 $dialecticTeamPolicyPath = Join-Path $configRoot "dialectic-team-policy.json"
 $dailyDialecticPolicyPath = Join-Path $configRoot "daily-dialectic-guard.json"
 $confirmUiPolicyPath = Join-Path $configRoot "confirm-ui-policy.json"
+$skillPromotionPolicyPath = Join-Path $configRoot "skill-promotion-policy.json"
 $llmAccelerationPolicyPath = Join-Path $configRoot "llm-acceleration-policy.json"
 
 $packManifest = Get-Content -LiteralPath $packManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -323,6 +324,15 @@ $confirmUiPolicy = if (Test-Path -LiteralPath $confirmUiPolicyPath) {
 } else {
     $null
 }
+$skillPromotionPolicy = if (Test-Path -LiteralPath $skillPromotionPolicyPath) {
+    try {
+        Get-Content -LiteralPath $skillPromotionPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        $null
+    }
+} else {
+    $null
+}
 $llmAccelerationPolicy = if (Test-Path -LiteralPath $llmAccelerationPolicyPath) {
     try {
         Get-Content -LiteralPath $llmAccelerationPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -396,6 +406,7 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.config" -Note "core ro
         deep_discovery_mode = if ($deepDiscoveryPolicy -and $deepDiscoveryPolicy.mode) { [string]$deepDiscoveryPolicy.mode } else { "off" }
         dialectic_team_mode = if ($dialecticTeamPolicy -and $dialecticTeamPolicy.mode) { [string]$dialecticTeamPolicy.mode } else { "off" }
         daily_dialectic_mode = if ($dailyDialecticPolicy -and $dailyDialecticPolicy.mode) { [string]$dailyDialecticPolicy.mode } else { "off" }
+        skill_promotion_mode = if ($skillPromotionPolicy -and $skillPromotionPolicy.default_mode) { [string]$skillPromotionPolicy.default_mode } else { "recall_first" }
         llm_acceleration_mode = if ($llmAccelerationPolicy -and $llmAccelerationPolicy.mode) { [string]$llmAccelerationPolicy.mode } else { "off" }
         prompt_asset_boost_mode = if ($promptAssetBoostPolicy -and $promptAssetBoostPolicy.mode) { [string]$promptAssetBoostPolicy.mode } else { "off" }
     }
@@ -1208,6 +1219,23 @@ $heartbeatRuntimeDigest = if ($heartbeatRuntimeDigestEnabled) {
 } else {
     $null
 }
+$selectedSkillDescriptor = if ($effectiveSelectedSkill) {
+    Get-SkillDescriptor -RepoRoot ([string]$repoRoot) -Skill ([string]$effectiveSelectedSkill) -TargetRoot $resolvedTargetRoot -HostId $HostId
+} else {
+    $null
+}
+$selectedPromotionMetadata = if ($effectiveSelectedSkill) {
+    Get-VgoSkillPromotionMetadata `
+        -Prompt $Prompt `
+        -SkillMdPath $(if ($selectedSkillDescriptor) { [string]$selectedSkillDescriptor.skill_md_path } else { '' }) `
+        -Description $(if ($selectedSkillDescriptor) { [string]$selectedSkillDescriptor.description } else { '' }) `
+        -RequiredInputs @('bounded specialist subtask contract') `
+        -ExpectedOutputs @('bounded specialist result') `
+        -VerificationExpectation 'Preserve the selected skill native workflow.' `
+        -PromotionPolicy $skillPromotionPolicy
+} else {
+    $null
+}
 
 $result = [pscustomobject]@{
     prompt = $Prompt
@@ -1290,6 +1318,13 @@ $result = [pscustomobject]@{
             top1_top2_gap = $effectiveTop.candidate_top1_top2_gap
             candidate_signal = $effectiveTop.candidate_signal
             filtered_out_by_task = @($effectiveTop.candidate_filtered_out_by_task)
+            promotion_eligible = if ($selectedPromotionMetadata) { [bool]$selectedPromotionMetadata.promotion_eligible } else { $false }
+            destructive = if ($selectedPromotionMetadata) { [bool]$selectedPromotionMetadata.destructive } else { $false }
+            destructive_reason_codes = if ($selectedPromotionMetadata) { [object[]]@($selectedPromotionMetadata.destructive_reason_codes) } else { @() }
+            rollback_possible = if ($selectedPromotionMetadata) { [bool]$selectedPromotionMetadata.rollback_possible } else { $false }
+            snapshot_required = if ($selectedPromotionMetadata) { [bool]$selectedPromotionMetadata.snapshot_required } else { $false }
+            contract_complete = if ($selectedPromotionMetadata) { [bool]$selectedPromotionMetadata.contract_complete } else { $false }
+            recommended_promotion_action = if ($selectedPromotionMetadata) { [string]$selectedPromotionMetadata.recommended_promotion_action } else { 'surface_only' }
         }
     } else {
         $null
@@ -1301,6 +1336,8 @@ $confirmSkillOptions = Build-ConfirmSkillOptions `
     -Result $result `
     -ConfirmUiPolicy $confirmUiPolicyResolved `
     -RepoRoot ([string]$repoRoot) `
+    -PromptText $Prompt `
+    -SkillPromotionPolicy $skillPromotionPolicy `
     -TargetRoot $resolvedTargetRoot `
     -HostId $HostId
 if ($confirmSkillOptions) {

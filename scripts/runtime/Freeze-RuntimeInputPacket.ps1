@@ -219,6 +219,7 @@ function Get-VibeSpecialistBindingProfile {
 function New-VibeSpecialistRecommendation {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$Task,
         [Parameter(Mandatory)] [string]$SkillId,
         [Parameter(Mandatory)] [string]$Source,
         [Parameter(Mandatory)] [string]$TaskType,
@@ -227,6 +228,7 @@ function New-VibeSpecialistRecommendation {
         [AllowNull()] [object]$Confidence,
         [AllowNull()] [object]$Rank,
         [Parameter(Mandatory)] [object]$DispatchContract,
+        [AllowNull()] [object]$PromotionPolicy = $null,
         [AllowNull()] [object]$CustomMetadata = $null,
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = ''
@@ -234,6 +236,30 @@ function New-VibeSpecialistRecommendation {
 
     $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $SkillId -TargetRoot $TargetRoot -HostId $HostId
     $bindingProfile = Get-VibeSpecialistBindingProfile -SkillId $SkillId -Policy $DispatchContract.policy -DispatchContract $DispatchContract
+    $nativeSkillEntrypoint = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'skill_md_path' -and -not [string]::IsNullOrWhiteSpace([string]$CustomMetadata.skill_md_path)) {
+        [string]$CustomMetadata.skill_md_path
+    } elseif ($metadata.skill_path) {
+        [string]$metadata.skill_path
+    } else {
+        $null
+    }
+    $nativeSkillDescription = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'description' -and -not [string]::IsNullOrWhiteSpace([string]$CustomMetadata.description)) {
+        [string]$CustomMetadata.description
+    } elseif ($metadata.description) {
+        [string]$metadata.description
+    } else {
+        $null
+    }
+    $promotionMetadata = Get-VgoSkillPromotionMetadata `
+        -Prompt $Task `
+        -SkillMdPath $nativeSkillEntrypoint `
+        -Description $nativeSkillDescription `
+        -RequiredInputs @($DispatchContract.required_inputs) `
+        -ExpectedOutputs @($DispatchContract.expected_outputs) `
+        -VerificationExpectation ([string]$DispatchContract.verification_expectation) `
+        -NativeUsageRequired ([bool]$DispatchContract.native_usage_required) `
+        -MustPreserveWorkflow ([bool]$DispatchContract.must_preserve_workflow) `
+        -PromotionPolicy $PromotionPolicy
     return [pscustomobject]@{
         skill_id = $SkillId
         source = $Source
@@ -256,30 +282,28 @@ function New-VibeSpecialistRecommendation {
         parallelizable_in_root_xl = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'parallelizable_in_root_xl') { [bool]$CustomMetadata.parallelizable_in_root_xl } else { [bool]$bindingProfile.parallelizable_in_root_xl }
         write_scope = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'write_scope') { [string]$CustomMetadata.write_scope } else { [string]$bindingProfile.write_scope }
         review_mode = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'review_mode') { [string]$CustomMetadata.review_mode } else { [string]$bindingProfile.review_mode }
-        native_skill_entrypoint = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'skill_md_path' -and -not [string]::IsNullOrWhiteSpace([string]$CustomMetadata.skill_md_path)) {
-            [string]$CustomMetadata.skill_md_path
-        } elseif ($metadata.skill_path) {
-            [string]$metadata.skill_path
-        } else {
-            $null
-        }
-        native_skill_description = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'description' -and -not [string]::IsNullOrWhiteSpace([string]$CustomMetadata.description)) {
-            [string]$CustomMetadata.description
-        } elseif ($metadata.description) {
-            [string]$metadata.description
-        } else {
-            $null
-        }
+        native_skill_entrypoint = $nativeSkillEntrypoint
+        native_skill_description = $nativeSkillDescription
+        promotion_eligible = [bool]$promotionMetadata.promotion_eligible
+        destructive = [bool]$promotionMetadata.destructive
+        destructive_reason_codes = [object[]]@($promotionMetadata.destructive_reason_codes)
+        rollback_possible = [bool]$promotionMetadata.rollback_possible
+        snapshot_required = [bool]$promotionMetadata.snapshot_required
+        contract_complete = [bool]$promotionMetadata.contract_complete
+        contract_missing_fields = [object[]]@($promotionMetadata.contract_missing_fields)
+        recommended_promotion_action = [string]$promotionMetadata.recommended_promotion_action
     }
 }
 
 function Get-VibeSpecialistRecommendations {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$Task,
         [Parameter(Mandatory)] [object]$RouteResult,
         [Parameter(Mandatory)] [string]$RuntimeSelectedSkill,
         [Parameter(Mandatory)] [string]$TaskType,
         [Parameter(Mandatory)] [object]$Policy,
+        [AllowNull()] [object]$PromotionPolicy = $null,
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = ''
     )
@@ -340,6 +364,7 @@ function Get-VibeSpecialistRecommendations {
         $reason = "top ranked specialist candidate from pack '{0}' via {1}" -f ([string]$ranked.pack_id), ([string]$ranked.candidate_selection_reason)
         $recommendations += (New-VibeSpecialistRecommendation `
             -RepoRoot $RepoRoot `
+            -Task $Task `
             -SkillId $skillId `
             -Source 'route_ranked' `
             -TaskType $TaskType `
@@ -348,6 +373,7 @@ function Get-VibeSpecialistRecommendations {
             -Confidence ([double]$ranked.score) `
             -Rank (@($recommendations).Count + 1) `
             -DispatchContract $dispatchContractForRecommendation `
+            -PromotionPolicy $PromotionPolicy `
             -CustomMetadata $customMetadata `
             -TargetRoot $TargetRoot `
             -HostId $HostId)
@@ -383,6 +409,7 @@ function Get-VibeSpecialistRecommendations {
         $reason = "overlay recommendation from '{0}'" -f $overlayField
         $recommendations += (New-VibeSpecialistRecommendation `
             -RepoRoot $RepoRoot `
+            -Task $Task `
             -SkillId $skillId `
             -Source ("overlay:{0}" -f $overlayField) `
             -TaskType $TaskType `
@@ -391,6 +418,7 @@ function Get-VibeSpecialistRecommendations {
             -Confidence 0.0 `
             -Rank (@($recommendations).Count + 1) `
             -DispatchContract $dispatchContractForRecommendation `
+            -PromotionPolicy $PromotionPolicy `
             -CustomMetadata $customMetadata `
             -TargetRoot $TargetRoot `
             -HostId $HostId)
@@ -404,6 +432,7 @@ function Split-VibeSpecialistDispatch {
     param(
         [Parameter(Mandatory)] [string]$GovernanceScope,
         [Parameter(Mandatory)] [object[]]$Recommendations,
+        [string[]]$MatchedSkillIds = @(),
         [string[]]$ApprovedSpecialistSkillIds = @(),
         [AllowNull()] [object]$SuggestionContract = $null
     )
@@ -415,23 +444,58 @@ function Split-VibeSpecialistDispatch {
         }
     }
 
-    if ($GovernanceScope -eq 'root') {
-        return [pscustomobject]@{
-            approved_dispatch = @($Recommendations)
-            local_specialist_suggestions = @()
-            escalation_required = $false
-            escalation_status = 'not_required'
-        }
-    }
-
     $approvedDispatch = @()
     $localSuggestions = @()
+    $blockedDispatch = @()
+    $degradedDispatch = @()
+    $promotionOutcomes = @()
     foreach ($recommendation in @($Recommendations)) {
         $skillId = [string]$recommendation.skill_id
-        if ($approvedLookup.ContainsKey($skillId)) {
+        if ([bool]$recommendation.destructive -or [string]$recommendation.recommended_promotion_action -eq 'require_confirmation') {
+            $blockedDispatch += $recommendation
+            $promotionOutcomes += [pscustomobject]@{
+                skill_id = $skillId
+                promotion_state = 'blocked'
+                destructive = [bool]$recommendation.destructive
+                destructive_reason_codes = @($recommendation.destructive_reason_codes)
+                contract_complete = [bool]$recommendation.contract_complete
+                recommended_promotion_action = [string]$recommendation.recommended_promotion_action
+            }
+            continue
+        }
+        if (-not [bool]$recommendation.contract_complete -or [string]$recommendation.recommended_promotion_action -eq 'degrade_missing_contract') {
+            $degradedDispatch += $recommendation
+            $promotionOutcomes += [pscustomobject]@{
+                skill_id = $skillId
+                promotion_state = 'degraded'
+                destructive = [bool]$recommendation.destructive
+                destructive_reason_codes = @($recommendation.destructive_reason_codes)
+                contract_complete = [bool]$recommendation.contract_complete
+                recommended_promotion_action = [string]$recommendation.recommended_promotion_action
+            }
+            continue
+        }
+
+        if ($GovernanceScope -eq 'root' -or $approvedLookup.ContainsKey($skillId)) {
             $approvedDispatch += $recommendation
+            $promotionOutcomes += [pscustomobject]@{
+                skill_id = $skillId
+                promotion_state = 'approved_dispatch'
+                destructive = [bool]$recommendation.destructive
+                destructive_reason_codes = @($recommendation.destructive_reason_codes)
+                contract_complete = [bool]$recommendation.contract_complete
+                recommended_promotion_action = [string]$recommendation.recommended_promotion_action
+            }
         } else {
             $localSuggestions += $recommendation
+            $promotionOutcomes += [pscustomobject]@{
+                skill_id = $skillId
+                promotion_state = 'local_suggestion'
+                destructive = [bool]$recommendation.destructive
+                destructive_reason_codes = @($recommendation.destructive_reason_codes)
+                contract_complete = [bool]$recommendation.contract_complete
+                recommended_promotion_action = [string]$recommendation.recommended_promotion_action
+            }
         }
     }
 
@@ -441,9 +505,27 @@ function Split-VibeSpecialistDispatch {
         [bool]$SuggestionContract.escalation_required
     )
 
+    $matchedSkillIdsClean = [object[]]@($MatchedSkillIds | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique)
+    $surfacedSkillIds = [object[]]@($Recommendations | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $resolvedSkillIds = @(
+        @($approvedDispatch | ForEach-Object { [string]$_.skill_id }) +
+        @($blockedDispatch | ForEach-Object { [string]$_.skill_id }) +
+        @($degradedDispatch | ForEach-Object { [string]$_.skill_id }) +
+        @($localSuggestions | ForEach-Object { [string]$_.skill_id })
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+    $ghostMatchSkillIds = [object[]]@($matchedSkillIdsClean | Where-Object { $_ -notin $resolvedSkillIds })
+
     return [pscustomobject]@{
-        approved_dispatch = @($approvedDispatch)
-        local_specialist_suggestions = @($localSuggestions)
+        approved_dispatch = [object[]]@($approvedDispatch)
+        local_specialist_suggestions = [object[]]@($localSuggestions)
+        blocked = [object[]]@($blockedDispatch)
+        degraded = [object[]]@($degradedDispatch)
+        matched_skill_ids = [object[]]@($matchedSkillIdsClean)
+        surfaced_skill_ids = [object[]]@($surfacedSkillIds)
+        blocked_skill_ids = [object[]]@($blockedDispatch | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
+        degraded_skill_ids = [object[]]@($degradedDispatch | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
+        ghost_match_skill_ids = [object[]]@($ghostMatchSkillIds)
+        promotion_outcomes = [object[]]@($promotionOutcomes)
         escalation_required = [bool]$escalationRequired
         escalation_status = if ($escalationRequired) { 'root_approval_required' } else { 'not_required' }
     }
@@ -516,15 +598,22 @@ $runtimeSelectedSkill = [string]$policy.explicit_runtime_skill
 $routerSelectedSkill = if ($routeResult.selected) { [string]$routeResult.selected.skill } else { $null }
 $specialistRecommendations = @(Get-VibeSpecialistRecommendations `
     -RepoRoot $runtime.repo_root `
+    -Task $Task `
     -RouteResult $routeResult `
     -RuntimeSelectedSkill $runtimeSelectedSkill `
     -TaskType $taskType `
     -Policy $policy `
+    -PromotionPolicy $runtime.skill_promotion_policy `
     -TargetRoot $routerTargetRoot `
     -HostId $routerHostId)
+$matchedSkillIds = @()
+if (-not [string]::IsNullOrWhiteSpace($routerSelectedSkill) -and -not [string]::Equals($routerSelectedSkill, $runtimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)) {
+    $matchedSkillIds += [string]$routerSelectedSkill
+}
 $specialistDispatch = Split-VibeSpecialistDispatch `
     -GovernanceScope ([string]$hierarchyState.governance_scope) `
     -Recommendations @($specialistRecommendations) `
+    -MatchedSkillIds @($matchedSkillIds) `
     -ApprovedSpecialistSkillIds @($ApprovedSpecialistSkillIds) `
     -SuggestionContract $policy.child_specialist_suggestion_contract
 $hierarchyProjection = New-VibeHierarchyProjection -HierarchyState $hierarchyState -IncludeGovernanceScope

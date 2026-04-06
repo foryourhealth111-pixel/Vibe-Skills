@@ -558,6 +558,42 @@ class RuntimeContractSchemaTests(unittest.TestCase):
             self.assertEqual(runtime_host["requested_host_id"], specialist_accounting["requested_host_adapter_id"])
             self.assertEqual(runtime_host["effective_host_id"], specialist_accounting["effective_host_adapter_id"])
 
+    def test_skill_promotion_contract_fields_are_present_in_runtime_and_execution_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            payload = run_runtime(
+                Path(tempdir),
+                extra_env={"VCO_HOST_ID": "openclaw"},
+            )
+            summary = payload["summary"]
+            runtime_input = load_json(summary["artifacts"]["runtime_input_packet"])
+            execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
+
+            dispatch = runtime_input["specialist_dispatch"]
+            for field in (
+                "matched_skill_ids",
+                "surfaced_skill_ids",
+                "blocked_skill_ids",
+                "degraded_skill_ids",
+                "ghost_match_skill_ids",
+                "promotion_outcomes",
+            ):
+                with self.subTest(field=field):
+                    self.assertIn(field, dispatch)
+
+            specialist_accounting = execution_manifest["specialist_accounting"]
+            self.assertIn("promotion_funnel", specialist_accounting)
+            for field in (
+                "matched",
+                "surfaced",
+                "dispatched",
+                "executed",
+                "blocked_due_to_destructive",
+                "degraded_due_to_missing_contract",
+                "ghost_match",
+            ):
+                with self.subTest(field=field):
+                    self.assertIn(field, specialist_accounting["promotion_funnel"])
+
     def test_runtime_packet_and_execution_manifest_share_hierarchy_projection(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(Path(tempdir), extra_env={"VCO_HOST_ID": "openclaw"})

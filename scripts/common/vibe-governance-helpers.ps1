@@ -1577,3 +1577,196 @@ function Get-VgoGovernanceContext {
 
     return $context
 }
+
+function Get-VgoSkillPromotionPolicyDefaults {
+    return [pscustomobject]@{
+        promotion_enabled = $true
+        default_mode = 'recall_first'
+        allow_auto_dispatch_when_non_destructive = $true
+        require_contract_complete = $true
+        destructive_prompt_patterns = [pscustomobject]@{
+            destructive_delete = @(
+                '\bdelete\b',
+                '\bremove\b',
+                '\bdrop\b',
+                '\berase\b',
+                '删除',
+                '移除',
+                '清空'
+            )
+            destructive_overwrite = @(
+                '\boverwrite\b',
+                '\breplace\b',
+                '覆盖',
+                '替换'
+            )
+            destructive_reset = @(
+                '\breset\b',
+                '\buninstall\b',
+                '\bwipe\b',
+                '\bdestroy\b',
+                '\bpurge\b',
+                '重置',
+                '卸载',
+                '销毁'
+            )
+        }
+        degraded_fallback_rules = [pscustomobject]@{
+            missing_contract = 'explicit_degraded'
+        }
+    }
+}
+
+function Get-VgoSkillPromotionPolicy {
+    param(
+        [AllowNull()] [object]$Policy
+    )
+
+    $defaults = Get-VgoSkillPromotionPolicyDefaults
+    if ($null -eq $Policy) {
+        return $defaults
+    }
+
+    return [pscustomobject]@{
+        promotion_enabled = if ($Policy.PSObject.Properties.Name -contains 'promotion_enabled' -and $null -ne $Policy.promotion_enabled) { [bool]$Policy.promotion_enabled } else { [bool]$defaults.promotion_enabled }
+        default_mode = if ($Policy.PSObject.Properties.Name -contains 'default_mode' -and -not [string]::IsNullOrWhiteSpace([string]$Policy.default_mode)) { [string]$Policy.default_mode } else { [string]$defaults.default_mode }
+        allow_auto_dispatch_when_non_destructive = if ($Policy.PSObject.Properties.Name -contains 'allow_auto_dispatch_when_non_destructive' -and $null -ne $Policy.allow_auto_dispatch_when_non_destructive) { [bool]$Policy.allow_auto_dispatch_when_non_destructive } else { [bool]$defaults.allow_auto_dispatch_when_non_destructive }
+        require_contract_complete = if ($Policy.PSObject.Properties.Name -contains 'require_contract_complete' -and $null -ne $Policy.require_contract_complete) { [bool]$Policy.require_contract_complete } else { [bool]$defaults.require_contract_complete }
+        destructive_prompt_patterns = if ($Policy.PSObject.Properties.Name -contains 'destructive_prompt_patterns' -and $null -ne $Policy.destructive_prompt_patterns) { $Policy.destructive_prompt_patterns } else { $defaults.destructive_prompt_patterns }
+        degraded_fallback_rules = if ($Policy.PSObject.Properties.Name -contains 'degraded_fallback_rules' -and $null -ne $Policy.degraded_fallback_rules) { $Policy.degraded_fallback_rules } else { $defaults.degraded_fallback_rules }
+    }
+}
+
+function Get-VgoSkillContractCompleteness {
+    param(
+        [AllowEmptyString()] [string]$SkillMdPath = '',
+        [AllowEmptyString()] [string]$Description = '',
+        [AllowNull()] [object]$RequiredInputs = $null,
+        [AllowNull()] [object]$ExpectedOutputs = $null,
+        [AllowEmptyString()] [string]$VerificationExpectation = '',
+        [bool]$NativeUsageRequired = $true,
+        [bool]$MustPreserveWorkflow = $true
+    )
+
+    $missingFields = @()
+    if ([string]::IsNullOrWhiteSpace($SkillMdPath)) {
+        $missingFields += 'native_skill_entrypoint'
+    }
+    if ([string]::IsNullOrWhiteSpace($Description)) {
+        $missingFields += 'native_skill_description'
+    }
+    if (@($RequiredInputs).Count -eq 0) {
+        $missingFields += 'required_inputs'
+    }
+    if (@($ExpectedOutputs).Count -eq 0) {
+        $missingFields += 'expected_outputs'
+    }
+    if ([string]::IsNullOrWhiteSpace($VerificationExpectation)) {
+        $missingFields += 'verification_expectation'
+    }
+    if (-not $NativeUsageRequired) {
+        $missingFields += 'native_usage_required'
+    }
+    if (-not $MustPreserveWorkflow) {
+        $missingFields += 'must_preserve_workflow'
+    }
+
+    return [pscustomobject]@{
+        complete = [bool](@($missingFields).Count -eq 0)
+        missing_fields = @($missingFields)
+    }
+}
+
+function Get-VgoDestructiveIntentAssessment {
+    param(
+        [AllowEmptyString()] [string]$Prompt = '',
+        [AllowNull()] [object]$PromotionPolicy = $null
+    )
+
+    $policy = Get-VgoSkillPromotionPolicy -Policy $PromotionPolicy
+    $patterns = $policy.destructive_prompt_patterns
+    $reasonCodes = @()
+    $promptText = if ([string]::IsNullOrWhiteSpace($Prompt)) { '' } else { [string]$Prompt }
+
+    foreach ($property in @($patterns.PSObject.Properties)) {
+        $reasonCode = [string]$property.Name
+        foreach ($pattern in @($property.Value)) {
+            if ([string]::IsNullOrWhiteSpace([string]$pattern)) {
+                continue
+            }
+            try {
+                if ([System.Text.RegularExpressions.Regex]::IsMatch($promptText, [string]$pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+                    $reasonCodes += $reasonCode
+                    break
+                }
+            } catch {
+                continue
+            }
+        }
+    }
+
+    $reasonCodes = @($reasonCodes | Select-Object -Unique)
+    return [pscustomobject]@{
+        destructive = [bool](@($reasonCodes).Count -gt 0)
+        destructive_reason_codes = @($reasonCodes)
+        rollback_possible = [bool](@($reasonCodes).Count -gt 0)
+        snapshot_required = [bool](@($reasonCodes).Count -gt 0)
+    }
+}
+
+function Get-VgoSkillPromotionMetadata {
+    param(
+        [AllowEmptyString()] [string]$Prompt = '',
+        [AllowEmptyString()] [string]$SkillMdPath = '',
+        [AllowEmptyString()] [string]$Description = '',
+        [AllowNull()] [object]$RequiredInputs = $null,
+        [AllowNull()] [object]$ExpectedOutputs = $null,
+        [AllowEmptyString()] [string]$VerificationExpectation = '',
+        [bool]$NativeUsageRequired = $true,
+        [bool]$MustPreserveWorkflow = $true,
+        [AllowNull()] [object]$PromotionPolicy = $null
+    )
+
+    $policy = Get-VgoSkillPromotionPolicy -Policy $PromotionPolicy
+    $destructive = Get-VgoDestructiveIntentAssessment -Prompt $Prompt -PromotionPolicy $policy
+    $contract = Get-VgoSkillContractCompleteness `
+        -SkillMdPath $SkillMdPath `
+        -Description $Description `
+        -RequiredInputs $RequiredInputs `
+        -ExpectedOutputs $ExpectedOutputs `
+        -VerificationExpectation $VerificationExpectation `
+        -NativeUsageRequired $NativeUsageRequired `
+        -MustPreserveWorkflow $MustPreserveWorkflow
+
+    $recommendedAction = 'surface_only'
+    if (-not [bool]$policy.promotion_enabled) {
+        $recommendedAction = 'disabled'
+    } elseif ([bool]$destructive.destructive) {
+        $recommendedAction = 'require_confirmation'
+    } elseif ([bool]$policy.require_contract_complete -and -not [bool]$contract.complete) {
+        $recommendedAction = 'degrade_missing_contract'
+    } elseif ([bool]$policy.allow_auto_dispatch_when_non_destructive) {
+        $recommendedAction = 'auto_dispatch'
+    }
+
+    $promotionEligible = [bool](
+        [bool]$policy.promotion_enabled -and
+        -not [bool]$destructive.destructive -and
+        (
+            -not [bool]$policy.require_contract_complete -or
+            [bool]$contract.complete
+        )
+    )
+
+    return [pscustomobject]@{
+        promotion_enabled = [bool]$policy.promotion_enabled
+        promotion_eligible = $promotionEligible
+        destructive = [bool]$destructive.destructive
+        destructive_reason_codes = @($destructive.destructive_reason_codes)
+        rollback_possible = [bool]$destructive.rollback_possible
+        snapshot_required = [bool]$destructive.snapshot_required
+        contract_complete = [bool]$contract.complete
+        contract_missing_fields = @($contract.missing_fields)
+        recommended_promotion_action = [string]$recommendedAction
+    }
+}

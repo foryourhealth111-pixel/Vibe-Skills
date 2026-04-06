@@ -78,8 +78,16 @@ Required field groups:
 - `specialist_dispatch`
   - `approved_dispatch`
   - `local_specialist_suggestions`
+  - `blocked`
+  - `degraded`
   - `approved_skill_ids`
   - `local_suggestion_skill_ids`
+  - `matched_skill_ids`
+  - `surfaced_skill_ids`
+  - `blocked_skill_ids`
+  - `degraded_skill_ids`
+  - `ghost_match_skill_ids`
+  - `promotion_outcomes`
   - `escalation_required`
   - `escalation_status`
   - `approval_owner`
@@ -163,12 +171,15 @@ Required field groups:
 - `specialist_accounting`
   - `recommendation_count`
   - `dispatch_unit_count`
+  - `matched_skill_ids`
+  - `surfaced_skill_ids`
   - `specialist_skills`
   - `execution_mode`
   - `effective_execution_status`
   - `requested_host_adapter_id`
   - `effective_host_adapter_id`
   - `phase_binding_counts`
+  - `promotion_funnel`
 
 Optional compatibility fields:
 - `execution_memory_context_path`
@@ -176,6 +187,17 @@ Optional compatibility fields:
 - `execution_topology.dispatch_resolution`
 - `execution_topology.two_stage_review`
 - detailed `specialist_accounting` outcome arrays
+
+Promotion funnel fields:
+- `matched`
+- `surfaced`
+- `dispatched`
+- `executed`
+- `blocked_due_to_destructive`
+- `degraded_due_to_missing_contract`
+- `ghost_match`
+- `executed_per_matched`
+- `executed_rate`
 
 Allowed deprecations:
 - None active.

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-06",
+  "promotion_enabled": true,
+  "default_mode": "recall_first",
+  "allow_auto_dispatch_when_non_destructive": true,
+  "require_contract_complete": true,
+  "destructive_prompt_patterns": {
+    "destructive_delete": [
+      "\\bdelete\\b",
+      "\\bremove\\b",
+      "\\bdrop\\b",
+      "\\berase\\b",
+      "删除",
+      "移除",
+      "清空"
+    ],
+    "destructive_overwrite": [
+      "\\boverwrite\\b",
+      "\\breplace\\b",
+      "覆盖",
+      "替换"
+    ],
+    "destructive_reset": [
+      "\\breset\\b",
+      "\\buninstall\\b",
+      "\\bwipe\\b",
+      "\\bdestroy\\b",
+      "\\bpurge\\b",
+      "重置",
+      "卸载",
+      "销毁"
+    ]
+  },
+  "degraded_fallback_rules": {
+    "missing_contract": "explicit_degraded"
+  }
+}
