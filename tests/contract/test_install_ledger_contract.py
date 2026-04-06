@@ -1,8 +1,6 @@
 from pathlib import Path
 import sys
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'packages' / 'contracts' / 'src'
 if str(SRC) not in sys.path:
@@ -43,16 +41,14 @@ def test_install_ledger_v2_fields_exist_when_schema_is_promoted() -> None:
         'legacy_cleanup_candidates',
     }
     fields = set(getattr(InstallLedger, '__dataclass_fields__', {}) or {})
-    if not required.issubset(fields):
-        pytest.skip('InstallLedger v2 fields are not available yet in current branch state')
     assert required.issubset(fields)
 
 
 def test_install_ledger_v2_root_fields_reject_path_traversal_when_available() -> None:
     required = ['runtime_roots', 'compatibility_roots', 'sidecar_roots', 'legacy_cleanup_candidates']
     fields = set(getattr(InstallLedger, '__dataclass_fields__', {}) or {})
-    if any(name not in fields for name in required):
-        pytest.skip('InstallLedger v2 root field validation not implemented yet')
+    missing = [name for name in required if name not in fields]
+    assert not missing, f'InstallLedger missing expected v2 root fields: {missing}'
 
     for key in required:
         kwargs = {
@@ -64,5 +60,5 @@ def test_install_ledger_v2_root_fields_reject_path_traversal_when_available() ->
         except ValueError:
             continue
         except TypeError:
-            pytest.skip(f'InstallLedger field `{key}` uses a non-list contract in current implementation')
-        pytest.skip(f'InstallLedger field `{key}` exists but traversal validation is not enforced yet')
+            pytest.fail(f'InstallLedger field `{key}` should accept list-style root ownership values')
+        pytest.fail(f'InstallLedger field `{key}` accepted path traversal input')

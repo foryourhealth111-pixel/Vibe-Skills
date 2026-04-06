@@ -1,8 +1,6 @@
 from pathlib import Path
 import sys
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS_SRC = ROOT / 'packages' / 'contracts' / 'src'
 INSTALLER_SRC = ROOT / 'packages' / 'installer-core' / 'src'
@@ -62,8 +60,11 @@ def test_build_install_ledger_tracks_payload_summary(tmp_path) -> None:
     assert ledger['payload_summary']['installed_skill_names'] == ['brainstorming', 'scikit-learn', 'vibe']
     assert ledger['payload_summary']['public_skill_names'] == ['brainstorming', 'vibe']
     assert ledger['runtime_roots'] == ['skills/vibe', 'skills/vibe/bundled/skills']
+    assert ledger['compatibility_roots'] == ['skills/brainstorming']
+    assert ledger['sidecar_roots'] == ['.vibeskills']
     assert ledger['config_rollbacks'][0]['path'] == 'settings.json'
     assert ledger['legacy_cleanup_candidates'] == ['skills/legacy-skill']
+    assert isinstance(ledger['payload_summary']['internal_skill_count'], int)
     assert ledger['payload_summary']['installed_file_count'] >= 3
 
 
@@ -95,8 +96,8 @@ def test_build_install_ledger_v2_ownership_keys_when_available(tmp_path) -> None
         'config_rollbacks',
         'legacy_cleanup_candidates',
     }
-    if not required.issubset(set(ledger)):
-        pytest.skip('install ledger v2 payload keys are not emitted yet')
+    missing = required.difference(set(ledger))
+    assert not missing, f'install ledger missing expected v2 payload keys: {sorted(missing)}'
 
     for key in ('runtime_roots', 'compatibility_roots', 'sidecar_roots', 'legacy_cleanup_candidates'):
         assert isinstance(ledger[key], list)

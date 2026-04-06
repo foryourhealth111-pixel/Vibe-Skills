@@ -556,16 +556,16 @@ _Skills 越积越多——但你不需要逐个管理它们。_
 
 ### 已安装宿主验证矩阵
 
-当前安装拓扑已经基于“安装后的真实运行时”做过探针验证，而不只是验证仓库内脚本：
+当前安装拓扑已经基于“宿主专属安装面 / closure 先落地之后的已安装运行时”做过探针验证，而不只是验证仓库内脚本：
 
 | 宿主 | 保留的公开入口 | 已覆盖的 installed-runtime 探针 |
 |:---|:---|:---|
-| `codex` | 通过 `skills/vibe` 提供 `$vibe` | planning、debug、governed execution、memory continuity |
-| `claude-code` | 通过 managed closure 提供 `/vibe` | planning、debug、governed execution、memory continuity |
-| `openclaw` | preview/runtime-core adapter + `skills/vibe` | planning、debug、governed execution、memory continuity |
-| `opencode` | preview-guidance adapter + `skills/vibe` | planning、debug、governed execution、memory continuity |
+| `codex` | 保留已安装的 `skills/vibe` 公开入口 | planning、debug、governed execution、memory continuity |
+| `claude-code` | managed closure + 已安装 `skills/vibe` 负载 | planning、debug、governed execution、memory continuity |
+| `openclaw` | runtime-core adapter + 已安装 `skills/vibe` 负载 | planning、debug、governed execution、memory continuity |
+| `opencode` | preview-guidance adapter + 已安装 `skills/vibe` 负载 | planning、debug、governed execution、memory continuity |
 
-这些探针验证的不是“仓库里理论上能跑”，而是安装后的 `vibe` 仍然持有路由 authority，仍会产出治理阶段文件、cleanup receipt，并在安装后保持 memory read/write continuity。少数偏 planning 的场景中，建议性 gate 可能出现有界的 `completed_with_failures`，但只要落在显式 allowlist 的 advisory checks 内，就不视为运行时 authority 或交付链路失效。
+这些探针验证的不是“仓库里理论上能跑”，而是安装后的 `vibe` 仍然持有路由 authority，仍会产出治理阶段文件、cleanup receipt，并在安装后保持 memory read/write continuity。这里的结论不等同于“每一种宿主原生公开调用语法都在探针中被直接执行”；探针真正覆盖的是宿主专属安装面已经物化之后的已安装运行时。少数偏 planning 的场景中，建议性 gate 可能出现有界的 `completed_with_failures`，但只要落在显式 allowlist 的 advisory checks 内，就不视为运行时 authority 或交付链路失效。
 
 ### 自定义：接入你自己的 Skill
 

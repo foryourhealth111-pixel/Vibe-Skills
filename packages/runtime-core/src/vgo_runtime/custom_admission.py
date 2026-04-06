@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .router_contract_support import RepoContext, resolve_skill_md_path
+
 
 STANDARD_TASK_TYPES = ("planning", "coding", "review", "debug", "research")
 PREFERRED_STAGE_TO_DISPATCH_PHASE = {
@@ -73,21 +75,12 @@ def _read_skill_description(skill_md_path: Path | None) -> str | None:
 
 
 def _resolve_dependency_path(repo_root: Path, target_root: Path, skill_id: str) -> Path | None:
-    normalized_skill_id = _normalize_text(skill_id)
-    candidates = [
-        target_root / "skills" / skill_id / "SKILL.md",
-        target_root / "skills" / "vibe" / "bundled" / "skills" / skill_id / "SKILL.runtime-mirror.md",
-        target_root / "skills" / "vibe" / "bundled" / "skills" / skill_id / "SKILL.md",
-        target_root / "skills" / "vibe" / "catalog" / "skills" / skill_id / "SKILL.runtime-mirror.md",
-        target_root / "skills" / "vibe" / "catalog" / "skills" / skill_id / "SKILL.md",
-        target_root / "skills" / "custom" / skill_id / "SKILL.md",
-        repo_root / "SKILL.md" if normalized_skill_id == "vibe" else None,
-        repo_root / "bundled" / "skills" / skill_id / "SKILL.md",
-    ]
-    for candidate in candidates:
-        if candidate is not None and candidate.exists():
-            return candidate.resolve()
-    return None
+    repo = RepoContext(
+        repo_root=repo_root,
+        config_root=repo_root / "config",
+        bundled_skills_root=repo_root / "bundled" / "skills",
+    )
+    return resolve_skill_md_path(repo, skill_id, str(target_root))
 
 
 def _derive_task_allow(entry: dict[str, Any]) -> list[str]:

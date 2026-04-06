@@ -371,6 +371,8 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                     env=runtime_env,
                 )
                 first_report = load_json(first["summary"]["artifacts"]["memory_activation_report"])
+                self.assertGreaterEqual(len(first_report["stages"]), 5, host_id)
+                self.assertTrue(first_report["stages"][4]["write_actions"], host_id)
                 self.assertIn(
                     first_report["stages"][4]["write_actions"][0]["status"],
                     {"fallback_local_artifact", "backend_write"},
@@ -386,6 +388,7 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                 )
                 second_summary = second["summary"]
                 second_report = load_json(second_summary["artifacts"]["memory_activation_report"])
+                self.assertGreaterEqual(len(second_report["stages"]), 2, host_id)
                 skeleton_reads = second_report["stages"][0]["read_actions"]
                 deep_interview_reads = second_report["stages"][1]["read_actions"]
                 later_reads = [

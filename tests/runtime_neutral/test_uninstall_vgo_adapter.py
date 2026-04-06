@@ -405,6 +405,58 @@ class UnifiedUninstallTests(unittest.TestCase):
         self.assertNotIn(".vibeskills", payload["deleted_paths"])
         self.assertIn(".vibeskills/host-settings.json", payload["deleted_paths"])
 
+    def test_v2_sidecar_roots_preserve_workspace_sidecar_but_remove_host_owned_marker(self) -> None:
+        project_path = self.target_root / ".vibeskills" / "project.json"
+        host_settings_path = self.target_root / ".vibeskills" / "host-settings.json"
+        managed_host_only_path = self.target_root / ".vibeskills" / "managed-host-only.txt"
+        requirement_path = self.target_root / ".vibeskills" / "docs" / "requirements" / "req.md"
+        project_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json(
+            project_path,
+            {
+                "schema_version": 1,
+                "workspace_root": str(self.target_root.resolve()),
+                "workspace_sidecar_root": str((self.target_root / ".vibeskills").resolve()),
+            },
+        )
+        write_json(host_settings_path, {"schema_version": 1})
+        managed_host_only_path.write_text("managed host marker\n", encoding="utf-8")
+        requirement_path.parent.mkdir(parents=True, exist_ok=True)
+        requirement_path.write_text("# runtime artifact\n", encoding="utf-8")
+        write_json(
+            self.target_root / ".vibeskills" / "install-ledger.json",
+            {
+                "schema_version": 2,
+                "host_id": "cursor",
+                "target_root": str(self.target_root.resolve()),
+                "install_mode": "preview-guidance",
+                "profile": "full",
+                "runtime_roots": [],
+                "compatibility_roots": [],
+                "sidecar_roots": [".vibeskills"],
+                "config_rollbacks": [],
+                "legacy_cleanup_candidates": [],
+                "created_paths": [".vibeskills/host-settings.json", ".vibeskills/managed-host-only.txt"],
+                "owned_tree_roots": [],
+                "managed_json_paths": [],
+                "generated_from_template_if_absent": [],
+                "specialist_wrapper_paths": [],
+                "runtime_root": "skills/vibe",
+                "canonical_vibe_root": "skills/vibe",
+            },
+        )
+
+        _, payload = self.run_python_uninstall(host="cursor")
+
+        self.assertTrue(project_path.exists())
+        self.assertTrue(requirement_path.exists())
+        self.assertFalse(host_settings_path.exists())
+        self.assertFalse(managed_host_only_path.exists())
+        self.assertTrue((self.target_root / ".vibeskills").exists())
+        self.assertNotIn(".vibeskills", payload["deleted_paths"])
+        self.assertIn(".vibeskills/host-settings.json", payload["deleted_paths"])
+        self.assertIn(".vibeskills/managed-host-only.txt", payload["deleted_paths"])
+
     def test_workspace_project_sidecar_preserves_vibeskills_when_legacy_ledger_claims_root_dir(self) -> None:
         project_path = self.target_root / ".vibeskills" / "project.json"
         requirement_path = self.target_root / ".vibeskills" / "docs" / "requirements" / "req.md"

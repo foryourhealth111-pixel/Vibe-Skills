@@ -78,7 +78,7 @@ Shift Vibe-Skills from "broad top-level official skill projection" to "small pub
 - Uninstall preview and actual uninstall must agree on managed ownership outcomes.
 - Legacy fallback usage must be observable during migration.
 - Every phase must have at least one automated verification gate before the next phase begins.
-- `codex`, `claude-code`, `openclaw`, and `opencode` must each pass at least one host-realistic `$vibe` task probe before the topology cutover is considered complete.
+- `codex`, `claude-code`, `openclaw`, and `opencode` must each pass at least one host-realistic installed-runtime task probe before the topology cutover is considered complete.
 - Routing, governance, and memory behavior must be validated both by contract tests and by task-style runtime probes.
 
 ## Multi-Host Validation Matrix
@@ -87,10 +87,10 @@ The following hosts are mandatory for acceptance:
 
 | Host | Required Surface | Required Behaviors | Existing Baseline Assets | New Deep-Probe Requirement |
 |:---|:---|:---|:---|:---|
-| `codex` | governed lane, installed runtime, duplicate-surface hygiene | `$vibe` entry, routing, governed execution, cleanup, uninstall | `test_installed_runtime_scripts.py`, install/check path docs | add task probes for planning/debug/governed execution under narrow public surface |
-| `claude-code` | preview-guidance install/use path with managed settings preservation | `$vibe` discoverability, settings preservation, host closure correctness, runtime smoke | `test_claude_preview_scaffold.py`, uninstall coverage | add task probes that execute routed governed tasks after install |
-| `openclaw` | runtime-core preview lane | `vibe` visibility, runtime-core install/check, host-neutral specialist execution, uninstall | `test_openclaw_runtime_core.py`, `test_multi_host_specialist_execution.py` | add multi-task `$vibe` probes after internal-corpus cutover |
-| `opencode` | preview-guidance install/use path with command/agent scaffolding | `vibe` skill visibility, agent visibility, config safety, check flow | `test_opencode_managed_preview.py`, `opencode_preview_smoke_support.py` | add routed task probes and post-install smoke under narrow public surface |
+| `codex` | governed lane, installed runtime, duplicate-surface hygiene | installed `skills/vibe` entry, routing, governed execution, cleanup, uninstall | `test_installed_runtime_scripts.py`, install/check path docs | add task probes for planning/debug/governed execution under narrow public surface |
+| `claude-code` | preview-guidance install/use path with managed settings preservation | managed closure materialization, settings preservation, host closure correctness, installed runtime smoke | `test_claude_preview_scaffold.py`, uninstall coverage | add task probes that execute routed governed tasks after install |
+| `openclaw` | runtime-core preview lane | `vibe` visibility, runtime-core install/check, host-neutral specialist execution, uninstall | `test_openclaw_runtime_core.py`, `test_multi_host_specialist_execution.py` | add multi-task installed-runtime probes after internal-corpus cutover |
+| `opencode` | preview-guidance install/use path with command/agent scaffolding | `vibe` skill visibility, agent visibility, config safety, check flow | `test_opencode_managed_preview.py`, `opencode_preview_smoke_support.py` | add routed installed-runtime task probes and post-install smoke under narrow public surface |
 
 ## Task Probe Matrix
 

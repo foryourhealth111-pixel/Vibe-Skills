@@ -541,16 +541,16 @@ The install surface is now registry-driven. `HostId` / `--host` selects host sem
 
 ### Installed-host validation matrix
 
-The current install topology has been probe-validated against the installed runtime, not only against repo-local scripts:
+The current install topology has been probe-validated against the installed runtime after each host-specific install / closure surface is materialized, not only against repo-local scripts:
 
 | Host | Installed entry kept public | Installed-runtime probes covered |
 |:---|:---|:---|
-| `codex` | `$vibe` via `skills/vibe` | planning, debug, governed execution, memory continuity |
-| `claude-code` | `/vibe` via managed closure | planning, debug, governed execution, memory continuity |
-| `openclaw` | preview/runtime-core adapter + `skills/vibe` | planning, debug, governed execution, memory continuity |
-| `opencode` | preview-guidance adapter + `skills/vibe` | planning, debug, governed execution, memory continuity |
+| `codex` | `skills/vibe` public entry kept installed | planning, debug, governed execution, memory continuity |
+| `claude-code` | managed closure + installed `skills/vibe` payload | planning, debug, governed execution, memory continuity |
+| `openclaw` | runtime-core adapter + installed `skills/vibe` payload | planning, debug, governed execution, memory continuity |
+| `opencode` | preview-guidance adapter + installed `skills/vibe` payload | planning, debug, governed execution, memory continuity |
 
-Those probes validate that installed `vibe` still owns routing authority, preserves governance stage outputs, records cleanup receipts, and keeps memory read/write continuity after installation. In a few planning-heavy scenarios, advisory gates can surface a bounded `completed_with_failures` status while runtime authority and governed delivery remain intact; that status is treated as expected only for explicitly allowlisted advisory checks.
+Those probes validate that installed `vibe` still owns routing authority, preserves governance stage outputs, records cleanup receipts, and keeps memory read/write continuity after installation. They do not claim that every host-native public invocation syntax was exercised directly in the probe itself; the probe target is the installed runtime after the host-specific surface has been materialized. In a few planning-heavy scenarios, advisory gates can surface a bounded `completed_with_failures` status while runtime authority and governed delivery remain intact; that status is treated as expected only for explicitly allowlisted advisory checks.
 
 ### Customize: Add your own skills
 

@@ -42,7 +42,9 @@ def normalize_relpath(value: str | Path | None) -> str | None:
     text = str(value).replace("\\", "/").strip()
     if not text:
         return None
-    normalized = Path(text).as_posix().lstrip("./")
+    normalized = Path(text).as_posix()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
     if normalized == ".":
         return None
     return normalized
@@ -359,6 +361,13 @@ def workspace_sidecar_artifacts_present(target_root: Path) -> bool:
     return False
 
 
+def is_workspace_sidecar_artifact(relpath: str) -> bool:
+    normalized = normalize_relpath(relpath)
+    if not normalized:
+        return False
+    return normalized == ".vibeskills/project.json" or normalized.startswith(".vibeskills/docs/") or normalized.startswith(".vibeskills/outputs/")
+
+
 def plan_uninstall(repo_root: Path, target_root: Path, adapter: dict) -> dict[str, object]:
     host_id = adapter["id"]
     managed_files: set[str] = set()
@@ -420,6 +429,24 @@ def plan_uninstall(repo_root: Path, target_root: Path, adapter: dict) -> dict[st
 
     if preserve_workspace_sidecar:
         deleted_dirs.discard(".vibeskills")
+        managed_files = {
+            rel for rel in managed_files
+            if not rel.startswith(".vibeskills/") or not is_workspace_sidecar_artifact(rel)
+        }
+        preserved_sidecar_entries: set[str] = {
+            rel
+            for rel in host_inventory(repo_root, host_id)
+            if rel.startswith(".vibeskills/") and not is_workspace_sidecar_artifact(rel)
+        }
+        if ledger is not None:
+            preserved_sidecar_entries.add(".vibeskills/install-ledger.json")
+        if closure is not None:
+            preserved_sidecar_entries.add(".vibeskills/host-closure.json")
+        managed_files.update(
+            rel
+            for rel in preserved_sidecar_entries
+            if (target_root / rel).exists()
+        )
     elif ownership_source and (target_root / ".vibeskills").exists():
         deleted_dirs.add(".vibeskills")
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
-
-import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -30,21 +29,39 @@ def _write_skill(path: Path, name: str, description: str) -> Path:
     return path
 
 
-def _resolver_supports_descriptor_split() -> bool:
-    source = MODULE_PATH.read_text(encoding='utf-8')
-    return 'internal_skill_corpus' in source and 'compatibility_skill_projections' in source
+def _write_runtime_core_packaging(repo_root: Path) -> None:
+    config_root = repo_root / 'config'
+    config_root.mkdir(parents=True, exist_ok=True)
+    (config_root / 'runtime-core-packaging.json').write_text(
+        json.dumps(
+            {
+                'public_skill_surface': {
+                    'canonical_entrypoint_relpath': 'skills/vibe',
+                    'root_relpath': 'skills',
+                },
+                'internal_skill_corpus': {
+                    'target_relpath': 'skills/vibe/bundled/skills',
+                    'entrypoint_filename': 'SKILL.runtime-mirror.md',
+                },
+                'compatibility_skill_projections': {
+                    'resolver_roots': ['skills'],
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        ) + '\n',
+        encoding='utf-8',
+    )
 
 
 def test_resolver_prefers_internal_corpus_descriptor_when_split_semantics_available(tmp_path: Path) -> None:
-    if not _resolver_supports_descriptor_split():
-        pytest.skip('descriptor split resolver is not implemented in current branch state')
-
     module = _load_module()
     repo_root = tmp_path / 'repo'
     target_root = tmp_path / 'target'
+    _write_runtime_core_packaging(repo_root)
 
     repo_internal = _write_skill(
-        repo_root / 'skills' / 'vibe' / 'catalog' / 'skills' / 'skill-alpha' / 'SKILL.md',
+        repo_root / 'skills' / 'vibe' / 'bundled' / 'skills' / 'skill-alpha' / 'SKILL.runtime-mirror.md',
         'skill-alpha',
         'repo internal corpus',
     )
@@ -54,7 +71,7 @@ def test_resolver_prefers_internal_corpus_descriptor_when_split_semantics_availa
         'legacy bundled fallback',
     )
     _write_skill(
-        target_root / 'skills' / 'vibe' / 'catalog' / 'skills' / 'skill-alpha' / 'SKILL.md',
+        target_root / 'skills' / 'vibe' / 'bundled' / 'skills' / 'skill-alpha' / 'SKILL.runtime-mirror.md',
         'skill-alpha',
         'installed internal corpus',
     )
@@ -75,24 +92,48 @@ def test_resolver_prefers_internal_corpus_descriptor_when_split_semantics_availa
         bundled_skills_root=repo_root / 'bundled' / 'skills',
     )
     resolved = module.resolve_skill_md_path(repo, 'skill-alpha', str(target_root))
-    assert resolved is not None
-    assert resolved in {
-        repo_internal,
-        target_root / 'skills' / 'vibe' / 'catalog' / 'skills' / 'skill-alpha' / 'SKILL.md',
-    }
+    assert resolved == repo_internal
 
     descriptor = module.read_skill_descriptor(repo, 'skill-alpha', str(target_root))
     assert descriptor['skill_md_path'] == str(resolved)
-    assert descriptor['description'] in {'repo internal corpus', 'installed internal corpus'}
+    assert descriptor['description'] == 'repo internal corpus'
 
 
-def test_resolver_keeps_legacy_installed_skill_fallback_when_split_semantics_available(tmp_path: Path) -> None:
-    if not _resolver_supports_descriptor_split():
-        pytest.skip('descriptor split resolver is not implemented in current branch state')
-
+def test_resolver_uses_installed_internal_corpus_when_repo_internal_descriptor_is_absent(tmp_path: Path) -> None:
     module = _load_module()
     repo_root = tmp_path / 'repo'
     target_root = tmp_path / 'target'
+    _write_runtime_core_packaging(repo_root)
+
+    installed_internal = _write_skill(
+        target_root / 'skills' / 'vibe' / 'bundled' / 'skills' / 'skill-beta' / 'SKILL.runtime-mirror.md',
+        'skill-beta',
+        'installed internal corpus',
+    )
+    _write_skill(
+        target_root / 'skills' / 'skill-beta' / 'SKILL.md',
+        'skill-beta',
+        'compat projection',
+    )
+    repo = module.RepoContext(
+        repo_root=repo_root,
+        config_root=repo_root / 'config',
+        bundled_skills_root=repo_root / 'bundled' / 'skills',
+    )
+
+    resolved = module.resolve_skill_md_path(repo, 'skill-beta', str(target_root))
+    assert resolved == installed_internal
+
+    descriptor = module.read_skill_descriptor(repo, 'skill-beta', str(target_root))
+    assert descriptor['skill_md_path'] == str(installed_internal)
+    assert descriptor['description'] == 'installed internal corpus'
+
+
+def test_resolver_keeps_legacy_installed_skill_fallback_when_split_semantics_available(tmp_path: Path) -> None:
+    module = _load_module()
+    repo_root = tmp_path / 'repo'
+    target_root = tmp_path / 'target'
+    _write_runtime_core_packaging(repo_root)
 
     installed_public = _write_skill(
         target_root / 'skills' / 'legacy-skill' / 'SKILL.md',
