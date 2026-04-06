@@ -335,6 +335,39 @@ class UnifiedUninstallTests(unittest.TestCase):
         self.assertNotIn(".vibeskills", payload["deleted_paths"])
         self.assertIn(".vibeskills/host-settings.json", payload["deleted_paths"])
 
+    def test_workspace_project_sidecar_preserves_vibeskills_when_legacy_ledger_claims_root_dir(self) -> None:
+        project_path = self.target_root / ".vibeskills" / "project.json"
+        requirement_path = self.target_root / ".vibeskills" / "docs" / "requirements" / "req.md"
+        ledger_path = self.target_root / ".vibeskills" / "install-ledger.json"
+        project_path.parent.mkdir(parents=True, exist_ok=True)
+        write_json(
+            project_path,
+            {
+                "schema_version": 1,
+                "workspace_root": str(self.target_root.resolve()),
+                "workspace_sidecar_root": str((self.target_root / ".vibeskills").resolve()),
+            },
+        )
+        requirement_path.parent.mkdir(parents=True, exist_ok=True)
+        requirement_path.write_text("# runtime artifact\n", encoding="utf-8")
+        write_json(
+            ledger_path,
+            {
+                "created_paths": [str((self.target_root / ".vibeskills").resolve())],
+                "specialist_wrapper_paths": [],
+                "managed_json_paths": [],
+                "merged_files": [],
+                "generated_from_template_if_absent": [],
+            },
+        )
+
+        _, payload = self.run_python_uninstall(host="cursor")
+
+        self.assertTrue(project_path.exists())
+        self.assertTrue(requirement_path.exists())
+        self.assertTrue((self.target_root / ".vibeskills").exists())
+        self.assertNotIn(".vibeskills", payload["deleted_paths"])
+
     def test_workspace_runtime_artifacts_without_project_descriptor_are_not_deleted_by_host_uninstall(self) -> None:
         host_settings_path = self.target_root / ".vibeskills" / "host-settings.json"
         requirement_path = self.target_root / ".vibeskills" / "docs" / "requirements" / "req.md"

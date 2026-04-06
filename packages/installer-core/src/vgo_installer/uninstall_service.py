@@ -359,7 +359,9 @@ def plan_uninstall(repo_root: Path, target_root: Path, adapter: dict) -> dict[st
 
     preserve_workspace_sidecar = workspace_sidecar_artifacts_present(target_root)
 
-    if ownership_source and (target_root / ".vibeskills").exists() and not preserve_workspace_sidecar:
+    if preserve_workspace_sidecar:
+        deleted_dirs.discard(".vibeskills")
+    elif ownership_source and (target_root / ".vibeskills").exists():
         deleted_dirs.add(".vibeskills")
 
     if not ownership_source:
