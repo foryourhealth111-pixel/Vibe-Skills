@@ -14,10 +14,14 @@ This document summarizes the install commands, default target roots, and current
 All six public hosts now follow one shared, non-blocking MCP contract:
 
 - install or one-shot should attempt `github`, `context7`, `serena`, `scrapling`, and `claude-flow`
+- the completion target for those MCPs must be the host's real **native MCP surface**
+- `$vibe` or `/vibe` is governed runtime entry only and is not MCP completion
+- repo templates, manifests, `*.json.example`, `.vibeskills/*` sidecars, and PATH-visible commands do not by themselves count as host-visible ready
 - prefer host-native registration for `github`, `context7`, and `serena`
 - prefer scripted CLI / stdio installation for `scrapling` and `claude-flow`
+- if native auto-registration fails, or the current host does not expose a stable officially supportable auto-registration interface, the report must say that the MCP is still outside the host's native MCP surface rather than claiming success through `$vibe`, templates, or sidecars
 - failure does not block the base install; failures are summarized only in the final report
-- the final report separates `installed locally`, per-MCP readiness, `manual follow-up`, and `online-ready`
+- the final report separates `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, `manual follow-up`, and `online-ready`
 
 Public Linux / macOS prerequisites:
 

@@ -22,7 +22,26 @@ SUPPORTING_DOCS = [
 ]
 
 
+def _has_vibe_mcp_disclaimer(text: str, lowered: str) -> bool:
+    return (
+        ("$vibe" not in text and "/vibe" not in text)
+        or "not mcp completion" in lowered
+        or "not proof of mcp" in lowered
+        or "不等于mcp" in text
+        or "不等于 MCP" in text
+    )
+
+
 class InstallPromptMcpContractTests(unittest.TestCase):
+    def test_supporting_doc_vibe_guard_handles_slash_vibe_and_not_proof_variant(self) -> None:
+        self.assertFalse(_has_vibe_mcp_disclaimer("/vibe is available", "/vibe is available"))
+        self.assertTrue(
+            _has_vibe_mcp_disclaimer(
+                "/vibe is available and not proof of mcp",
+                "/vibe is available and not proof of mcp",
+            )
+        )
+
     def test_all_prompt_docs_require_the_same_five_mcp_surfaces(self) -> None:
         for path in PROMPT_FILES:
             text = path.read_text(encoding="utf-8-sig")
@@ -37,6 +56,18 @@ class InstallPromptMcpContractTests(unittest.TestCase):
                 "installed locally" in lowered or "本地安装完成" in text,
                 path.name,
             )
+            self.assertTrue(
+                "native mcp surface" in lowered or "宿主原生mcp" in lowered or "宿主原生 mcp" in lowered,
+                path.name,
+            )
+            self.assertTrue("$vibe" in text or "/vibe" in text, path.name)
+            self.assertTrue(
+                "not mcp completion" in lowered
+                or "not proof of mcp" in lowered
+                or "不等于mcp" in text
+                or "不等于 MCP" in text,
+                path.name,
+            )
             self.assertIn("online-ready", lowered, path.name)
 
     def test_supporting_install_docs_describe_non_blocking_mcp_attempts(self) -> None:
@@ -46,6 +77,14 @@ class InstallPromptMcpContractTests(unittest.TestCase):
             self.assertIn("scrapling", text, path.name)
             self.assertIn("claude-flow", text, path.name)
             self.assertTrue("manual follow-up" in lowered or "手动处理" in text, path.name)
+            self.assertTrue(
+                "native mcp surface" in lowered or "宿主原生mcp" in lowered or "宿主原生 mcp" in lowered,
+                path.name,
+            )
+            self.assertTrue(
+                _has_vibe_mcp_disclaimer(text, lowered),
+                path.name,
+            )
             self.assertIn("online-ready", lowered, path.name)
 
 

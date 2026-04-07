@@ -601,6 +601,8 @@ _You know what this is now. All it takes from here is one prompt:_
 
 > 💡 **Tip**: To keep every message within the VibeSkills governed workflow, append `$vibe` or `/vibe` to each of your messages. A message without the invocation syntax is treated as a regular request outside the governed runtime.
 
+> MCP note: `$vibe` or `/vibe` is the governed runtime entry only. It is **not MCP completion**, and neither templates, manifests, sidecars, nor PATH-visible commands should be treated as proof that MCP is installed into a host's native MCP surface.
+
 **Currently supported public host surface**: `codex` (strongest governed lane) · `claude-code` (supported install-and-use path with bounded managed closure) · `cursor` (preview-guidance path) · `windsurf` (runtime-core path with sidecar host-adapter state) · `openclaw` (preview runtime-core adapter path) · `opencode` (preview-guidance adapter path; direct install/check remains the thinner public path)
 
 <br/>

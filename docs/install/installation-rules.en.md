@@ -140,11 +140,28 @@ When explaining AI-governance advice connectivity, prefer:
 
 For all six supported hosts, do not ask users to paste keys, URLs, or model names into chat. Point them to local settings or local environment variables instead.
 
-## Rule 15: Distinguish local install from online readiness
+## Rule 15: MCP completion must target the host's native MCP surface
+
+For all six supported hosts, MCP must be provisioned into the host's real **native MCP surface** first.
+
+The following must not be treated as MCP completion evidence:
+
+- `$vibe` / `/vibe` / `skills/vibe` discoverability
+- `mcp/servers.template.json`
+- plugin manifests
+- `*.json.example`
+- `.vibeskills/*` sidecars
+- a command merely existing on PATH
+
+If native auto-registration fails, or the current host does not expose a stable officially supportable auto-registration interface, report that the MCP is still `not host-visible` rather than pretending it is ready.
+
+## Rule 16: Distinguish local install, `vibe host-ready`, and online readiness
 
 If local provider fields are not configured, the environment must not be described as online-ready.
 
-## Rule 16: The result summary must stay explicit
+`$vibe` being callable must not be rewritten as if MCP were already complete.
+
+## Rule 17: The result summary must stay explicit
 
 The install or upgrade summary should include at least:
 
@@ -152,10 +169,15 @@ The install or upgrade summary should include at least:
 - public version
 - actual mapped profile
 - commands actually executed
+- `installed locally`
+- `vibe host-ready`
+- `mcp native auto-provision attempted`
+- per-MCP `host-visible readiness`
+- `online-ready`
 - completed parts
 - manual follow-up still required
 
-## Rule 17: The framework version is not the full out-of-box experience
+## Rule 18: The framework version is not the full out-of-box experience
 
 If the user chooses `Framework Only + Customizable Governance` / `minimal`, explicitly remind them:
 

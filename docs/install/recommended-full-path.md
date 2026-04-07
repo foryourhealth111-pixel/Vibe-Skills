@@ -14,10 +14,14 @@
 所有六个公开宿主都遵循同一条非阻塞 MCP 合同：
 
 - 安装或 one-shot 期间要尝试：`github`、`context7`、`serena`、`scrapling`、`claude-flow`
+- 这些 MCP 的默认完成目标必须是对应宿主当前真实使用的 **宿主原生 MCP 配置面**
+- `$vibe` 或 `/vibe` 只代表 governed runtime 入口，不等于 MCP 完成
+- repo template、manifest、`*.json.example`、`.vibeskills/*` sidecar，以及“命令已在 PATH 上”都不能单独算 host-visible ready
 - `github` / `context7` / `serena` 优先走 host-native registration
 - `scrapling` / `claude-flow` 优先走 scripted CLI / stdio 安装
+- 如果宿主原生自动注册失败，或当前宿主没有稳定、官方可支持的自动注册接口，必须明确报告尚未进入宿主原生 MCP 配置面，而不是把 `$vibe`、模板或 sidecar 伪装成安装成功
 - 失败不会阻塞 base install；失败只会在最终报告里集中汇总
-- 最终报告会把 `installed locally`、每个 MCP readiness、`manual follow-up`、以及 `online-ready` 分开写清楚
+- 最终报告会把 `installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness`、`manual follow-up`、以及 `online-ready` 分开写清楚
 
 Linux / macOS 公共前置条件：
 

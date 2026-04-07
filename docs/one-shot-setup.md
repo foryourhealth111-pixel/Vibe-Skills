@@ -15,10 +15,14 @@
 one-shot 现在会把 MCP auto-provision 视为安装流程的一部分，但它是非阻塞的：
 
 - 会尝试：`github`、`context7`、`serena`、`scrapling`、`claude-flow`
+- 这些 MCP 的默认完成目标必须是对应宿主当前真实使用的 **宿主原生 MCP 配置面**
+- `$vibe` 或 `/vibe` 只代表 governed runtime 入口，不等于 MCP 完成
+- repo template、manifest、`*.json.example`、`.vibeskills/*` sidecar，以及“命令已在 PATH 上”都不能单独算 host-visible ready
 - `github` / `context7` / `serena` 优先走 host-native registration
 - `scrapling` / `claude-flow` 优先走 scripted CLI / stdio
+- 如果宿主原生自动注册失败，或当前宿主没有稳定、官方可支持的自动注册接口，最终报告必须明确写出尚未进入宿主原生 MCP 配置面，而不是把 `$vibe`、模板或 sidecar 伪装成 ready
 - 如果尝试失败，不会中途刷屏阻塞你，而是在最后一段报告里统一写出 `manual follow-up`
-- 最终报告会明确区分 `installed locally`、MCP readiness、以及 `online-ready`
+- 最终报告会明确区分 `installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness`、以及 `online-ready`
 
 如果你还不知道自己应该走哪种安装方式，先看：
 

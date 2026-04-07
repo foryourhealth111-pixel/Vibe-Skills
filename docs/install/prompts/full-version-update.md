@@ -39,7 +39,11 @@
 
 补充 MCP 自动接入规则：
 - 在更新流程中，你仍然必须尝试这五个 MCP：`github`、`context7`、`serena`、`scrapling`、`claude-flow`
+- 这些 MCP 的默认完成目标必须是对应宿主当前真实使用的 **宿主原生 MCP 配置面**，而不是 repo template、manifest、sidecar、example config 或 `$vibe` 可发现状态
+- `$vibe` 或 `/vibe` 只代表 governed runtime 入口，**不等于 MCP 完成**
+- `mcp/servers.template.json`、`config/plugins-manifest.codex.json`、`*.json.example`、`.vibeskills/*` sidecar，以及“命令已在 PATH 上”都不能单独算 MCP ready
 - `github`、`context7`、`serena` 优先走宿主原生注册；`scrapling`、`claude-flow` 优先走 scripted CLI / stdio 安装
+- 如果宿主原生自动注册失败，或当前宿主没有稳定、官方可支持的自动注册接口，必须明确报告“尚未进入宿主原生 MCP 配置面 / not host-visible”，不能把 `$vibe`、模板或 sidecar 伪装成更新成功
 - 如果某个 MCP 尝试失败，不要在中途反复打断我；继续更新流程，只在 final install report / 最终安装报告里汇总失败和人工后续
-- 最终结论必须明确区分 `installed locally`、`mcp auto-provision attempted`、每个 MCP 的 readiness，以及 `online-ready`
+- 最终结论必须明确区分 `installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness`，以及 `online-ready`
 ```

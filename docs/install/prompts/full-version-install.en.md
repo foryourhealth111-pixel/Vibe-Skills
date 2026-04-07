@@ -55,7 +55,11 @@ Rules:
 
 Supplemental MCP auto-provision rules:
 - During installation, you must attempt these five MCP surfaces: `github`, `context7`, `serena`, `scrapling`, and `claude-flow`
+- The completion target for these MCPs must be the host's real **native MCP surface**, not a repo template, manifest, sidecar, example config, or `$vibe` discoverability
+- `$vibe` or `/vibe` proves governed runtime entry only and is **not MCP completion**
+- `mcp/servers.template.json`, plugin manifests, `*.json.example`, `.vibeskills/*` sidecars, and a command merely existing on PATH do not by themselves prove MCP is ready
 - Prefer host-native registration first for `github`, `context7`, and `serena`; prefer scripted CLI / stdio installation first for `scrapling` and `claude-flow`
+- If native auto-registration fails, or the current host does not expose a stable officially supportable auto-registration interface, you must report that the MCP is still `not host-visible` rather than soft-claiming success through `$vibe`, templates, or sidecars
 - If any MCP attempt fails, do not interrupt me repeatedly mid-flow; continue the install path and summarize failures only in the final install report
-- The final install report must explicitly separate `installed locally`, `mcp auto-provision attempted`, per-MCP readiness, and `online-ready`
+- The final install report must explicitly separate `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, and `online-ready`
 ```

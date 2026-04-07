@@ -142,11 +142,28 @@
 
 对六个支持宿主，都不要要求用户把密钥、URL 或 model 直接粘贴到聊天里；只引导用户去本地 settings 或本地环境变量配置。
 
-## 规则 15：区分“本地安装完成”和“在线能力就绪”
+## 规则 15：MCP 默认必须以宿主原生 MCP 配置面为完成目标
+
+对六个支持宿主，都必须优先把 MCP 自动接入到宿主当前真实使用的 **宿主原生 MCP 配置面**。
+
+明确禁止把以下内容当作 MCP 完成证据：
+
+- `$vibe` / `/vibe` / `skills/vibe` 的可发现性
+- `mcp/servers.template.json`
+- plugin manifest
+- `*.json.example`
+- `.vibeskills/*` sidecar
+- 仅仅“命令已经在 PATH 上”
+
+如果原生自动注册失败，或当前宿主没有稳定、官方可支持的自动注册接口，必须明确报告“尚未进入宿主原生 MCP 配置面 / not host-visible”，不能伪装成 ready。
+
+## 规则 16：区分“本地安装完成”“vibe host-ready”和“在线能力就绪”
 
 如果本地 provider 字段没有配置好，就不能把环境描述成“online ready”。
 
-## 规则 16：输出安装或更新结果时必须说清楚
+同时也不能把 `$vibe` 可调用偷换成 “MCP 已安装完成”。
+
+## 规则 17：输出安装或更新结果时必须说清楚
 
 结果摘要至少应包含：
 
@@ -154,10 +171,15 @@
 - 公开版本
 - 实际映射的 profile
 - 实际执行的命令
+- `installed locally`
+- `vibe host-ready`
+- `mcp native auto-provision attempted`
+- 每个 MCP 的 `host-visible readiness`
+- `online-ready`
 - 已完成的部分
 - 仍需用户手动处理的部分
 
-## 规则 17：框架版本不是开箱即用全量体验
+## 规则 18：框架版本不是开箱即用全量体验
 
 如果用户选择 `仅核心框架 + 可自定义添加治理` / `minimal`，必须额外提醒：
 

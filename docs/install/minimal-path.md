@@ -14,7 +14,10 @@
 
 - 不保证宿主侧插件已启用
 - 不保证 plugin-backed MCP 已注册/授权
+- 不保证任何 MCP 已进入对应宿主真实使用的 **宿主原生 MCP 配置面**
 - 不保证 `VCO_INTENT_ADVICE_API_KEY` 等 VCO_* 凭据（含可选 `VCO_VECTOR_DIFF_*`）已准备好
+
+`$vibe` 或 `/vibe` 只说明 governed runtime 入口可用，不等于 MCP 完成；repo template、manifest、sidecar、`*.json.example` 和 PATH 上已有命令也都不能单独算 host-visible MCP ready。
 
 ## Host / 平台先决判断
 
