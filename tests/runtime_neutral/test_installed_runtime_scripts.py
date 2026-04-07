@@ -293,6 +293,26 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         for wrapper_path in ledger["specialist_wrapper_paths"]:
             self.assertTrue(Path(wrapper_path).exists(), f"wrapper missing: {wrapper_path}")
 
+    def test_shell_install_reports_vibe_host_ready_in_completion_summary(self) -> None:
+        result = subprocess.run(
+            [
+                "bash",
+                str(REPO_ROOT / "install.sh"),
+                "--host",
+                "codex",
+                "--profile",
+                "full",
+                "--target-root",
+                str(self.target_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertIn("- installed_locally: True", result.stdout)
+        self.assertIn("- vibe_host_ready: True", result.stdout)
+
     def test_shell_install_materializes_vgo_cli_for_installed_wrappers(self) -> None:
         self.install_shell_runtime("codex")
 

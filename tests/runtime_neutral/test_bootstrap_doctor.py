@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+import importlib
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -142,7 +143,7 @@ class BootstrapDoctorTests(unittest.TestCase):
                     "mcp_auto_provision_attempted": True,
                     "mcp_results": [
                         {"name": "github", "status": "host_native_unavailable", "next_step": "Register in host UI"},
-                        {"name": "scrapling", "status": "ready", "next_step": "none"},
+                        {"name": "scrapling", "status": "local_tool_present", "next_step": "Register in host UI"},
                     ],
                 }
             )
@@ -160,7 +161,123 @@ class BootstrapDoctorTests(unittest.TestCase):
         self.assertEqual("installed_locally", artifact["install_state"])
         self.assertTrue(artifact["mcp"]["auto_provision_attempted"])
         self.assertEqual("host_native_unavailable", artifact["mcp"]["servers"][0]["status"])
+        self.assertEqual("local_tool_present", artifact["mcp"]["servers"][1]["status"])
         self.assertEqual("manual_actions_pending", artifact["summary"]["readiness_state"])
+
+    def test_bootstrap_doctor_upgrades_stdio_server_to_ready_when_active_surface_and_command_agree(self) -> None:
+        (self.target_root / ".vibeskills").mkdir(parents=True, exist_ok=True)
+        (self.target_root / ".vibeskills" / "mcp-auto-provision.json").write_text(
+            json.dumps(
+                {
+                    "install_state": "installed_locally",
+                    "mcp_auto_provision_attempted": True,
+                    "mcp_results": [
+                        {"name": "scrapling", "status": "local_tool_present", "next_step": "Register in host UI"},
+                    ],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "mcp" / "servers.active.json").write_text(
+            json.dumps(
+                {
+                    "profile": "full",
+                    "enabled_servers": ["scrapling"],
+                    "servers": {
+                        "scrapling": {"mode": "stdio", "command": "scrapling", "args": ["mcp"]},
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.target_root / "settings.json").write_text(
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            encoding="utf-8",
+        )
+
+        runtime_module = importlib.import_module("vgo_verify.bootstrap_doctor_runtime")
+        original_command_present = runtime_module.command_present
+        self.addCleanup(setattr, runtime_module, "command_present", original_command_present)
+        runtime_module.command_present = lambda name: name == "scrapling"
+
+        artifact = self.module.evaluate(self.root, self.target_root)
+
+        self.assertEqual("ready", artifact["mcp"]["servers"][0]["status"])
+
+    def test_bootstrap_doctor_reports_vibe_host_ready_separately_from_install_state(self) -> None:
+        (self.target_root / ".vibeskills").mkdir(parents=True, exist_ok=True)
+        (self.target_root / ".vibeskills" / "mcp-auto-provision.json").write_text(
+            json.dumps(
+                {
+                    "install_state": "installed_locally",
+                    "mcp_auto_provision_attempted": True,
+                    "mcp_results": [],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.target_root / "skills" / "vibe").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "skills" / "vibe" / "SKILL.md").write_text("---\nname: vibe\n---\n", encoding="utf-8")
+        (self.target_root / "commands").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
+        (self.target_root / "settings.json").write_text(
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            encoding="utf-8",
+        )
+
+        artifact = self.module.evaluate(self.root, self.target_root)
+
+        self.assertEqual("installed_locally", artifact["install_state"])
+        self.assertIn("host_runtime", artifact)
+        self.assertFalse(artifact["host_runtime"]["vibe_host_ready"])
+
+    def test_bootstrap_doctor_reports_vibe_host_ready_when_runtime_surfaces_and_closure_agree(self) -> None:
+        (self.target_root / ".vibeskills").mkdir(parents=True, exist_ok=True)
+        (self.target_root / ".vibeskills" / "mcp-auto-provision.json").write_text(
+            json.dumps(
+                {
+                    "install_state": "installed_locally",
+                    "mcp_auto_provision_attempted": True,
+                    "mcp_results": [],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        runtime_skill_entry = self.target_root / "skills" / "vibe" / "SKILL.md"
+        runtime_skill_entry.parent.mkdir(parents=True, exist_ok=True)
+        runtime_skill_entry.write_text("---\nname: vibe\n---\n", encoding="utf-8")
+        commands_root = self.target_root / "commands"
+        commands_root.mkdir(parents=True, exist_ok=True)
+        (self.target_root / ".vibeskills" / "host-closure.json").write_text(
+            json.dumps(
+                {
+                    "host_id": "codex",
+                    "runtime_skill_entry": str(runtime_skill_entry.resolve()),
+                    "commands_root": str(commands_root.resolve()),
+                    "commands_materialized": True,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
+        (self.target_root / "settings.json").write_text(
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            encoding="utf-8",
+        )
+
+        artifact = self.module.evaluate(self.root, self.target_root)
+
+        self.assertTrue(artifact["host_runtime"]["vibe_host_ready"])
+        self.assertTrue(artifact["host_runtime"]["host_closure_exists"])
+        self.assertTrue(artifact["host_runtime"]["settings_surface_exists"])
 
     def test_malformed_non_dict_mcp_receipt_degrades_to_unknown_state(self) -> None:
         (self.target_root / ".vibeskills").mkdir(parents=True, exist_ok=True)

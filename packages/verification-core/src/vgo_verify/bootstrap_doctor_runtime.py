@@ -79,7 +79,10 @@ def collect_mcp_servers(profile_object: dict[str, Any], servers_template: dict[s
             next_step = "Provision the corresponding Codex plugin in the host runtime."
         elif mode == "stdio":
             command_name = str(server.get("command") or "")
-            if not command_present(command_name):
+            if command_present(command_name):
+                status = "local_tool_present"
+                next_step = "Register the stdio server in the host active MCP surface."
+            else:
                 status = "manual_action_required"
                 next_step = str(server.get("note") or f"Install command '{command_name}' and register the MCP server in the host.")
         mcp_servers.append(
@@ -109,6 +112,118 @@ def collect_mcp_servers_from_receipt(mcp_receipt: dict[str, Any] | None) -> list
             }
         )
     return servers
+
+
+def load_active_mcp_servers(active_mcp_path: Path) -> dict[str, dict[str, Any]]:
+    if not active_mcp_path.exists():
+        return {}
+    try:
+        payload = load_json(active_mcp_path)
+    except Exception:
+        return {}
+    servers = payload.get("servers") if isinstance(payload, dict) else None
+    if not isinstance(servers, dict):
+        return {}
+    return {
+        str(name): dict(config)
+        for name, config in servers.items()
+        if isinstance(config, dict)
+    }
+
+
+def reconcile_mcp_servers_with_active_surface(
+    mcp_servers: list[dict[str, Any]],
+    *,
+    active_mcp_path: Path,
+) -> list[dict[str, Any]]:
+    active_servers = load_active_mcp_servers(active_mcp_path)
+    reconciled: list[dict[str, Any]] = []
+    for server in mcp_servers:
+        next_server = dict(server)
+        name = str(next_server.get("name") or "")
+        status = str(next_server.get("status") or "")
+        active_entry = active_servers.get(name)
+        mode = str(next_server.get("mode") or "")
+        command_name = ""
+        if isinstance(active_entry, dict):
+            command_name = str(active_entry.get("command") or "")
+            if not mode or mode == "unknown":
+                mode = str(active_entry.get("mode") or mode or "unknown")
+                next_server["mode"] = mode
+        if mode == "scripted_cli":
+            mode = "stdio"
+            next_server["mode"] = mode
+        if mode == "stdio" and status == "local_tool_present" and active_entry is not None:
+            if command_name and command_present(command_name):
+                next_server["status"] = "ready"
+                next_server["next_step"] = "none"
+        reconciled.append(next_server)
+    return reconciled
+
+
+def collect_host_runtime(target_root: Path) -> dict[str, Any]:
+    runtime_skill_entry = target_root / "skills" / "vibe" / "SKILL.md"
+    commands_root = target_root / "commands"
+    host_closure_path = target_root / ".vibeskills" / "host-closure.json"
+    settings_path = target_root / "settings.json"
+    host_settings_path = target_root / ".vibeskills" / "host-settings.json"
+    settings_surface_exists = settings_path.exists() or host_settings_path.exists()
+    settings_surface_path = settings_path if settings_path.exists() else host_settings_path
+    settings_surface_kind = (
+        "settings.json"
+        if settings_path.exists()
+        else "host-settings.json"
+        if host_settings_path.exists()
+        else "missing"
+    )
+
+    host_closure_payload: dict[str, Any] = {}
+    host_closure_valid = False
+    if host_closure_path.exists():
+        try:
+            loaded = load_json(host_closure_path)
+        except Exception:
+            loaded = None
+        if isinstance(loaded, dict):
+            host_closure_payload = loaded
+            host_closure_valid = True
+
+    runtime_skill_entry_path = str(runtime_skill_entry.resolve())
+    commands_root_path = str(commands_root.resolve())
+    host_closure_runtime_matches = (
+        host_closure_valid
+        and str(host_closure_payload.get("runtime_skill_entry") or "").strip() == runtime_skill_entry_path
+    )
+    host_closure_commands_match = (
+        host_closure_valid
+        and str(host_closure_payload.get("commands_root") or "").strip() == commands_root_path
+    )
+    host_closure_commands_materialized = bool(host_closure_payload.get("commands_materialized")) if host_closure_valid else False
+    vibe_host_ready = (
+        runtime_skill_entry.exists()
+        and commands_root.exists()
+        and settings_surface_exists
+        and host_closure_valid
+        and host_closure_runtime_matches
+        and host_closure_commands_match
+        and host_closure_commands_materialized
+    )
+    return {
+        "runtime_skill_entry_path": runtime_skill_entry_path,
+        "runtime_skill_entry_exists": runtime_skill_entry.exists(),
+        "commands_root_path": commands_root_path,
+        "commands_root_exists": commands_root.exists(),
+        "host_closure_path": str(host_closure_path),
+        "host_closure_exists": host_closure_path.exists(),
+        "host_closure_valid": host_closure_valid,
+        "host_closure_runtime_matches": host_closure_runtime_matches,
+        "host_closure_commands_match": host_closure_commands_match,
+        "host_closure_commands_materialized": host_closure_commands_materialized,
+        "settings_surface_path": str(settings_surface_path),
+        "settings_surface_exists": settings_surface_exists,
+        "settings_surface_kind": settings_surface_kind,
+        "vibe_host_ready": vibe_host_ready,
+    }
 
 
 def collect_secret_surfaces(secrets_policy: dict[str, Any]) -> list[dict[str, Any]]:
@@ -285,12 +400,14 @@ def build_bootstrap_artifact(
     mcp_servers = collect_mcp_servers_from_receipt(receipt)
     if not mcp_servers:
         mcp_servers = collect_mcp_servers(profile_object, servers_template)
+    mcp_servers = reconcile_mcp_servers_with_active_surface(mcp_servers, active_mcp_path=active_mcp_path)
     install_state = str(receipt.get("install_state") or "unknown")
     auto_provision_attempted = bool(receipt.get("mcp_auto_provision_attempted"))
     secret_surfaces = collect_secret_surfaces(secrets_policy)
     secret_status_by_name = {item["name"]: item["status"] for item in secret_surfaces}
     enhancement_surfaces = collect_enhancement_surfaces(memory_governance)
     integration_surfaces = collect_integration_surfaces(tool_registry, secret_status_by_name)
+    host_runtime = collect_host_runtime(target_root)
     summary = build_summary(
         settings_path=settings_path,
         active_mcp_path=active_mcp_path,
@@ -322,6 +439,7 @@ def build_bootstrap_artifact(
             "vector_diff_model_state": summary["vector_diff_model_state"],
             "vector_diff_model_source": summary["vector_diff_model_source"],
         },
+        "host_runtime": host_runtime,
         "plugins": plugins,
         "external_tools": external_tools,
         "enhancement_surfaces": enhancement_surfaces,

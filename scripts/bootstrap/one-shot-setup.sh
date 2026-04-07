@@ -308,24 +308,41 @@ print_mcp_auto_provision_summary() {
   fi
   "${python_bin}" - "${TARGET_ROOT}" <<'PY'
 import json
+import shutil
 import sys
 from pathlib import Path
 
 target_root = Path(sys.argv[1])
 receipt_path = target_root / ".vibeskills" / "mcp-auto-provision.json"
+active_path = target_root / "mcp" / "servers.active.json"
 print("MCP auto-provision summary")
 if not receipt_path.exists():
     print("- receipt: missing")
     sys.exit(0)
 
 payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+try:
+    active_payload = json.loads(active_path.read_text(encoding="utf-8")) if active_path.exists() else {}
+except json.JSONDecodeError:
+    active_payload = {}
+active_servers = active_payload.get("servers") if isinstance(active_payload, dict) else {}
+if not isinstance(active_servers, dict):
+    active_servers = {}
 print(f"- installed_locally: {payload.get('install_state') == 'installed_locally'}")
 print(f"- mcp_auto_provision_attempted: {bool(payload.get('mcp_auto_provision_attempted'))}")
 manual_follow_up = []
 for item in payload.get("mcp_results") or []:
-    print(f"- {item.get('name')}: status={item.get('status')} next_step={item.get('next_step')}")
-    if item.get("status") != "ready":
-        manual_follow_up.append(str(item.get("name")))
+    name = str(item.get("name") or "")
+    status = str(item.get("status") or "")
+    next_step = str(item.get("next_step") or "none")
+    active_entry = active_servers.get(name)
+    if status == "local_tool_present" and isinstance(active_entry, dict):
+        if str(active_entry.get("mode") or "") == "stdio" and shutil.which(str(active_entry.get("command") or "")):
+            status = "ready"
+            next_step = "none"
+    print(f"- {name}: status={status} next_step={next_step}")
+    if status != "ready":
+        manual_follow_up.append(name)
 print(f"- manual_follow_up: {', '.join(manual_follow_up) if manual_follow_up else 'none'}")
 PY
 }

@@ -23,6 +23,45 @@ SCRIPTED_SERVER_INSTALLS = {
 }
 
 
+def load_active_servers(target_root: Path) -> dict[str, dict[str, Any]]:
+    active_path = target_root / "mcp" / "servers.active.json"
+    if not active_path.exists():
+        return {}
+    try:
+        payload = json.loads(active_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    servers = payload.get("servers")
+    if not isinstance(servers, dict):
+        return {}
+    return {
+        str(name): dict(config)
+        for name, config in servers.items()
+        if isinstance(config, dict)
+    }
+
+
+def scripted_server_host_visible(target_root: Path, server_name: str) -> bool:
+    return server_name in load_active_servers(target_root)
+
+
+def upgrade_result_with_active_surface(
+    *,
+    target_root: Path,
+    server_name: str,
+    provision_path: str,
+    result: ProvisionResult,
+) -> ProvisionResult:
+    if provision_path != "scripted_cli" or result.status != "local_tool_present":
+        return result
+    if not scripted_server_host_visible(target_root, server_name):
+        return result
+    command_name = SCRIPTED_SERVER_COMMANDS.get(server_name)
+    if command_name and shutil.which(command_name):
+        return ProvisionResult(status="ready", next_step="none")
+    return result
+
+
 @dataclass(frozen=True)
 class ProvisionResult:
     status: str
@@ -49,9 +88,14 @@ class ProvisionExecutor:
             )
         command_name = SCRIPTED_SERVER_COMMANDS.get(server_name)
         if command_name and shutil.which(command_name):
-            return ProvisionResult(
-                status="ready",
-                next_step="none",
+            return upgrade_result_with_active_surface(
+                target_root=target_root,
+                server_name=server_name,
+                provision_path=strategy,
+                result=ProvisionResult(
+                status="local_tool_present",
+                next_step=f"Register {server_name} in the host active MCP surface for {host_id}.",
+                ),
             )
         if not allow_scripted_install:
             return ProvisionResult(
@@ -82,9 +126,14 @@ class ProvisionExecutor:
                 next_step=f"Review the {runner} install output and install {server_name} manually if needed.",
             )
         if command_name and shutil.which(command_name):
-            return ProvisionResult(
-                status="ready",
-                next_step="none",
+            return upgrade_result_with_active_surface(
+                target_root=target_root,
+                server_name=server_name,
+                provision_path=strategy,
+                result=ProvisionResult(
+                status="local_tool_present",
+                next_step=f"Register {server_name} in the host active MCP surface for {host_id}.",
+                ),
             )
         return ProvisionResult(
             status="verification_failed",
@@ -193,6 +242,12 @@ def attempt_server(
         target_root=target_root,
         host_id=host_id,
         allow_scripted_install=allow_scripted_install,
+    )
+    result = upgrade_result_with_active_surface(
+        target_root=target_root,
+        server_name=server_name,
+        provision_path=strategy,
+        result=result,
     )
     return {
         "name": server_name,
