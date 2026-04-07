@@ -22,12 +22,14 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
         "# VCO Bootstrap Doctor Gate",
         "",
         f"- Gate Result: **{artifact['gate_result']}**",
+        f"- Install State: **{artifact['install_state']}**",
         f"- Readiness State: **{artifact['summary']['readiness_state']}**",
         f"- Blocking Issues: `{artifact['summary']['blocking_issue_count']}`",
         f"- Manual Actions Pending: `{artifact['summary']['manual_action_count']}`",
         f"- Warnings: `{artifact['summary']['warning_count']}`",
         f"- Target Root: `{artifact['target_root']}`",
         f"- MCP Profile: `{artifact['mcp']['profile']}`",
+        f"- MCP Auto-Provision Attempted: `{artifact['mcp']['auto_provision_attempted']}`",
         f"- MCP Active File Exists: `{artifact['mcp']['active_file_exists']}`",
         "",
         "## Settings",
@@ -95,6 +97,8 @@ def evaluate(repo_root: Path, target_root: Path) -> dict[str, Any]:
 
     profile_path = repo_root / "mcp" / "profiles" / f"{profile}.json"
     active_mcp_path = target_root / "mcp" / "servers.active.json"
+    mcp_receipt_path = target_root / ".vibeskills" / "mcp-auto-provision.json"
+    mcp_receipt = load_json(mcp_receipt_path) if mcp_receipt_path.exists() else None
 
     return build_bootstrap_artifact(
         repo_root=repo_root,
@@ -104,6 +108,8 @@ def evaluate(repo_root: Path, target_root: Path) -> dict[str, Any]:
         profile=profile,
         profile_path=profile_path,
         active_mcp_path=active_mcp_path,
+        mcp_receipt_path=mcp_receipt_path,
+        mcp_receipt=mcp_receipt,
         plugins_manifest=load_json(repo_root / "config" / "plugins-manifest.codex.json"),
         servers_template=load_json(repo_root / "mcp" / "servers.template.json"),
         secrets_policy=load_json(repo_root / "config" / "secrets-policy.json"),

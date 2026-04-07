@@ -5,6 +5,7 @@ from typing import Any
 
 from .bootstrap_doctor_support import (
     command_present,
+    load_json,
     os_environ,
     resolved_setting_state,
     setting_state,
@@ -92,6 +93,24 @@ def collect_mcp_servers(profile_object: dict[str, Any], servers_template: dict[s
     return mcp_servers
 
 
+def collect_mcp_servers_from_receipt(mcp_receipt: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(mcp_receipt, dict):
+        return []
+    servers: list[dict[str, Any]] = []
+    for server in mcp_receipt.get("mcp_results") or []:
+        if not isinstance(server, dict):
+            continue
+        servers.append(
+            {
+                "name": str(server.get("name") or ""),
+                "mode": str(server.get("provision_path") or "unknown"),
+                "status": str(server.get("status") or "unknown"),
+                "next_step": str(server.get("next_step") or "none"),
+            }
+        )
+    return servers
+
+
 def collect_secret_surfaces(secrets_policy: dict[str, Any]) -> list[dict[str, Any]]:
     secret_surfaces: list[dict[str, Any]] = []
     for secret in secrets_policy.get("allowed_secret_refs") or []:
@@ -175,6 +194,7 @@ def build_summary(
     settings_path: Path,
     active_mcp_path: Path,
     settings: dict[str, Any] | None,
+    install_state: str,
     plugins: list[dict[str, Any]],
     mcp_servers: list[dict[str, Any]],
     external_tools: list[dict[str, Any]],
@@ -185,6 +205,8 @@ def build_summary(
 
     if not settings_path.exists():
         blocking_issues.append("settings.json is missing in target root.")
+    if install_state != "installed_locally":
+        warnings.append(f"Install state is '{install_state}'; verify the local install receipt.")
     intent_advice_api_key_state, intent_advice_api_key_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_API_KEY")
     intent_advice_model_state, intent_advice_model_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_MODEL")
     vector_diff_api_key_state, vector_diff_api_key_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_API_KEY")
@@ -202,7 +224,7 @@ def build_summary(
         if plugin["status"] == "platform_plugin_required" and plugin["required"]:
             manual_actions.append(f"Required host plugin pending: {plugin['name']}")
     for server in mcp_servers:
-        if server["status"] in {"platform_plugin_required", "manual_action_required", "missing_from_template"}:
+        if server["status"] != "ready":
             manual_actions.append(f"MCP server pending: {server['name']}")
     for tool in external_tools:
         if not tool["present"] and tool["name"] in {"npm", "claude-flow"}:
@@ -243,6 +265,8 @@ def build_bootstrap_artifact(
     profile: str,
     profile_path: Path,
     active_mcp_path: Path,
+    mcp_receipt_path: Path,
+    mcp_receipt: dict[str, Any] | None,
     plugins_manifest: dict[str, Any],
     servers_template: dict[str, Any],
     secrets_policy: dict[str, Any],
@@ -257,7 +281,11 @@ def build_bootstrap_artifact(
             import json
 
             profile_object = json.load(handle)
-    mcp_servers = collect_mcp_servers(profile_object, servers_template)
+    mcp_servers = collect_mcp_servers_from_receipt(mcp_receipt)
+    if not mcp_servers:
+        mcp_servers = collect_mcp_servers(profile_object, servers_template)
+    install_state = str((mcp_receipt or {}).get("install_state") or "unknown")
+    auto_provision_attempted = bool((mcp_receipt or {}).get("mcp_auto_provision_attempted"))
     secret_surfaces = collect_secret_surfaces(secrets_policy)
     secret_status_by_name = {item["name"]: item["status"] for item in secret_surfaces}
     enhancement_surfaces = collect_enhancement_surfaces(memory_governance)
@@ -266,6 +294,7 @@ def build_bootstrap_artifact(
         settings_path=settings_path,
         active_mcp_path=active_mcp_path,
         settings=settings,
+        install_state=install_state,
         plugins=plugins,
         mcp_servers=mcp_servers,
         external_tools=external_tools,
@@ -276,6 +305,7 @@ def build_bootstrap_artifact(
         "generated_at": utc_now(),
         "repo_root": str(repo_root),
         "target_root": str(target_root.resolve()),
+        "install_state": install_state,
         "gate_result": "PASS" if not summary["blocking_issues"] else "FAIL",
         "settings": {
             "path": str(settings_path),
@@ -299,6 +329,9 @@ def build_bootstrap_artifact(
             "profile_path": str(profile_path.relative_to(repo_root)) if profile_path.exists() else None,
             "active_file_path": str(active_mcp_path),
             "active_file_exists": active_mcp_path.exists(),
+            "auto_provision_attempted": auto_provision_attempted,
+            "receipt_path": str(mcp_receipt_path),
+            "receipt_exists": mcp_receipt_path.exists(),
             "servers": mcp_servers,
         },
         "integration_surfaces": integration_surfaces,
