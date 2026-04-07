@@ -1,140 +1,122 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from vgo_contracts.install_ledger import InstallLedger
 
-from .json_io import load_json, write_json_file
+from ._io import load_json, write_json_file
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from .install_plan import InstallPlan
 
 
-def _normalize_resolved_path(path_value: Path | str) -> str:
-    return str(Path(path_value).resolve(strict=False))
+@dataclass(slots=True)
+class MaterializationLedgerState:
+    created_paths: set[Path | str] = field(default_factory=set)
+    owned_tree_roots: set[Path | str] = field(default_factory=set)
+    managed_json_paths: set[Path | str] = field(default_factory=set)
+    merged_files: dict[str, dict[str, object]] = field(default_factory=dict)
+    generated_from_template_if_absent: set[Path | str] = field(default_factory=set)
+    specialist_wrapper_paths: list[Path | str] = field(default_factory=list)
+    runtime_roots: set[Path | str] = field(default_factory=set)
+    compatibility_roots: set[Path | str] = field(default_factory=set)
+    sidecar_roots: set[Path | str] = field(default_factory=set)
+    config_rollbacks: list[dict[str, object]] = field(default_factory=list)
+    legacy_cleanup_candidates: set[Path | str] = field(default_factory=set)
 
 
-def _normalize_target_relpath(path_value: Path | str, *, target_root: Path) -> str | None:
-    candidate = Path(path_value).resolve(strict=False)
-    target_root_resolved = target_root.resolve(strict=False)
+def _normalize_resolved_path(path: Path | str) -> str:
+    return str(Path(path).resolve(strict=False))
+
+
+def _normalize_target_relpath(path: Path | str, *, target_root: Path) -> str | None:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = (target_root / candidate).resolve(strict=False)
+    else:
+        candidate = candidate.resolve(strict=False)
     try:
-        return str(candidate.relative_to(target_root_resolved)).replace('\\', '/') or '.'
+        relative = candidate.relative_to(target_root.resolve(strict=False))
     except ValueError:
         return None
+    normalized = relative.as_posix().strip()
+    return normalized or None
 
 
-def _sorted_target_relpaths(values: Iterable[Path | str], *, target_root: Path) -> list[str]:
-    relpaths: list[str] = []
-    seen: set[str] = set()
+def _normalize_skill_name(value: object) -> str | None:
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        InstallLedger(managed_skill_names=[text])
+    except ValueError:
+        return None
+    return text
+
+
+def sanitize_managed_skill_names(values: list[str] | tuple[str, ...] | set[str] | None) -> list[str]:
+    safe_names: set[str] = set()
+    for value in values or []:
+        normalized = _normalize_skill_name(value)
+        if normalized is not None:
+            safe_names.add(normalized)
+    return sorted(safe_names)
+
+
+def _sorted_target_relpaths(values: set[Path | str] | list[Path | str], *, target_root: Path) -> list[str]:
+    relpaths: set[str] = set()
     for value in values:
-        relpath = _normalize_target_relpath(value, target_root=target_root)
-        if relpath is None or relpath in seen:
-            continue
-        seen.add(relpath)
-        relpaths.append(relpath)
+        normalized = _normalize_target_relpath(value, target_root=target_root)
+        if normalized is not None:
+            relpaths.add(normalized)
     return sorted(relpaths)
 
 
-def _sorted_config_rollbacks(values: Iterable[dict[str, object]]) -> list[dict[str, object]]:
+def _sorted_config_rollbacks(values: list[dict[str, object]]) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
+    seen: set[tuple[str, bool, str]] = set()
     for entry in values:
         if not isinstance(entry, dict):
             continue
-        path_value = entry.get('path')
-        if path_value is None:
+        path = str(entry.get('path') or '').strip()
+        if not path:
             continue
+        normalized = _normalize_resolved_path(path)
+        managed_key = str(entry.get('managed_key') or 'vibeskills')
+        created_if_absent = bool(entry.get('created_if_absent', False))
+        marker = (normalized, created_if_absent, managed_key)
+        if marker in seen:
+            continue
+        seen.add(marker)
         records.append(
             {
-                'path': _normalize_resolved_path(path_value),
-                'created_if_absent': bool(entry.get('created_if_absent', False)),
-                'managed_key': str(entry.get('managed_key') or 'vibeskills'),
+                'path': normalized,
+                'created_if_absent': created_if_absent,
+                'managed_key': managed_key,
             }
         )
-    records.sort(key=lambda item: item['path'])
-    return records
+    return sorted(records, key=lambda item: item['path'])
 
 
-@dataclass
-class MaterializationLedgerState:
-    created_paths: set[Path] = field(default_factory=set)
-    owned_tree_roots: set[Path] = field(default_factory=set)
-    managed_json_paths: set[Path] = field(default_factory=set)
-    merged_files: dict[str, dict[str, object]] = field(default_factory=dict)
-    generated_from_template_if_absent: set[Path] = field(default_factory=set)
-    runtime_roots: set[Path] = field(default_factory=set)
-    compatibility_roots: set[Path] = field(default_factory=set)
-    sidecar_roots: set[Path] = field(default_factory=set)
-    config_rollbacks: list[dict[str, object]] = field(default_factory=list)
-    specialist_wrapper_paths: list[Path] = field(default_factory=list)
-    legacy_cleanup_candidates: set[Path] = field(default_factory=set)
-
-
-def sanitize_managed_skill_names(values: Iterable[str]) -> list[str]:
-    sanitized: set[str] = set()
-    for value in values:
-        candidate = str(value or '').strip().replace('\\', '/')
-        if not candidate or candidate in {'.', '..'}:
-            continue
-        if '/' in candidate:
-            continue
-        if candidate.startswith('.'):
-            continue
-        sanitized.add(candidate)
-    return sorted(sanitized)
-
-
-def _normalize_skill_name(value: str | None) -> str | None:
-    if value is None:
+def load_existing_install_ledger(target_root: Path | str) -> dict | None:
+    ledger_path = Path(target_root).resolve() / '.vibeskills' / 'install-ledger.json'
+    if not ledger_path.exists():
         return None
-    normalized = str(value).strip().replace('\\', '/')
-    if not normalized or '/' in normalized or normalized in {'.', '..'}:
-        return None
-    return normalized
+    return load_json(ledger_path)
 
 
-def derive_managed_skill_names_from_ledger(target_root: Path | str, ledger: dict) -> set[str]:
-    target_root_path = Path(target_root).resolve(strict=False)
-    managed: set[str] = set()
+def derive_managed_skill_names_from_ledger(target_root: Path | str, ledger: dict | None) -> set[str]:
+    if not isinstance(ledger, dict):
+        return set()
 
-    for value in ledger.get('managed_skill_names') or []:
-        normalized = _normalize_skill_name(value)
-        if normalized is not None:
-            managed.add(normalized)
+    target_root_path = Path(target_root).resolve()
+    managed = set(sanitize_managed_skill_names(ledger.get('managed_skill_names')))
+    skills_root = (target_root_path / 'skills').resolve(strict=False)
 
-    skills_root = target_root_path / 'skills'
-    for raw_root in ledger.get('runtime_roots') or []:
-        candidate = Path(str(raw_root)).resolve(strict=False)
-        if not candidate.exists() or not candidate.is_dir():
-            continue
-        try:
-            relative = candidate.relative_to(skills_root)
-        except ValueError:
-            continue
-        if relative.parts:
-            normalized = _normalize_skill_name(relative.parts[0])
-            if normalized is not None:
-                managed.add(normalized)
-
-    for raw_root in ledger.get('compatibility_roots') or []:
-        candidate = Path(str(raw_root)).resolve(strict=False)
-        if not candidate.exists() or not candidate.is_dir():
-            continue
-        try:
-            relative = candidate.relative_to(skills_root)
-        except ValueError:
-            continue
-        if relative.parts:
-            normalized = _normalize_skill_name(relative.parts[0])
-            if normalized is not None:
-                managed.add(normalized)
-
-    for raw_root in ledger.get('owned_tree_roots') or []:
-        candidate = Path(str(raw_root)).resolve(strict=False)
-        if not candidate.exists() or not candidate.is_dir():
-            continue
+    for raw_path in ledger.get('created_paths') or []:
+        candidate = Path(str(raw_path)).resolve(strict=False)
         try:
             relative = candidate.relative_to(skills_root)
         except ValueError:
