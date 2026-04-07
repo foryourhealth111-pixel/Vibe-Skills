@@ -8,6 +8,7 @@ outputs/
 # Local operator noise
 .serena/
 .tmp/
+.worktrees/
 !scripts/verify/fixtures/document-cleanup-safety/**/.tmp/
 !scripts/verify/fixtures/document-cleanup-safety/**/.tmp/**
 third_party/vco-ecosystem-mirror/
