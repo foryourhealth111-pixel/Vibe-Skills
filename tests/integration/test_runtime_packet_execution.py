@@ -67,6 +67,34 @@ def test_runtime_packet_execution_stops_after_requested_stage_stop() -> None:
     assert result.memory['stage_count'] == 4
 
 
+def test_runtime_packet_execution_stops_after_requirement_freeze_for_vibe_want() -> None:
+    result = execute_runtime_packet(
+        RuntimePacket(
+            goal='clarify the request and freeze requirements only',
+            stage='skeleton_check',
+            entry_intent_id='vibe-want',
+            requested_stage_stop='requirement_doc',
+        ),
+        mode='interactive_governed',
+        requested_skill='vibe-want',
+    )
+
+    assert [receipt['stage'] for receipt in result.stage_receipts] == [
+        'skeleton_check',
+        'deep_interview',
+        'requirement_doc',
+    ]
+    assert result.final_packet.stage == 'requirement_doc'
+    assert result.route['runtime_selected_skill'] == 'vibe'
+    assert result.route['requested_skill'] == 'vibe-want'
+    assert result.plan['stages'] == (
+        'skeleton_check',
+        'deep_interview',
+        'requirement_doc',
+    )
+    assert result.memory['stage_count'] == 3
+
+
 def test_runtime_packet_execution_applies_requested_grade_floor() -> None:
     result = execute_runtime_packet(
         RuntimePacket(

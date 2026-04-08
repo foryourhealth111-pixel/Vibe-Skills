@@ -21,7 +21,7 @@ def test_load_discoverable_entry_surface_reads_shared_wrapper_truth() -> None:
     assert surface.grade_flag_map['--l'] == 'L'
     assert surface.grade_flag_map['--xl'] == 'XL'
     assert surface.entry_by_id['vibe'].requested_stage_stop == 'phase_cleanup'
-    assert surface.entry_by_id['vibe-want'].requested_stage_stop == 'deep_interview'
+    assert surface.entry_by_id['vibe-want'].requested_stage_stop == 'requirement_doc'
     assert surface.entry_by_id['vibe-how'].requested_stage_stop == 'xl_plan'
     assert surface.entry_by_id['vibe-do'].requested_stage_stop == 'phase_cleanup'
     assert surface.entry_by_id['vibe-want'].allow_grade_flags is False

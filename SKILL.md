@@ -65,6 +65,14 @@ Do not use `vibe` for:
 These stages are mandatory.
 They may become lighter for simple work, but they are not skipped as a matter of policy.
 
+Discoverable wrapper labels may request an earlier terminal stage.
+That changes where the current run stops, not which runtime owns authority.
+The bounded stop targets are:
+
+- `Vibe: What Do I Want?` -> `requirement_doc`
+- `Vibe: How Do We Do It?` -> `xl_plan`
+- `Vibe` and `Vibe: Do It` -> `phase_cleanup`
+
 Official governed entry also records runtime lineage:
 
 - root or child entry writes `governance-capsule.json`

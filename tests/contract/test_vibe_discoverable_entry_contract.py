@@ -17,7 +17,7 @@ def test_vibe_discoverable_entries_are_shared_and_non_explosive() -> None:
     assert entries["vibe-how"]["display_name"] == "Vibe: How Do We Do It?"
     assert entries["vibe-do"]["display_name"] == "Vibe: Do It"
     assert entries["vibe"]["requested_stage_stop"] == "phase_cleanup"
-    assert entries["vibe-want"]["requested_stage_stop"] == "deep_interview"
+    assert entries["vibe-want"]["requested_stage_stop"] == "requirement_doc"
     assert entries["vibe-how"]["requested_stage_stop"] == "xl_plan"
     assert entries["vibe-do"]["requested_stage_stop"] == "phase_cleanup"
     assert entries["vibe"]["allow_grade_flags"] is True

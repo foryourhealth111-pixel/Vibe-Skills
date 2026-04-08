@@ -79,6 +79,9 @@ def test_base_runtime_core_packaging_owns_shared_fields_and_profile_overlays() -
     grouped_copy_files = _flatten_entry_groups(roles['copy_files'])
     assert set(grouped_copy_files) == {tuple(sorted(item.items())) for item in payload['copy_files']}
     assert roles['notes']['flat_projection_contract']
+    assert sorted(
+        payload['profiles']['full']['payload_roles']['delivery_model']['compatibility_skill_projections']
+    ) == CODEX_VIBE_WRAPPER_SKILLS
 
 
 def test_profile_runtime_core_packaging_projections_match_base_overlay_resolution() -> None:

@@ -41,12 +41,19 @@ def _frontmatter_lines(host_id: str, entry: DiscoverableEntry, *, relpath: Path)
 
 def _body_lines(entry: DiscoverableEntry) -> list[str]:
     grade_line = "yes" if entry.allow_grade_flags else "no"
+    stop_stage = entry.requested_stage_stop
+    bounded_warning = (
+        f"Stop at `{stop_stage}` and re-enter through canonical `vibe` or another approved wrapper to continue later stages."
+        if stop_stage != "phase_cleanup"
+        else "Continue through `phase_cleanup` without creating a second runtime authority."
+    )
     return [
         "Use the `vibe` skill and follow its governed runtime contract for this request.",
         "",
         f"Wrapper entry: {entry.display_name} (`{entry.id}`)",
-        f"Default stop target: `{entry.requested_stage_stop}`",
+        f"Default stop target: `{stop_stage}`",
         f"Public grade flags allowed: {grade_line}",
+        bounded_warning,
         "",
         "Request:",
         "$ARGUMENTS",
