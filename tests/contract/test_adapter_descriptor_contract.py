@@ -53,5 +53,8 @@ def test_host_profiles_expose_discoverable_entries_as_presentational_surface() -
         assert discoverable_entries['shared_source'] == 'config/vibe-entry-surfaces.json'
         assert discoverable_entries['authority_owner'] == 'vibe'
         assert discoverable_entries['presentational_only'] is True
+        assert discoverable_entries['projection_mode'] == 'generated_wrapper_entries'
+        assert isinstance(discoverable_entries['host_visible_surface'], str)
+        assert discoverable_entries['host_visible_surface'].strip()
 
     assert discoverable_profiles, 'expected at least one host profile with discoverable entry surfaces'

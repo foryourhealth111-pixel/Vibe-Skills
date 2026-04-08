@@ -40,3 +40,5 @@ def test_adapter_registry_exposes_shared_discoverable_vibe_entry_surface() -> No
     for entry in registry['adapters']:
         assert entry['discoverable_entries']['shared_source'] == registry['discoverable_entry_surface']
         assert entry['discoverable_entries']['authority_owner'] == 'vibe'
+        assert entry['discoverable_entries']['projection_mode'] == 'generated_wrapper_entries'
+        assert str(entry['discoverable_entries']['host_visible_surface']).strip()
