@@ -389,6 +389,20 @@ function Get-PreviewReceiptPath {
     return Join-Path $RepoRoot (Join-Path $root 'release-cut.json')
 }
 
+function Invoke-ReleaseGate {
+    param(
+        [Parameter(Mandatory)] [string]$GatePath
+    )
+
+    $gateScript = Get-Content -LiteralPath $GatePath -Raw -Encoding UTF8
+    $supportsWriteArtifacts = $gateScript -match '(?is)\bparam\s*\(.*?\[switch\]\s*\$WriteArtifacts\b'
+    if ($supportsWriteArtifacts) {
+        & $GatePath -WriteArtifacts
+    } else {
+        & $GatePath
+    }
+}
+
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
 $repoRoot = $context.repoRoot
 $governancePath = $context.governancePath
@@ -418,6 +432,7 @@ $releaseReadmeRel = 'docs/releases/README.md'
 $releaseReadmePath = Join-Path $repoRoot $releaseReadmeRel
 $distManifestRels = @(Get-DistManifestOutputRelativePaths -RepoRoot $repoRoot)
 $releaseSummary = Get-ReleaseSummary -Governance $governance -Version $Version
+$syncScript = Join-Path $repoRoot 'scripts\governance\sync-bundled-vibe.ps1'
 $applyGateScripts = if ($RunGates) { Get-ReleaseGateScriptsFromContract -PreviewContract $previewContract } else { @() }
 $postcheckGateScripts = if ($RunGates) { Get-ReleasePostcheckScriptsFromContract -PreviewContract $previewContract -FallbackScripts $applyGateScripts } else { @() }
 $head = (git -C $repoRoot rev-parse --short HEAD).Trim()
@@ -437,6 +452,15 @@ if ($Preview) {
         [ordered]@{ path = [string]$_; action = 'sync generated dist manifest from authoritative source config' }
     })
 
+    $syncPreviewPath = Join-Path $previewRoot 'sync-bundled-vibe-from-release-cut.json'
+    if (Test-Path -LiteralPath $syncScript) {
+        # operator-preview contract requires sync-bundled-vibe.ps1 -Preview before apply.
+        & $syncScript -Preview -PreviewOutputPath $syncPreviewPath -PruneBundledExtras
+        if ($LASTEXITCODE -ne 0) {
+            throw 'sync-bundled-vibe preview failed'
+        }
+    }
+
     $artifact = [ordered]@{
         operator = 'release-cut'
         contract_version = if ($null -ne $previewContract -and $previewContract.PSObject.Properties.Name -contains 'contract_version') { $previewContract.contract_version } else { 1 }
@@ -454,6 +478,7 @@ if ($Preview) {
         preview = [ordered]@{
             generated_at = (Get-Date).ToString('s')
             planned_file_actions = $plannedFileActions
+            sync_preview_receipt = if (Test-Path -LiteralPath $syncPreviewPath) { (Get-VgoRelativePathPortable -BasePath $repoRoot -TargetPath $syncPreviewPath) } else { $null }
             planned_gates = $applyGateScripts
         }
         postcheck = [ordered]@{
@@ -506,7 +531,15 @@ if (Test-Path -LiteralPath $ledgerPath) {
 }
 
 if ($shouldAppend) {
-    Append-VgoUtf8NoBomText -Path $ledgerPath -Content (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine)
+    $separator = ''
+    if (Test-Path -LiteralPath $ledgerPath) {
+        $existingLedgerText = Read-Text -Path $ledgerPath
+        if (-not [string]::IsNullOrEmpty($existingLedgerText) -and
+            -not ($existingLedgerText.EndsWith("`n") -or $existingLedgerText.EndsWith("`r"))) {
+            $separator = [Environment]::NewLine
+        }
+    }
+    Append-VgoUtf8NoBomText -Path $ledgerPath -Content ($separator + (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine))
 }
 
 New-Item -ItemType Directory -Force -Path $releaseNotesDir | Out-Null
@@ -519,6 +552,13 @@ if (Test-Path -LiteralPath $releaseReadmePath) {
     Update-ReleasesReadmeSurface -Path $releaseReadmePath -Version $Version -Updated $Updated -Summary $releaseSummary
 }
 
+if (Test-Path -LiteralPath $syncScript) {
+    & $syncScript -PruneBundledExtras
+    if ($LASTEXITCODE -ne 0) {
+        throw 'sync-bundled-vibe failed'
+    }
+}
+
 Sync-DistManifestOutputs -RepoRoot $repoRoot
 
 if ($RunGates) {
@@ -527,7 +567,7 @@ if ($RunGates) {
         if (-not (Test-Path -LiteralPath $gatePath)) {
             throw "required gate script missing: $rel"
         }
-        & $gatePath
+        Invoke-ReleaseGate -GatePath $gatePath
         if ($LASTEXITCODE -ne 0) {
             throw "gate failed: $rel"
         }

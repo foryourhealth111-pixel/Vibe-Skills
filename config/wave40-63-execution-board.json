@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-07",
+  "board_policy": {
+    "execution_mode": "xl_unattended_vibe_first",
+    "runtime_hardening_precedes_new_intake": true,
+    "byte0_frontmatter_is_stop_ship": true,
+    "single_control_plane_only": true,
+    "single_default_execution_owner_only": true,
+    "single_canonical_truth_source_only": true
+  },
+  "allowed_statuses": [
+    "completed"
+  ],
+  "waves": [
+    {
+      "wave": 40,
+      "track": "runtime-hardening",
+      "title": "formal execution board",
+      "status": "completed",
+      "required_assets": [
+        "docs/plans/2026-03-07-vco-wave40-63-execution-plan.md",
+        "config/wave40-63-execution-board.json",
+        "scripts/verify/vibe-wave40-63-board-gate.ps1"
+      ],
+      "verify_gate": "vibe-wave40-63-board-gate"
+    },
+    {
+      "wave": 41,
+      "track": "runtime-hardening",
+      "title": "frontmatter integrity policy",
+      "status": "completed",
+      "required_assets": [
+        "docs/frontmatter-bom-governance.md",
+        "config/frontmatter-integrity-policy.json"
+      ],
+      "verify_gate": "vibe-bom-frontmatter-gate"
+    },
+    {
+      "wave": 42,
+      "track": "runtime-hardening",
+      "title": "no-BOM writers wired into governance scripts",
+      "status": "completed",
+      "required_assets": [
+        "scripts/common/vibe-governance-helpers.ps1",
+        "scripts/governance/release-cut.ps1"
+      ],
+      "verify_gate": "vibe-bom-frontmatter-gate"
+    },
+    {
+      "wave": 43,
+      "track": "runtime-hardening",
+      "title": "byte0 frontmatter verification gate",
+      "status": "completed",
+      "required_assets": [
+        "scripts/verify/vibe-bom-frontmatter-gate.ps1"
+      ],
+      "verify_gate": "vibe-bom-frontmatter-gate"
+    },
+    {
+      "wave": 44,
+      "track": "runtime-hardening",
+      "title": "runtime freshness and install SOP closure",
+      "status": "completed",
+      "required_assets": [
+        "docs/runtime-freshness-install-sop.md",
+        "install.ps1",
+        "check.ps1"
+      ],
+      "verify_gate": "vibe-release-install-runtime-coherence-gate"
+    },
+    {
+      "wave": 45,
+      "track": "runtime-hardening",
+      "title": "installed runtime frontmatter closure",
+      "status": "completed",
+      "required_assets": [
+        "SKILL.md",
+        "scripts/verify/vibe-bom-frontmatter-gate.ps1",
+        "scripts/verify/vibe-installed-runtime-freshness-gate.ps1"
+      ],
+      "verify_gate": "vibe-bom-frontmatter-gate"
+    },
+    {
+      "wave": 46,
+      "track": "dedup-and-ownership",
+      "title": "capability dedup taxonomy",
+      "status": "completed",
+      "required_assets": [
+        "docs/capability-dedup-graph-governance.md",
+        "config/capability-dedup-governance.json",
+        "references/capability-dedup-matrix.md"
+      ],
+      "verify_gate": "vibe-capability-dedup-gate"
+    },
+    {
+      "wave": 47,
+      "track": "dedup-and-ownership",
+      "title": "capability graph governance",
+      "status": "completed",
+      "required_assets": [
+        "docs/capability-dedup-graph-governance.md",
+        "references/capability-dedup-matrix.md"
+      ],
+      "verify_gate": "vibe-capability-dedup-gate"
+    },
+    {
+      "wave": 48,
+      "track": "dedup-and-ownership",
+      "title": "role and pack overlap closure",
+      "status": "completed",
+      "required_assets": [
+        "docs/role-pack-governance.md",
+        "docs/role-pack-distillation-governance.md",
+        "config/role-pack-policy.json"
+      ],
+      "verify_gate": "vibe-capability-dedup-gate"
+    },
+    {
+      "wave": 49,
+      "track": "dedup-and-ownership",
+      "title": "router evidence schema",
+      "status": "completed",
+      "required_assets": [
+        "docs/adaptive-routing-eval-governance.md",
+        "config/adaptive-routing-eval-governance.json",
+        "references/eval-replay-ledger-contract.md"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 50,
+      "track": "dedup-and-ownership",
+      "title": "boarded governance integration",
+      "status": "completed",
+      "required_assets": [
+        "config/wave40-63-execution-board.json",
+        "config/promotion-board.json"
+      ],
+      "verify_gate": "vibe-wave40-63-board-gate"
+    },
+    {
+      "wave": 51,
+      "track": "dedup-and-ownership",
+      "title": "dedup gate closure",
+      "status": "completed",
+      "required_assets": [
+        "scripts/verify/vibe-capability-dedup-gate.ps1"
+      ],
+      "verify_gate": "vibe-capability-dedup-gate"
+    },
+    {
+      "wave": 52,
+      "track": "adaptive-routing-eval",
+      "title": "adaptive eval contract",
+      "status": "completed",
+      "required_assets": [
+        "docs/adaptive-routing-eval-governance.md",
+        "config/adaptive-routing-eval-governance.json",
+        "references/eval-replay-ledger-contract.md"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 53,
+      "track": "adaptive-routing-eval",
+      "title": "adaptive routing baseline",
+      "status": "completed",
+      "required_assets": [
+        "scripts/verify/vibe-routing-stability-gate.ps1",
+        "scripts/verify/vibe-pack-regression-matrix.ps1",
+        "scripts/verify/vibe-keyword-precision-audit.ps1"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 54,
+      "track": "adaptive-routing-eval",
+      "title": "route replay ledger contract",
+      "status": "completed",
+      "required_assets": [
+        "references/eval-replay-ledger-contract.md",
+        "outputs/telemetry"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 55,
+      "track": "adaptive-routing-eval",
+      "title": "pilot extension",
+      "status": "completed",
+      "required_assets": [
+        "scripts/verify/vibe-pilot-scenarios.ps1",
+        "config/promotion-board.json"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 56,
+      "track": "adaptive-routing-eval",
+      "title": "promotion heuristics governance",
+      "status": "completed",
+      "required_assets": [
+        "config/adaptive-routing-eval-governance.json",
+        "config/promotion-board.json"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 57,
+      "track": "adaptive-routing-eval",
+      "title": "adaptive readiness gate closure",
+      "status": "completed",
+      "required_assets": [
+        "scripts/verify/vibe-adaptive-routing-readiness-gate.ps1"
+      ],
+      "verify_gate": "vibe-adaptive-routing-readiness-gate"
+    },
+    {
+      "wave": 58,
+      "track": "value-ops",
+      "title": "value ops operating model",
+      "status": "completed",
+      "required_assets": [
+        "docs/continuous-value-extraction-operations.md",
+        "config/upstream-value-ops-board.json"
+      ],
+      "verify_gate": "vibe-upstream-value-ops-gate"
+    },
+    {
+      "wave": 59,
+      "track": "value-ops",
+      "title": "upstream intake board",
+      "status": "completed",
+      "required_assets": [
+        "config/upstream-value-ops-board.json",
+        "references/upstream-value-ledger.md"
+      ],
+      "verify_gate": "vibe-upstream-value-ops-gate"
+    },
+    {
+      "wave": 60,
+      "track": "value-ops",
+      "title": "distillation quality bar",
+      "status": "completed",
+      "required_assets": [
+        "references/upstream-distillation-quality-bar.md"
+      ],
+      "verify_gate": "vibe-upstream-value-ops-gate"
+    },
+    {
+      "wave": 61,
+      "track": "value-ops",
+      "title": "continuous release evidence linkage",
+      "status": "completed",
+      "required_assets": [
+        "docs/releases/README.md",
+        "references/release-ledger.jsonl",
+        "scripts/governance/release-cut.ps1"
+      ],
+      "verify_gate": "vibe-upstream-value-ops-gate"
+    },
+    {
+      "wave": 62,
+      "track": "value-ops",
+      "title": "release packaging closure",
+      "status": "completed",
+      "required_assets": [
+        "scripts/governance/release-cut.ps1",
+        "scripts/verify/vibe-wave40-63-board-gate.ps1"
+      ],
+      "verify_gate": "vibe-wave40-63-board-gate"
+    },
+    {
+      "wave": 63,
+      "track": "value-ops",
+      "title": "runtime sync closure",
+      "status": "completed",
+      "required_assets": [
+        "scripts/governance/sync-bundled-vibe.ps1",
+        "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+        "scripts/verify/vibe-bom-frontmatter-gate.ps1"
+      ],
+      "verify_gate": "vibe-release-install-runtime-coherence-gate"
+    }
+  ]
+}

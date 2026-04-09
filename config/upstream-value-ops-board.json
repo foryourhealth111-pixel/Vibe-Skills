@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-08",
+  "policy": {
+    "mode": "continuous_intake",
+    "forbid_unmapped_absorption": true,
+    "require_quality_bar": true
+  },
+  "workstreams": [
+    {
+      "id": "memory-and-policy",
+      "source_projects": [
+        "mem0",
+        "letta"
+      ],
+      "target_plane": "memory/policy",
+      "next_action": "turn remaining heuristics into explicit contracts",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    },
+    {
+      "id": "browser-and-desktop",
+      "source_projects": [
+        "browser-use",
+        "agent-s"
+      ],
+      "target_plane": "browser/desktop",
+      "next_action": "continue provider-vs-shadow boundary extraction",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    },
+    {
+      "id": "connector-catalog",
+      "source_projects": [
+        "awesome-mcp-servers",
+        "composio",
+        "activepieces"
+      ],
+      "target_plane": "connector admission",
+      "next_action": "expand connector capability/risk slices without new runtime default owner",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    },
+    {
+      "id": "skill-role-ecosystem",
+      "source_projects": [
+        "claude-skills",
+        "awesome-agent-skills",
+        "awesome-claude-code-subagents",
+        "antigravity-awesome-skills",
+        "agent-squad"
+      ],
+      "target_plane": "role/skill governance",
+      "next_action": "continue role-pack distillation and conflict pruning",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    },
+    {
+      "id": "prompt-and-vibe-assets",
+      "source_projects": [
+        "prompt-engineering-guide",
+        "awesome-vibe-coding",
+        "vibe-coding-cn"
+      ],
+      "target_plane": "prompt intelligence / discovery corpus",
+      "next_action": "continue converting patterns into audited cards and eval cases",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    },
+    {
+      "id": "document-and-eval-productization",
+      "source_projects": [
+        "docling",
+        "awesome-ai-agents-e2b"
+      ],
+      "target_plane": "document plane / eval corpus",
+      "next_action": "continue productization of remaining contract slices",
+      "quality_bar": "references/upstream-distillation-quality-bar.md"
+    }
+  ]
+}

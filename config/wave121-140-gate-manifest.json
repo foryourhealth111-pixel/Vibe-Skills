@@ -1,0 +1,266 @@
+{
+  "version": 1,
+  "updated": "2026-03-08",
+  "scope": "wave121_140",
+  "description": "Manifest for Wave121-140 operatorized value extraction gates. Phase 1 implements Wave121-125 canonical runway.",
+  "waves": [
+    {
+      "wave": 121,
+      "title": "upstream mapping / slug alignment",
+      "gate_script": "scripts/verify/vibe-wave121-upstream-mapping-gate.ps1",
+      "artifact_basename": "vibe-wave121-upstream-mapping-gate",
+      "required_assets": [
+        "config/upstream-corpus-manifest.json",
+        "config/upstream-source-aliases.json",
+        "config/upstream-value-ops-board.json",
+        "docs/upstream-corpus-governance.md",
+        "docs/upstream-source-alias-governance.md",
+        "references/upstream-value-ledger.md",
+        "references/upstream-reaudit-matrix-v2.md",
+        "references/upstream-mapping-notes.md"
+      ],
+      "keyword_checks": [
+        {
+          "path": "docs/upstream-source-alias-governance.md",
+          "keywords": [
+            "canonical slug",
+            "Prompt-Engineering-Guide",
+            "Agent-S",
+            "config/upstream-source-aliases.json"
+          ]
+        },
+        {
+          "path": "config/upstream-corpus-manifest.json",
+          "keywords": [
+            "memory_policy_source",
+            "browserops_provider_source",
+            "desktopops_shadow_source",
+            "config/upstream-source-aliases.json"
+          ]
+        },
+        {
+          "path": "references/upstream-value-ledger.md",
+          "keywords": [
+            "`mem0`",
+            "`letta`",
+            "`browser-use`",
+            "`agent-s`"
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 122,
+      "title": "operator preview contract v1",
+      "gate_script": "scripts/verify/vibe-operator-preview-contract-gate.ps1",
+      "artifact_basename": "vibe-operator-preview-contract-gate",
+      "required_assets": [
+        "docs/operator-preview-contract-governance.md",
+        "config/operator-preview-contract.json",
+        "references/operator-preview-contract.md",
+        "scripts/governance/sync-bundled-vibe.ps1",
+        "scripts/governance/release-cut.ps1",
+        "scripts/verify/vibe-operator-preview-contract-gate.ps1"
+      ],
+      "keyword_checks": [
+        {
+          "path": "docs/operator-preview-contract-governance.md",
+          "keywords": [
+            "Precheck -> Preview -> Apply -> Postcheck",
+            "machine-readable preview summary",
+            "sync-bundled-vibe.ps1",
+            "release-cut.ps1"
+          ]
+        },
+        {
+          "path": "config/operator-preview-contract.json",
+          "keywords": [
+            "sync-bundled-vibe",
+            "release-cut",
+            "preview_output_root",
+            "machine_readable_preview_required"
+          ]
+        },
+        {
+          "path": "references/operator-preview-contract.md",
+          "keywords": [
+            "contract_version",
+            "precheck",
+            "preview",
+            "postcheck"
+          ]
+        },
+        {
+          "path": "scripts/governance/sync-bundled-vibe.ps1",
+          "keywords": [
+            "[switch]$Preview",
+            "PreviewOutputPath",
+            "Write-VgoUtf8NoBomText",
+            "preview"
+          ]
+        },
+        {
+          "path": "scripts/governance/release-cut.ps1",
+          "keywords": [
+            "[switch]$Preview",
+            "PreviewOutputPath",
+            "sync-bundled-vibe.ps1 -Preview",
+            "preview"
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 123,
+      "title": "outputs fixture migration stage2",
+      "gate_script": "scripts/verify/vibe-output-fixture-migration-stage2-gate.ps1",
+      "artifact_basename": "vibe-output-fixture-migration-stage2-gate",
+      "required_assets": [
+        "docs/output-artifact-boundary-governance.md",
+        "config/outputs-boundary-policy.json",
+        "references/fixtures/README.md",
+        "references/fixtures/migration-map.json",
+        "scripts/verify/vibe-output-fixture-migration-stage2-gate.ps1"
+      ],
+      "keyword_checks": [
+        {
+          "path": "docs/output-artifact-boundary-governance.md",
+          "keywords": [
+            "Stage 2 — Fixture Migration",
+            "references/fixtures/**",
+            "stage2_mirrored",
+            "strict_requires_zero_tracked_outputs"
+          ]
+        },
+        {
+          "path": "config/outputs-boundary-policy.json",
+          "keywords": [
+            "migration_stage",
+            "stage2_mirrored",
+            "fixture_roots",
+            "expected_tracked_output_count"
+          ]
+        },
+        {
+          "path": "references/fixtures/README.md",
+          "keywords": [
+            "external-corpus",
+            "retro-compare",
+            "routing-stability",
+            "baseline fixture"
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 124,
+      "title": "ops cockpit v2 actionable panels",
+      "gate_script": "scripts/verify/vibe-wave124-ops-cockpit-v2-gate.ps1",
+      "artifact_basename": "vibe-wave124-ops-cockpit-v2-gate",
+      "required_assets": [
+        "docs/ops-cockpit-governance.md",
+        "config/ops-cockpit-panel-contract.json",
+        "references/ops-cockpit-gap-matrix.md",
+        "scripts/common/vibe-wave-gate-runner.ps1",
+        "scripts/verify/vibe-wave124-ops-cockpit-v2-gate.ps1"
+      ],
+      "keyword_checks": [
+        {
+          "path": "docs/ops-cockpit-governance.md",
+          "keywords": [
+            "结论 + blocker + evidence pointer",
+            "actionable panels",
+            "ops-dashboard.json",
+            "gap matrix"
+          ]
+        },
+        {
+          "path": "config/ops-cockpit-panel-contract.json",
+          "keywords": [
+            "freshness",
+            "promotion",
+            "replay",
+            "rollback",
+            "release"
+          ]
+        },
+        {
+          "path": "references/ops-cockpit-gap-matrix.md",
+          "keywords": [
+            "plane_id",
+            "blocker",
+            "evidence_ref",
+            "next_action"
+          ]
+        }
+      ],
+      "write_artifacts_action": "ops_dashboard",
+      "generated_outputs": [
+        "outputs/dashboard/ops-dashboard.json",
+        "outputs/dashboard/ops-dashboard.md"
+      ],
+      "generated_output_keywords": [
+        {
+          "path": "outputs/dashboard/ops-dashboard.json",
+          "keywords": [
+            "actionable_panels",
+            "blockers",
+            "evidence_ref",
+            "next_action"
+          ]
+        },
+        {
+          "path": "outputs/dashboard/ops-dashboard.md",
+          "keywords": [
+            "Actionable Panels",
+            "Blockers",
+            "Evidence",
+            "Next Action"
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 125,
+      "title": "gate family convergence / execution-context hardening",
+      "gate_script": "scripts/verify/vibe-wave125-gate-family-convergence-gate.ps1",
+      "artifact_basename": "vibe-wave125-gate-family-convergence-gate",
+      "required_assets": [
+        "docs/execution-context-lock-governance.md",
+        "config/execution-context-status.json",
+        "scripts/verify/gate-family-index.md",
+        "scripts/common/vibe-wave-gate-runner.ps1",
+        "scripts/verify/vibe-wave125-gate-family-convergence-gate.ps1"
+      ],
+      "keyword_checks": [
+        {
+          "path": "docs/execution-context-lock-governance.md",
+          "keywords": [
+            "canonical repo tree",
+            "mirror targets",
+            "report_only",
+            "operator surface"
+          ]
+        },
+        {
+          "path": "config/execution-context-status.json",
+          "keywords": [
+            "canonical_target_id",
+            "sync_source_target_id",
+            "report_only",
+            "enforce_execution_context"
+          ]
+        },
+        {
+          "path": "scripts/verify/gate-family-index.md",
+          "keywords": [
+            "Operator Preview / Apply Safety",
+            "Execution-Context / Wave Runner",
+            "vibe-wave124-ops-cockpit-v2-gate.ps1",
+            "vibe-wave125-gate-family-convergence-gate.ps1"
+          ]
+        }
+      ]
+    }
+  ]
+}

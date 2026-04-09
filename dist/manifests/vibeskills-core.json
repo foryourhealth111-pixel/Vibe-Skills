@@ -46,8 +46,8 @@
   },
   "summary": "Host-agnostic contracts and schemas that stabilize skill metadata without claiming a governed runtime on any host.",
   "source_release": {
-    "version": "3.0.0",
-    "updated": "2026-04-07"
+    "version": "3.0.1",
+    "updated": "2026-04-09"
   },
   "truth_sources": [
     "docs/universalization/core-contract.md",

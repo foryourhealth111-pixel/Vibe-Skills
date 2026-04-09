@@ -363,6 +363,91 @@ class ReleaseCutOperatorTests(unittest.TestCase):
         self.assertIn("## Migration Notes", note)
         self.assertNotIn("TODO", note.upper())
 
+    def test_apply_appends_release_ledger_entry_even_without_trailing_newline(self) -> None:
+        ledger_path = self.root / "references" / "release-ledger.jsonl"
+        ledger_path.write_text(
+            '{"version":"9.9.8","updated":"2026-03-29","git_head":"deadbee"}',
+            encoding="utf-8",
+            newline="",
+        )
+
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30")
+
+        lines = [line for line in ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.assertEqual(2, len(lines))
+        latest = json.loads(lines[-1])
+        self.assertEqual("9.9.9", latest["version"])
+        self.assertEqual("2026-03-30", latest["updated"])
+
+    def test_apply_runs_gates_with_write_artifacts_enabled(self) -> None:
+        contract_path = self.root / "config" / "operator-preview-contract.json"
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        contract["operators"]["release-cut"]["apply_gates"] = [
+            "scripts/verify/write-artifacts-stub.ps1"
+        ]
+        contract_path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+
+        sentinel_path = self.root / "outputs" / "verify" / "write-artifacts-stub.txt"
+        self._write(
+            "scripts/verify/write-artifacts-stub.ps1",
+            textwrap.dedent(
+                f"""
+                param([switch]$WriteArtifacts)
+                if (-not $WriteArtifacts) {{
+                    throw "WriteArtifacts switch was not provided."
+                }}
+
+                $sentinel = Join-Path $PSScriptRoot '..\\..\\outputs\\verify\\write-artifacts-stub.txt'
+                $parent = Split-Path -Parent $sentinel
+                if (-not (Test-Path -LiteralPath $parent)) {{
+                    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+                }}
+                Set-Content -LiteralPath $sentinel -Value 'ok' -Encoding UTF8
+                """
+            ).strip()
+            + "\n",
+        )
+
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30", "-RunGates")
+
+        self.assertTrue(sentinel_path.exists())
+        self.assertEqual("ok", sentinel_path.read_text(encoding="utf-8").strip())
+
+    def test_apply_skips_write_artifacts_for_gates_that_do_not_declare_it(self) -> None:
+        contract_path = self.root / "config" / "operator-preview-contract.json"
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        contract["operators"]["release-cut"]["apply_gates"] = [
+            "scripts/verify/no-write-artifacts-stub.ps1"
+        ]
+        contract_path.write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+
+        sentinel_path = self.root / "outputs" / "verify" / "no-write-artifacts-stub.txt"
+        self._write(
+            "scripts/verify/no-write-artifacts-stub.ps1",
+            textwrap.dedent(
+                """
+                param()
+
+                if ($args.Count -gt 0) {
+                    throw "Unexpected arguments: $($args -join ', ')"
+                }
+
+                $sentinel = Join-Path $PSScriptRoot '..\\..\\outputs\\verify\\no-write-artifacts-stub.txt'
+                $parent = Split-Path -Parent $sentinel
+                if (-not (Test-Path -LiteralPath $parent)) {
+                    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+                }
+                Set-Content -LiteralPath $sentinel -Value 'ok' -Encoding UTF8
+                """
+            ).strip()
+            + "\n",
+        )
+
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30", "-RunGates")
+
+        self.assertTrue(sentinel_path.exists())
+        self.assertEqual("ok", sentinel_path.read_text(encoding="utf-8").strip())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,6 +40,7 @@ from .materializer import (
     install_opencode_guidance_payload,
     install_runtime_core_mode_payload,
     materialize_allowlisted_skills,
+    materialize_generated_nested_compatibility,
     materialize_host_visible_wrappers,
     materialize_internal_skill_corpus,
     resolve_bundled_skills_root,
@@ -378,6 +379,19 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
         target_root,
         packaging,
         host_id=adapter["id"],
+        copy_dir_replace_fn=lambda src, dst: copy_dir_replace(
+            src,
+            dst,
+            track_created_path=track_created_path,
+            record_owned_tree_root=record_owned_tree_root,
+        ),
+    )
+    materialize_generated_nested_compatibility(
+        load_json(repo_root / "config" / "version-governance.json"),
+        target_root / target_rel,
+        current_managed_skill_names,
+        source_skills_root=corpus_target if corpus_target.exists() else (target_root / "skills"),
+        copy_file_fn=lambda src, dst: copy_file(src, dst, track_created_path=track_created_path),
         copy_dir_replace_fn=lambda src, dst: copy_dir_replace(
             src,
             dst,

@@ -5,8 +5,8 @@
   "host_id": "claude-code",
   "stability": "supported-with-constraints",
   "source_release": {
-    "version": "3.0.0",
-    "updated": "2026-04-07"
+    "version": "3.0.1",
+    "updated": "2026-04-09"
   },
   "summary": "Claude Code host adapter lane with bounded managed closure. The repo can write and verify a managed Claude settings surface, while still keeping broader host behavior outside repo ownership.",
   "runtime_ownership": {

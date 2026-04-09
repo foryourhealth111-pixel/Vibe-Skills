@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "3.0.0",
-    "updated": "2026-04-07",
+    "version": "3.0.1",
+    "updated": "2026-04-09",
     "channel": "stable",
-    "notes": "major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness"
+    "notes": "nested install compatibility fix / release-cut preview-and-gate hardening / restored extended governance assets / full governed release train green"
   },
   "source_of_truth": {
     "canonical_root": "."

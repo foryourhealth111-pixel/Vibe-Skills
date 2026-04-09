@@ -4,6 +4,15 @@
   "preview_output_root": "outputs/governance/preview",
   "machine_readable_preview_required": true,
   "operators": {
+    "sync-bundled-vibe": {
+      "script": "scripts/governance/sync-bundled-vibe.ps1",
+      "preview_switch": "-Preview",
+      "preview_output_param": "-PreviewOutputPath",
+      "postcheck_gates": [
+        "scripts/verify/vibe-mirror-edit-hygiene-gate.ps1",
+        "scripts/verify/vibe-nested-bundled-parity-gate.ps1"
+      ]
+    },
     "release-cut": {
       "script": "scripts/governance/release-cut.ps1",
       "preview_switch": "-Preview",

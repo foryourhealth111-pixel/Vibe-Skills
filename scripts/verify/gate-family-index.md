@@ -29,7 +29,8 @@
 - Cleanliness / outputs / compatibility hygiene: `vibe-repo-cleanliness-gate.ps1`, `vibe-output-artifact-boundary-gate.ps1`, `vibe-mirror-edit-hygiene-gate.ps1`, `vibe-nested-bundled-parity-gate.ps1`
 - Plane governance: `vibe-browserops-*.ps1`, `vibe-desktopops-*.ps1`, `vibe-docling-*.ps1`, `vibe-connector-*.ps1`
 - Capability / upstream / role packs: `vibe-capability-*.ps1`, `vibe-role-pack-*.ps1`, `vibe-upstream-*.ps1`
-- Operator preview / wave runners: `vibe-operator-preview-contract-gate.ps1`, `vibe-manual-apply-policy-gate.ps1`, `vibe-wave*-gate.ps1`
+- Operator Preview / Apply Safety: `vibe-operator-preview-contract-gate.ps1`, `vibe-manual-apply-policy-gate.ps1`
+- Execution-Context / Wave Runner: `vibe-wave121-upstream-mapping-gate.ps1`, `vibe-wave124-ops-cockpit-v2-gate.ps1`, `vibe-wave125-gate-family-convergence-gate.ps1`
 
 ## Boundary
 

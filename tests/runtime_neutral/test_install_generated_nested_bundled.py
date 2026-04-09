@@ -13,6 +13,7 @@ INSTALL_SCRIPT = REPO_ROOT / "install.sh"
 CLI_SRC = REPO_ROOT / "apps" / "vgo-cli" / "src"
 CONTRACTS_SRC = REPO_ROOT / "packages" / "contracts" / "src"
 INSTALLER_CORE_SRC = REPO_ROOT / "packages" / "installer-core" / "src"
+VERIFICATION_CORE_SRC = REPO_ROOT / "packages" / "verification-core" / "src"
 
 REQUIRED_CORE = [
     "dialectic",
@@ -70,6 +71,7 @@ class InstallGeneratedNestedBundledTests(unittest.TestCase):
         shutil.copytree(CLI_SRC / "vgo_cli", self.repo_root / "apps" / "vgo-cli" / "src" / "vgo_cli", dirs_exist_ok=True)
         shutil.copytree(CONTRACTS_SRC / "vgo_contracts", self.repo_root / "packages" / "contracts" / "src" / "vgo_contracts", dirs_exist_ok=True)
         shutil.copytree(INSTALLER_CORE_SRC / "vgo_installer", self.repo_root / "packages" / "installer-core" / "src" / "vgo_installer", dirs_exist_ok=True)
+        shutil.copytree(VERIFICATION_CORE_SRC / "vgo_verify", self.repo_root / "packages" / "verification-core" / "src" / "vgo_verify", dirs_exist_ok=True)
 
         self._write("SKILL.md", "---\nname: vibe\ndescription: fixture canonical\n---\n")
         self._write("check.sh", "#!/usr/bin/env bash\nexit 0\n")

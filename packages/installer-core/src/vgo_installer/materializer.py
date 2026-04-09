@@ -262,8 +262,15 @@ def materialize_generated_nested_compatibility(
 
     nested_skills_root = nested_root.parent
     effective_source_skills_root = source_skills_root or installed_root.parent
+    source_is_nested_skills_root = (
+        effective_source_skills_root.exists()
+        and nested_skills_root.exists()
+        and same_path(effective_source_skills_root, nested_skills_root)
+    )
 
-    if nested_skills_root.exists():
+    if nested_root.exists():
+        shutil.rmtree(nested_root)
+    if nested_skills_root.exists() and not source_is_nested_skills_root:
         shutil.rmtree(nested_skills_root)
 
     if not effective_source_skills_root.exists():

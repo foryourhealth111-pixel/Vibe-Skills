@@ -10,7 +10,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ### Current Release Surface
 
-- [`v3.0.0.md`](v3.0.0.md): major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness
+- [`v3.0.1.md`](v3.0.1.md): nested install compatibility fix / release-cut preview-and-gate hardening / restored extended governance assets / full governed release train green
 
 ### Release Runtime / Proof Handoff
 
@@ -24,6 +24,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
+- [`v3.0.1.md`](v3.0.1.md) - 2026-04-09 - nested install compatibility fix / release-cut preview-and-gate hardening / restored extended governance assets / full governed release train green
 - [`v3.0.0.md`](v3.0.0.md) - 2026-04-07 - major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness
 - [`v2.3.56.md`](v2.3.56.md) - 2026-04-04 - remaining-architecture-closure completion / owner-consumer proof / live status truth alignment / bounded fallback honesty / regression-backed baseline
 - [`v2.3.55.md`](v2.3.55.md) - 2026-03-30 - owned-only uninstall and skill-only host alignment / OpenCode startup safety / explicit intent-vs-vector AI config split / macOS bootstrap compatibility

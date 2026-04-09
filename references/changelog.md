@@ -1,5 +1,12 @@
 # VCO Changelog
 
+## v3.0.1 (2026-04-09)
+
+- Restored install-time generated nested compatibility materialization so managed installs keep the nested `bundled/skills/vibe` surface without deleting the source tree when the source already resolves to that nested root.
+- Hardened `scripts/governance/release-cut.ps1` by restoring bundled-sync preview/apply flow, appending release-ledger rows safely when the existing file has no trailing newline, and only passing `-WriteArtifacts` to gates that actually declare it.
+- Reintroduced the historical governance boards, manifests, and release-train documents required by the extended Wave40-63, Wave64-82, Wave83-100, and Wave121-140 gates, and aligned capability/role-pack gates with canonical skill IDs so the full governed release train passes again.
+- Detailed release notes: `docs/releases/v3.0.1.md`.
+
 This file is the stable current changelog surface used by release governance.
 
 Historical entries before `v2.3.53` now live in `references/archive/changelog/pre-v2.3.53.md`.

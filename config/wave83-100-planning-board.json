@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-07",
+  "board_policy": {
+    "mode": "planning_board",
+    "execution_mode": "xl_unattended_vibe_first",
+    "wave_range": {
+      "from": 83,
+      "to": 100
+    },
+    "planning_horizon": "wave83_100_first_horizon",
+    "advisory_first_only": true,
+    "rollback_first": true,
+    "single_control_plane_only": true,
+    "no_new_top_level_planes": true,
+    "wave101_plus_requires_wave100_closure": true
+  },
+  "allowed_statuses": [
+    "planned",
+    "sequenced",
+    "deferred",
+    "completed"
+  ],
+  "waves": [
+    {
+      "wave": 83,
+      "track": "reliability",
+      "title": "gate reliability and keyword alias governance",
+      "status": "completed",
+      "first_execution_slice": true,
+      "primary_goal": "把 verify gate 的关键词漂移、编码脆弱性与壳兼容性纳入统一可靠性治理。",
+      "depends_on": [
+        82
+      ],
+      "upstream_sources": [
+        "all current planes"
+      ],
+      "candidate_assets": [
+        "docs/gate-reliability-governance.md",
+        "config/gate-reliability-policy.json",
+        "references/gate-keyword-alias-contract.md",
+        "scripts/verify/vibe-gate-reliability-gate.ps1"
+      ],
+      "candidate_gate": "vibe-gate-reliability-gate",
+      "gate": "scripts/verify/vibe-gate-reliability-gate.ps1"
+    },
+    {
+      "wave": 84,
+      "track": "candidate-eval",
+      "title": "memory quality eval pack",
+      "status": "completed",
+      "primary_goal": "为 mem0 / Letta 建立 preference-quality、retention、fallback integrity 的评测合同。",
+      "depends_on": [
+        83
+      ],
+      "upstream_sources": [
+        "mem0",
+        "Letta"
+      ],
+      "candidate_assets": [
+        "docs/memory-quality-eval-governance.md",
+        "config/memory-quality-scorecard.json",
+        "references/memory-eval-scenarios.md",
+        "scripts/verify/vibe-memory-quality-eval-gate.ps1"
+      ],
+      "candidate_gate": "vibe-memory-quality-eval-gate",
+      "gate": "scripts/verify/vibe-memory-quality-eval-gate.ps1"
+    },
+    {
+      "wave": 85,
+      "track": "candidate-eval",
+      "title": "openworld runtime eval harness",
+      "status": "completed",
+      "primary_goal": "统一 BrowserOps / DesktopOps 的 openworld eval、replay、confirm、rollback 场景。",
+      "depends_on": [
+        83
+      ],
+      "upstream_sources": [
+        "browser-use",
+        "Agent-S"
+      ],
+      "candidate_assets": [
+        "docs/openworld-runtime-eval-governance.md",
+        "config/openworld-runtime-eval-policy.json",
+        "references/openworld-eval-scenarios.md",
+        "scripts/verify/vibe-openworld-runtime-eval-gate.ps1"
+      ],
+      "candidate_gate": "vibe-openworld-runtime-eval-gate",
+      "gate": "scripts/verify/vibe-openworld-runtime-eval-gate.ps1"
+    },
+    {
+      "wave": 86,
+      "track": "candidate-eval",
+      "title": "document failure taxonomy",
+      "status": "completed",
+      "primary_goal": "把 Docling document plane 的 extraction failure modes 与 remediation paths 制度化。",
+      "depends_on": [
+        83
+      ],
+      "upstream_sources": [
+        "Docling"
+      ],
+      "candidate_assets": [
+        "docs/document-failure-taxonomy-governance.md",
+        "config/document-failure-taxonomy.json",
+        "references/document-failure-taxonomy.md",
+        "scripts/verify/vibe-document-failure-taxonomy-gate.ps1"
+      ],
+      "candidate_gate": "vibe-document-failure-taxonomy-gate",
+      "gate": "scripts/verify/vibe-document-failure-taxonomy-gate.ps1"
+    },
+    {
+      "wave": 87,
+      "track": "candidate-eval",
+      "title": "prompt intelligence eval and card QA",
+      "status": "completed",
+      "primary_goal": "为 Prompt intelligence 建立 pattern-card 质量、风险标注、confirm hint 的评测面。",
+      "depends_on": [
+        83
+      ],
+      "upstream_sources": [
+        "Prompt-Engineering-Guide"
+      ],
+      "candidate_assets": [
+        "docs/prompt-intelligence-eval-governance.md",
+        "config/prompt-intelligence-scorecard.json",
+        "references/prompt-eval-scenarios.md",
+        "scripts/verify/vibe-prompt-intelligence-eval-gate.ps1"
+      ],
+      "candidate_gate": "vibe-prompt-intelligence-eval-gate",
+      "gate": "scripts/verify/vibe-prompt-intelligence-eval-gate.ps1"
+    },
+    {
+      "wave": 88,
+      "track": "candidate-eval",
+      "title": "candidate quality board v1",
+      "status": "completed",
+      "primary_goal": "把各 candidate plane 的质量、风险、fallback readiness 汇总到统一 quality board。",
+      "depends_on": [
+        84,
+        85,
+        86,
+        87
+      ],
+      "upstream_sources": [
+        "multiple current planes"
+      ],
+      "candidate_assets": [
+        "docs/candidate-quality-board-governance.md",
+        "config/candidate-quality-board.json",
+        "references/candidate-quality-scorecards.md",
+        "scripts/verify/vibe-candidate-quality-board-gate.ps1"
+      ],
+      "candidate_gate": "vibe-candidate-quality-board-gate",
+      "gate": "scripts/verify/vibe-candidate-quality-board-gate.ps1"
+    },
+    {
+      "wave": 89,
+      "track": "role-pack",
+      "title": "role pack v2 governance",
+      "status": "completed",
+      "first_execution_slice": true,
+      "primary_goal": "把 role-pack 剩余价值从 reference 推进到 scorecard + boundary + landing graph。",
+      "depends_on": [
+        88
+      ],
+      "upstream_sources": [
+        "agent-squad",
+        "awesome-agent-skills",
+        "awesome-claude-code-subagents",
+        "antigravity-awesome-skills",
+        "claude-skills"
+      ],
+      "candidate_assets": [
+        "docs/role-pack-v2-governance.md",
+        "config/role-pack-scorecard.json",
+        "references/role-pack-catalog-v2.md",
+        "scripts/verify/vibe-role-pack-v2-gate.ps1"
+      ],
+      "candidate_gate": "vibe-role-pack-v2-gate",
+      "gate": "scripts/verify/vibe-role-pack-v2-gate.ps1"
+    },
+    {
+      "wave": 90,
+      "track": "role-pack",
+      "title": "subagent handoff governance",
+      "status": "completed",
+      "primary_goal": "把 reviewer / analyst / implementer / supervisor 的 handoff 模式沉淀成责任矩阵与证据合同。",
+      "depends_on": [
+        89
+      ],
+      "upstream_sources": [
+        "agent-squad",
+        "awesome-claude-code-subagents"
+      ],
+      "candidate_assets": [
+        "docs/subagent-handoff-governance.md",
+        "config/subagent-handoff-policy.json",
+        "references/subagent-pattern-scorecard.md",
+        "scripts/verify/vibe-subagent-handoff-gate.ps1"
+      ],
+      "candidate_gate": "vibe-subagent-handoff-gate",
+      "gate": "scripts/verify/vibe-subagent-handoff-gate.ps1"
+    },
+    {
+      "wave": 91,
+      "track": "discovery",
+      "title": "discovery intake scorecard",
+      "status": "completed",
+      "primary_goal": "为 discovery corpus 建立 source intake / dedup / usefulness scoring。",
+      "depends_on": [
+        89
+      ],
+      "upstream_sources": [
+        "awesome-vibe-coding",
+        "vibe-coding-cn",
+        "awesome-ai-tools",
+        "awesome-ai-agents-e2b"
+      ],
+      "candidate_assets": [
+        "docs/discovery-intake-scorecard-governance.md",
+        "config/discovery-intake-policy.json",
+        "references/discovery-intake-watchlist.md",
+        "scripts/verify/vibe-discovery-intake-scorecard-gate.ps1"
+      ],
+      "candidate_gate": "vibe-discovery-intake-scorecard-gate",
+      "gate": "scripts/verify/vibe-discovery-intake-scorecard-gate.ps1"
+    },
+    {
+      "wave": 92,
+      "track": "discovery",
+      "title": "capability lifecycle governance",
+      "status": "completed",
+      "primary_goal": "把 capability catalog 推进到 intake / promote / retire 生命周期治理。",
+      "depends_on": [
+        91
+      ],
+      "upstream_sources": [
+        "discovery corpus",
+        "capability catalog"
+      ],
+      "candidate_assets": [
+        "docs/capability-lifecycle-governance.md",
+        "config/capability-lifecycle-policy.json",
+        "references/capability-lifecycle-matrix.md",
+        "scripts/verify/vibe-capability-lifecycle-gate.ps1"
+      ],
+      "candidate_gate": "vibe-capability-lifecycle-gate",
+      "gate": "scripts/verify/vibe-capability-lifecycle-gate.ps1"
+    },
+    {
+      "wave": 93,
+      "track": "connector",
+      "title": "connector sandbox simulation",
+      "status": "completed",
+      "primary_goal": "为 composio / activepieces 的写动作建立 sandbox / simulation / rollback evidence contract。",
+      "depends_on": [
+        88
+      ],
+      "upstream_sources": [
+        "Composio",
+        "activepieces",
+        "awesome-mcp-servers"
+      ],
+      "candidate_assets": [
+        "docs/connector-sandbox-simulation-governance.md",
+        "config/connector-sandbox-policy.json",
+        "references/connector-simulation-scenarios.md",
+        "scripts/verify/vibe-connector-sandbox-simulation-gate.ps1"
+      ],
+      "candidate_gate": "vibe-connector-sandbox-simulation-gate",
+      "gate": "scripts/verify/vibe-connector-sandbox-simulation-gate.ps1"
+    },
+    {
+      "wave": 94,
+      "track": "skill-corpus",
+      "title": "skill harvest v2 governance",
+      "status": "completed",
+      "primary_goal": "把 skill catalog 剩余价值推进成更可审计的 harvest scorecard 与 promotion ceiling。",
+      "depends_on": [
+        89,
+        91
+      ],
+      "upstream_sources": [
+        "claude-skills",
+        "antigravity-awesome-skills",
+        "awesome-claude-skills-composio"
+      ],
+      "candidate_assets": [
+        "docs/skill-harvest-v2-governance.md",
+        "config/skill-harvest-policy.json",
+        "references/skill-distillation-scorecard.md",
+        "scripts/verify/vibe-skill-harvest-v2-gate.ps1"
+      ],
+      "candidate_gate": "vibe-skill-harvest-v2-gate",
+      "gate": "scripts/verify/vibe-skill-harvest-v2-gate.ps1"
+    },
+    {
+      "wave": 95,
+      "track": "operations",
+      "title": "ops dashboard evidence pack",
+      "status": "completed",
+      "first_execution_slice": true,
+      "primary_goal": "把 board / telemetry / replay / rollback 证据打包成 operator-facing dashboard。",
+      "depends_on": [
+        88,
+        92,
+        93
+      ],
+      "upstream_sources": [
+        "all promoted candidates"
+      ],
+      "candidate_assets": [
+        "docs/ops-dashboard-governance.md",
+        "outputs/dashboard/ops-dashboard.md",
+        "outputs/dashboard/ops-dashboard.json",
+        "scripts/verify/vibe-ops-dashboard-gate.ps1"
+      ],
+      "candidate_gate": "vibe-ops-dashboard-gate",
+      "gate": "scripts/verify/vibe-ops-dashboard-gate.ps1"
+    },
+    {
+      "wave": 96,
+      "track": "release",
+      "title": "release evidence bundle v3",
+      "status": "completed",
+      "primary_goal": "把 release note / release ledger / verify evidence / board snapshot 汇总成 release bundle。",
+      "depends_on": [
+        95
+      ],
+      "upstream_sources": [
+        "release train v2 inputs"
+      ],
+      "candidate_assets": [
+        "docs/release-evidence-bundle-v3-governance.md",
+        "references/release-evidence-bundle-contract.md",
+        "outputs/release/release-evidence-bundle.json",
+        "scripts/verify/vibe-release-evidence-bundle-gate.ps1"
+      ],
+      "candidate_gate": "vibe-release-evidence-bundle-gate",
+      "gate": "scripts/verify/vibe-release-evidence-bundle-gate.ps1"
+    },
+    {
+      "wave": 97,
+      "track": "governance-loop",
+      "title": "manual apply policy governance",
+      "status": "completed",
+      "primary_goal": "把 suggestion -> human review -> explicit apply -> rollback 记录制度化为 manual-only policy。",
+      "depends_on": [
+        95
+      ],
+      "upstream_sources": [
+        "adaptive routing advisory outputs"
+      ],
+      "candidate_assets": [
+        "docs/manual-apply-policy-governance.md",
+        "config/manual-apply-policy.json",
+        "references/manual-apply-checklist.md",
+        "scripts/verify/vibe-manual-apply-policy-gate.ps1"
+      ],
+      "candidate_gate": "vibe-manual-apply-policy-gate",
+      "gate": "scripts/verify/vibe-manual-apply-policy-gate.ps1"
+    },
+    {
+      "wave": 98,
+      "track": "governance-loop",
+      "title": "rollout proposal boundedness",
+      "status": "completed",
+      "primary_goal": "为所有 rollout proposal 增加 delta 上界、non-goal、rollback reference 校验。",
+      "depends_on": [
+        97
+      ],
+      "upstream_sources": [
+        "all proposal-producing surfaces"
+      ],
+      "candidate_assets": [
+        "docs/rollout-proposal-boundedness-governance.md",
+        "config/rollout-proposal-policy.json",
+        "references/rollout-proposal-contract.md",
+        "scripts/verify/vibe-rollout-proposal-boundedness-gate.ps1"
+      ],
+      "candidate_gate": "vibe-rollout-proposal-boundedness-gate",
+      "gate": "scripts/verify/vibe-rollout-proposal-boundedness-gate.ps1"
+    },
+    {
+      "wave": 99,
+      "track": "upstream",
+      "title": "upstream re-audit matrix v2",
+      "status": "completed",
+      "primary_goal": "对 15 个上游项目完成再审计矩阵，更新 absorbability / remaining value / no-go。",
+      "depends_on": [
+        92,
+        94
+      ],
+      "upstream_sources": [
+        "all tracked upstream sources"
+      ],
+      "candidate_assets": [
+        "docs/upstream-reaudit-matrix-v2-governance.md",
+        "references/upstream-reaudit-matrix-v2.md",
+        "config/upstream-reaudit-policy.json",
+        "scripts/verify/vibe-upstream-reaudit-matrix-gate.ps1"
+      ],
+      "candidate_gate": "vibe-upstream-reaudit-matrix-gate",
+      "gate": "scripts/verify/vibe-upstream-reaudit-matrix-gate.ps1"
+    },
+    {
+      "wave": 100,
+      "track": "closure",
+      "title": "wave83-100 closure gate",
+      "status": "completed",
+      "primary_goal": "为 Wave83-100 形成正式 closure gate，并定义 Wave101+ 的进入条件。",
+      "depends_on": [
+        96,
+        97,
+        98,
+        99
+      ],
+      "upstream_sources": [
+        "all tracks"
+      ],
+      "candidate_assets": [
+        "docs/plans/2026-03-07-vco-wave83-100-execution-plan.md",
+        "config/wave83-100-planning-board.json",
+        "scripts/verify/vibe-wave83-100-closure-gate.ps1"
+      ],
+      "candidate_gate": "vibe-wave83-100-closure-gate",
+      "gate": "scripts/verify/vibe-wave83-100-closure-gate.ps1"
+    }
+  ]
+}

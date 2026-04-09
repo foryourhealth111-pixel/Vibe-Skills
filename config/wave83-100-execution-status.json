@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-07",
+  "overall_status": "completed_wave83_100",
+  "completed_waves": [
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100
+  ],
+  "gate_manifest": "config/wave83-100-gate-manifest.json",
+  "board": "config/wave83-100-planning-board.json",
+  "dashboard_outputs": [
+    "outputs/dashboard/ops-dashboard.json",
+    "outputs/dashboard/ops-dashboard.md"
+  ],
+  "release_bundle": "outputs/release/release-evidence-bundle.json",
+  "bounded_rollout_bundle": "outputs/learn/vibe-adaptive-suggestions.json",
+  "verify_artifacts": [
+    "outputs/verify/vibe-candidate-quality-board-gate.json",
+    "outputs/verify/vibe-capability-lifecycle-gate.json",
+    "outputs/verify/vibe-connector-sandbox-simulation-gate.json",
+    "outputs/verify/vibe-discovery-intake-scorecard-gate.json",
+    "outputs/verify/vibe-document-failure-taxonomy-gate.json",
+    "outputs/verify/vibe-gate-reliability-gate.json",
+    "outputs/verify/vibe-manual-apply-policy-gate.json",
+    "outputs/verify/vibe-memory-quality-eval-gate.json",
+    "outputs/verify/vibe-openworld-runtime-eval-gate.json",
+    "outputs/verify/vibe-ops-dashboard-gate.json",
+    "outputs/verify/vibe-prompt-intelligence-eval-gate.json",
+    "outputs/verify/vibe-release-evidence-bundle-gate.json",
+    "outputs/verify/vibe-role-pack-v2-gate.json",
+    "outputs/verify/vibe-rollout-proposal-boundedness-gate.json",
+    "outputs/verify/vibe-skill-harvest-v2-gate.json",
+    "outputs/verify/vibe-subagent-handoff-gate.json",
+    "outputs/verify/vibe-upstream-reaudit-matrix-gate.json",
+    "outputs/verify/vibe-wave83-100-closure-gate.json"
+  ]
+}

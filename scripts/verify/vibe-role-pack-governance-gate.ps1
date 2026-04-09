@@ -63,6 +63,34 @@ function Get-SkillNames {
     return @($lock.skills | ForEach-Object { [string]$_.name } | Where-Object { $_ } | Sort-Object -Unique)
 }
 
+function Get-CanonicalSkillNames {
+    param([string]$RepoRoot)
+
+    $coreSkillsRoot = Join-Path $RepoRoot "core\skills"
+    if (-not (Test-Path -LiteralPath $coreSkillsRoot)) {
+        return @()
+    }
+
+    $skillIds = @()
+    foreach ($dir in @(Get-ChildItem -LiteralPath $coreSkillsRoot -Force -Directory | Sort-Object Name)) {
+        $skillJsonPath = Join-Path $dir.FullName "skill.json"
+        if (-not (Test-Path -LiteralPath $skillJsonPath)) {
+            continue
+        }
+
+        $skillJson = Read-JsonFile -Path $skillJsonPath
+        $source = if ($skillJson.PSObject.Properties.Name -contains "source_of_truth") { $skillJson.source_of_truth } else { $null }
+        $sourceKind = if ($null -ne $source -and $source.PSObject.Properties.Name -contains "kind") { [string]$source.kind } else { "" }
+        $skillId = if ($skillJson.PSObject.Properties.Name -contains "skill_id") { [string]$skillJson.skill_id } else { [string]$dir.Name }
+
+        if ($sourceKind -eq "canonical-skill" -and -not [string]::IsNullOrWhiteSpace($skillId)) {
+            $skillIds += $skillId
+        }
+    }
+
+    return @($skillIds | Sort-Object -Unique)
+}
+
 function Get-TeamTemplateIds {
     param([string]$Path)
 
@@ -184,6 +212,7 @@ if (Test-Path -LiteralPath $paths.team_templates) {
 }
 if (Test-Path -LiteralPath $paths.skills_lock) {
     $skillNames = Get-SkillNames -Path $paths.skills_lock
+    $skillNames = @($skillNames + (Get-CanonicalSkillNames -RepoRoot $repoRoot) | Sort-Object -Unique)
 }
 if (Test-Path -LiteralPath $paths.role_doc) {
     $roleDoc = Get-Content -LiteralPath $paths.role_doc -Raw -Encoding UTF8
