@@ -29,6 +29,7 @@ CODEX_COMPATIBILITY_COMMAND_FILES = {
     "vibe-what-do-i-want.md",
     "vibe-how-do-we-do.md",
     "vibe-do-it.md",
+    "vibe-upgrade.md",
 }
 CODEX_WRAPPER_SKILL_NAMES = {
     "vibe",
