@@ -27,6 +27,51 @@ def resolve_powershell() -> str | None:
 
 
 class RuntimeEntrypointHelperTests(unittest.TestCase):
+    def test_repo_root_resolution_prefers_nearest_governed_git_root_for_worktree_like_layout(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell not available")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            outer_root = Path(tempdir) / "outer-repo"
+            worktree_root = outer_root / ".worktrees" / "feature-a"
+            common_dir = worktree_root / "scripts" / "common"
+            common_dir.mkdir(parents=True, exist_ok=True)
+            (common_dir / "vibe-governance-helpers.ps1").write_text(
+                (REPO_ROOT / "scripts" / "common" / "vibe-governance-helpers.ps1").read_text(encoding="utf-8"),
+                encoding="utf-8",
+                newline="\n",
+            )
+
+            (outer_root / "config").mkdir(parents=True, exist_ok=True)
+            (worktree_root / "config").mkdir(parents=True, exist_ok=True)
+            (outer_root / "config" / "version-governance.json").write_text("{}", encoding="utf-8", newline="\n")
+            (worktree_root / "config" / "version-governance.json").write_text("{}", encoding="utf-8", newline="\n")
+            (outer_root / ".git").mkdir(parents=True, exist_ok=True)
+            (worktree_root / ".git").write_text("gitdir: /tmp/fake-worktree-git\n", encoding="utf-8", newline="\n")
+
+            script_path = worktree_root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+            script_path.parent.mkdir(parents=True, exist_ok=True)
+            script_path.write_text("Write-Host 'runtime'\n", encoding="utf-8", newline="\n")
+
+            ps_script = (
+                "& { "
+                f". '{common_dir / 'vibe-governance-helpers.ps1'}'; "
+                f"$resolved = Resolve-VgoRepoRoot -StartPath '{script_path}'; "
+                "[pscustomobject]@{ resolved = $resolved } | ConvertTo-Json -Depth 5 }"
+            )
+
+            completed = subprocess.run(
+                [powershell, "-NoLogo", "-NoProfile", "-Command", ps_script],
+                cwd=worktree_root,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            payload = json.loads(completed.stdout)
+            self.assertEqual(str(worktree_root.resolve()), payload["resolved"])
+
     def test_helper_resolves_contract_default_runtime_entrypoint_when_effective_config_is_absent(self) -> None:
         powershell = resolve_powershell()
         if powershell is None:
@@ -155,6 +200,36 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
             payload = json.loads(completed.stdout)
             self.assertEqual("scripts/runtime/custom-entry.ps1", payload["runtime_entrypoint"])
             self.assertEqual(str((root / "scripts" / "runtime" / "custom-entry.ps1").resolve()), payload["resolved"])
+
+    def test_path_within_root_requires_directory_boundary(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell not available")
+
+        helper_path = REPO_ROOT / "scripts" / "runtime" / "VibeRuntime.Common.ps1"
+        root = str((REPO_ROOT / "dist" / "host-codex").resolve())
+        inside_candidate = str((REPO_ROOT / "dist" / "host-codex" / "bundled" / "skills" / "pdf" / "SKILL.md").resolve())
+        sibling_candidate = str((REPO_ROOT / "dist" / "host-codex-shadow" / "bundled" / "skills" / "pdf" / "SKILL.md").resolve())
+
+        ps_script = (
+            "& { "
+            f". '{helper_path}'; "
+            f"$inside = Test-VibePathWithinRoot -RootPath '{root}' -CandidatePath '{inside_candidate}'; "
+            f"$sibling = Test-VibePathWithinRoot -RootPath '{root}' -CandidatePath '{sibling_candidate}'; "
+            "[pscustomobject]@{ inside = $inside; sibling = $sibling } | ConvertTo-Json -Depth 5 }"
+        )
+
+        completed = subprocess.run(
+            [powershell, "-NoLogo", "-NoProfile", "-Command", ps_script],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        payload = json.loads(completed.stdout)
+        self.assertTrue(payload["inside"])
+        self.assertFalse(payload["sibling"])
 
 
 if __name__ == "__main__":

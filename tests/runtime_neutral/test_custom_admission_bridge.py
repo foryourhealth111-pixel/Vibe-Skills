@@ -70,6 +70,7 @@ def write_custom_skill(
     target_root: Path,
     *,
     skill_id: str,
+    entrypoint_filename: str = "SKILL.md",
     trigger_mode: str = "advisory",
     requires: list[str] | None = None,
     keywords: list[str] | None = None,
@@ -79,7 +80,8 @@ def write_custom_skill(
 ) -> None:
     skill_dir = target_root / "skills" / "custom" / skill_id
     skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "SKILL.md").write_text(
+    entrypoint_path = skill_dir / entrypoint_filename
+    entrypoint_path.write_text(
         (
             "---\n"
             f"name: {skill_id}\n"
@@ -98,7 +100,7 @@ def write_custom_skill(
                     {
                         "id": skill_id,
                         "enabled": True,
-                        "path": f"skills/custom/{skill_id}",
+                        "path": f"skills/custom/{skill_id}/{entrypoint_filename}",
                         "keywords": keywords or ["bioanalysis", "qc", "workflow"],
                         "intent_tags": intent_tags or ["planning", "coding", "research"],
                         "non_goals": ["billing"],
@@ -316,6 +318,37 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             approved_dispatch = packet["specialist_dispatch"]["approved_dispatch"]
             self.assertIn("genomics-qc-flow", [item["skill_id"] for item in approved_dispatch])
 
+    def test_runtime_freeze_uses_resolved_runtime_mirror_entrypoint_in_progressive_load_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            target_root = Path(tempdir) / ".codex"
+            artifact_root = Path(tempdir) / "artifacts"
+            write_custom_skill(
+                target_root,
+                skill_id="genomics-qc-flow",
+                entrypoint_filename="SKILL.runtime-mirror.md",
+                trigger_mode="advisory",
+                preferred_stages=["plan_execute"],
+            )
+
+            payload = run_runtime_freeze(
+                task="Need bioanalysis qc workflow and governed planning for genomics deliverables.",
+                target_root=target_root,
+                approved_specialist_skill_ids=["genomics-qc-flow"],
+                artifact_root=artifact_root,
+            )
+            packet = payload["packet"]
+            custom_recommendation = next(
+                item for item in packet["specialist_recommendations"] if item["skill_id"] == "genomics-qc-flow"
+            )
+
+            self.assertTrue(
+                str(custom_recommendation["native_skill_entrypoint"]).endswith("SKILL.runtime-mirror.md")
+            )
+            self.assertEqual(
+                f"Open the specialist {custom_recommendation['native_skill_entrypoint']} entrypoint first.",
+                list(custom_recommendation["progressive_load_policy"])[0],
+            )
+
     def test_full_runtime_carries_custom_specialist_into_execution_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             target_root = Path(tempdir) / ".codex"
@@ -345,6 +378,8 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             )
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["prompt_injection_complete_for_executed_specialists"]))
+            self.assertEqual([], list(execution_manifest["dispatch_integrity"]["prompt_injection_incomplete_skill_ids"]))
             self.assertIn(
                 "genomics-qc-flow",
                 [str(skill_id) for skill_id in execution_manifest["dispatch_integrity"]["executed_specialist_skill_ids"]],

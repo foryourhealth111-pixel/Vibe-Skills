@@ -13,8 +13,12 @@
     "runtime_protocol": "protocols/runtime.md",
     "forbid_second_router": true
   },
+  "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
   "invariants": {
-    "single_user_facing_path": true,
+    "single_runtime_authority": true,
+    "discoverable_intent_entries_allowed": true,
+    "discoverable_entries_are_presentational": true,
+    "grade_alias_matrix_forbidden": true,
     "fixed_stage_order": true,
     "freeze_requirement_before_execution": true,
     "cleanup_required_before_completion": true,

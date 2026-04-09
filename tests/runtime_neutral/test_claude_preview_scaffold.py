@@ -57,6 +57,8 @@ def run_package_install(*, host: str, target_root: Path, profile: str = "full") 
 
 
 class ClaudePreviewScaffoldTests(unittest.TestCase):
+    EXPECTED_WRAPPER_SKILLS = ("vibe", "vibe-want", "vibe-how", "vibe-do")
+
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.root = Path(self.tempdir.name)
@@ -138,6 +140,8 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertEqual(str((self.target_root / 'skills').resolve()), settings['vibeskills']['skills_root'])
         self.assertTrue(closure_path.exists())
         self.assertTrue(host_settings_path.exists())
+        for name in self.EXPECTED_WRAPPER_SKILLS:
+            self.assertTrue((self.target_root / 'skills' / name / 'SKILL.md').exists())
         self.assertFalse((self.target_root / 'commands').exists())
         self.assertEqual('preview-guidance', payload['install_mode'])
         self.assertEqual(str(closure_path), payload['host_closure_path'])
@@ -174,6 +178,9 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertEqual(self.existing_settings['model'], settings['model'])
         self.assertEqual('claude-code', settings['vibeskills']['host_id'])
         self.assertTrue((self.target_root / '.vibeskills' / 'host-settings.json').exists())
+        self.assertIn('[OK] host-visible discoverable entries', result.stdout)
+        for name in self.EXPECTED_WRAPPER_SKILLS:
+            self.assertTrue((self.target_root / 'skills' / name / 'SKILL.md').exists())
         self.assertFalse((self.target_root / 'commands').exists())
 
 

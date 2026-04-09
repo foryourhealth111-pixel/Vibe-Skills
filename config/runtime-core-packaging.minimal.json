@@ -77,9 +77,10 @@
       "public_skill_surface": "Declared public skill projections are the only top-level skills intentionally exposed to host discovery.",
       "internal_skill_corpus": "Full bundled specialist corpus may be materialized under the canonical vibe root and consumed by runtime descriptor resolution without top-level exposure.",
       "compatibility_skill_projections": "Compatibility projections preserve selected direct-entry skill paths only when host or runtime behavior still depends on them.",
-      "public_skill_surface_mode": "canonical_vibe_only",
+      "public_skill_surface_mode": "discoverable_wrapper_projection",
       "internal_skill_corpus_enabled": true,
-      "compatibility_projection_mode": "explicit_projection_only"
+      "compatibility_projection_mode": "explicit_projection_only",
+      "discoverable_entry_surface": "config/vibe-entry-surfaces.json"
     },
     "copy_directories": {
       "active_sources": [
@@ -109,7 +110,8 @@
       "excluded_bundled_skill_names": [
         "vibe"
       ],
-      "public_surface_mode": "canonical_vibe_only",
+      "public_surface_mode": "discoverable_wrapper_projection",
+      "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
       "internal_corpus_target_relpath": "skills/vibe/bundled/skills",
       "compatibility_skill_projections": []
     }
@@ -137,10 +139,14 @@
     "writing-plans"
   ],
   "public_skill_surface": {
-    "mode": "canonical_vibe_only",
+    "mode": "discoverable_wrapper_projection",
     "canonical_vibe_target_relpath": "skills/vibe",
+    "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
     "projected_skill_names": [
-      "vibe"
+      "vibe",
+      "vibe-want",
+      "vibe-how",
+      "vibe-do"
     ]
   },
   "internal_skill_corpus": {

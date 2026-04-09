@@ -59,6 +59,7 @@ def test_runtime_config_manifest_groups_separate_runtime_domains() -> None:
         "config/runtime-script-manifest.json",
         "config/runtime-contract.json",
         "config/runtime-core-packaging.json",
+        "config/vibe-entry-surfaces.json",
         "config/version-governance.json",
     }
     assert router_and_discovery >= {

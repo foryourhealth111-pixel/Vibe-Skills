@@ -22,7 +22,26 @@ SUPPORTING_DOCS = [
 ]
 
 
+def _has_vibe_mcp_disclaimer(text: str, lowered: str) -> bool:
+    return (
+        ("$vibe" not in text and "/vibe" not in text)
+        or "not mcp completion" in lowered
+        or "not proof of mcp" in lowered
+        or "不等于mcp" in text
+        or "不等于 MCP" in text
+    )
+
+
 class InstallPromptMcpContractTests(unittest.TestCase):
+    def test_supporting_doc_vibe_guard_handles_slash_vibe_and_not_proof_variant(self) -> None:
+        self.assertFalse(_has_vibe_mcp_disclaimer("/vibe is available", "/vibe is available"))
+        self.assertTrue(
+            _has_vibe_mcp_disclaimer(
+                "/vibe is available and not proof of mcp",
+                "/vibe is available and not proof of mcp",
+            )
+        )
+
     def test_all_prompt_docs_require_the_same_five_mcp_surfaces(self) -> None:
         for path in PROMPT_FILES:
             text = path.read_text(encoding="utf-8-sig")
@@ -63,10 +82,7 @@ class InstallPromptMcpContractTests(unittest.TestCase):
                 path.name,
             )
             self.assertTrue(
-                "$vibe" not in text
-                or "not mcp completion" in lowered
-                or "不等于mcp" in text
-                or "不等于 MCP" in text,
+                _has_vibe_mcp_disclaimer(text, lowered),
                 path.name,
             )
             self.assertIn("online-ready", lowered, path.name)

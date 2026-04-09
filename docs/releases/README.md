@@ -10,7 +10,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ### Current Release Surface
 
-- [`v2.3.56.md`](v2.3.56.md): remaining-architecture-closure completion / owner-consumer proof / live status truth alignment / bounded fallback honesty / regression-backed baseline
+- [`v3.0.0.md`](v3.0.0.md): major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness
 
 ### Release Runtime / Proof Handoff
 
@@ -24,10 +24,13 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
+- [`v3.0.0.md`](v3.0.0.md) - 2026-04-07 - major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness
 - [`v2.3.56.md`](v2.3.56.md) - 2026-04-04 - remaining-architecture-closure completion / owner-consumer proof / live status truth alignment / bounded fallback honesty / regression-backed baseline
 - [`v2.3.55.md`](v2.3.55.md) - 2026-03-30 - owned-only uninstall and skill-only host alignment / OpenCode startup safety / explicit intent-vs-vector AI config split / macOS bootstrap compatibility
 - [`v2.3.54.md`](v2.3.54.md) - 2026-03-30 - release operator closure / runtime contract schema baseline / outputs-boundary migration / install-time generated nested compatibility / release truth hardening
 - [`v2.3.53.md`](v2.3.53.md) - 2026-03-30 - governed specialist dispatch and custom admission closure / Windows PowerShell host resolution / managed host install guarantees / cleanup-truth tightening
+
+Older release notes remain in this directory as historical version records, but they are not part of the active release surface.
 
 ## Historical Release Archive
 

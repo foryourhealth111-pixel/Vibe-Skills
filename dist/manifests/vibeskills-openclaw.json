@@ -50,8 +50,8 @@
   },
   "summary": "OpenClaw may consume the shared runtime-core payload through a documented host root, but this repository does not claim host-native governed closure for it.",
   "source_release": {
-    "version": "2.3.56",
-    "updated": "2026-04-04"
+    "version": "3.0.0",
+    "updated": "2026-04-07"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

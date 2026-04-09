@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "2.3.56",
-    "updated": "2026-04-04",
+    "version": "3.0.0",
+    "updated": "2026-04-07",
     "channel": "stable",
-    "notes": "remaining architecture closure / owner-consumer proof / live status truth alignment / bounded fallback honesty / governed execution proof"
+    "notes": "major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness"
   },
   "source_of_truth": {
     "canonical_root": ".",
@@ -129,6 +129,7 @@
         "config/version-governance.json",
         "config/runtime-script-manifest.json",
         "config/runtime-config-manifest.json",
+        "config/vibe-entry-surfaces.json",
         "apps/vgo-cli/src/vgo_cli/__init__.py",
         "apps/vgo-cli/src/vgo_cli/main.py",
         "apps/vgo-cli/src/vgo_cli/errors.py",
@@ -202,6 +203,7 @@
           "config/version-governance.json",
           "config/runtime-script-manifest.json",
           "config/runtime-config-manifest.json",
+          "config/vibe-entry-surfaces.json",
           "config/runtime-contract.json",
           "config/runtime-modes.json",
           "config/runtime-input-packet-policy.json",

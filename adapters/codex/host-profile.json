@@ -15,6 +15,14 @@
     "managed_by_repo": true,
     "notes": "The repository can materialize runtime payload and template settings into the Codex root, but host plugins remain host-managed."
   },
+  "discoverable_entries": {
+    "shared_source": "config/vibe-entry-surfaces.json",
+    "authority_owner": "vibe",
+    "presentational_only": true,
+    "projection_mode": "generated_wrapper_entries",
+    "host_visible_surface": "commands",
+    "notes": "Discoverable Vibe entries are host-facing launch labels only and do not create a second runtime authority."
+  },
   "host_managed_surfaces": [
     "plugin provisioning",
     "MCP provider credentials",

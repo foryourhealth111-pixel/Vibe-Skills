@@ -4,8 +4,8 @@
   "lane_kind": "universal-core",
   "stability": "preview",
   "source_release": {
-    "version": "2.3.56",
-    "updated": "2026-04-04"
+    "version": "3.0.0",
+    "updated": "2026-04-07"
   },
   "summary": "Universal contracts only. No install/check runtime closure is promised by this lane.",
   "runtime_ownership": {

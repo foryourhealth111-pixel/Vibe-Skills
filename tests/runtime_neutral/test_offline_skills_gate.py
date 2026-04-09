@@ -40,6 +40,9 @@ class OfflineSkillsGateTests(unittest.TestCase):
         "systematic-debugging",
         "tdd-guide",
         "think-harder",
+        "vibe-do-it",
+        "vibe-how-do-we-do",
+        "vibe-what-do-i-want",
         "writing-plans",
     ]
 
@@ -154,6 +157,23 @@ class OfflineSkillsGateTests(unittest.TestCase):
         result = self._run_gate()
         self.assertNotEqual(0, result.returncode)
         self.assertIn("skills-lock entries missing in skills root: vibe", result.stdout)
+
+    def test_gate_fails_when_required_wrapper_skill_is_missing(self) -> None:
+        wrapper_root = self.root / "bundled" / "skills" / "vibe-do-it"
+        shutil.rmtree(wrapper_root)
+
+        payload = json.loads((self.root / "config" / "skills-lock.json").read_text(encoding="utf-8"))
+        payload["skills"] = [
+            item
+            for item in payload["skills"]
+            if item.get("name") != "vibe-do-it"
+        ]
+        payload["skill_count"] = len(payload["skills"])
+        (self.root / "config" / "skills-lock.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
+
+        result = self._run_gate()
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("missing required routed skills: vibe-do-it", result.stdout)
 
 
 if __name__ == "__main__":

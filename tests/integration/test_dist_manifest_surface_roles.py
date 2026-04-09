@@ -293,12 +293,22 @@ def test_codex_release_manifests_carry_codex_specific_contract_surfaces() -> Non
     assert codex_expected_public.issubset(set(codex_public["surface_roles"]["truth_surfaces"]))
 
 
+def test_codex_command_templates_are_labeled_as_compatibility_shims() -> None:
+    for rel in (
+        "commands/vibe.md",
+        "commands/vibe-what-do-i-want.md",
+        "commands/vibe-how-do-we-do.md",
+        "commands/vibe-do-it.md",
+    ):
+        assert "compatibility shim" in _read_text(rel).lower(), rel
+
+
 def test_vibe_wrapper_skill_templates_declare_canonical_vibe_delegation() -> None:
     for rel in (
-        "bundled/skills/vibe-do-it/SKILL.md",
-        "bundled/skills/vibe-how-do-we-do/SKILL.md",
-        "bundled/skills/vibe-upgrade/SKILL.md",
         "bundled/skills/vibe-what-do-i-want/SKILL.md",
+        "bundled/skills/vibe-how-do-we-do/SKILL.md",
+        "bundled/skills/vibe-do-it/SKILL.md",
+        "bundled/skills/vibe-upgrade/SKILL.md",
     ):
         text = _read_text(rel).lower()
         assert "canonical `vibe`" in text or "canonical vibe" in text, rel

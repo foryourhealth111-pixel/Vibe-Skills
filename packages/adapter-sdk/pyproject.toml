@@ -4,6 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vgo-adapters"
-version = "0.1.0"
+version = "3.0.0"
 description = "Adapter SDK for Vibe-Skills clean architecture"
 requires-python = ">=3.10"

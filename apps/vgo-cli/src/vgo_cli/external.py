@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 
 from .errors import CliError
-from .repo import load_json
 
 
 def report_external_fallback_usage(external_fallback_used: list[str], *, strict_offline: bool) -> None:
@@ -22,7 +20,9 @@ def _run_optional_install(command: list[str]) -> None:
     subprocess.run(command, capture_output=True, text=True)
 
 
-def maybe_install_external_dependencies(repo_root: Path, install_mode: str) -> None:
+def maybe_install_external_dependencies(repo_root: object, install_mode: str, *, strict_offline: bool = False) -> None:
+    if strict_offline:
+        return
     if shutil.which('npm'):
         _run_optional_install(['npm', 'install', '-g', 'claude-flow'])
         if install_mode == 'governed':

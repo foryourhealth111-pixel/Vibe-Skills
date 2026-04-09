@@ -45,8 +45,8 @@
   },
   "summary": "Generic hosts may consume canonical contracts and a repo-provided runtime-core payload in a neutral target root, but the repository still makes no host closure claim.",
   "source_release": {
-    "version": "2.3.56",
-    "updated": "2026-04-04"
+    "version": "3.0.0",
+    "updated": "2026-04-07"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

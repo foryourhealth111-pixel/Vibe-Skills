@@ -31,3 +31,14 @@ def test_resolve_adapter_entry_returns_raw_registry_entry() -> None:
     assert entry['id'] == 'windsurf'
     assert entry['default_target_root']['rel'] == '.codeium/windsurf'
     assert entry['default_target_root']['kind'] == 'host-home'
+
+
+def test_adapter_registry_exposes_shared_discoverable_vibe_entry_surface() -> None:
+    registry = load_adapter_registry(ROOT)
+
+    assert registry['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
+    for entry in registry['adapters']:
+        assert entry['discoverable_entries']['shared_source'] == registry['discoverable_entry_surface']
+        assert entry['discoverable_entries']['authority_owner'] == 'vibe'
+        assert entry['discoverable_entries']['projection_mode'] == 'generated_wrapper_entries'
+        assert str(entry['discoverable_entries']['host_visible_surface']).strip()

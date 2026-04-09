@@ -7,7 +7,7 @@ description: Vibe Code Orchestrator (VCO) is a governed runtime entry that freez
 
 `vibe` is a host-syntax-neutral skill contract.
 
-`/vibe`, `$vibe`, and agent-invoked `vibe` all mean the same thing: enter the same governed runtime, not different entrypoints.
+`/vibe`, `$vibe`, and agent-invoked `vibe` all mean the same thing: enter the same governed runtime, not different runtime authorities.
 
 ## What `vibe` Does
 
@@ -19,10 +19,20 @@ description: Vibe Code Orchestrator (VCO) is a governed runtime entry that freez
 - multi-agent XL orchestration
 - proof, verification, and mandatory cleanup
 
-This runtime is user-facing as one path only.
+This runtime still has one canonical authority: `vibe`.
+
+Hosts may expose discoverable labels such as:
+
+- `Vibe`
+- `Vibe: What Do I Want?`
+- `Vibe: How Do We Do It?`
+- `Vibe: Do It`
+
+Those labels are presentational launch surfaces only.
+They do not create a second runtime.
 
 The user does not choose between `M`, `L`, or `XL` as entry branches.
-Those grades still exist, but only as internal execution strategy.
+Those grades still exist, but only as internal execution strategy, with only `--l` and `--xl` allowed as lightweight public grade-floor overrides.
 
 ## When To Use
 
@@ -54,6 +64,14 @@ Do not use `vibe` for:
 
 These stages are mandatory.
 They may become lighter for simple work, but they are not skipped as a matter of policy.
+
+Discoverable wrapper labels may request an earlier terminal stage.
+That changes where the current run stops, not which runtime owns authority.
+The bounded stop targets are:
+
+- `Vibe: What Do I Want?` -> `requirement_doc`
+- `Vibe: How Do We Do It?` -> `xl_plan`
+- `Vibe` and `Vibe: Do It` -> `phase_cleanup`
 
 Official governed entry also records runtime lineage:
 
@@ -118,10 +136,11 @@ The governed runtime selects the internal grade after `deep_interview` and befor
 
 User-facing behavior stays the same regardless of host syntax:
 
-- one governed entry
+- one governed runtime authority
 - one frozen requirement surface
 - one XL-style plan surface
 - one execution and cleanup contract
+- optional discoverable intent labels that still resolve to canonical `vibe`
 
 Compatibility notes for downstream verification and host adapters:
 
@@ -290,7 +309,7 @@ The governed runtime should leave behind:
 ## Maintenance
 
 - Runtime family: governed-runtime-first
-- Version: 2.3.56
-- Updated: 2026-04-04
+- Version: 3.0.0
+- Updated: 2026-04-07
 - Canonical router: `scripts/router/resolve-pack-route.ps1`
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`

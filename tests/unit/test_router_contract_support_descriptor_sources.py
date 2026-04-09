@@ -36,8 +36,11 @@ def _write_runtime_core_packaging(repo_root: Path) -> None:
         json.dumps(
             {
                 'public_skill_surface': {
+                    'mode': 'discoverable_wrapper_projection',
                     'canonical_entrypoint_relpath': 'skills/vibe',
                     'root_relpath': 'skills',
+                    'discoverable_entry_surface': 'config/vibe-entry-surfaces.json',
+                    'projected_skill_names': ['vibe', 'vibe-want', 'vibe-how', 'vibe-do'],
                 },
                 'internal_skill_corpus': {
                     'target_relpath': 'skills/vibe/bundled/skills',
@@ -98,6 +101,10 @@ def test_resolver_prefers_internal_corpus_descriptor_when_split_semantics_availa
     assert descriptor['skill_md_path'] == str(resolved)
     assert descriptor['description'] == 'repo internal corpus'
 
+    public_surface = module.resolve_public_skill_surface(repo)
+    assert public_surface['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
+    assert public_surface['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do']
+
 
 def test_resolver_uses_installed_internal_corpus_when_repo_internal_descriptor_is_absent(tmp_path: Path) -> None:
     module = _load_module()
@@ -127,6 +134,10 @@ def test_resolver_uses_installed_internal_corpus_when_repo_internal_descriptor_i
     descriptor = module.read_skill_descriptor(repo, 'skill-beta', str(target_root))
     assert descriptor['skill_md_path'] == str(installed_internal)
     assert descriptor['description'] == 'installed internal corpus'
+
+    public_surface = module.resolve_public_skill_surface(repo)
+    assert public_surface['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
+    assert public_surface['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do']
 
 
 def test_resolver_keeps_legacy_installed_skill_fallback_when_split_semantics_available(tmp_path: Path) -> None:

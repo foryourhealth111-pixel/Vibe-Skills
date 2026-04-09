@@ -488,7 +488,26 @@ $entry = [ordered]@{
     git_head = $head
     actor = $env:USERNAME
 }
-Append-VgoUtf8NoBomText -Path $ledgerPath -Content (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine)
+
+# Pre-write duplicate check: only append if (version, git_head) combination doesn't exist
+$shouldAppend = $true
+if (Test-Path -LiteralPath $ledgerPath) {
+    $existingLines = Get-Content -LiteralPath $ledgerPath -Encoding UTF8
+    foreach ($line in $existingLines) {
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            $existingEntry = $line | ConvertFrom-Json
+            if ($existingEntry.version -eq $Version -and $existingEntry.git_head -eq $head) {
+                $shouldAppend = $false
+                Write-Host ("Skipping duplicate ledger entry: version={0}, git_head={1} already recorded at {2}" -f $Version, $head, $existingEntry.recorded_at) -ForegroundColor Yellow
+                break
+            }
+        }
+    }
+}
+
+if ($shouldAppend) {
+    Append-VgoUtf8NoBomText -Path $ledgerPath -Content (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine)
+}
 
 New-Item -ItemType Directory -Force -Path $releaseNotesDir | Out-Null
 if (-not (Test-Path -LiteralPath $releaseNotePath)) {

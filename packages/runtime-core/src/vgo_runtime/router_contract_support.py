@@ -7,6 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+CONTRACTS_SRC = Path(__file__).resolve().parents[4] / "packages" / "contracts" / "src"
+if CONTRACTS_SRC.is_dir() and str(CONTRACTS_SRC) not in os.sys.path:
+    os.sys.path.insert(0, str(CONTRACTS_SRC))
+
+from vgo_contracts.discoverable_entry_surface import load_discoverable_entry_surface
+
 
 @dataclass(frozen=True)
 class RepoContext:
@@ -189,15 +195,28 @@ def resolve_requested_canonical(requested_skill: str | None, alias_map: dict[str
 def resolve_public_skill_surface(repo: RepoContext) -> dict[str, Any]:
     packaging = load_runtime_core_packaging(repo.config_root)
     surface = packaging.get("public_skill_surface") or {}
+    discoverable_entry_surface = str(surface.get("discoverable_entry_surface") or "").strip()
     canonical_relpath = (
         str(surface.get("canonical_entrypoint_relpath") or "").strip()
         or str((packaging.get("canonical_vibe_payload") or {}).get("target_relpath") or "skills/vibe").strip()
         or "skills/vibe"
     )
     root_relpath = str(surface.get("root_relpath") or "skills").strip() or "skills"
+    projected_skill_names = [
+        str(name).strip()
+        for name in surface.get("projected_skill_names") or []
+        if str(name).strip()
+    ]
+    if discoverable_entry_surface:
+        try:
+            projected_skill_names = load_discoverable_entry_surface(repo.repo_root).projected_skill_names
+        except RuntimeError:
+            pass
     return {
         "root_relpath": root_relpath,
         "canonical_entrypoint_relpath": canonical_relpath,
+        "discoverable_entry_surface": discoverable_entry_surface,
+        "projected_skill_names": projected_skill_names,
     }
 
 

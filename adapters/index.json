@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "default_adapter_id": "codex",
+  "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
   "aliases": {
     "claude": "claude-code"
   },
@@ -16,6 +17,12 @@
         "env": "CODEX_HOME",
         "rel": ".codex",
         "kind": "host-home"
+      },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "commands"
       },
       "host_profile": "adapters/codex/host-profile.json",
       "settings_map": "adapters/codex/settings-map.json",
@@ -34,6 +41,12 @@
         "rel": ".claude",
         "kind": "host-home"
       },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "managed-launchers"
+      },
       "host_profile": "adapters/claude-code/host-profile.json",
       "settings_map": "adapters/claude-code/settings-map.json",
       "closure": "adapters/claude-code/closure.json",
@@ -50,6 +63,12 @@
         "env": "CURSOR_HOME",
         "rel": ".cursor",
         "kind": "host-home"
+      },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "preview-launchers"
       },
       "host_profile": "adapters/cursor/host-profile.json",
       "settings_map": "adapters/cursor/settings-map.json",
@@ -68,6 +87,12 @@
         "rel": ".codeium/windsurf",
         "kind": "host-home"
       },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "runtime-core-launchers"
+      },
       "host_profile": "adapters/windsurf/host-profile.json",
       "settings_map": "adapters/windsurf/settings-map.json",
       "closure": "adapters/windsurf/closure.json",
@@ -85,6 +110,12 @@
         "rel": ".openclaw",
         "kind": "host-home"
       },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "runtime-core-launchers"
+      },
       "host_profile": "adapters/openclaw/host-profile.json",
       "settings_map": "adapters/openclaw/settings-map.json",
       "closure": "adapters/openclaw/closure.json",
@@ -101,6 +132,12 @@
         "env": "OPENCODE_HOME",
         "rel": ".config/opencode",
         "kind": "host-home"
+      },
+      "discoverable_entries": {
+        "shared_source": "config/vibe-entry-surfaces.json",
+        "authority_owner": "vibe",
+        "projection_mode": "generated_wrapper_entries",
+        "host_visible_surface": "commands-and-agents"
       },
       "host_profile": "adapters/opencode/host-profile.json",
       "settings_map": "adapters/opencode/settings-map.json",

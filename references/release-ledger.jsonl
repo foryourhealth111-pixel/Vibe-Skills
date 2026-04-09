@@ -20,12 +20,6 @@
 {"recorded_at":"2026-03-15T13:50:00","version":"2.3.46","updated":"2026-03-15","git_head":"63f1973","actor":"羽裳"}
 {"recorded_at":"2026-03-15T19:32:59","version":"2.3.47","updated":"2026-03-15","git_head":"5af2d18","actor":"羽裳"}
 {"recorded_at":"2026-03-23T00:47:19","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T00:49:43","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T00:54:14","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T00:57:35","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T00:59:27","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T01:00:54","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
-{"recorded_at":"2026-03-23T01:02:25","version":"2.3.48","updated":"2026-03-23","git_head":"3cd3ae2","actor":null}
 {"recorded_at":"2026-03-23T01:38:21","version":"2.3.49","updated":"2026-03-23","git_head":"dc0430d","actor":null}
 {"recorded_at":"2026-03-26T20:39:51","version":"2.3.50","updated":"2026-03-26","git_head":"d5da111","actor":null}
 {"recorded_at":"2026-03-28T00:00:00","version":"2.3.51","updated":"2026-03-28","git_head":"18e6b9c","actor":null}
@@ -33,5 +27,5 @@
 {"recorded_at":"2026-03-30T00:28:44","version":"2.3.53","updated":"2026-03-30","git_head":"4f5676f","actor":null}
 {"recorded_at":"2026-03-30T13:12:27","version":"2.3.54","updated":"2026-03-30","git_head":"1a049f1","actor":null}
 {"recorded_at":"2026-03-30T23:51:45","version":"2.3.55","updated":"2026-03-30","git_head":"f3ab6e5","actor":null}
-{"recorded_at":"2026-03-30T23:54:05","version":"2.3.55","updated":"2026-03-30","git_head":"f3ab6e5","actor":null}
 {"recorded_at": "2026-04-04T12:04:55", "version": "2.3.56", "updated": "2026-04-04", "git_head": "7ee8061", "actor": "codex-local-baseline"}
+{"recorded_at":"2026-04-07T21:51:51","version":"3.0.0","updated":"2026-04-07","git_head":"9bea31e","actor":null}

@@ -14,6 +14,14 @@
     "managed_by_repo": true,
     "notes": "The repository can materialize runtime-core payload and Windsurf host-root assets into the documented global Windsurf root, while host login, model permissions, and undocumented settings remain host-managed."
   },
+  "discoverable_entries": {
+    "shared_source": "config/vibe-entry-surfaces.json",
+    "authority_owner": "vibe",
+    "presentational_only": true,
+    "projection_mode": "generated_wrapper_entries",
+    "host_visible_surface": "runtime-core-launchers",
+    "notes": "Discoverable Vibe entries are host-facing launch labels only and do not create a second runtime authority."
+  },
   "host_managed_surfaces": [
     "login and account state",
     "model permissions and BYOK boundaries",

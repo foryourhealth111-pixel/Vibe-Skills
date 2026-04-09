@@ -64,7 +64,7 @@
 <br/><br/>
 
 <kbd>安装</kbd> &nbsp;→&nbsp;
-<kbd>/vibe 或 $vibe</kbd> &nbsp;→&nbsp;
+<kbd>vibe | vibe-want | vibe-how | vibe-do</kbd> &nbsp;→&nbsp;
 <kbd>智能路由</kbd> &nbsp;→&nbsp;
 <kbd>M / L / XL 执行</kbd> &nbsp;→&nbsp;
 <kbd>治理验证</kbd> &nbsp;→&nbsp;
@@ -92,9 +92,9 @@
 |:---|:---|
 | **VibeSkills / VCO** | 即本项目。VCO = Vibe Code Orchestrator，是驱动所有技能运行的核心引擎。 |
 | **技能（Skill）** | 独立的能力模块，例如 `tdd-guide`（测试驱动）、`code-review`（代码审查）。可理解为系统按需调用的专家助手。 |
-| **受管运行时（Governed runtime）** | 调用 `/vibe` 后，系统会遵循「澄清 → 规划 → 执行 → 验证」的完整流程，而不是盲目直接执行。 |
+| **受管运行时（Governed runtime）** | 调用 `vibe` 后，系统会遵循「澄清 → 规划 → 执行 → 验证」的完整流程，而不是盲目直接执行。当前公开的可发现 wrapper 集合固定为 `vibe`、`vibe-want`、`vibe-how`、`vibe-do`；宿主可以把它们显示成 `Vibe: What Do I Want?`、`Vibe: Do It` 这类标签，但它们仍然回到同一个 canonical runtime authority。 |
 | **权威路由器（Canonical Router）** | 根据你的任务自动决定调用哪个技能的内部逻辑，无需手动干预，直接调用 `/vibe` 即可。 |
-| **M / L / XL 执行级别** | 任务复杂度等级：M = 快速小任务，L = 多步骤任务，XL = 可并行的大型任务。系统自动选择。 |
+| **M / L / XL 执行级别** | 任务复杂度等级：M = 快速小任务，L = 多步骤任务，XL = 可并行的大型任务。系统自动选择。公开覆盖只保留 `--l` 和 `--xl`，它们是执行偏好，不是新的入口。 |
 | **冻结需求（Frozen requirement）** | 确认计划后，系统将锁定需求范围，不会在执行过程中偷偷改变方向。 |
 | **根/子通道（Root/Child lane）** | XL 任务中的协调者（根）与执行者（子）角色划分，防止多代理执行时产生输出冲突。 |
 | **证明材料（Proof bundle）** | 任务真正完成的证据——测试结果、输出内容、验证日志等。 |
@@ -236,7 +236,7 @@ VibeSkills 的路由保证：
 
 </div>
 
-> 系统会在需求澄清之后、计划执行之前，自动选择级别。用户只需调用 `/vibe` 或 `$vibe`。
+> 系统会在需求澄清之后、计划执行之前，自动选择级别。当前公开投影出来的宿主入口固定为 `vibe`、`vibe-want`、`vibe-how`、`vibe-do`；支持菜单化展示的宿主可以把它们渲染成 `Vibe`、`Vibe: What Do I Want?`、`Vibe: How Do We Do It?`、`Vibe: Do It`，但底层仍然只进入同一个 governed runtime。
 >
 > 当系统内部调用专项技能（如 `tdd-guide`、`code-review`）时，这些技能始终被限定在特定执行阶段，只起辅助作用，不会抢占整体流程的控制权。在 XL 级别的多代理任务中，子代理可以建议使用某个专项技能，但需由协调者（根代理）批准后才会实际执行。
 >
@@ -244,6 +244,8 @@ VibeSkills 的路由保证：
 > ```text
 > 我希望你按照计划执行这个任务，启动 XL 级工作流 /vibe
 > ```
+
+> 公开允许的轻量级别覆盖只有 `--l` 和 `--xl`。像 `vibe-l`、`vibe-xl`、`vibe-how-xl` 这样的组合别名是故意不支持的。
 
 ---
 

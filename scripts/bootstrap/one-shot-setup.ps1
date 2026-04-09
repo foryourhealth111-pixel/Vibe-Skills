@@ -111,6 +111,7 @@ function Write-McpAutoProvisionSummary {
     )
 
     $receiptPath = Join-Path $TargetRoot '.vibeskills\mcp-auto-provision.json'
+    $activePath = Join-Path $TargetRoot 'mcp\servers.active.json'
     Write-Host 'MCP auto-provision summary'
     if (-not (Test-Path -LiteralPath $receiptPath)) {
         Write-Host '- receipt: missing' -ForegroundColor Yellow
@@ -118,14 +119,38 @@ function Write-McpAutoProvisionSummary {
     }
 
     $payload = Get-Content -LiteralPath $receiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $activeServers = @{}
+    if (Test-Path -LiteralPath $activePath) {
+        try {
+            $activePayload = Get-Content -LiteralPath $activePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($null -ne $activePayload -and $activePayload.PSObject.Properties.Name -contains 'servers' -and $null -ne $activePayload.servers) {
+                foreach ($serverProp in $activePayload.servers.PSObject.Properties) {
+                    $activeServers[[string]$serverProp.Name] = $serverProp.Value
+                }
+            }
+        } catch {
+        }
+    }
     Write-Host ("- installed_locally: {0}" -f ([string]($payload.install_state -eq 'installed_locally')).ToLowerInvariant())
     Write-Host ("- mcp_auto_provision_attempted: {0}" -f ([string][bool]$payload.mcp_auto_provision_attempted).ToLowerInvariant())
     $manualFollowUp = @()
     foreach ($item in @($payload.mcp_results)) {
         if ($null -eq $item) { continue }
-        Write-Host ("- {0}: status={1} next_step={2}" -f [string]$item.name, [string]$item.status, [string]$item.next_step)
-        if ([string]$item.status -ne 'ready') {
-            $manualFollowUp += [string]$item.name
+        $name = [string]$item.name
+        $status = [string]$item.status
+        $nextStep = [string]$item.next_step
+        if ($status -eq 'local_tool_present' -and $activeServers.ContainsKey($name)) {
+            $activeServer = $activeServers[$name]
+            $mode = if ($null -ne $activeServer -and $activeServer.PSObject.Properties.Name -contains 'mode') { [string]$activeServer.mode } else { '' }
+            $commandName = if ($null -ne $activeServer -and $activeServer.PSObject.Properties.Name -contains 'command') { [string]$activeServer.command } else { '' }
+            if ($mode -eq 'stdio' -and (Test-NonEmptyString -Value $commandName) -and (Get-Command $commandName -ErrorAction SilentlyContinue)) {
+                $status = 'ready'
+                $nextStep = 'none'
+            }
+        }
+        Write-Host ("- {0}: status={1} next_step={2}" -f $name, $status, $nextStep)
+        if ($status -ne 'ready') {
+            $manualFollowUp += $name
         }
     }
     Write-Host ("- manual_follow_up: {0}" -f $(if ($manualFollowUp.Count -gt 0) { $manualFollowUp -join ', ' } else { 'none' }))

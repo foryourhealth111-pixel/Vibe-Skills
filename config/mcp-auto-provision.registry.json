@@ -9,6 +9,7 @@
   ],
   "allowed_statuses": [
     "ready",
+    "local_tool_present",
     "attempt_failed",
     "host_native_unavailable",
     "missing_credentials",

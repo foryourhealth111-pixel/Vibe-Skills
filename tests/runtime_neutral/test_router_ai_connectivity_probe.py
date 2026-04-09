@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -184,6 +186,57 @@ class RouterAiConnectivityProbeTests(unittest.TestCase):
             )
 
         self.assertEqual("provider_rejected_request", artifact["summary"]["advice_status"])
+
+    def test_plain_chat_completion_fallback_is_classified_ok(self) -> None:
+        self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
+
+        def transport(req: dict) -> dict:
+            if req["endpoint_kind"] == "responses":
+                return {
+                    "ok": False,
+                    "status_code": 404,
+                    "error_kind": "http",
+                    "error": "responses unsupported",
+                    "body_text": '{"error":"not found"}',
+                    "json": {"error": "not found"},
+                    "latency_ms": 4,
+                }
+            if req["endpoint_kind"] == "chat_completions":
+                return {
+                    "ok": False,
+                    "status_code": 400,
+                    "error_kind": "http",
+                    "error": "response_format unsupported",
+                    "body_text": '{"error":"bad request"}',
+                    "json": {"error": "bad request"},
+                    "latency_ms": 5,
+                }
+            if req["endpoint_kind"] == "chat_completions_plain":
+                return {
+                    "ok": True,
+                    "status_code": 200,
+                    "error_kind": None,
+                    "error": None,
+                    "body_text": '{"choices":[{"message":{"content":"{\\"ok\\":true}"}}]}',
+                    "json": {"choices": [{"message": {"content": '{"ok":true}'}}]},
+                    "latency_ms": 6,
+                }
+            raise AssertionError(f"unexpected endpoint_kind: {req['endpoint_kind']}")
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            artifact = self.module.evaluate(
+                self.root,
+                self.target_root,
+                probe_context=self.module.ProbeContext(prefix_detected=True),
+                transport=transport,
+            )
+
+        self.assertEqual("ok", artifact["summary"]["advice_status"])
+        self.assertEqual("chat_completions_plain", artifact["advice"]["endpoint_used"])
+        self.assertEqual(
+            ["responses", "chat_completions", "chat_completions_plain"],
+            [attempt["endpoint_kind"] for attempt in artifact["advice"]["attempts"]],
+        )
 
     def test_parse_error_is_classified(self) -> None:
         self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
@@ -384,6 +437,46 @@ class RouterAiConnectivityProbeTests(unittest.TestCase):
         self.assertEqual(
             registry_before, (self.root / "config" / "router-provider-registry.json").read_text(encoding="utf-8")
         )
+
+    def test_main_prints_attempt_diagnostics(self) -> None:
+        artifact = {
+            "summary": {
+                "advice_status": "provider_rejected_request",
+                "vector_diff_status": "vector_diff_not_configured",
+                "gate_result": "FAIL",
+            },
+            "next_steps": ["Verify API key validity."],
+            "advice": {
+                "attempts": [
+                    {
+                        "endpoint_kind": "responses",
+                        "status_code": 404,
+                        "error_kind": "http",
+                        "latency_ms": 3,
+                        "outcome": "http_error",
+                    },
+                    {
+                        "endpoint_kind": "chat_completions",
+                        "status_code": 400,
+                        "error_kind": "http",
+                        "latency_ms": 4,
+                        "outcome": "http_error",
+                    },
+                ]
+            },
+            "vector_diff": {"attempts": []},
+        }
+
+        with mock.patch.dict(self.module.main.__globals__, {"evaluate": mock.Mock(return_value=artifact)}):
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                exit_code = self.module.main(["--repo-root", str(self.root), "--target-root", str(self.target_root)])
+
+        self.assertEqual(1, exit_code)
+        output = stream.getvalue()
+        self.assertIn("[INFO] advice_status=provider_rejected_request", output)
+        self.assertIn("[INFO] advice_attempt endpoint=responses status=404 outcome=http_error", output)
+        self.assertIn("[INFO] advice_attempt endpoint=chat_completions status=400 outcome=http_error", output)
 
 
 if __name__ == "__main__":

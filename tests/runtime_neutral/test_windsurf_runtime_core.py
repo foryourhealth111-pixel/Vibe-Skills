@@ -52,6 +52,8 @@ def run_package_install(*, host: str, target_root: Path, profile: str = "full") 
 
 
 class WindsurfRuntimeCoreTests(unittest.TestCase):
+    EXPECTED_WRAPPER_SKILLS = ("vibe", "vibe-want", "vibe-how", "vibe-do")
+
     def test_adapter_registry_exposes_windsurf_parallel_root(self) -> None:
         registry = _load_module("installer_adapter_registry_windsurf", ADAPTER_REGISTRY_MODULE)
         payload = registry.resolve_adapter(REPO_ROOT, "windsurf")
@@ -70,6 +72,8 @@ class WindsurfRuntimeCoreTests(unittest.TestCase):
             self.assertIn("host_closure_path", payload)
             self.assertTrue((target_root / "skills" / "vibe" / "SKILL.md").exists())
             self.assertTrue((target_root / "skills" / "vibe" / "bundled" / "skills" / "brainstorming" / "SKILL.runtime-mirror.md").exists())
+            for name in self.EXPECTED_WRAPPER_SKILLS:
+                self.assertTrue((target_root / "skills" / name / "SKILL.md").exists())
             self.assertFalse((target_root / "skills" / "brainstorming").exists())
             self.assertTrue((target_root / ".vibeskills" / "host-settings.json").exists())
             self.assertTrue((target_root / ".vibeskills" / "host-closure.json").exists())
@@ -100,6 +104,8 @@ class WindsurfRuntimeCoreTests(unittest.TestCase):
             self.assertIn("Host   : windsurf", install_result.stdout)
             self.assertIn("Mode   : runtime-core", install_result.stdout)
             self.assertTrue((target_root / "skills" / "vibe" / "SKILL.md").exists())
+            for name in self.EXPECTED_WRAPPER_SKILLS:
+                self.assertTrue((target_root / "skills" / name / "SKILL.md").exists())
             self.assertTrue((target_root / ".vibeskills" / "host-settings.json").exists())
             self.assertTrue((target_root / ".vibeskills" / "host-closure.json").exists())
             self.assertFalse((target_root / "commands").exists())
@@ -124,6 +130,7 @@ class WindsurfRuntimeCoreTests(unittest.TestCase):
             )
             self.assertIn("Host: windsurf", check_result.stdout)
             self.assertIn("[OK] host closure manifest", check_result.stdout)
+            self.assertIn("[OK] host-visible discoverable entries", check_result.stdout)
             self.assertNotIn("[FAIL] settings.json", check_result.stdout)
             self.assertNotIn("[FAIL] mcp_config.json", check_result.stdout)
 

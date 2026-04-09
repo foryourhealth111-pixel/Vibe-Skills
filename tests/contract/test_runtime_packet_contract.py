@@ -10,5 +10,13 @@ from vgo_contracts.runtime_packet import RuntimePacket
 
 
 def test_runtime_packet_roundtrip() -> None:
-    packet = RuntimePacket(goal='x', stage='deep_interview')
-    assert RuntimePacket.model_validate(packet.model_dump()).goal == 'x'
+    packet = RuntimePacket(
+        goal='x',
+        stage='deep_interview',
+        entry_intent_id='vibe-how',
+        requested_stage_stop='xl_plan',
+        requested_grade_floor='XL',
+    )
+    restored = RuntimePacket.model_validate(packet.model_dump())
+    assert restored == packet
+    assert restored.model_dump() == packet.model_dump()

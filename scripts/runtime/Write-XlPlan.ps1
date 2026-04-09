@@ -38,7 +38,6 @@ $hierarchyState = Get-VibeHierarchyState `
     -InheritedExecutionPlanPath $InheritedExecutionPlanPath `
     -DelegationEnvelopePath $DelegationEnvelopePath `
     -HierarchyContract $runtime.runtime_input_packet_policy.hierarchy_contract
-$grade = Get-VibeInternalGrade -Task $Task
 $isChildScope = ([string]$hierarchyState.governance_scope -eq 'child')
 $planPath = if ($isChildScope) {
     if ([string]::IsNullOrWhiteSpace([string]$hierarchyState.inherited_execution_plan_path)) {
@@ -55,6 +54,11 @@ $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketP
 } else {
     $null
 }
+$gradeResolution = Resolve-VibeGovernedGrade `
+    -BaseGrade (Get-VibeInternalGrade -Task $Task) `
+    -RequestedGradeFloor $(if ($runtimeInputPacket) { [string]$runtimeInputPacket.requested_grade_floor } else { '' }) `
+    -Policy $runtime.runtime_input_packet_policy
+$grade = [string]$gradeResolution.internal_grade
 $planMemoryContext = if (-not [string]::IsNullOrWhiteSpace($PlanMemoryContextPath) -and (Test-Path -LiteralPath $PlanMemoryContextPath)) {
     Get-Content -LiteralPath $PlanMemoryContextPath -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
@@ -109,6 +113,9 @@ $lines = @(
 $lines += @('')
 if ($runtimeInputPacket) {
     $lines += @(
+        "- Entry intent: $([string]$runtimeInputPacket.entry_intent_id)",
+        "- Requested stop stage: $([string]$runtimeInputPacket.requested_stage_stop)",
+        "- Requested grade floor: $([string]$runtimeInputPacket.requested_grade_floor)",
         "- Governance scope: $([string]$runtimeInputPacket.governance_scope)",
         "- Root run id: $([string]$runtimeInputPacket.hierarchy.root_run_id)",
         "- Frozen route pack: $([string]$runtimeInputPacket.route_snapshot.selected_pack)",
@@ -168,7 +175,10 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
                 ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
                 ('  Binding profile: {0}; dispatch phase: {1}; lane policy: {2}; parallel in XL: {3}' -f [string]$recommendation.binding_profile, [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [bool]$recommendation.parallelizable_in_root_xl),
                 ('  Write scope: {0}; review mode: {1}; execution priority: {2}' -f [string]$recommendation.write_scope, [string]$recommendation.review_mode, [int]$recommendation.execution_priority),
+                ('  Specialist source of truth: entrypoint={0}; root={1}; visibility={2}' -f [string]$recommendation.native_skill_entrypoint, [string]$recommendation.skill_root, [string]$recommendation.visibility_class),
+                ('  Usage required: {0}; preserve workflow: {1}' -f [bool]$recommendation.usage_required, [bool]$recommendation.must_preserve_workflow),
                 ('  Reason: {0}' -f [string]$recommendation.reason),
+                ('  Expected contribution: {0}' -f [string]$recommendation.expected_contribution),
                 ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
                 ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
                 ('  Verification: {0}' -f [string]$recommendation.verification_expectation)

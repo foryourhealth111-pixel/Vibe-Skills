@@ -80,6 +80,10 @@ def test_base_runtime_core_packaging_owns_shared_fields_and_profile_overlays() -
     grouped_copy_files = _flatten_entry_groups(roles['copy_files'])
     assert set(grouped_copy_files) == {tuple(sorted(item.items())) for item in payload['copy_files']}
     assert roles['notes']['flat_projection_contract']
+    assert payload['profiles']['minimal']['payload_roles']['delivery_model']['compatibility_skill_projections'] == []
+    assert sorted(
+        payload['profiles']['full']['payload_roles']['delivery_model']['compatibility_skill_projections']
+    ) == CODEX_VIBE_WRAPPER_SKILLS
 
 
 def test_profile_runtime_core_packaging_projections_match_base_overlay_resolution() -> None:
@@ -132,11 +136,15 @@ def test_profile_runtime_core_packaging_roles_describe_delivery_model() -> None:
     if _supports_surface_split(minimal):
         assert minimal['compatibility_skill_projections']['projected_skill_names'] == []
         assert minimal['internal_skill_corpus']['target_relpath'] == 'skills/vibe/bundled/skills'
-        assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe']
+        assert minimal['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
+        assert minimal['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
+        assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do']
     if _supports_surface_split(full):
         assert sorted(full['compatibility_skill_projections']['projected_skill_names']) == CODEX_VIBE_WRAPPER_SKILLS
         assert full['internal_skill_corpus']['entrypoint_filename'] == 'SKILL.runtime-mirror.md'
-        assert full['public_skill_surface']['projected_skill_names'] == ['vibe']
+        assert full['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
+        assert full['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
+        assert full['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do']
 
 
 def test_profile_runtime_core_packaging_role_sources_match_copy_projection() -> None:
@@ -214,12 +222,3 @@ def test_full_profile_defaults_to_no_top_level_bundled_skill_fanout_when_split_s
         if isinstance(entry, dict)
     )
     assert not legacy_flatten
-
-
-def test_full_profile_projects_vibe_wrapper_skills_as_compatibility_surface() -> None:
-    full = _load(FULL_MANIFEST)
-    if not _supports_surface_split(full):
-        pytest.skip('surface split semantics are not available in this branch yet')
-
-    assert sorted(full['compatibility_skill_projections']['projected_skill_names']) == CODEX_VIBE_WRAPPER_SKILLS
-    assert sorted(full['payload_roles']['delivery_model']['compatibility_skill_projections']) == CODEX_VIBE_WRAPPER_SKILLS

@@ -44,8 +44,12 @@ def install_command(args: argparse.Namespace) -> int:
     payload = parse_json_output(install_result)
     external_fallback_used = list(payload.get('external_fallback_used') or [])
 
-    if args.install_external:
-        maybe_install_external_dependencies(repo_root, str(payload.get('install_mode') or install_mode))
+    if args.install_external and not args.strict_offline:
+        maybe_install_external_dependencies(
+            repo_root,
+            str(payload.get('install_mode') or install_mode),
+            strict_offline=bool(args.strict_offline),
+        )
 
     reconcile_install_postconditions(
         repo_root,
@@ -118,6 +122,10 @@ def route_command(args: argparse.Namespace) -> int:
     ]
     if args.requested_skill:
         command.extend(['--requested-skill', args.requested_skill])
+    if getattr(args, 'entry_intent_id', None):
+        command.extend(['--entry-intent-id', args.entry_intent_id])
+    if getattr(args, 'requested_grade_floor', None):
+        command.extend(['--requested-grade-floor', args.requested_grade_floor])
     if args.host_id:
         command.extend(['--host-id', args.host_id])
     if args.target_root:

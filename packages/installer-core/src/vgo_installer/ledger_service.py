@@ -20,6 +20,7 @@ class MaterializationLedgerState:
     merged_files: dict[str, dict[str, object]] = field(default_factory=dict)
     generated_from_template_if_absent: set[Path | str] = field(default_factory=set)
     specialist_wrapper_paths: list[Path | str] = field(default_factory=list)
+    bridge_launcher_paths: list[Path | str] = field(default_factory=list)
     runtime_roots: set[Path | str] = field(default_factory=set)
     compatibility_roots: set[Path | str] = field(default_factory=set)
     sidecar_roots: set[Path | str] = field(default_factory=set)
@@ -185,8 +186,26 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
             return False
         return True
 
+    def resolve_owned_candidate(path_value: Path | str) -> Path:
+        candidate = Path(path_value)
+        if not candidate.is_absolute():
+            candidate = (target_root_path / candidate).resolve(strict=False)
+        else:
+            candidate = candidate.resolve(strict=False)
+        return candidate
+
+    host_visible_entry_names: set[str] = set()
+    for raw_path in ledger.get('specialist_wrapper_paths') or []:
+        candidate = resolve_owned_candidate(str(raw_path))
+        if not is_under_target_root(candidate) or not candidate.is_file():
+            continue
+        name = candidate.parent.name if candidate.name == 'SKILL.md' else candidate.stem
+        normalized = _normalize_skill_name(name)
+        if normalized is not None:
+            host_visible_entry_names.add(normalized)
+
     def collect_owned_tree(path_value: Path | str) -> None:
-        candidate = Path(path_value).resolve(strict=False)
+        candidate = resolve_owned_candidate(path_value)
         if not is_under_target_root(candidate) or not candidate.is_dir():
             return
         for file_path in candidate.rglob('*'):
@@ -194,7 +213,7 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
                 owned_files.add(str(file_path.resolve(strict=False)))
 
     def collect_owned_file(path_value: Path | str) -> None:
-        candidate = Path(path_value).resolve(strict=False)
+        candidate = resolve_owned_candidate(path_value)
         if not is_under_target_root(candidate) or not candidate.is_file():
             return
         owned_files.add(str(candidate))
@@ -213,7 +232,7 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
         collect_owned_tree(raw_path)
         collect_owned_file(raw_path)
     for raw_path in ledger.get('owned_tree_roots') or []:
-        candidate = Path(str(raw_path)).resolve(strict=False)
+        candidate = resolve_owned_candidate(str(raw_path))
         if candidate == target_root_resolved or candidate == skills_root:
             continue
         if candidate.parent == skills_root and candidate.name not in managed_skill_names:
@@ -235,8 +254,9 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
         if isinstance(entry, dict):
             collect_owned_file(str(entry.get('path') or ''))
 
-    # Refresh-time sidecars are written after the initial payload summary build.
-    # Count them as installer-owned files so fresh installs and refreshed ledgers stay aligned.
+    # The install ledger is written after the initial payload summary is built.
+    # When refreshing summaries from an on-disk install, count the ledger itself
+    # as installer-owned payload so fresh installs and refreshed ledgers agree.
     collect_owned_file(target_root_path / '.vibeskills' / 'install-ledger.json')
     collect_owned_file(target_root_path / '.vibeskills' / 'mcp-auto-provision.json')
     collect_owned_file(target_root_path / '.vibeskills' / 'upgrade-status.json')
@@ -246,6 +266,8 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
         'installed_skill_names': installed_skill_names,
         'public_skill_count': len(public_skill_names),
         'public_skill_names': public_skill_names,
+        'host_visible_entry_count': len(host_visible_entry_names),
+        'host_visible_entry_names': sorted(host_visible_entry_names),
         'internal_skill_count': len(internal_skill_names),
         'installed_file_count': len(owned_files),
     }
@@ -321,6 +343,7 @@ def build_install_ledger(
         'merged_files': _sorted_merged_files(state.merged_files),
         'generated_from_template_if_absent': _sorted_paths(state.generated_from_template_if_absent),
         'specialist_wrapper_paths': _sorted_wrapper_paths(state.specialist_wrapper_paths),
+        'bridge_launcher_paths': _sorted_wrapper_paths(state.bridge_launcher_paths),
         'runtime_roots': runtime_roots,
         'compatibility_roots': compatibility_roots,
         'sidecar_roots': sidecar_roots,

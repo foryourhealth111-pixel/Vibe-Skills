@@ -7,6 +7,13 @@ from .adapter_registry_support import (
     resolve_adapter_registry_path,
 )
 from .catalog_descriptor import CatalogDescriptor
+from .discoverable_entry_surface import (
+    DISCOVERABLE_ENTRY_SURFACE_RELPATH,
+    DiscoverableEntry,
+    DiscoverableEntrySurface,
+    load_discoverable_entry_surface,
+    resolve_discoverable_entry_surface_path,
+)
 from .governance_runtime_roles import (
     REQUIRED_RUNTIME_MARKER_NOTES,
     RUNTIME_PAYLOAD_ROLE_NOTES,
@@ -60,6 +67,11 @@ __all__ = [
     'resolve_adapter_entry',
     'resolve_adapter_registry_path',
     'CatalogDescriptor',
+    'DISCOVERABLE_ENTRY_SURFACE_RELPATH',
+    'DiscoverableEntry',
+    'DiscoverableEntrySurface',
+    'load_discoverable_entry_surface',
+    'resolve_discoverable_entry_surface_path',
     'REQUIRED_RUNTIME_MARKER_NOTES',
     'RUNTIME_PAYLOAD_ROLE_NOTES',
     'derive_required_runtime_marker_groups',

@@ -24,12 +24,18 @@ MINIMAL_REQUIRED_SKILLS = set(
 ) | set(
     json.loads(MINIMAL_MANIFEST.read_text(encoding="utf-8"))["managed_skill_inventory"]["required_workflow_skills"]
 )
+CODEX_COMPATIBILITY_COMMAND_FILES = {
+    "vibe.md",
+    "vibe-what-do-i-want.md",
+    "vibe-how-do-we-do.md",
+    "vibe-do-it.md",
+}
 CODEX_WRAPPER_SKILL_NAMES = {
     "vibe",
-    "vibe-do-it",
-    "vibe-how-do-we-do",
-    "vibe-upgrade",
     "vibe-what-do-i-want",
+    "vibe-how-do-we-do",
+    "vibe-do-it",
+    "vibe-upgrade",
 }
 
 
@@ -300,6 +306,116 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         for wrapper_path in ledger["specialist_wrapper_paths"]:
             self.assertTrue(Path(wrapper_path).exists(), f"wrapper missing: {wrapper_path}")
 
+    def test_shell_install_reports_vibe_host_ready_in_completion_summary(self) -> None:
+        result = subprocess.run(
+            [
+                "bash",
+                str(REPO_ROOT / "install.sh"),
+                "--host",
+                "codex",
+                "--profile",
+                "full",
+                "--target-root",
+                str(self.target_root),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertIn("- installed_locally: True", result.stdout)
+        self.assertIn("- vibe_host_ready: True", result.stdout)
+
+    def test_shell_install_materializes_codex_compatibility_command_shims(self) -> None:
+        self.install_shell_runtime("codex")
+
+        commands_root = self.target_root / "commands"
+        self.assertTrue(commands_root.exists())
+        installed_files = {path.name for path in commands_root.iterdir() if path.is_file()}
+        self.assertTrue(
+            CODEX_COMPATIBILITY_COMMAND_FILES.issubset(installed_files),
+            installed_files,
+        )
+
+    def test_shell_install_materializes_codex_wrapper_skill_surface(self) -> None:
+        self.install_shell_runtime("codex")
+
+        skills_root = self.target_root / "skills"
+        self.assertTrue(skills_root.exists())
+        self.assertEqual(
+            CODEX_WRAPPER_SKILL_NAMES,
+            {path.name for path in skills_root.iterdir() if path.is_dir()},
+        )
+        for skill_name in CODEX_WRAPPER_SKILL_NAMES:
+            self.assertTrue((skills_root / skill_name / "SKILL.md").exists(), skill_name)
+
+    def test_shell_install_materializes_upgrade_runtime_modules(self) -> None:
+        self.install_shell_runtime("codex")
+
+        installed_root = self.target_root / "skills" / "vibe" / "apps" / "vgo-cli" / "src" / "vgo_cli"
+        self.assertTrue((installed_root / "upgrade_state.py").exists())
+        self.assertTrue((installed_root / "upgrade_service.py").exists())
+        self.assertTrue((installed_root / "version_reminder.py").exists())
+
+    def test_shell_install_writes_upgrade_status_sidecar(self) -> None:
+        self.install_shell_runtime("codex")
+
+        status_path = self.target_root / ".vibeskills" / "upgrade-status.json"
+        self.assertTrue(status_path.exists())
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+
+        self.assertEqual("codex", payload["host_id"])
+        self.assertEqual(str(self.target_root.resolve()), payload["target_root"])
+        self.assertEqual("main", payload["repo_default_branch"])
+        self.assertTrue(payload["repo_remote"].endswith("/Vibe-Skills.git"))
+        self.assertTrue(payload["installed_version"])
+        self.assertTrue(payload["installed_commit"])
+        self.assertFalse(payload["update_available"])
+
+    def test_installed_codex_check_accepts_hyphen_command_shim_surface(self) -> None:
+        self.install_shell_runtime("codex")
+
+        commands_root = self.target_root / "commands"
+        for discoverable_name in ("vibe-want.md", "vibe-how.md", "vibe-do.md"):
+            discoverable_path = commands_root / discoverable_name
+            if discoverable_path.exists():
+                discoverable_path.unlink()
+
+        installed_root = self.target_root / "skills" / "vibe"
+        check_cmd = [
+            "bash",
+            str(installed_root / "check.sh"),
+            "--host",
+            "codex",
+            "--profile",
+            "full",
+            "--target-root",
+            str(self.target_root),
+        ]
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+        self.assertEqual(0, check_result.returncode, check_result.stdout + check_result.stderr)
+
+    def test_installed_codex_check_accepts_wrapper_skill_surface_without_command_files(self) -> None:
+        self.install_shell_runtime("codex")
+
+        commands_root = self.target_root / "commands"
+        if commands_root.exists():
+            shutil.rmtree(commands_root)
+
+        installed_root = self.target_root / "skills" / "vibe"
+        check_cmd = [
+            "bash",
+            str(installed_root / "check.sh"),
+            "--host",
+            "codex",
+            "--profile",
+            "full",
+            "--target-root",
+            str(self.target_root),
+        ]
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+        self.assertEqual(0, check_result.returncode, check_result.stdout + check_result.stderr)
+
     def test_shell_install_materializes_vgo_cli_for_installed_wrappers(self) -> None:
         self.install_shell_runtime("codex")
 
@@ -325,41 +441,6 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         self.assertTrue(cli_commands.exists())
         self.assertIn("vgo_cli.main", install_wrapper)
         self.assertIn("vgo_cli.main", install_wrapper_ps1)
-
-    def test_shell_install_materializes_upgrade_runtime_modules(self) -> None:
-        self.install_shell_runtime("codex")
-
-        installed_root = self.target_root / "skills" / "vibe" / "apps" / "vgo-cli" / "src" / "vgo_cli"
-        self.assertTrue((installed_root / "upgrade_state.py").exists())
-        self.assertTrue((installed_root / "upgrade_service.py").exists())
-        self.assertTrue((installed_root / "version_reminder.py").exists())
-
-    def test_shell_install_materializes_codex_wrapper_skill_surface(self) -> None:
-        self.install_shell_runtime("codex")
-
-        skills_root = self.target_root / "skills"
-        self.assertTrue(skills_root.exists())
-        self.assertEqual(
-            CODEX_WRAPPER_SKILL_NAMES,
-            {path.name for path in skills_root.iterdir() if path.is_dir()},
-        )
-        for skill_name in CODEX_WRAPPER_SKILL_NAMES:
-            self.assertTrue((skills_root / skill_name / "SKILL.md").exists(), skill_name)
-
-    def test_shell_install_writes_upgrade_status_sidecar(self) -> None:
-        self.install_shell_runtime("codex")
-
-        status_path = self.target_root / ".vibeskills" / "upgrade-status.json"
-        self.assertTrue(status_path.exists())
-        payload = json.loads(status_path.read_text(encoding="utf-8"))
-
-        self.assertEqual("codex", payload["host_id"])
-        self.assertEqual(str(self.target_root.resolve()), payload["target_root"])
-        self.assertEqual("main", payload["repo_default_branch"])
-        self.assertTrue(payload["repo_remote"].endswith("/Vibe-Skills.git"))
-        self.assertTrue(payload["installed_version"])
-        self.assertTrue(payload["installed_commit"])
-        self.assertFalse(payload["update_available"])
 
     def test_canonical_shell_install_supports_minimal_profile(self) -> None:
         target_root = self.root / "bundled-minimal-target"
@@ -424,6 +505,26 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
                 self.assertIn("=== VCO Adapter Health Check ===", check_result.stdout)
                 self.assertNotIn("VGO adapter registry not found", check_result.stdout)
                 self.assertNotIn("VGO adapter registry not found", check_result.stderr)
+
+    def test_installed_check_sh_deep_does_not_reference_unbound_runtime_target_rel(self) -> None:
+        self.install_shell_runtime(profile="full")
+
+        installed_root = self.target_root / "skills" / "vibe"
+        check_cmd = [
+            "bash",
+            str(installed_root / "check.sh"),
+            "--host",
+            "codex",
+            "--profile",
+            "full",
+            "--target-root",
+            str(self.target_root),
+            "--deep",
+        ]
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True)
+
+        self.assertEqual(0, check_result.returncode, check_result.stderr)
+        self.assertNotIn("runtime_target_rel", check_result.stderr)
 
     def test_installed_runtime_bootstrap_supports_openclaw_without_self_deleting_source(self) -> None:
         self.install_shell_runtime(host="openclaw")
@@ -925,6 +1026,60 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
             "full",
             "-TargetRoot",
             str(target_root),
+        ]
+        check_result = subprocess.run(check_cmd, capture_output=True, text=True, env=env)
+        self.assertNotEqual(0, check_result.returncode)
+        self.assertIn("duplicate Codex-discovered vibe skill surface", check_result.stdout)
+
+    def test_powershell_check_fails_when_legacy_agents_duplicate_is_reintroduced_with_trailing_separator(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        home_root = self.root / "home-trailing"
+        target_root = home_root / ".codex"
+        target_root.mkdir(parents=True, exist_ok=True)
+
+        env = os.environ.copy()
+        env["HOME"] = str(home_root)
+
+        install_cmd = [
+            powershell,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(REPO_ROOT / "install.ps1"),
+            "-HostId",
+            "codex",
+            "-Profile",
+            "full",
+            "-TargetRoot",
+            str(target_root),
+        ]
+        subprocess.run(install_cmd, capture_output=True, text=True, check=True, env=env)
+
+        duplicate_root = home_root / ".agents" / "skills" / "vibe"
+        duplicate_root.mkdir(parents=True, exist_ok=True)
+        (duplicate_root / "SKILL.md").write_text(
+            "---\nname: vibe\ndescription: legacy duplicate\n---\n",
+            encoding="utf-8",
+        )
+
+        installed_root = target_root / "skills" / "vibe"
+        check_cmd = [
+            powershell,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(installed_root / "check.ps1"),
+            "-HostId",
+            "codex",
+            "-Profile",
+            "full",
+            "-TargetRoot",
+            str(target_root) + os.sep,
         ]
         check_result = subprocess.run(check_cmd, capture_output=True, text=True, env=env)
         self.assertNotEqual(0, check_result.returncode)

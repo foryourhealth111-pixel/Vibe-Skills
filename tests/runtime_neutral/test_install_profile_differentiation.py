@@ -14,10 +14,10 @@ FULL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.full.json"
 REPRESENTATIVE_NON_CORE_SKILL = "scikit-learn"
 FULL_PUBLIC_WRAPPER_SKILLS = {
     "vibe",
-    "vibe-do-it",
-    "vibe-how-do-we-do",
-    "vibe-upgrade",
     "vibe-what-do-i-want",
+    "vibe-how-do-we-do",
+    "vibe-do-it",
+    "vibe-upgrade",
 }
 
 
@@ -45,12 +45,12 @@ def count_files(root: Path) -> int:
 
 
 class InstallProfileDifferentiationTests(unittest.TestCase):
-    def install_profile(self, target_root: Path, *, profile: str) -> dict:
+    def install_profile(self, target_root: Path, *, profile: str, host: str = "codex") -> dict:
         command = [
             "bash",
             str(REPO_ROOT / "install.sh"),
             "--host",
-            "codex",
+            host,
             "--profile",
             profile,
             "--target-root",
@@ -100,8 +100,14 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             self.assertEqual("minimal", ledger["profile"])
             self.assertEqual(sorted(MINIMAL_REQUIRED_SKILLS), ledger["payload_summary"]["installed_skill_names"])
             self.assertEqual(["vibe"], ledger["payload_summary"]["public_skill_names"])
+            self.assertEqual(["vibe", "vibe-do", "vibe-how", "vibe-want"], ledger["payload_summary"]["host_visible_entry_names"])
+            self.assertEqual(4, ledger["payload_summary"]["host_visible_entry_count"])
             # In a fresh temp target, every file should be installer-owned.
             self.assertEqual(count_files(target_root), ledger["payload_summary"]["installed_file_count"])
+            self.assertTrue((target_root / "commands" / "vibe.md").exists())
+            self.assertTrue((target_root / "commands" / "vibe-want.md").exists())
+            self.assertTrue((target_root / "commands" / "vibe-how.md").exists())
+            self.assertTrue((target_root / "commands" / "vibe-do.md").exists())
 
     def test_full_install_extends_minimal_payload_and_records_larger_summary(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -134,11 +140,46 @@ class InstallProfileDifferentiationTests(unittest.TestCase):
             )
             self.assertEqual(len(FULL_PUBLIC_WRAPPER_SKILLS), full_ledger["payload_summary"]["public_skill_count"])
             self.assertEqual(sorted(FULL_PUBLIC_WRAPPER_SKILLS), full_ledger["payload_summary"]["public_skill_names"])
+            self.assertEqual(["vibe", "vibe-do", "vibe-how", "vibe-want"], full_ledger["payload_summary"]["host_visible_entry_names"])
+            self.assertEqual(4, full_ledger["payload_summary"]["host_visible_entry_count"])
             self.assertIn(REPRESENTATIVE_NON_CORE_SKILL, full_ledger["payload_summary"]["installed_skill_names"])
             self.assertGreater(
                 full_ledger["payload_summary"]["installed_file_count"],
                 minimal_ledger["payload_summary"]["installed_file_count"],
             )
+            self.assertTrue(
+                {
+                    "skills/vibe-what-do-i-want",
+                    "skills/vibe-how-do-we-do",
+                    "skills/vibe-do-it",
+                    "skills/vibe-upgrade",
+                }.issubset(set(full_ledger["compatibility_roots"]))
+            )
+
+    def test_full_skill_only_hosts_do_not_leak_codex_wrapper_skill_projections(self) -> None:
+        for host in ("cursor", "claude-code"):
+            with self.subTest(host=host):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    target_root = Path(tempdir) / f"{host}-root"
+                    target_root.mkdir(parents=True, exist_ok=True)
+
+                    ledger = self.install_profile(target_root, profile="full", host=host)
+                    installed_skills = {
+                        candidate.name
+                        for candidate in (target_root / "skills").iterdir()
+                        if candidate.is_dir()
+                    }
+
+                    self.assertEqual({"vibe", "vibe-want", "vibe-how", "vibe-do"}, installed_skills)
+                    self.assertEqual([], ledger["compatibility_roots"])
+                    self.assertEqual(
+                        sorted(["vibe", "vibe-do", "vibe-how", "vibe-want"]),
+                        ledger["payload_summary"]["public_skill_names"],
+                    )
+                    self.assertEqual(
+                        ["vibe", "vibe-do", "vibe-how", "vibe-want"],
+                        ledger["payload_summary"]["host_visible_entry_names"],
+                    )
 
     def test_minimal_reinstall_prunes_previously_managed_full_profile_skills(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

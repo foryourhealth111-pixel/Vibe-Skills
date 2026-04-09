@@ -16,6 +16,11 @@ SHELL_ENTRYPOINT = REPO_ROOT / "uninstall.sh"
 POWERSHELL_ENTRYPOINT = REPO_ROOT / "uninstall.ps1"
 POWERSHELL_COMPAT_UNINSTALLER = REPO_ROOT / "scripts" / "uninstall" / "Uninstall-VgoAdapter.ps1"
 COHERENCE_GATE = REPO_ROOT / "scripts" / "verify" / "vibe-uninstall-coherence-gate.ps1"
+CODEX_WRAPPER_SKILL_PATHS = [
+    "skills/vibe-what-do-i-want/SKILL.md",
+    "skills/vibe-how-do-we-do/SKILL.md",
+    "skills/vibe-do-it/SKILL.md",
+]
 
 
 def resolve_powershell() -> str | None:
@@ -193,6 +198,35 @@ class UnifiedUninstallTests(unittest.TestCase):
         self.assertIn("ledger", payload["ownership_source"])
         self.assertIn("commands/vibe.md", payload["deleted_paths"])
         self.assertIn("commands/user.md", payload["skipped_foreign_paths"])
+
+    def test_codex_uninstall_ledger_owns_wrapper_skill_surface(self) -> None:
+        for rel in CODEX_WRAPPER_SKILL_PATHS:
+            path = self.target_root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("---\nname: fixture\n---\n", encoding="utf-8")
+
+        write_json(
+            self.target_root / ".vibeskills" / "install-ledger.json",
+            {
+                "schema_version": 2,
+                "host_id": "codex",
+                "target_root": str(self.target_root.resolve()),
+                "install_mode": "governed",
+                "profile": "full",
+                "created_paths": CODEX_WRAPPER_SKILL_PATHS,
+                "managed_json_paths": [],
+                "generated_from_template_if_absent": [],
+                "specialist_wrapper_paths": [],
+                "runtime_root": "skills/vibe",
+                "canonical_vibe_root": "skills/vibe",
+            },
+        )
+
+        _, payload = self.run_python_uninstall(host="codex")
+
+        for rel in CODEX_WRAPPER_SKILL_PATHS:
+            self.assertIn(rel, payload["deleted_paths"])
+            self.assertFalse((self.target_root / rel).exists())
 
     def test_planner_uses_host_closure_and_mutates_shared_json_owned_only(self) -> None:
         closure_path = self.target_root / ".vibeskills" / "host-closure.json"

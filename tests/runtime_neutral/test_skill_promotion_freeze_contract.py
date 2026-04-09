@@ -201,6 +201,7 @@ class SkillPromotionFreezeContractTests(unittest.TestCase):
                 "$recommendation = Get-VgoSkillPromotionMetadata "
                 "-Prompt 'generic prompt' "
                 "-SkillMdPath '/tmp/skill.md' "
+                "-SkillRoot '/tmp' "
                 "-Description 'desc' "
                 "-RequiredInputs @('input') "
                 "-ExpectedOutputs @('output') "
@@ -217,3 +218,30 @@ class SkillPromotionFreezeContractTests(unittest.TestCase):
         outcome = next(item for item in as_list(payload["promotion_outcomes"]) if item["skill_id"] == "demo-skill")
         self.assertEqual("local_suggestion", outcome["promotion_state"])
         self.assertEqual("surface_only", outcome["recommended_promotion_action"])
+
+    def test_split_dispatch_clamps_usage_required_to_native_contract(self) -> None:
+        split_function = extract_split_specialist_dispatch_function()
+        payload = run_powershell_json(
+            (
+                "& { "
+                f". '{HELPER_SCRIPT}'; "
+                f"{split_function} "
+                "$recommendation = [pscustomobject]@{ "
+                "skill_id = 'demo-skill'; "
+                "destructive = $false; "
+                "destructive_reason_codes = @(); "
+                "contract_complete = $true; "
+                "recommended_promotion_action = 'auto_dispatch'; "
+                "native_usage_required = $true; "
+                "usage_required = $false "
+                "}; "
+                "$dispatch = Split-VibeSpecialistDispatch -GovernanceScope 'root' -Recommendations @($recommendation); "
+                "$dispatch | ConvertTo-Json -Depth 20 }"
+            )
+        )
+
+        approved_dispatch = as_list(payload["approved_dispatch"])
+        self.assertEqual(1, len(approved_dispatch))
+        self.assertTrue(bool(approved_dispatch[0]["native_usage_required"]))
+        self.assertTrue(bool(approved_dispatch[0]["usage_required"]))
+        self.assertEqual([], as_list(payload["degraded"]))

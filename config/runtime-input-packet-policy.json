@@ -24,6 +24,17 @@
     "divergence_shadow",
     "provenance"
   ],
+  "optional_public_entry_fields": [
+    "entry_intent_id",
+    "requested_stage_stop",
+    "requested_grade_floor"
+  ],
+  "public_grade_floor_allowlist": [
+    "L",
+    "XL"
+  ],
+  "shortcut_rejects_multiple_grade_flags": true,
+  "shortcut_rejects_multiple_entry_ids": true,
   "hierarchy_contract": {
     "default_governance_scope": "root",
     "governance_artifacts": {

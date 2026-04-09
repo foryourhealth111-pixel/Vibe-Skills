@@ -30,7 +30,7 @@ HOST_BRIDGE_COMMAND_ENV = {
 
 TrackCreatedPath = Callable[[Path | str], None]
 RecordManagedJson = Callable[[Path], None]
-RecordSpecialistWrapper = Callable[[Path], None]
+RecordBridgeLauncher = Callable[[Path], None]
 
 
 def detect_platform_tag() -> str:
@@ -95,7 +95,7 @@ def materialize_host_specialist_wrapper(
     bridge_command: str | None,
     *,
     track_created_path: TrackCreatedPath,
-    record_specialist_wrapper: RecordSpecialistWrapper,
+    record_bridge_launcher: RecordBridgeLauncher,
 ) -> dict[str, Any]:
     tools_root = target_root / ".vibeskills" / "bin"
     tools_root.mkdir(parents=True, exist_ok=True)
@@ -124,7 +124,7 @@ def materialize_host_specialist_wrapper(
         encoding="utf-8",
     )
     _ensure_executable(wrapper_py)
-    record_specialist_wrapper(wrapper_py)
+    record_bridge_launcher(wrapper_py)
 
     platform_tag = detect_platform_tag()
     if platform_tag == "windows":
@@ -167,7 +167,7 @@ def materialize_host_specialist_wrapper(
             encoding="utf-8",
         )
         _ensure_executable(launcher)
-    record_specialist_wrapper(launcher)
+    record_bridge_launcher(launcher)
 
     return {
         "platform": platform_tag,
@@ -326,7 +326,7 @@ def materialize_host_closure(
     *,
     track_created_path: TrackCreatedPath,
     record_managed_json: RecordManagedJson,
-    record_specialist_wrapper: RecordSpecialistWrapper,
+    record_bridge_launcher: RecordBridgeLauncher,
 ) -> tuple[Path, dict[str, Any]]:
     host_id = adapter["id"]
     bridge_command, bridge_source = resolve_bridge_command(host_id)
@@ -335,7 +335,7 @@ def materialize_host_closure(
         host_id,
         bridge_command,
         track_created_path=track_created_path,
-        record_specialist_wrapper=record_specialist_wrapper,
+        record_bridge_launcher=record_bridge_launcher,
     )
     settings_materialized = materialize_host_settings(
         target_root,

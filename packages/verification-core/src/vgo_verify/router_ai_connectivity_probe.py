@@ -26,6 +26,20 @@ from .router_ai_probe_support import (
 from .router_ai_probe_vector import probe_vector_diff
 
 
+def attempt_info_lines(label: str, attempts: list[dict[str, Any]] | None) -> list[str]:
+    lines: list[str] = []
+    for attempt in attempts or []:
+        endpoint = str(attempt.get("endpoint_kind") or "unknown")
+        status = attempt.get("status_code")
+        outcome = str(attempt.get("outcome") or "unknown")
+        error_kind = str(attempt.get("error_kind") or "none")
+        latency_ms = attempt.get("latency_ms")
+        lines.append(
+            f"[INFO] {label}_attempt endpoint={endpoint} status={status} outcome={outcome} error_kind={error_kind} latency_ms={latency_ms}"
+        )
+    return lines
+
+
 def next_step_for_advice(status: str, advice: dict[str, Any]) -> str | None:
     if status == "disabled_by_policy":
         return "Enable llm acceleration policy (`enabled=true`, `mode` not `off`) before checking advice connectivity."
@@ -178,7 +192,24 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
         f"- Provider Type: `{artifact['advice'].get('provider_type')}`",
         f"- Model: `{artifact['advice'].get('model')}`",
         f"- Credential Env: `{artifact['advice'].get('credential_env')}`",
+        f"- Endpoint Used: `{artifact['advice'].get('endpoint_used')}`",
         "",
+    ]
+    advice_attempts = artifact["advice"].get("attempts") or []
+    if advice_attempts:
+        lines += ["### Advice Attempts", ""]
+        for attempt in advice_attempts:
+            lines.append(
+                "- endpoint=`{endpoint}` status=`{status}` outcome=`{outcome}` error_kind=`{error_kind}` latency_ms=`{latency}`".format(
+                    endpoint=attempt.get("endpoint_kind"),
+                    status=attempt.get("status_code"),
+                    outcome=attempt.get("outcome"),
+                    error_kind=attempt.get("error_kind"),
+                    latency=attempt.get("latency_ms"),
+                )
+            )
+        lines.append("")
+    lines += [
         "## Vector Diff Probe",
         "",
         f"- Status: `{artifact['vector_diff'].get('status')}`",
@@ -186,6 +217,20 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
         f"- Model: `{artifact['vector_diff'].get('model')}`",
         "",
     ]
+    vector_attempts = artifact["vector_diff"].get("attempts") or []
+    if vector_attempts:
+        lines += ["### Vector Diff Attempts", ""]
+        for attempt in vector_attempts:
+            lines.append(
+                "- endpoint=`{endpoint}` status=`{status}` outcome=`{outcome}` error_kind=`{error_kind}` latency_ms=`{latency}`".format(
+                    endpoint=attempt.get("endpoint_kind"),
+                    status=attempt.get("status_code"),
+                    outcome=attempt.get("outcome"),
+                    error_kind=attempt.get("error_kind"),
+                    latency=attempt.get("latency_ms"),
+                )
+            )
+        lines.append("")
     if artifact["next_steps"]:
         lines += ["## Next Steps", ""]
         for step in artifact["next_steps"]:
@@ -232,6 +277,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[INFO] advice_status={artifact['summary']['advice_status']}")
     print(f"[INFO] vector_diff_status={artifact['summary']['vector_diff_status']}")
     print(f"[INFO] gate_result={artifact['summary']['gate_result']}")
+    for line in attempt_info_lines("advice", artifact["advice"].get("attempts")):
+        print(line)
+    for line in attempt_info_lines("vector_diff", artifact["vector_diff"].get("attempts")):
+        print(line)
     for step in artifact["next_steps"]:
         print(f"[NEXT] {step}")
     return 0 if artifact["summary"]["gate_result"] in {"PASS", "WARN"} else 1

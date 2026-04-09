@@ -23,6 +23,7 @@ from vgo_contracts.mirror_topology_contract import (
 )
 
 from .ledger_service import MaterializationLedgerState
+from .discoverable_wrappers import materialize_host_visible_wrappers as _materialize_host_visible_wrappers
 
 TrackCreatedPath = Callable[[Path | str], None]
 RecordOwnedTreeRoot = Callable[[Path | str], None]
@@ -308,8 +309,21 @@ def internal_skill_corpus(packaging: dict[str, Any]) -> dict[str, Any]:
     return corpus
 
 
-def compatibility_projection_names(packaging: dict[str, Any]) -> list[str]:
-    projections = packaging.get("compatibility_skill_projections") or {}
+def compatibility_projection_names(
+    packaging: dict[str, Any],
+    *,
+    host_id: str | None = None,
+) -> list[str]:
+    projections = dict(packaging.get("compatibility_skill_projections") or {})
+    host_allowlist = {
+        str(value).strip().lower()
+        for value in projections.get("host_allowlist") or []
+        if str(value).strip()
+    }
+    normalized_host = (host_id or "").strip().lower()
+    if host_allowlist and normalized_host not in host_allowlist:
+        return []
+
     seen: set[str] = set()
     names: list[str] = []
     for raw in projections.get("projected_skill_names") or []:
@@ -364,12 +378,13 @@ def materialize_allowlisted_skills(
     repo_root: Path,
     target_root: Path,
     packaging: dict[str, Any],
+    host_id: str | None = None,
     destination_root: Path | None = None,
     hidden_entrypoints: bool = False,
     *,
     copy_dir_replace_fn: Callable[[Path, Path], None],
 ) -> None:
-    skills_allowlist = compatibility_projection_names(packaging)
+    skills_allowlist = compatibility_projection_names(packaging, host_id=host_id)
     if not skills_allowlist:
         return
 
@@ -484,6 +499,26 @@ def ensure_skill_present(
                 break
     if required and resolve_skill_entrypoint(destination) is None:
         missing.add(name)
+
+
+def materialize_host_visible_wrappers(
+    *,
+    repo_root: Path,
+    target_root: Path,
+    host_id: str,
+    surface: dict[str, Any],
+) -> list[Path]:
+    from vgo_contracts.discoverable_entry_surface import load_discoverable_entry_surface
+
+    discoverable_entry_surface = str(surface.get("discoverable_entry_surface") or "").strip()
+    if not discoverable_entry_surface:
+        return []
+    entry_surface = load_discoverable_entry_surface(repo_root)
+    return _materialize_host_visible_wrappers(
+        target_root=target_root,
+        host_id=host_id,
+        surface=entry_surface,
+    )
 
 
 def install_codex_payload(

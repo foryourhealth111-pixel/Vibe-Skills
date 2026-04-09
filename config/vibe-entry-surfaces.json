@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "canonical_runtime_skill": "vibe",
+  "entries": [
+    {
+      "id": "vibe",
+      "display_name": "Vibe",
+      "requested_stage_stop": "phase_cleanup",
+      "allow_grade_flags": true
+    },
+    {
+      "id": "vibe-want",
+      "display_name": "Vibe: What Do I Want?",
+      "requested_stage_stop": "requirement_doc",
+      "allow_grade_flags": false
+    },
+    {
+      "id": "vibe-how",
+      "display_name": "Vibe: How Do We Do It?",
+      "requested_stage_stop": "xl_plan",
+      "allow_grade_flags": true
+    },
+    {
+      "id": "vibe-do",
+      "display_name": "Vibe: Do It",
+      "requested_stage_stop": "phase_cleanup",
+      "allow_grade_flags": true
+    }
+  ],
+  "grade_flags": [
+    "--l",
+    "--xl"
+  ],
+  "grade_flag_map": {
+    "--l": "L",
+    "--xl": "XL"
+  },
+  "forbid_stage_grade_matrix": true
+}

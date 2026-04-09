@@ -67,6 +67,7 @@
     "config/runtime-input-packet-policy.json",
     "config/runtime-modes.json",
     "config/runtime-script-manifest.json",
+    "config/vibe-entry-surfaces.json",
     "config/settings.template.codex.json",
     "config/skills-lock.json",
     "config/system-design-overlay.json",
@@ -102,6 +103,7 @@
         "config/runtime-input-packet-policy.json",
         "config/runtime-modes.json",
         "config/runtime-script-manifest.json",
+        "config/vibe-entry-surfaces.json",
         "config/version-governance.json"
       ],
       "router_and_discovery_policy_files": [

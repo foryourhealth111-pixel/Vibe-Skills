@@ -17,6 +17,31 @@ function Expand-VibeExecutionTemplate {
     return $value
 }
 
+function New-VibeExecutedSpecialistUnitSummary {
+    param(
+        [Parameter(Mandatory)] [object]$UnitReceipt,
+        [AllowNull()] [object]$LaneEntry = $null
+    )
+
+    return [pscustomobject]@{
+        unit_id = [string]$UnitReceipt.unit_id
+        skill_id = [string]$UnitReceipt.skill_id
+        dispatch_phase = if ($UnitReceipt.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$UnitReceipt.dispatch_phase } else { $null }
+        binding_profile = if ($UnitReceipt.PSObject.Properties.Name -contains 'binding_profile') { [string]$UnitReceipt.binding_profile } else { $null }
+        lane_policy = if ($UnitReceipt.PSObject.Properties.Name -contains 'lane_policy') { [string]$UnitReceipt.lane_policy } else { $null }
+        parallelizable = [bool]$(if ($null -ne $LaneEntry -and $LaneEntry.PSObject.Properties.Name -contains 'parallelizable') { $LaneEntry.parallelizable } else { $false })
+        result_path = [string]$UnitReceipt.result_path
+        verification_passed = [bool]$UnitReceipt.verification_passed
+        execution_driver = [string]$UnitReceipt.execution_driver
+        live_native_execution = [bool]$UnitReceipt.live_native_execution
+        degraded = [bool]$UnitReceipt.degraded
+        prompt_path = if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_path' -and -not [string]::IsNullOrWhiteSpace([string]$UnitReceipt.prompt_path)) { [string]$UnitReceipt.prompt_path } else { $null }
+        prompt_injection_complete = [bool]$(if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_injection_complete') { $UnitReceipt.prompt_injection_complete } else { $false })
+        missing_prompt_injection_fields = @($(if ($UnitReceipt.PSObject.Properties.Name -contains 'missing_prompt_injection_fields') { $UnitReceipt.missing_prompt_injection_fields } else { @() }))
+        lane_receipt_path = if ($UnitReceipt.lane_receipt_path) { [string]$UnitReceipt.lane_receipt_path } else { $null }
+    }
+}
+
 function Invoke-VibeCapturedProcess {
     param(
         [Parameter(Mandatory)] [string]$Command,
@@ -713,8 +738,14 @@ function New-VibeNativeSpecialistPrompt {
         '',
         'You are a bounded specialist execution lane running under hidden vibe governance.',
         'Do not replace the governed runtime. Do not create a second requirement surface or a second plan surface.',
+        'You must use the specialist source of truth declared below for this bounded task.',
         ('specialist_skill_id: {0}' -f [string]$Dispatch.skill_id),
         ('bounded_role: {0}' -f [string]$Dispatch.bounded_role),
+        ('native_skill_entrypoint: {0}' -f [string]$(if ($Dispatch.PSObject.Properties.Name -contains 'native_skill_entrypoint') { $Dispatch.native_skill_entrypoint } else { '' })),
+        ('skill_root: {0}' -f [string]$(if ($Dispatch.PSObject.Properties.Name -contains 'skill_root') { $Dispatch.skill_root } else { '' })),
+        ('visibility_class: {0}' -f [string]$(if ($Dispatch.PSObject.Properties.Name -contains 'visibility_class') { $Dispatch.visibility_class } else { '' })),
+        ('usage_required: {0}' -f [string]([bool]$(if ($Dispatch.PSObject.Properties.Name -contains 'usage_required') { $Dispatch.usage_required } else { $Dispatch.native_usage_required })).ToString().ToLowerInvariant()),
+        ('must_preserve_workflow: {0}' -f [string]([bool]$Dispatch.must_preserve_workflow).ToString().ToLowerInvariant()),
         ('governance_scope: {0}' -f $GovernanceScope),
         ('run_id: {0}' -f $RunId)
     )
@@ -733,11 +764,20 @@ function New-VibeNativeSpecialistPrompt {
         ('execution_plan: {0}' -f $ExecutionPlanPath),
         '',
         'Rules:',
+        '- Open the declared native_skill_entrypoint before doing bounded specialist work.',
+        '- Treat the declared skill root as the only bounded specialist loading root.',
         '- Preserve the named specialist skill native workflow.',
         '- Remain bounded to the frozen requirement and execution plan.',
         '- Do not widen scope or self-approve new specialist dispatch.',
         '- Keep outputs specialist-specific and include verification notes.',
         '- If no repo change is needed, return an empty changed_files array.',
+        '',
+        'Progressive loading policy:'
+    )
+    foreach ($item in @($(if ($Dispatch.PSObject.Properties.Name -contains 'progressive_load_policy') { $Dispatch.progressive_load_policy } else { @() }))) {
+        $lines += ('- {0}' -f [string]$item)
+    }
+    $lines += @(
         '',
         'Required inputs:'
     )
@@ -760,6 +800,36 @@ function New-VibeNativeSpecialistPrompt {
     return ($lines -join [Environment]::NewLine)
 }
 
+function Get-VibeSpecialistPromptInjectionAssessment {
+    param(
+        [Parameter(Mandatory)] [object]$Dispatch,
+        [Parameter(Mandatory)] [string]$Prompt
+    )
+
+    $requiredPairs = @()
+    $requiredPairs += [pscustomobject]@{ name = 'native_skill_entrypoint'; value = [string]$(if ($Dispatch.PSObject.Properties.Name -contains 'native_skill_entrypoint') { $Dispatch.native_skill_entrypoint } else { '' }) }
+    $requiredPairs += [pscustomobject]@{ name = 'skill_root'; value = [string]$(if ($Dispatch.PSObject.Properties.Name -contains 'skill_root') { $Dispatch.skill_root } else { '' }) }
+    $requiredPairs += [pscustomobject]@{ name = 'usage_required'; value = [string]([bool]$(if ($Dispatch.PSObject.Properties.Name -contains 'usage_required') { $Dispatch.usage_required } else { $Dispatch.native_usage_required })).ToString().ToLowerInvariant() }
+    $requiredPairs += [pscustomobject]@{ name = 'must_preserve_workflow'; value = [string]([bool]$Dispatch.must_preserve_workflow).ToString().ToLowerInvariant() }
+
+    $missingFields = @()
+    foreach ($pair in @($requiredPairs)) {
+        if ([string]::IsNullOrWhiteSpace([string]$pair.value)) {
+            $missingFields += [string]$pair.name
+            continue
+        }
+        $needle = "{0}: {1}" -f [string]$pair.name, [string]$pair.value
+        if (-not ([string]$Prompt).Contains($needle)) {
+            $missingFields += [string]$pair.name
+        }
+    }
+
+    return [pscustomobject]@{
+        complete = [bool](@($missingFields).Count -eq 0)
+        missing_fields = @($missingFields | Select-Object -Unique)
+    }
+}
+
 function New-VibeDegradedSpecialistDispatchResult {
     param(
         [Parameter(Mandatory)] [string]$UnitId,
@@ -769,7 +839,9 @@ function New-VibeDegradedSpecialistDispatchResult {
         [Parameter(Mandatory)] [string]$Reason,
         [AllowNull()] [object]$AdapterResolution = $null,
         [AllowEmptyString()] [string]$WriteScope = '',
-        [AllowEmptyString()] [string]$ReviewMode = 'native_contract'
+        [AllowEmptyString()] [string]$ReviewMode = 'native_contract',
+        [AllowEmptyString()] [string]$PromptPath = '',
+        [AllowEmptyCollection()] [string[]]$MissingPromptInjectionFields = @()
     )
 
     $logsRoot = Join-Path $SessionRoot 'execution-logs'
@@ -815,9 +887,16 @@ function New-VibeDegradedSpecialistDispatchResult {
         specialist_skill_id = [string]$Dispatch.skill_id
         bounded_role = [string]$Dispatch.bounded_role
         native_usage_required = [bool]$Dispatch.native_usage_required
+        usage_required = [bool]$(if ($Dispatch.PSObject.Properties.Name -contains 'usage_required') { $Dispatch.usage_required } else { $Dispatch.native_usage_required })
         must_preserve_workflow = [bool]$Dispatch.must_preserve_workflow
+        native_skill_entrypoint = if ($Dispatch.PSObject.Properties.Name -contains 'native_skill_entrypoint') { [string]$Dispatch.native_skill_entrypoint } else { $null }
+        skill_root = if ($Dispatch.PSObject.Properties.Name -contains 'skill_root') { [string]$Dispatch.skill_root } else { $null }
+        visibility_class = if ($Dispatch.PSObject.Properties.Name -contains 'visibility_class') { [string]$Dispatch.visibility_class } else { $null }
         write_scope = $WriteScope
         review_mode = $ReviewMode
+        prompt_path = if ([string]::IsNullOrWhiteSpace($PromptPath)) { $null } else { [string]$PromptPath }
+        prompt_injection_complete = [bool]((-not [string]::IsNullOrWhiteSpace($PromptPath)) -and (@($MissingPromptInjectionFields).Count -eq 0))
+        missing_prompt_injection_fields = @($MissingPromptInjectionFields | Select-Object -Unique)
         execution_driver = [string]$Policy.degrade_contract.execution_driver
         requested_host_adapter_id = if ($AdapterResolution -and $AdapterResolution.PSObject.Properties.Name -contains 'requested_host_adapter_id') { [string]$AdapterResolution.requested_host_adapter_id } else { $null }
         host_adapter_id = if ($AdapterResolution -and $AdapterResolution.PSObject.Properties.Name -contains 'effective_host_adapter_id') { [string]$AdapterResolution.effective_host_adapter_id } else { $null }
@@ -973,6 +1052,20 @@ function Invoke-VibeSpecialistDispatchUnit {
         -ParentRunId $ParentRunId `
         -ParentUnitId $ParentUnitId
     Write-VgoUtf8NoBomText -Path $promptPath -Content ($prompt + [Environment]::NewLine)
+    $promptInjection = Get-VibeSpecialistPromptInjectionAssessment -Dispatch $Dispatch -Prompt $prompt
+    if (-not [bool]$promptInjection.complete) {
+        return New-VibeDegradedSpecialistDispatchResult `
+            -UnitId $UnitId `
+            -Dispatch $Dispatch `
+            -SessionRoot $SessionRoot `
+            -Policy $policy `
+            -Reason 'authoritative_prompt_injection_incomplete' `
+            -AdapterResolution $adapterResolution `
+            -WriteScope $WriteScope `
+            -ReviewMode $ReviewMode `
+            -PromptPath $promptPath `
+            -MissingPromptInjectionFields @($promptInjection.missing_fields)
+    }
 
     $beforeSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $RepoRoot
     Write-VgoUtf8NoBomText -Path $beforeGitPath -Content ((@($beforeSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
@@ -1091,7 +1184,11 @@ function Invoke-VibeSpecialistDispatchUnit {
         specialist_skill_id = [string]$Dispatch.skill_id
         bounded_role = [string]$Dispatch.bounded_role
         native_usage_required = [bool]$Dispatch.native_usage_required
+        usage_required = [bool]$(if ($Dispatch.PSObject.Properties.Name -contains 'usage_required') { $Dispatch.usage_required } else { $Dispatch.native_usage_required })
         must_preserve_workflow = [bool]$Dispatch.must_preserve_workflow
+        native_skill_entrypoint = if ($Dispatch.PSObject.Properties.Name -contains 'native_skill_entrypoint') { [string]$Dispatch.native_skill_entrypoint } else { $null }
+        skill_root = if ($Dispatch.PSObject.Properties.Name -contains 'skill_root') { [string]$Dispatch.skill_root } else { $null }
+        visibility_class = if ($Dispatch.PSObject.Properties.Name -contains 'visibility_class') { [string]$Dispatch.visibility_class } else { $null }
         write_scope = $WriteScope
         review_mode = $ReviewMode
         execution_driver = [string]$adapter.execution_driver
@@ -1103,6 +1200,8 @@ function Invoke-VibeSpecialistDispatchUnit {
         execution_plan_path = $ExecutionPlanPath
         response_json_path = $responsePath
         prompt_path = $promptPath
+        prompt_injection_complete = [bool]$promptInjection.complete
+        missing_prompt_injection_fields = @($promptInjection.missing_fields)
         schema_path = $schemaPath
         git_status_before_path = $beforeGitPath
         git_status_after_path = $afterGitPath

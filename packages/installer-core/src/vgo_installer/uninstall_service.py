@@ -166,6 +166,17 @@ def host_inventory(repo_root: Path, host_id: str) -> set[str]:
         inventory.update(collect_file_inventory(repo_root / "agents" / "templates", "agents/templates"))
         inventory.update(collect_file_inventory(repo_root / "mcp", "mcp"))
         inventory.add("config/plugins-manifest.codex.json")
+        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-what-do-i-want", "skills/vibe-what-do-i-want"))
+        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-how-do-we-do", "skills/vibe-how-do-we-do"))
+        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-do-it", "skills/vibe-do-it"))
+        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-upgrade", "skills/vibe-upgrade"))
+        inventory.update(
+            {
+                "commands/vibe-what-do-i-want.md",
+                "commands/vibe-how-do-we-do.md",
+                "commands/vibe-do-it.md",
+            }
+        )
     elif host_id == "opencode":
         inventory.update(collect_file_inventory(repo_root / "config" / "opencode" / "commands", "commands"))
         inventory.update(collect_file_inventory(repo_root / "config" / "opencode" / "commands", "command"))

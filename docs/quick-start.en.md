@@ -20,6 +20,34 @@ Go straight to:
 
 The main entry there is not a wall of commands. It is a prompt you can copy into your AI assistant.
 
+The current public host-visible wrapper set is fixed to these four entries:
+
+- `vibe`
+- `vibe-want`
+- `vibe-how`
+- `vibe-do`
+
+If your host supports menu-style rendering, it will usually display them as:
+
+- `Vibe`
+- `Vibe: What Do I Want?`
+- `Vibe: How Do We Do It?`
+- `Vibe: Do It`
+
+They still resolve to the same governed `vibe` runtime. The difference is the default stop target:
+
+- `vibe` / `Vibe`: run the full governed flow
+- `vibe-want` / `Vibe: What Do I Want?`: clarify goals, boundaries, and acceptance criteria, then stop after freezing the requirement
+- `vibe-how` / `Vibe: How Do We Do It?`: freeze the requirement and plan, then stop
+- `vibe-do` / `Vibe: Do It`: execute the full governed flow without skipping requirement or plan
+
+If you want a heavier execution lane, use only:
+
+- `--l`
+- `--xl`
+
+Do not rely on aliases like `vibe-l` or `vibe-xl`. Those combinations are intentionally unsupported.
+
 If your target host is OpenCode, you can also go straight to:
 
 - [`install/opencode-path.en.md`](./install/opencode-path.en.md)

@@ -45,6 +45,10 @@ def invoke_canonical_router(args: argparse.Namespace, shell: str) -> dict:
     ]
     if args.requested_skill:
         command.extend(['-RequestedSkill', args.requested_skill])
+    if args.entry_intent_id:
+        command.extend(['-EntryIntentId', args.entry_intent_id])
+    if args.requested_grade_floor:
+        command.extend(['-RequestedGradeFloor', args.requested_grade_floor])
     if args.host_id:
         command.extend(['-HostId', args.host_id])
     if args.target_root:
@@ -59,6 +63,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument('--grade', default='M', choices=['M', 'L', 'XL'])
     parser.add_argument('--task-type', default='planning', choices=['planning', 'coding', 'review', 'debug', 'research'])
     parser.add_argument('--requested-skill')
+    parser.add_argument('--entry-intent-id')
+    parser.add_argument('--requested-grade-floor', choices=['L', 'XL'])
     parser.add_argument('--host-id')
     parser.add_argument('--target-root')
     parser.add_argument('--force-runtime-neutral', action='store_true')
@@ -77,6 +83,8 @@ def main(argv: list[str] | None = None) -> int:
             grade=args.grade,
             task_type=args.task_type,
             requested_skill=args.requested_skill,
+            entry_intent_id=args.entry_intent_id,
+            requested_grade_floor=args.requested_grade_floor,
             target_root=args.target_root,
             host_id=args.host_id,
             repo_root=resolve_repo_root(Path(__file__)),

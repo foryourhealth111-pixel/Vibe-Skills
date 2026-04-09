@@ -4,6 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vgo-skill-catalog"
-version = "0.1.0"
+version = "3.0.0"
 description = "Detached skill catalog package for Vibe-Skills clean architecture"
 requires-python = ">=3.10"

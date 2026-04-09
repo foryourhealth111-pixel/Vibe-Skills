@@ -4,6 +4,14 @@ This file is the stable current changelog surface used by release governance.
 
 Historical entries before `v2.3.53` now live in `references/archive/changelog/pre-v2.3.53.md`.
 
+## v3.0.0 (2026-04-07)
+
+- Promoted the unpublished `v2.3.56` architecture-closure baseline into the public major-release line instead of leaving that baseline as a local-only note.
+- Hardened host-safe install and uninstall behavior while keeping supported hosts on a skill-first, sidecar-aware ownership model.
+- Tightened governed execution proof through better child-lineage validation, specialist-promotion closure, runtime/MCP truth alignment, and native MCP-first readiness guidance.
+- Synchronized the repository's governed release line and Python package metadata at `3.0.0` so package surfaces no longer advertise the old `0.1.0` scaffold placeholder.
+- Detailed release notes: `docs/releases/v3.0.0.md`.
+
 ## v2.3.56 (2026-04-04)
 
 - Completed the frozen `remaining-architecture-closure` program and moved the repository to a regression-backed low-coupling / high-cohesion baseline instead of leaving the closure work as an open-ended refactor stream.

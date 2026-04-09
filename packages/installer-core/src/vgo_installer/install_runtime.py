@@ -29,6 +29,7 @@ from .ledger_service import (
 )
 from .materializer import (
     canonical_vibe_target_relpath,
+    compatibility_projection_names,
     copy_dir_replace,
     copy_file,
     copy_skill_roots_without_self_shadow,
@@ -39,6 +40,7 @@ from .materializer import (
     install_opencode_guidance_payload,
     install_runtime_core_mode_payload,
     materialize_allowlisted_skills,
+    materialize_host_visible_wrappers,
     materialize_internal_skill_corpus,
     resolve_bundled_skills_root,
     restore_skill_entrypoint_if_needed,
@@ -73,6 +75,7 @@ ledger_state = {
     "merged_files": {},
     "template_generated": set(),
     "specialist_wrapper_paths": [],
+    "bridge_launcher_paths": [],
     "runtime_roots": set(),
     "compatibility_roots": set(),
     "sidecar_roots": set(),
@@ -143,6 +146,15 @@ def record_specialist_wrapper(path: Path) -> None:
         resolved = str(path)
     if resolved not in ledger_state["specialist_wrapper_paths"]:
         ledger_state["specialist_wrapper_paths"].append(resolved)
+
+
+def record_bridge_launcher(path: Path) -> None:
+    try:
+        resolved = str(path.resolve())
+    except FileNotFoundError:
+        resolved = str(path)
+    if resolved not in ledger_state["bridge_launcher_paths"]:
+        ledger_state["bridge_launcher_paths"].append(resolved)
 
 
 def record_runtime_root(path: Path | str) -> None:
@@ -227,6 +239,7 @@ def materialization_state_from_ledger_state() -> MaterializationLedgerState:
         merged_files=dict(ledger_state["merged_files"]),
         generated_from_template_if_absent=set(ledger_state["template_generated"]),
         specialist_wrapper_paths=list(ledger_state["specialist_wrapper_paths"]),
+        bridge_launcher_paths=list(ledger_state["bridge_launcher_paths"]),
         runtime_roots=set(ledger_state["runtime_roots"]),
         compatibility_roots=set(ledger_state["compatibility_roots"]),
         sidecar_roots=set(ledger_state["sidecar_roots"]),
@@ -249,19 +262,6 @@ def desired_managed_skill_names(repo_root: Path, packaging: dict) -> set[str]:
         )
 
     return managed
-
-
-def compatibility_projection_names(packaging: dict) -> list[str]:
-    projections = packaging.get("compatibility_skill_projections") or {}
-    seen: set[str] = set()
-    names: list[str] = []
-    for raw in projections.get("projected_skill_names") or []:
-        name = str(raw).strip()
-        if not name or name in seen:
-            continue
-        seen.add(name)
-        names.append(name)
-    return names
 
 
 def prune_previously_managed_skill_dirs(
@@ -300,7 +300,7 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
     previous_ledger = load_existing_install_ledger(target_root)
     skill_inventory = load_managed_skill_inventory(packaging)
     current_managed_skill_names = desired_managed_skill_names(repo_root, packaging)
-    projected_skill_names = set(compatibility_projection_names(packaging))
+    projected_skill_names = set(compatibility_projection_names(packaging, host_id=adapter["id"]))
     include_command_surfaces = not uses_skill_only_activation(adapter["id"])
     runtime_directories = [
         rel for rel in packaging["directories"]
@@ -377,6 +377,7 @@ def install_runtime_core(repo_root: Path, target_root: Path, profile: str, allow
         repo_root,
         target_root,
         packaging,
+        host_id=adapter["id"],
         copy_dir_replace_fn=lambda src, dst: copy_dir_replace(
             src,
             dst,
@@ -568,12 +569,28 @@ def main(argv: list[str] | None = None):
     else:
         raise SystemExit(f"Unsupported adapter install mode: {mode}")
 
+    wrapper_paths = materialize_host_visible_wrappers(
+        repo_root=repo_root,
+        target_root=target_root,
+        host_id=adapter["id"],
+        surface=dict(packaging.get("public_skill_surface") or {}),
+    )
+    discoverable_entry_surface = str((packaging.get("public_skill_surface") or {}).get("discoverable_entry_surface") or "").strip()
+    if discoverable_entry_surface and adapter.get("discoverable_entries") and not wrapper_paths:
+        raise SystemExit(
+            "Discoverable wrapper projection for "
+            f"'{adapter['id']}' produced no host-visible entries."
+        )
+    for wrapper_path in wrapper_paths:
+        track_created_path(wrapper_path)
+        record_specialist_wrapper(wrapper_path)
+
     closure_path, closure = materialize_host_closure(
         target_root,
         adapter,
         track_created_path=track_created_path,
         record_managed_json=record_managed_json,
-        record_specialist_wrapper=record_specialist_wrapper,
+        record_bridge_launcher=record_bridge_launcher,
     )
     record_sidecar_root(target_root / ".vibeskills")
     require_closed_ready_effective = bool(args.require_closed_ready and is_closed_ready_required(adapter))

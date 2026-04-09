@@ -109,7 +109,9 @@ function Resolve-VgoRepoRoot {
 
     $gitCandidates = @($candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ '.git') })
     if ($gitCandidates.Count -gt 0) {
-        return [System.IO.Path]::GetFullPath($gitCandidates[-1])
+        # Prefer the nearest governed git root so runtime entrypoints executed from
+        # worktrees resolve to the active governed tree rather than the outer source repo.
+        return [System.IO.Path]::GetFullPath($gitCandidates[0])
     }
 
     # In installed-host layouts the outer target root may also carry a config directory.
@@ -1635,6 +1637,7 @@ function Get-VgoSkillPromotionPolicy {
 function Get-VgoSkillContractCompleteness {
     param(
         [AllowEmptyString()] [string]$SkillMdPath = '',
+        [AllowEmptyString()] [string]$SkillRoot = '',
         [AllowEmptyString()] [string]$Description = '',
         [AllowNull()] [object]$RequiredInputs = $null,
         [AllowNull()] [object]$ExpectedOutputs = $null,
@@ -1646,6 +1649,9 @@ function Get-VgoSkillContractCompleteness {
     $missingFields = @()
     if ([string]::IsNullOrWhiteSpace($SkillMdPath)) {
         $missingFields += 'native_skill_entrypoint'
+    }
+    if ([string]::IsNullOrWhiteSpace($SkillRoot)) {
+        $missingFields += 'skill_root'
     }
     if ([string]::IsNullOrWhiteSpace($Description)) {
         $missingFields += 'native_skill_description'
@@ -1719,6 +1725,7 @@ function Get-VgoSkillPromotionMetadata {
     param(
         [AllowEmptyString()] [string]$Prompt = '',
         [AllowEmptyString()] [string]$SkillMdPath = '',
+        [AllowEmptyString()] [string]$SkillRoot = '',
         [AllowEmptyString()] [string]$Description = '',
         [AllowNull()] [object]$RequiredInputs = $null,
         [AllowNull()] [object]$ExpectedOutputs = $null,
@@ -1732,6 +1739,7 @@ function Get-VgoSkillPromotionMetadata {
     $destructive = Get-VgoDestructiveIntentAssessment -Prompt $Prompt -PromotionPolicy $policy
     $contract = Get-VgoSkillContractCompleteness `
         -SkillMdPath $SkillMdPath `
+        -SkillRoot $SkillRoot `
         -Description $Description `
         -RequiredInputs $RequiredInputs `
         -ExpectedOutputs $ExpectedOutputs `

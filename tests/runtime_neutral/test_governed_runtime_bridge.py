@@ -327,6 +327,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["executed_specialists_subset_of_approved_dispatch"]))
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["local_suggestions_contained"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["prompt_injection_complete_for_executed_specialists"]))
+            self.assertEqual([], list(execution_manifest["dispatch_integrity"]["prompt_injection_incomplete_skill_ids"]))
             self.assertTrue(execution_proof["proof_passed"])
             self.assertGreaterEqual(execution_proof["executed_unit_count"], 2)
             self.assertEqual("runtime", execution_proof["proof_class"])

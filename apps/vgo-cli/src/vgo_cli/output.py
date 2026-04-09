@@ -41,12 +41,17 @@ def print_install_completion_report(
     mcp_receipt: dict[str, object],
 ) -> None:
     follow_up = manual_follow_up_servers(mcp_receipt)
+    host_runtime = install_receipt.get('host_runtime') if isinstance(install_receipt, dict) else {}
+    vibe_host_ready = 'unknown'
+    if isinstance(host_runtime, dict) and 'vibe_host_ready' in host_runtime:
+        vibe_host_ready = bool(host_runtime.get('vibe_host_ready'))
     print('')
     print('MCP auto-provision summary')
     print(f'- host: {host_id}')
     print(f'- profile: {profile}')
     print(f'- target_root: {target_root}')
     print(f'- installed_locally: {mcp_receipt.get("install_state") == "installed_locally"}')
+    print(f'- vibe_host_ready: {vibe_host_ready}')
     print(f'- mcp_auto_provision_attempted: {bool(mcp_receipt.get("mcp_auto_provision_attempted"))}')
     print('- completed_parts: runtime payload installed; post-install gates reconciled; MCP outcomes summarized once at completion')
     for item in mcp_receipt.get('mcp_results') or []:

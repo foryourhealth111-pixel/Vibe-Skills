@@ -126,7 +126,7 @@ def classify_advice_probe_result(attempts: list[dict[str, Any]]) -> tuple[str, s
                 text = None
                 if attempt["endpoint_kind"] == "responses":
                     text = extract_openai_response_output_text(payload)
-                elif attempt["endpoint_kind"] == "chat_completions":
+                elif attempt["endpoint_kind"] in {"chat_completions", "chat_completions_plain"}:
                     text = extract_chat_completion_text(payload)
 
                 if text:
@@ -316,6 +316,20 @@ def probe_advice_connectivity(
         "top_p": 1.0,
         "stream": False,
     }
+    plain_chat_payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "Reply with a JSON object only. Do not wrap it in markdown.",
+            },
+            {"role": "user", "content": 'Return JSON object {"ok": true} only.'},
+        ],
+        "max_tokens": 32,
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "stream": False,
+    }
 
     attempts = [
         request_attempt(
@@ -334,6 +348,15 @@ def probe_advice_connectivity(
             url=f"{base_v1}/chat/completions",
             headers=headers,
             payload=chat_payload,
+            timeout_ms=timeout_ms,
+        ),
+        request_attempt(
+            transport,
+            purpose="advice",
+            endpoint_kind="chat_completions_plain",
+            url=f"{base_v1}/chat/completions",
+            headers=headers,
+            payload=plain_chat_payload,
             timeout_ms=timeout_ms,
         ),
     ]

@@ -27,6 +27,8 @@ def route_prompt(
     grade: str,
     task_type: str,
     requested_skill: str | None = None,
+    entry_intent_id: str | None = None,
+    requested_grade_floor: str | None = None,
     target_root: str | None = None,
     host_id: str | None = None,
     repo_root: Path | None = None,
@@ -49,7 +51,7 @@ def route_prompt(
     fallback_policy = router_config["fallback_policy"]
     routing_rules = router_config["routing_rules"]
 
-    requested_canonical = resolve_requested_canonical(requested_skill, alias_map)
+    requested_canonical = resolve_requested_canonical(requested_skill or entry_intent_id, alias_map)
     resolved_target_root = resolve_target_root(target_root, host_id)
     custom_admission = load_custom_admission(
         repo_root=repo.repo_root,
@@ -185,6 +187,8 @@ def route_prompt(
         "alias": {
             "requested_input": requested_skill,
             "requested_canonical": requested_canonical,
+            "entry_intent_id": entry_intent_id,
+            "requested_grade_floor": requested_grade_floor,
         },
         "thresholds": {
             "auto_route": auto_route_threshold,

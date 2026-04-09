@@ -10,6 +10,7 @@ Entry bias:
 - choose an approach
 - design execution structure
 - sequence the work before implementation
+- stop after canonical `xl_plan`
 
 Execution rules:
 
@@ -18,12 +19,14 @@ Execution rules:
 - do not create a second requirement surface
 - do not create a second plan surface
 - do not create a parallel runtime
+- do not continue into `plan_execute` or `phase_cleanup` unless the user explicitly re-enters through canonical `vibe` or another approved wrapper
 
-When this wrapper is chosen, bias canonical `vibe` toward:
+When this wrapper is chosen, enter canonical `vibe` with:
 
 - approach selection
 - explicit planning
 - stronger transition into `xl_plan`
+- a bounded terminal stage of `xl_plan`
 
 Request:
 $ARGUMENTS
