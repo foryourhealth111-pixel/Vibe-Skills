@@ -354,7 +354,7 @@ function New-VibeSpecialistRecommendation {
         [object[]]@($CustomMetadata.progressive_load_policy)
     } else {
         [object[]]@(
-            'Open the specialist SKILL.md entrypoint first.',
+            ('Open the specialist {0} entrypoint first.' -f [string]$nativeSkillEntrypoint),
             'Load references/ only when they are needed for the bounded task.',
             'Load scripts/ only when executable specialist support is required.',
             'Load assets/ only when the specialist workflow explicitly needs them.'

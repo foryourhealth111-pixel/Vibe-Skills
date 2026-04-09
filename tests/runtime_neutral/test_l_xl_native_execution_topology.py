@@ -55,6 +55,25 @@ def run_runtime(
     script_path = REPO_ROOT / script_relative_path
     run_id = "pytest-topology-" + uuid.uuid4().hex[:10]
     approved = approved_specialist_skill_ids or []
+    delegation_envelope_path: Path | None = None
+    if (
+        governance_scope == "child"
+        and root_run_id
+        and parent_run_id
+        and parent_unit_id
+        and inherited_requirement_doc_path is not None
+        and inherited_execution_plan_path is not None
+    ):
+        delegation_envelope_path = write_delegation_envelope_fixture(
+            artifact_root,
+            child_run_id=run_id,
+            root_run_id=root_run_id,
+            parent_run_id=parent_run_id,
+            parent_unit_id=parent_unit_id,
+            inherited_requirement_doc_path=inherited_requirement_doc_path,
+            inherited_execution_plan_path=inherited_execution_plan_path,
+            approved_specialists=approved,
+        )
     approved_literal = (
         "@(" + ",".join("'" + skill.replace("'", "''") + "'" for skill in approved) + ")"
         if approved
@@ -73,6 +92,11 @@ def run_runtime(
     root_segment = f"-RootRunId '{root_run_id}' " if root_run_id else ""
     parent_segment = f"-ParentRunId '{parent_run_id}' " if parent_run_id else ""
     parent_unit_segment = f"-ParentUnitId '{parent_unit_id}' " if parent_unit_id else ""
+    delegation_segment = (
+        f"-DelegationEnvelopePath '{delegation_envelope_path}' "
+        if delegation_envelope_path is not None
+        else ""
+    )
     entry_intent_segment = f"-EntryIntentId '{entry_intent_id}' " if entry_intent_id else ""
     requested_stop_segment = f"-RequestedStageStop '{requested_stage_stop}' " if requested_stage_stop else ""
     requested_grade_segment = f"-RequestedGradeFloor '{requested_grade_floor}' " if requested_grade_floor else ""
@@ -94,6 +118,7 @@ def run_runtime(
             f"{parent_unit_segment}"
             f"{inherited_requirement}"
             f"{inherited_plan}"
+            f"{delegation_segment}"
             f"{entry_intent_segment}"
             f"{requested_stop_segment}"
             f"{requested_grade_segment}"
@@ -117,6 +142,41 @@ def run_runtime(
             f"stderr={completed.stderr.strip()}"
         )
     return json.loads(stdout)
+
+
+def write_delegation_envelope_fixture(
+    artifact_root: Path,
+    *,
+    child_run_id: str,
+    root_run_id: str,
+    parent_run_id: str,
+    parent_unit_id: str,
+    inherited_requirement_doc_path: Path,
+    inherited_execution_plan_path: Path,
+    approved_specialists: list[str] | None = None,
+) -> Path:
+    approved = approved_specialists or []
+    session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / child_run_id
+    session_root.mkdir(parents=True, exist_ok=True)
+    envelope_path = session_root / "delegation-envelope.json"
+    envelope = {
+        "root_run_id": root_run_id,
+        "parent_run_id": parent_run_id,
+        "parent_unit_id": parent_unit_id,
+        "child_run_id": child_run_id,
+        "governance_scope": "child_governed",
+        "requirement_doc_path": str(inherited_requirement_doc_path.resolve()),
+        "execution_plan_path": str(inherited_execution_plan_path.resolve()),
+        "write_scope": "pytest:child-lane",
+        "approved_specialists": approved,
+        "review_mode": "native_contract",
+        "prompt_tail_required": "$vibe",
+        "allow_requirement_freeze": False,
+        "allow_plan_freeze": False,
+        "allow_root_completion_claim": False,
+    }
+    envelope_path.write_text(json.dumps(envelope, indent=2), encoding="utf-8")
+    return envelope_path
 
 
 def run_write_xl_plan(
@@ -425,6 +485,45 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertEqual("XL", plan_receipt["internal_grade"])
             self.assertEqual("XL", execution_receipt["internal_grade"])
             self.assertEqual("XL", execution_manifest["internal_grade"])
+
+    def test_plan_execute_marks_legacy_dispatch_packets_incomplete_without_crashing(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            initial_payload = run_runtime(
+                task="I have a failing test and a stack trace. Help me debug systematically before proposing fixes.",
+                artifact_root=artifact_root,
+                governance_scope="root",
+            )
+            initial_summary = initial_payload["summary"]
+            requirement_doc_path = Path(initial_summary["artifacts"]["requirement_doc"])
+            execution_plan_path = Path(initial_summary["artifacts"]["execution_plan"])
+            runtime_input_packet_path = Path(initial_summary["artifacts"]["runtime_input_packet"])
+            runtime_input_packet = load_json(runtime_input_packet_path)
+
+            approved_dispatch = list((runtime_input_packet.get("specialist_dispatch") or {}).get("approved_dispatch") or [])
+            self.assertGreaterEqual(len(approved_dispatch), 1)
+            legacy_skill_id = str(approved_dispatch[0]["skill_id"])
+            approved_dispatch[0].pop("skill_root", None)
+            approved_dispatch[0].pop("usage_required", None)
+            runtime_input_packet_path.write_text(
+                json.dumps(runtime_input_packet, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+            execution_payload = run_plan_execute(
+                task="I have a failing test and a stack trace. Help me debug systematically before proposing fixes.",
+                artifact_root=artifact_root,
+                requirement_doc_path=requirement_doc_path,
+                execution_plan_path=execution_plan_path,
+                runtime_input_packet_path=runtime_input_packet_path,
+            )
+            execution_receipt = load_json(execution_payload["receipt_path"])
+            execution_manifest = load_json(execution_receipt["execution_manifest_path"])
+
+            self.assertIn(
+                legacy_skill_id,
+                list(execution_manifest["dispatch_integrity"]["dispatch_contract_incomplete_skill_ids"]),
+            )
 
     def test_specialist_binding_metadata_is_frozen_into_runtime_requirement_and_plan(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

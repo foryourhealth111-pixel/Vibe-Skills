@@ -49,6 +49,57 @@ def extract_powershell_function(script_path: Path, function_name: str) -> str:
 
 
 class PlanExecuteReceiptTests(unittest.TestCase):
+    def test_native_specialist_prompt_references_declared_entrypoint_rule(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell not available")
+
+        common_path = REPO_ROOT / "scripts" / "runtime" / "VibeExecution.Common.ps1"
+        function_body = extract_powershell_function(common_path, "New-VibeNativeSpecialistPrompt")
+
+        ps_script = (
+            "& { "
+            f". '{common_path}'; "
+            f"{function_body} "
+            "$dispatch = [pscustomobject]@{ "
+            "skill_id = 'systematic-debugging'; "
+            "bounded_role = 'specialist_assist'; "
+            "native_skill_entrypoint = '/tmp/demo/SKILL.runtime-mirror.md'; "
+            "skill_root = '/tmp/demo'; "
+            "visibility_class = 'path_resolved'; "
+            "native_usage_required = $true; "
+            "usage_required = $true; "
+            "must_preserve_workflow = $true; "
+            "required_inputs = @('input'); "
+            "expected_outputs = @('output'); "
+            "verification_expectation = 'verify'; "
+            "progressive_load_policy = @('Open the specialist /tmp/demo/SKILL.runtime-mirror.md entrypoint first.') "
+            "}; "
+            "$prompt = New-VibeNativeSpecialistPrompt "
+            "-Dispatch $dispatch "
+            "-RequirementDocPath 'req.md' "
+            "-ExecutionPlanPath 'plan.md' "
+            "-GovernanceScope 'root' "
+            "-WriteScope 'scope' "
+            "-RunId 'run-1'; "
+            "$prompt }"
+        )
+
+        completed = subprocess.run(
+            [powershell, "-NoLogo", "-NoProfile", "-Command", ps_script],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        prompt = completed.stdout
+        self.assertIn(
+            "- Open the declared native_skill_entrypoint before doing bounded specialist work.",
+            prompt,
+        )
+        self.assertNotIn("- Open the specialist SKILL.md entrypoint before doing bounded specialist work.", prompt)
+
     def test_convert_to_vibe_executed_unit_receipt_preserves_prompt_injection_fields(self) -> None:
         powershell = resolve_powershell()
         if powershell is None:

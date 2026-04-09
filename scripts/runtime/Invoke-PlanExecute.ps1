@@ -1114,11 +1114,22 @@ $executedWithoutApproval = @($executedSpecialistSkillIds | Where-Object { $_ -no
 $localSuggestionsExecutedWithoutApproval = @($localSuggestionSkillIds | Where-Object { $_ -in $executedSpecialistSkillIds })
 $dispatchContractIncompleteSkillIds = @(
     $approvedDispatch | Where-Object {
-        -not [bool]$_.native_usage_required -or
-        -not [bool]$_.must_preserve_workflow -or
-        [string]::IsNullOrWhiteSpace([string]$_.native_skill_entrypoint) -or
-        [string]::IsNullOrWhiteSpace([string]$_.skill_root) -or
-        -not [bool]$_.usage_required
+        $entry = $_
+        $hasNativeUsageRequired = $entry.PSObject.Properties.Name -contains 'native_usage_required'
+        $hasMustPreserveWorkflow = $entry.PSObject.Properties.Name -contains 'must_preserve_workflow'
+        $hasNativeSkillEntrypoint = $entry.PSObject.Properties.Name -contains 'native_skill_entrypoint'
+        $hasSkillRoot = $entry.PSObject.Properties.Name -contains 'skill_root'
+        $hasUsageRequired = $entry.PSObject.Properties.Name -contains 'usage_required'
+        -not $hasNativeUsageRequired -or
+        -not [bool]$entry.native_usage_required -or
+        -not $hasMustPreserveWorkflow -or
+        -not [bool]$entry.must_preserve_workflow -or
+        -not $hasNativeSkillEntrypoint -or
+        [string]::IsNullOrWhiteSpace([string]$entry.native_skill_entrypoint) -or
+        -not $hasSkillRoot -or
+        [string]::IsNullOrWhiteSpace([string]$entry.skill_root) -or
+        -not $hasUsageRequired -or
+        -not [bool]$entry.usage_required
     } | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
 )
 $promptInjectionIncompleteSkillIds = @(

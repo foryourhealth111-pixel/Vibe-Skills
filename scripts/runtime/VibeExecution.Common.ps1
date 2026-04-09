@@ -764,7 +764,7 @@ function New-VibeNativeSpecialistPrompt {
         ('execution_plan: {0}' -f $ExecutionPlanPath),
         '',
         'Rules:',
-        '- Open the specialist SKILL.md entrypoint before doing bounded specialist work.',
+        '- Open the declared native_skill_entrypoint before doing bounded specialist work.',
         '- Treat the declared skill root as the only bounded specialist loading root.',
         '- Preserve the named specialist skill native workflow.',
         '- Remain bounded to the frozen requirement and execution plan.',
