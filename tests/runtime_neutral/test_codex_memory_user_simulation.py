@@ -179,9 +179,9 @@ def run_repo_governed_runtime(task: str, artifact_root: Path, env: dict[str, str
         ),
     ]
     effective_env = os.environ.copy()
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
     if env:
         effective_env.update(env)
+    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         command,

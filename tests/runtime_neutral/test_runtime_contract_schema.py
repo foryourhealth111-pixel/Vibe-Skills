@@ -64,9 +64,9 @@ def run_runtime(artifact_root: Path, *, extra_env: dict[str, str] | None = None)
 
     run_id = "pytest-contract-" + uuid.uuid4().hex[:10]
     effective_env = os.environ.copy()
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
     if extra_env:
         effective_env.update(extra_env)
+    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         [
@@ -99,11 +99,7 @@ def load_json(path: str | Path) -> dict[str, object]:
 
 
 def get_expected_workspace_root() -> Path:
-    resolved = REPO_ROOT.resolve()
-    parts = list(resolved.parts)
-    if ".worktrees" in parts:
-        return Path(*parts[: parts.index(".worktrees")])
-    return resolved
+    return REPO_ROOT.resolve()
 
 
 class RuntimeContractSchemaTests(unittest.TestCase):
@@ -314,6 +310,24 @@ class RuntimeContractSchemaTests(unittest.TestCase):
         self.assertEqual(".vibeskills/project.json", payload["workspace_identity_root"])
         self.assertEqual("workspace_shared_memory_v1", payload["shared_memory_driver_contract"])
         self.assertEqual(["state_store", "serena", "ruflo", "cognee"], payload["logical_memory_owners"])
+
+    def test_runtime_context_loads_workspace_memory_policy_surfaces(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {_ps_single_quote(str(RUNTIME_COMMON))}; "
+            f"$runtime = Get-VibeRuntimeContext -ScriptPath {_ps_single_quote(str(RUNTIME_ENTRY))}; "
+            "[pscustomobject]@{ "
+            "workspace_plane_id = $runtime.workspace_memory_plane.plane_id; "
+            "workspace_plane_mode = $runtime.workspace_memory_plane.mode; "
+            "disclosure_policy_id = $runtime.memory_disclosure_policy.policy_id; "
+            "ingest_policy_id = $runtime.memory_ingest_policy.policy_id "
+            "} | ConvertTo-Json -Depth 10 }"
+        )
+
+        self.assertEqual("workspace-shared-memory-v1", payload["workspace_plane_id"])
+        self.assertEqual("shadow", payload["workspace_plane_mode"])
+        self.assertEqual("memory-disclosure-capsules-v1", payload["disclosure_policy_id"])
+        self.assertEqual("memory-ingest-admission-v1", payload["ingest_policy_id"])
 
     def test_workspace_memory_schema_defaults_preserve_workspace_identity_contract(self) -> None:
         from vgo_runtime.workspace_memory_schema import build_workspace_memory_schema

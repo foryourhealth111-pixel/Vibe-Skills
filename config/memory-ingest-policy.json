@@ -31,20 +31,17 @@
     },
     "serena": {
       "allow": [
-        "project_decision_gate",
-        "architecture_decision"
+        "decision"
       ]
     },
     "ruflo": {
       "allow": [
-        "handoff_card",
-        "short_term_semantic_context"
+        "handoff_card"
       ]
     },
     "cognee": {
       "allow": [
-        "entity_relation_ingest",
-        "long_term_graph_context"
+        "relation"
       ]
     }
   },

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -62,6 +63,7 @@ def run_router(
         capture_output=True,
         text=True,
         check=True,
+        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
     return json.loads(completed.stdout)
 
@@ -161,6 +163,7 @@ def run_runtime_freeze(
         capture_output=True,
         text=True,
         check=True,
+        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
     return json.loads(completed.stdout)
 
@@ -207,6 +210,7 @@ def run_full_runtime(
         capture_output=True,
         text=True,
         check=True,
+        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
     return json.loads(completed.stdout)
 

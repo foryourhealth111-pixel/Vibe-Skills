@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+DISCLOSURE_POLICY = json.loads((REPO_ROOT / "config" / "memory-disclosure-policy.json").read_text(encoding="utf-8"))
 
 
 def resolve_powershell() -> str | None:
@@ -52,9 +53,9 @@ def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | N
         ),
     ]
     effective_env = os.environ.copy()
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
     if env:
         effective_env.update(env)
+    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         command,
@@ -103,12 +104,29 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
             plan_context = stage_by_name["xl_plan"]["context_injection"]
             execute_context = stage_by_name["plan_execute"]["context_injection"]
 
-            self.assertEqual("L2_capsule_summary", requirement_context["disclosure_level"])
-            self.assertEqual("L2_capsule_summary", plan_context["disclosure_level"])
-            self.assertEqual("L3_evidence_pack", execute_context["disclosure_level"])
+            self.assertEqual(
+                DISCLOSURE_POLICY["stages"]["requirement_doc"]["level"],
+                requirement_context["disclosure_level"],
+            )
+            self.assertEqual(
+                DISCLOSURE_POLICY["stages"]["xl_plan"]["level"],
+                plan_context["disclosure_level"],
+            )
+            self.assertEqual(
+                DISCLOSURE_POLICY["stages"]["plan_execute"]["level"],
+                execute_context["disclosure_level"],
+            )
 
-            for context in (requirement_context, plan_context, execute_context):
+            for stage_name, context in (
+                ("requirement_doc", requirement_context),
+                ("xl_plan", plan_context),
+                ("plan_execute", execute_context),
+            ):
                 with self.subTest(context=context["disclosure_level"]):
+                    self.assertLessEqual(
+                        context["capsule_count"],
+                        DISCLOSURE_POLICY["stages"][stage_name]["max_capsules"],
+                    )
                     self.assertGreaterEqual(context["capsule_count"], 1)
                     self.assertTrue(Path(context["artifact_path"]).exists())
                     self.assertGreaterEqual(len(context["selected_capsules"]), 1)

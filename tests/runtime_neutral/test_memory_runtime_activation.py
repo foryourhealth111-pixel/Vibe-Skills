@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -28,7 +29,69 @@ def resolve_powershell() -> str | None:
     return None
 
 
+def create_fake_codex_command(directory: Path) -> Path:
+    suffix = ".cmd" if os.name == "nt" else ""
+    command_path = directory / f"codex{suffix}"
+    if os.name == "nt":
+        command_path.write_text(
+            "@echo off\r\n"
+            "setlocal EnableDelayedExpansion\r\n"
+            "set OUT=\r\n"
+            ":loop\r\n"
+            "if \"%~1\"==\"\" goto done\r\n"
+            "if /I \"%~1\"==\"-o\" (\r\n"
+            "  set OUT=%~2\r\n"
+            "  shift\r\n"
+            "  shift\r\n"
+            "  goto loop\r\n"
+            ")\r\n"
+            "shift\r\n"
+            "goto loop\r\n"
+            ":done\r\n"
+            "if \"%OUT%\"==\"\" exit /b 2\r\n"
+            "> \"%OUT%\" echo {\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}\r\n"
+            "echo fake codex ok\r\n"
+            "exit /b 0\r\n",
+            encoding="utf-8",
+        )
+    else:
+        command_path.write_text(
+            "#!/usr/bin/env sh\n"
+            "OUT=''\n"
+            "while [ \"$#\" -gt 0 ]; do\n"
+            "  case \"$1\" in\n"
+            "    -o)\n"
+            "      OUT=\"$2\"\n"
+            "      shift 2\n"
+            "      ;;\n"
+            "    *)\n"
+            "      shift\n"
+            "      ;;\n"
+            "  esac\n"
+            "done\n"
+            "if [ -z \"$OUT\" ]; then\n"
+            "  exit 2\n"
+            "fi\n"
+            "printf '%s' '{\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}' > \"$OUT\"\n"
+            "printf 'fake codex ok\\n'\n",
+            encoding="utf-8",
+        )
+        command_path.chmod(command_path.stat().st_mode | stat.S_IXUSR)
+    return command_path
+
+
 def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | None = None) -> dict[str, object]:
+    payload, _ = run_governed_runtime_with_metadata(task, artifact_root, env=env)
+    return payload
+
+
+def run_governed_runtime_with_metadata(
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str] | None = None,
+    *,
+    check: bool = True,
+) -> tuple[dict[str, object], str]:
     shell = resolve_powershell()
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
@@ -51,9 +114,9 @@ def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | N
         ),
     ]
     effective_env = os.environ.copy()
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
     if env:
         effective_env.update(env)
+    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         command,
@@ -62,15 +125,24 @@ def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | N
         text=True,
         encoding="utf-8",
         env=effective_env,
-        check=True,
+        check=check,
     )
+    if not check and completed.returncode != 0:
+        return (
+            {
+                "returncode": completed.returncode,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+            },
+            run_id,
+        )
     stdout = completed.stdout.strip()
     if stdout in ("", "null"):
         raise AssertionError(
             "invoke-vibe-runtime returned null payload. "
             f"stderr={completed.stderr.strip()}"
         )
-    return json.loads(stdout)
+    return json.loads(stdout), run_id
 
 
 class MemoryRuntimeActivationTests(unittest.TestCase):
@@ -249,6 +321,68 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             plan_text = Path(second["summary"]["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
             self.assertIn("## Memory Context", plan_text)
             self.assertIn("Cognee relation:", plan_text)
+
+    def test_runtime_hard_fails_when_workspace_broker_cannot_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_root = Path(tempdir)
+            payload, run_id = run_governed_runtime_with_metadata(
+                "XL follow-up api worker continuity review with decision reuse and graph dependency recall.",
+                artifact_root=temp_root,
+                env={"VIBE_MEMORY_BACKEND_DRIVER_MODE": "legacy"},
+                check=False,
+            )
+
+            report_path = (
+                temp_root
+                / "outputs"
+                / "runtime"
+                / "vibe-sessions"
+                / run_id
+                / "memory-activation"
+                / "memory-activation-report.json"
+            )
+
+            self.assertNotEqual(0, payload["returncode"])
+            self.assertTrue(report_path.exists())
+
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            failed_statuses = {
+                action["status"]
+                for stage in report["stages"]
+                for action in [*stage.get("read_actions", []), *stage.get("write_actions", [])]
+                if "failed" in str(action.get("status") or "")
+            }
+            self.assertIn("memory_backend_invocation_failed", failed_statuses)
+
+    def test_runtime_helper_keeps_native_specialist_disabled_when_caller_env_conflicts(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_root = Path(tempdir)
+            payload = run_governed_runtime(
+                "I have a failing test and a stack trace. Help me debug systematically before proposing fixes.",
+                artifact_root=temp_root / "runtime",
+                env={
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_CODEX_EXECUTABLE": str(create_fake_codex_command(temp_root)),
+                },
+            )
+
+            execution_manifest = json.loads(
+                Path(payload["summary"]["artifacts"]["execution_manifest"]).read_text(encoding="utf-8")
+            )
+            execution_proof = json.loads(
+                Path(payload["summary"]["artifacts"]["execution_proof_manifest"]).read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                "explicitly_degraded",
+                execution_manifest["specialist_accounting"]["effective_execution_status"],
+            )
+
+            for result_path in execution_proof["result_paths"]:
+                result = json.loads(Path(result_path).read_text(encoding="utf-8"))
+                if result.get("kind") != "specialist_dispatch":
+                    continue
+                self.assertFalse(bool(result["live_native_execution"]))
+                self.assertNotEqual("codex_exec_native_specialist", result["execution_driver"])
 
 
 if __name__ == "__main__":

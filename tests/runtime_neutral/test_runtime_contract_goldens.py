@@ -58,7 +58,7 @@ def run_runtime(task: str, artifact_root: Path, *, extra_env: dict[str, str] | N
         text=True,
         encoding="utf-8",
         check=True,
-        env={**os.environ, **(extra_env or {})},
+        env={**os.environ, **(extra_env or {}), "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
     stdout = completed.stdout.strip()
     if stdout in ("", "null"):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 import subprocess
@@ -130,6 +131,31 @@ class CrossHostMemoryIdentityTests(unittest.TestCase):
             payload[1]["workspace_memory_driver_contract"],
         )
         self.assertNotEqual(payload[0]["host_sidecar_root"], payload[1]["host_sidecar_root"])
+
+    def test_workspace_driver_projection_matches_runtime_core_identity_contract(self) -> None:
+        from vgo_runtime.workspace_memory import build_workspace_memory_identity
+
+        spec = importlib.util.spec_from_file_location(
+            "workspace_memory_driver_contract",
+            REPO_ROOT / "scripts" / "runtime" / "workspace_memory_driver.py",
+        )
+        if spec is None or spec.loader is None:
+            raise AssertionError("unable to load workspace_memory_driver.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            workspace_root = Path(tempdir) / "workspace"
+            workspace_root.mkdir(parents=True, exist_ok=True)
+
+            runtime_identity = build_workspace_memory_identity(workspace_root=workspace_root).model_dump()
+            descriptor = module.ensure_workspace_descriptor(workspace_root)
+            driver_projection = module.workspace_memory_projection(
+                descriptor,
+                module.resolve_plane_path(descriptor),
+            )
+
+        self.assertEqual(runtime_identity["workspace_id"], driver_projection["workspace_id"])
 
 
 if __name__ == "__main__":
