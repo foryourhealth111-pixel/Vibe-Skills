@@ -31,6 +31,15 @@ function Get-OpenAiV1BaseUrl {
     return ("{0}/v1" -f $trim)
 }
 
+function Get-AnthropicMessagesBaseUrl {
+    param(
+        [string]$Override,
+        [string[]]$EnvCandidates = @("VCO_INTENT_ADVICE_BASE_URL")
+    )
+
+    return (Get-OpenAiV1BaseUrl -Override $Override -EnvCandidates $EnvCandidates)
+}
+
 function Get-OpenAiApiKey {
     param([string]$EnvName = "VCO_INTENT_ADVICE_API_KEY")
     if ($EnvName) {
@@ -65,6 +74,16 @@ function Get-OpenAiEmbeddingsEndpoint {
     )
     $base = Get-OpenAiV1BaseUrl -Override $BaseUrl -EnvCandidates $BaseUrlEnvCandidates
     return ("{0}/embeddings" -f $base)
+}
+
+function Get-AnthropicMessagesEndpoint {
+    param(
+        [string]$BaseUrl,
+        [string[]]$BaseUrlEnvCandidates = @("VCO_INTENT_ADVICE_BASE_URL")
+    )
+
+    $base = Get-AnthropicMessagesBaseUrl -Override $BaseUrl -EnvCandidates $BaseUrlEnvCandidates
+    return ("{0}/messages" -f $base)
 }
 
 function Get-OpenAiResponseOutputText {
@@ -148,6 +167,29 @@ function Get-OpenAiChatCompletionOutputText {
     } catch { }
 
     return $null
+}
+
+function Get-AnthropicMessageOutputText {
+    param([object]$Response)
+
+    if (-not $Response) { return $null }
+
+    try {
+        $content = @($Response.content)
+        if ($content.Count -eq 0) { return $null }
+
+        $parts = @()
+        foreach ($block in $content) {
+            if (-not $block) { continue }
+            if ($block.type -ne "text") { continue }
+            if ($block.text) { $parts += [string]$block.text }
+        }
+
+        if ($parts.Count -eq 0) { return $null }
+        return ($parts -join "`n").Trim()
+    } catch {
+        return $null
+    }
 }
 
 function Get-OpenAiEmbeddingsOutputVectors {
@@ -463,6 +505,99 @@ function Invoke-OpenAiEmbeddingsCreate {
             status_code = $status
             latency_ms = [int]$sw.ElapsedMilliseconds
             vectors = @()
+            response = $null
+            error = $message
+        }
+    }
+}
+
+function Invoke-AnthropicMessagesCreate {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Model,
+        [Parameter(Mandatory = $true)]
+        [object[]]$Messages,
+        [string]$System = "",
+        [int]$MaxTokens = 800,
+        [double]$Temperature = 0.2,
+        [double]$TopP = 1.0,
+        [int]$TimeoutMs = 2500,
+        [string]$ApiKey,
+        [string]$ApiKeyEnv = "VCO_INTENT_ADVICE_API_KEY",
+        [string]$BaseUrl,
+        [string[]]$BaseUrlEnvCandidates = @("VCO_INTENT_ADVICE_BASE_URL"),
+        [string]$AnthropicVersion = "2023-06-01"
+    )
+
+    $resolvedApiKey = if ($ApiKey) { $ApiKey } else { Get-OpenAiApiKey -EnvName $ApiKeyEnv }
+    if (-not $resolvedApiKey) {
+        return [pscustomobject]@{
+            ok = $false
+            abstained = $true
+            reason = "missing_intent_advice_api_key"
+            status_code = $null
+            latency_ms = 0
+            output_text = $null
+            response = $null
+            error = $null
+        }
+    }
+
+    $endpoint = Get-AnthropicMessagesEndpoint -BaseUrl $BaseUrl -BaseUrlEnvCandidates $BaseUrlEnvCandidates
+    $timeoutSec = [Math]::Max(1, [int][Math]::Ceiling([double]$TimeoutMs / 1000.0))
+
+    $body = [ordered]@{
+        model = $Model
+        max_tokens = [int]$MaxTokens
+        temperature = [double]$Temperature
+        messages = @($Messages)
+    }
+    if ($TopP -gt 0.0) {
+        $body.top_p = [double]$TopP
+    }
+    if ($System) {
+        $body.system = [string]$System
+    }
+
+    $json = ($body | ConvertTo-Json -Depth 20 -Compress)
+    $headers = @{
+        "x-api-key" = [string]$resolvedApiKey
+        "anthropic-version" = if ($AnthropicVersion) { [string]$AnthropicVersion } else { "2023-06-01" }
+        "Content-Type" = "application/json"
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    try {
+        $resp = Invoke-RestMethod -Uri $endpoint -Method Post -Headers $headers -Body $json -TimeoutSec $timeoutSec
+        $sw.Stop()
+        $outputText = Get-AnthropicMessageOutputText -Response $resp
+        return [pscustomobject]@{
+            ok = $true
+            abstained = $false
+            reason = "ok"
+            status_code = 200
+            latency_ms = [int]$sw.ElapsedMilliseconds
+            output_text = $outputText
+            response = $resp
+            error = $null
+        }
+    } catch {
+        $sw.Stop()
+        $message = $_.Exception.Message
+        $status = $null
+        try {
+            if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                $status = [int]$_.Exception.Response.StatusCode
+            }
+        } catch { }
+
+        return [pscustomobject]@{
+            ok = $false
+            abstained = $true
+            reason = "anthropic_http_error"
+            status_code = $status
+            latency_ms = [int]$sw.ElapsedMilliseconds
+            output_text = $null
             response = $null
             error = $message
         }
