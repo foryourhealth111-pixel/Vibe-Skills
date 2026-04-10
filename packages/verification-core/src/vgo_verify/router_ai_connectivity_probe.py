@@ -41,6 +41,7 @@ def attempt_info_lines(label: str, attempts: list[dict[str, Any]] | None) -> lis
 
 
 def next_step_for_advice(status: str, advice: dict[str, Any]) -> str | None:
+    provider_type = str(advice.get("provider_type") or "").strip().lower()
     if status == "disabled_by_policy":
         return "Enable llm acceleration policy (`enabled=true`, `mode` not `off`) before checking advice connectivity."
     if status == "prefix_required":
@@ -57,7 +58,9 @@ def next_step_for_advice(status: str, advice: dict[str, Any]) -> str | None:
     if status == "provider_unreachable":
         return "Check base_url reachability, DNS, network egress, and provider timeout."
     if status == "provider_rejected_request":
-        return "Verify API key validity, model id, and endpoint compatibility (`/responses` or `/chat/completions`)."
+        if provider_type in {"anthropic", "anthropic-compatible"}:
+            return "Verify API key validity, model id, and Anthropic-compatible endpoint compatibility (`/v1/messages`)."
+        return "Verify API key validity, model id, and endpoint compatibility (`/responses`, `/chat/completions`, or `/v1/messages` when using Anthropic-compatible gateways)."
     if status == "parse_error":
         return "Inspect response body in JSON artifact and align provider output format expectations."
     return None
