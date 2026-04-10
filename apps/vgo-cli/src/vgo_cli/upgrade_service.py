@@ -11,8 +11,17 @@ from .hosts import install_mode_for_host
 from .install_support import reconcile_install_postconditions
 from .output import parse_json_output
 from .process import run_powershell_file, run_subprocess
-from .repo import get_local_release_metadata, get_official_self_repo_metadata, get_repo_head_commit
+from .repo import (
+    get_local_release_metadata,
+    get_official_self_repo_metadata,
+    get_repo_head_commit,
+    resolve_canonical_repo_root,
+)
 from .upgrade_state import load_upgrade_status, merge_upgrade_status, save_upgrade_status, is_upstream_cache_stale
+
+
+def resolve_upgrade_repo_root(repo_root: Path) -> Path | None:
+    return resolve_canonical_repo_root(repo_root)
 
 
 def refresh_installed_status(repo_root: Path, target_root: Path, host_id: str) -> dict[str, object]:
@@ -167,8 +176,15 @@ def upgrade_runtime(
     allow_external_skill_fallback: bool,
     skip_runtime_freshness_gate: bool,
 ) -> dict[str, object]:
-    before = refresh_installed_status(repo_root, target_root, host_id)
-    status = refresh_upstream_status(repo_root, target_root, before)
+    resolved_repo_root = resolve_upgrade_repo_root(repo_root)
+    if resolved_repo_root is None:
+        raise CliError(
+            'Upgrade requires a canonical git checkout with config/version-governance.json. '
+            'Pass --repo-root pointing at a Vibe-Skills git checkout before invoking the upgrade runtime.'
+        )
+
+    before = refresh_installed_status(resolved_repo_root, target_root, host_id)
+    status = refresh_upstream_status(resolved_repo_root, target_root, before)
     if not bool(status.get('update_available')):
         print(
             'Vibe-Skills already current: '
@@ -177,9 +193,9 @@ def upgrade_runtime(
         return {'changed': False, 'before': before, 'after': status}
 
     branch = str(status.get('repo_default_branch') or 'main').strip() or 'main'
-    reset_repo_to_official_head(repo_root, branch)
+    reset_repo_to_official_head(resolved_repo_root, branch)
     reinstall_runtime(
-        repo_root=repo_root,
+        repo_root=resolved_repo_root,
         target_root=target_root,
         host_id=host_id,
         profile=profile,
@@ -191,7 +207,7 @@ def upgrade_runtime(
         skip_runtime_freshness_gate=skip_runtime_freshness_gate,
     )
     check_result = run_upgrade_check(
-        repo_root=repo_root,
+        repo_root=resolved_repo_root,
         target_root=target_root,
         host_id=host_id,
         profile=profile,
@@ -200,7 +216,7 @@ def upgrade_runtime(
     if check_result.returncode != 0:
         raise CliError(check_result.stderr.strip() or check_result.stdout.strip() or 'Upgrade check failed.')
 
-    after = refresh_installed_status(repo_root, target_root, host_id)
+    after = refresh_installed_status(resolved_repo_root, target_root, host_id)
     print(
         'Vibe-Skills upgraded: '
         f"before={before.get('installed_version') or 'unknown'}@{before.get('installed_commit') or 'unknown'} "

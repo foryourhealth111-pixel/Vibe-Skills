@@ -238,6 +238,88 @@ class RouterAiConnectivityProbeTests(unittest.TestCase):
             [attempt["endpoint_kind"] for attempt in artifact["advice"]["attempts"]],
         )
 
+    def test_anthropic_compatible_messages_probe_is_classified_ok(self) -> None:
+        policy = self._policy()
+        policy["provider"]["type"] = "anthropic-compatible"
+        policy["provider"]["base_url"] = "https://anthropic-gateway.example"
+        self._write_policy(policy)
+        self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
+
+        seen_requests: list[dict] = []
+
+        def transport(req: dict) -> dict:
+            seen_requests.append(req)
+            self.assertEqual("anthropic_messages", req["endpoint_kind"])
+            self.assertTrue(req["url"].endswith("/v1/messages"))
+            self.assertEqual("2023-06-01", req["headers"]["anthropic-version"])
+            return {
+                "ok": True,
+                "status_code": 200,
+                "error_kind": None,
+                "error": None,
+                "body_text": '{"content":[{"type":"text","text":"{\\"ok\\":true}"}]}',
+                "json": {"content": [{"type": "text", "text": '{"ok":true}'}]},
+                "latency_ms": 6,
+            }
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            artifact = self.module.evaluate(
+                self.root,
+                self.target_root,
+                probe_context=self.module.ProbeContext(prefix_detected=True),
+                transport=transport,
+            )
+
+        self.assertEqual("ok", artifact["summary"]["advice_status"])
+        self.assertEqual("anthropic_messages", artifact["advice"]["endpoint_used"])
+        self.assertEqual(["anthropic_messages"], [attempt["endpoint_kind"] for attempt in artifact["advice"]["attempts"]])
+        self.assertEqual(1, len(seen_requests))
+
+    def test_openai_typed_custom_gateway_can_fallback_to_anthropic_messages(self) -> None:
+        policy = self._policy()
+        policy["provider"]["type"] = "openai"
+        policy["provider"]["base_url"] = "https://anthropic-gateway.example"
+        self._write_policy(policy)
+        self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
+
+        def transport(req: dict) -> dict:
+            if req["endpoint_kind"] in {"responses", "chat_completions", "chat_completions_plain"}:
+                return {
+                    "ok": False,
+                    "status_code": 404,
+                    "error_kind": "http",
+                    "error": "unsupported endpoint",
+                    "body_text": '{"error":"not found"}',
+                    "json": {"error": "not found"},
+                    "latency_ms": 3,
+                }
+            if req["endpoint_kind"] == "anthropic_messages":
+                return {
+                    "ok": True,
+                    "status_code": 200,
+                    "error_kind": None,
+                    "error": None,
+                    "body_text": '{"content":[{"type":"text","text":"{\\"ok\\":true}"}]}',
+                    "json": {"content": [{"type": "text", "text": '{"ok":true}'}]},
+                    "latency_ms": 4,
+                }
+            raise AssertionError(f"unexpected endpoint_kind: {req['endpoint_kind']}")
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            artifact = self.module.evaluate(
+                self.root,
+                self.target_root,
+                probe_context=self.module.ProbeContext(prefix_detected=True),
+                transport=transport,
+            )
+
+        self.assertEqual("ok", artifact["summary"]["advice_status"])
+        self.assertEqual("anthropic_messages", artifact["advice"]["endpoint_used"])
+        self.assertEqual(
+            ["responses", "chat_completions", "chat_completions_plain", "anthropic_messages"],
+            [attempt["endpoint_kind"] for attempt in artifact["advice"]["attempts"]],
+        )
+
     def test_parse_error_is_classified(self) -> None:
         self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
 

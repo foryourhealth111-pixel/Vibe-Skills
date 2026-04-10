@@ -13,7 +13,7 @@ from .hosts import (
     resolve_target_root,
 )
 from .install_support import reconcile_install_postconditions
-from .output import parse_json_output, print_install_banner, print_install_completion_hint, print_install_completion_report
+from .output import parse_json_output, print_install_banner, print_install_completion_hint
 from .process import print_process_output, run_powershell_file, run_subprocess
 from .repo import get_installed_runtime_config
 from .upgrade_service import upgrade_runtime
@@ -122,10 +122,6 @@ def route_command(args: argparse.Namespace) -> int:
     ]
     if args.requested_skill:
         command.extend(['--requested-skill', args.requested_skill])
-    if getattr(args, 'entry_intent_id', None):
-        command.extend(['--entry-intent-id', args.entry_intent_id])
-    if getattr(args, 'requested_grade_floor', None):
-        command.extend(['--requested-grade-floor', args.requested_grade_floor])
     if args.host_id:
         command.extend(['--host-id', args.host_id])
     if args.target_root:

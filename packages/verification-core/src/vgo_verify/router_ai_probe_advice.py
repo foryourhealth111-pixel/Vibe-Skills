@@ -8,6 +8,8 @@ from .router_ai_probe_support import (
     INTENT_ADVICE_MODEL_ENV,
     ProbeContext,
     TransportFn,
+    anthropic_messages_base_url,
+    extract_anthropic_message_text,
     extract_chat_completion_text,
     extract_openai_response_output_text,
     non_empty,
@@ -128,6 +130,8 @@ def classify_advice_probe_result(attempts: list[dict[str, Any]]) -> tuple[str, s
                     text = extract_openai_response_output_text(payload)
                 elif attempt["endpoint_kind"] in {"chat_completions", "chat_completions_plain"}:
                     text = extract_chat_completion_text(payload)
+                elif attempt["endpoint_kind"] == "anthropic_messages":
+                    text = extract_anthropic_message_text(payload)
 
                 if text:
                     parsed = parse_json_text(text)
@@ -265,6 +269,52 @@ def probe_advice_connectivity(
             "endpoint_used": "mock_fixture",
         }
 
+    timeout_ms = int(provider_cfg.get("timeout_ms", 12000) or 12000)
+
+    if provider_type_normalized in {"anthropic", "anthropic-compatible"}:
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": str(provider_cfg.get("anthropic_version") or "2023-06-01"),
+            "Content-Type": "application/json",
+        }
+        base_v1 = anthropic_messages_base_url(str(base_url))
+        anthropic_payload = {
+            "model": model,
+            "max_tokens": 32,
+            "temperature": 0.0,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": 'Return JSON object {"ok": true} only.'}],
+                }
+            ],
+            "system": "Reply with a JSON object only. Do not wrap it in markdown.",
+        }
+        attempts = [
+            request_attempt(
+                transport,
+                purpose="advice",
+                endpoint_kind="anthropic_messages",
+                url=f"{base_v1}/messages",
+                headers=headers,
+                payload=anthropic_payload,
+                timeout_ms=timeout_ms,
+            )
+        ]
+        status, endpoint_used, compact_attempts = classify_advice_probe_result(attempts)
+        result = {
+            "status": status,
+            "provider_type": provider_type,
+            "model": model,
+            "base_url": base_url,
+            "credential_env": credential_env,
+            "credential_state": "configured",
+            "attempts": compact_attempts,
+        }
+        if endpoint_used:
+            result["endpoint_used"] = endpoint_used
+        return result
+
     if provider_type_normalized not in {"openai", "openai-compatible"}:
         return {
             "status": "provider_rejected_request",
@@ -277,7 +327,6 @@ def probe_advice_connectivity(
             "reason": "unsupported_provider_type",
         }
 
-    timeout_ms = int(provider_cfg.get("timeout_ms", 12000) or 12000)
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -361,6 +410,39 @@ def probe_advice_connectivity(
         ),
     ]
     status, endpoint_used, compact_attempts = classify_advice_probe_result(attempts)
+    normalized_base_url = str(base_url).strip().lower()
+    should_try_anthropic_fallback = (
+        status != "ok"
+        and normalized_base_url not in {"", "https://api.openai.com/v1", "https://api.openai.com"}
+        and "openai.com" not in normalized_base_url
+    )
+    if should_try_anthropic_fallback:
+        anthropic_attempt = request_attempt(
+            transport,
+            purpose="advice",
+            endpoint_kind="anthropic_messages",
+            url=f"{anthropic_messages_base_url(str(base_url))}/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": str(provider_cfg.get("anthropic_version") or "2023-06-01"),
+                "Content-Type": "application/json",
+            },
+            payload={
+                "model": model,
+                "max_tokens": 32,
+                "temperature": 0.0,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": 'Return JSON object {"ok": true} only.'}],
+                    }
+                ],
+                "system": "Reply with a JSON object only. Do not wrap it in markdown.",
+            },
+            timeout_ms=timeout_ms,
+        )
+        attempts.append(anthropic_attempt)
+        status, endpoint_used, compact_attempts = classify_advice_probe_result(attempts)
     result = {
         "status": status,
         "provider_type": provider_type,

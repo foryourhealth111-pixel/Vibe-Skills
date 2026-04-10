@@ -10,16 +10,13 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CLI_SRC = REPO_ROOT / 'apps' / 'vgo-cli' / 'src'
-RUNTIME_SRC = REPO_ROOT / 'packages' / 'runtime-core' / 'src'
-for src in (CLI_SRC, RUNTIME_SRC):
-    if str(src) not in sys.path:
-        sys.path.insert(0, str(src))
+if str(CLI_SRC) not in sys.path:
+    sys.path.insert(0, str(CLI_SRC))
 
 from vgo_cli.commands import install_command, route_command, runtime_command, upgrade_command, verify_command
 from vgo_cli.errors import CliError
 from vgo_cli.main import build_parser
 from vgo_cli.output import parse_json_output, print_install_completion_hint, print_json_payload
-from vgo_runtime import router_bridge
 
 
 def test_parse_json_output_returns_payload() -> None:
@@ -71,9 +68,7 @@ def test_route_command_delegates_to_runtime_core_bridge(monkeypatch: pytest.Monk
         prompt='route this',
         grade='XL',
         task_type='debug',
-        requested_skill='vibe-how',
-        entry_intent_id='vibe-how',
-        requested_grade_floor='XL',
+        requested_skill='vibe',
         host_id='codex',
         target_root='/tmp/codex',
         force_runtime_neutral=True,
@@ -85,125 +80,12 @@ def test_route_command_delegates_to_runtime_core_bridge(monkeypatch: pytest.Monk
         '--prompt', 'route this',
         '--grade', 'XL',
         '--task-type', 'debug',
-        '--requested-skill', 'vibe-how',
-        '--entry-intent-id', 'vibe-how',
-        '--requested-grade-floor', 'XL',
+        '--requested-skill', 'vibe',
         '--host-id', 'codex',
         '--target-root', '/tmp/codex',
         '--force-runtime-neutral',
     ]
     assert recorded['printed_stdout'] == '{"ok": true}\n'
-
-
-def test_router_bridge_forwards_discoverable_flags_to_powershell_router(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    recorded: dict[str, object] = {}
-
-    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
-        recorded['command'] = list(command)
-        recorded['cwd'] = kwargs['cwd']
-        return subprocess.CompletedProcess(args=list(command), returncode=0, stdout='{"ok": true}\n', stderr='')
-
-    monkeypatch.setattr(router_bridge, 'resolve_repo_root', lambda _: tmp_path)
-    monkeypatch.setattr(router_bridge.subprocess, 'run', fake_run)
-
-    payload = router_bridge.invoke_canonical_router(
-        argparse.Namespace(
-            prompt='route this',
-            grade='XL',
-            task_type='debug',
-            requested_skill='vibe-how',
-            entry_intent_id='vibe-how',
-            requested_grade_floor='XL',
-            host_id='codex',
-            target_root='/tmp/codex',
-        ),
-        'pwsh',
-    )
-
-    assert payload == {'ok': True}
-    assert recorded['cwd'] == tmp_path
-    assert recorded['command'] == [
-        'pwsh',
-        '-NoLogo',
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        str(tmp_path / 'scripts' / 'router' / 'resolve-pack-route.ps1'),
-        '-Prompt',
-        'route this',
-        '-Grade',
-        'XL',
-        '-TaskType',
-        'debug',
-        '-RequestedSkill',
-        'vibe-how',
-        '-EntryIntentId',
-        'vibe-how',
-        '-RequestedGradeFloor',
-        'XL',
-        '-HostId',
-        'codex',
-        '-TargetRoot',
-        '/tmp/codex',
-    ]
-
-
-def test_router_bridge_runtime_neutral_fallback_passes_discoverable_flags(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    recorded: dict[str, object] = {}
-
-    def fake_route_prompt(**kwargs: object) -> dict[str, object]:
-        recorded.update(kwargs)
-        return {'ok': True}
-
-    monkeypatch.setattr(router_bridge, 'resolve_powershell_host', lambda: None)
-    monkeypatch.setattr(router_bridge, 'resolve_repo_root', lambda _: tmp_path)
-    monkeypatch.setattr(router_bridge, 'route_prompt', fake_route_prompt)
-
-    assert (
-        router_bridge.main(
-            [
-                '--prompt',
-                'route this',
-                '--grade',
-                'XL',
-                '--task-type',
-                'debug',
-                '--requested-skill',
-                'vibe-how',
-                '--entry-intent-id',
-                'vibe-how',
-                '--requested-grade-floor',
-                'XL',
-                '--host-id',
-                'codex',
-                '--target-root',
-                '/tmp/codex',
-                '--force-runtime-neutral',
-            ]
-        )
-        == 0
-    )
-
-    assert recorded == {
-        'prompt': 'route this',
-        'grade': 'XL',
-        'task_type': 'debug',
-        'requested_skill': 'vibe-how',
-        'entry_intent_id': 'vibe-how',
-        'requested_grade_floor': 'XL',
-        'target_root': '/tmp/codex',
-        'host_id': 'codex',
-        'repo_root': tmp_path,
-    }
-    assert capsys.readouterr().out == '{\n  "ok": true\n}\n'
 
 
 
@@ -280,6 +162,53 @@ def test_runtime_command_uses_runtime_contract_for_powershell_dispatch(monkeypat
     assert recorded['shell_script'] == 'check.sh'
     assert recorded['powershell_script'] == 'scripts/runtime/custom-runtime-entrypoint.ps1'
     assert recorded['rest'] == ['--task', 'smoke']
+
+
+def test_upgrade_command_delegates_to_upgrade_service(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import vgo_cli.commands as cli_commands
+
+    recorded: dict[str, object] = {}
+
+    monkeypatch.setattr(cli_commands, 'normalize_host_id', lambda host: host)
+    monkeypatch.setattr(cli_commands, 'resolve_target_root', lambda host_id, target_root: Path(target_root or tmp_path / 'target').resolve())
+    monkeypatch.setattr(
+        cli_commands,
+        'assert_target_root_matches_host_intent',
+        lambda target_root, host_id: recorded.setdefault('intent_checked', (target_root, host_id)),
+    )
+
+    def fake_upgrade_runtime(**kwargs: object) -> dict[str, object]:
+        recorded['kwargs'] = kwargs
+        return {'changed': False}
+
+    monkeypatch.setattr(cli_commands, 'upgrade_runtime', fake_upgrade_runtime)
+
+    args = argparse.Namespace(
+        repo_root=str(tmp_path / 'repo'),
+        host='codex',
+        target_root=str(tmp_path / 'target'),
+        profile='full',
+        frontend='shell',
+        install_external=False,
+        strict_offline=False,
+        require_closed_ready=False,
+        allow_external_skill_fallback=False,
+        skip_runtime_freshness_gate=False,
+    )
+
+    assert upgrade_command(args) == 0
+    assert recorded['kwargs']['repo_root'] == (tmp_path / 'repo').resolve()
+    assert recorded['kwargs']['target_root'] == (tmp_path / 'target').resolve()
+    assert recorded['kwargs']['host_id'] == 'codex'
+
+
+def test_build_parser_includes_upgrade_subcommand() -> None:
+    parser = build_parser()
+    args = parser.parse_args(['upgrade', '--repo-root', '/tmp/repo'])
+
+    assert args.command == 'upgrade'
+    assert args.handler is upgrade_command
+    assert args.frontend == 'shell'
 
 
 def test_install_command_skips_external_dependency_install_when_strict_offline(
@@ -360,57 +289,3 @@ def test_install_command_skips_external_dependency_install_when_strict_offline(
     assert install_command(args) == 0
     assert 'external_called' not in recorded
     assert recorded['reconcile']['strict_offline'] is True
-
-
-def test_build_parser_exposes_upgrade_subcommand() -> None:
-    parser = build_parser()
-
-    args = parser.parse_args(
-        [
-            'upgrade',
-            '--repo-root',
-            'repo-root',
-            '--host',
-            'codex',
-        ]
-    )
-
-    assert args.command == 'upgrade'
-    assert args.host == 'codex'
-    assert args.handler is upgrade_command
-
-
-def test_upgrade_command_delegates_to_upgrade_service(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    import vgo_cli.commands as cli_commands
-
-    recorded: dict[str, object] = {}
-    resolved_target_root = tmp_path / 'resolved-target'
-
-    def fake_upgrade_runtime(**kwargs: object) -> dict[str, object]:
-        recorded.update(kwargs)
-        return {'changed': False}
-
-    monkeypatch.setattr(cli_commands, 'resolve_target_root', lambda host_id, target_root: resolved_target_root)
-    monkeypatch.setattr(cli_commands, 'assert_target_root_matches_host_intent', lambda target_root, host_id: None)
-    monkeypatch.setattr(cli_commands, 'upgrade_runtime', fake_upgrade_runtime)
-
-    args = argparse.Namespace(
-        repo_root=str(tmp_path),
-        frontend='shell',
-        profile='full',
-        host='codex',
-        target_root='',
-        install_external=False,
-        strict_offline=False,
-        require_closed_ready=False,
-        allow_external_skill_fallback=False,
-        skip_runtime_freshness_gate=False,
-    )
-
-    assert upgrade_command(args) == 0
-    assert recorded['repo_root'] == tmp_path.resolve()
-    assert recorded['target_root'] == resolved_target_root
-    assert recorded['host_id'] == 'codex'
-    assert recorded['profile'] == 'full'
-    assert recorded['frontend'] == 'shell'
-    assert resolved_target_root.is_dir()

@@ -94,6 +94,10 @@ def openai_v1_base_url(base_url: str) -> str:
     return f"{trimmed}/v1"
 
 
+def anthropic_messages_base_url(base_url: str) -> str:
+    return openai_v1_base_url(base_url)
+
+
 def parse_json_text(text: str | None) -> Any:
     if not text:
         return None
@@ -148,6 +152,25 @@ def extract_chat_completion_text(payload: dict[str, Any]) -> str | None:
     if isinstance(content, str) and content.strip():
         return content.strip()
     return None
+
+
+def extract_anthropic_message_text(payload: dict[str, Any]) -> str | None:
+    content = payload.get("content")
+    if not isinstance(content, list):
+        return None
+
+    parts: list[str] = []
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") != "text":
+            continue
+        text = block.get("text")
+        if isinstance(text, str) and text.strip():
+            parts.append(text.strip())
+    if not parts:
+        return None
+    return "\n".join(parts).strip()
 
 
 def extract_vectors(payload: dict[str, Any]) -> list[list[Any]]:

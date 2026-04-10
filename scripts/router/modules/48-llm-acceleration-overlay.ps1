@@ -1,4 +1,4 @@
-# LLM Acceleration Overlay (GPT‑5.2 via OpenAI Responses API)
+# LLM Acceleration Overlay (structured advice via compatible provider APIs)
 #
 # Goals:
 # - Only runs when user explicitly invokes /vibe or $vibe (prefix_detected).
@@ -24,7 +24,7 @@ function Get-LlmAccelerationPolicyDefaults {
             max_confidence_for_llm = 0.55
         }
         provider = [pscustomobject]@{
-            type = "openai" # openai|mock
+            type = "openai" # openai|openai-compatible|anthropic|anthropic-compatible|mock
             model = ""
             model_env = "VCO_INTENT_ADVICE_MODEL"
             base_url = ""
@@ -1107,6 +1107,182 @@ function New-LlmDiffDigestInputText {
     return ($text -join "`n")
 }
 
+function Get-LlmAdviceProviderTypeNormalized {
+    param([object]$PolicyResolved)
+
+    $providerType = if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.type) { [string]$PolicyResolved.provider.type } else { "openai" }
+    return $providerType.Trim().ToLowerInvariant()
+}
+
+function Get-LlmAdviceProviderApiKeyEnvName {
+    param([object]$PolicyResolved)
+
+    if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.api_key_env) {
+        return [string]$PolicyResolved.provider.api_key_env
+    }
+    return "VCO_INTENT_ADVICE_API_KEY"
+}
+
+function Test-LlmAdviceProviderIsOpenAiFamily {
+    param([string]$ProviderType)
+    return @("openai", "openai-compatible") -contains ([string]$ProviderType).Trim().ToLowerInvariant()
+}
+
+function Test-LlmAdviceProviderIsAnthropicFamily {
+    param([string]$ProviderType)
+    return @("anthropic", "anthropic-compatible") -contains ([string]$ProviderType).Trim().ToLowerInvariant()
+}
+
+function Test-LlmAdviceProviderRequiresRemoteCredential {
+    param([string]$ProviderType)
+    $normalized = ([string]$ProviderType).Trim().ToLowerInvariant()
+    if ($normalized -eq "mock") { return $false }
+    return (Test-LlmAdviceProviderIsOpenAiFamily -ProviderType $normalized) -or (Test-LlmAdviceProviderIsAnthropicFamily -ProviderType $normalized)
+}
+
+function Test-LlmAdviceShouldTryAnthropicFallback {
+    param(
+        [string]$ProviderType,
+        [string]$BaseUrl
+    )
+
+    if (-not (Test-LlmAdviceProviderIsOpenAiFamily -ProviderType $ProviderType)) { return $false }
+    if (-not $BaseUrl) { return $false }
+
+    $normalizedBaseUrl = ([string]$BaseUrl).Trim().ToLowerInvariant()
+    if (-not $normalizedBaseUrl) { return $false }
+    if ($normalizedBaseUrl -eq "https://api.openai.com" -or $normalizedBaseUrl -eq "https://api.openai.com/v1") { return $false }
+    if ($normalizedBaseUrl -match "openai\.com") { return $false }
+    return $true
+}
+
+function Invoke-LlmStructuredJsonProvider {
+    param(
+        [object]$PolicyResolved,
+        [string]$Model,
+        [string]$BaseUrl,
+        [int]$TimeoutMs,
+        [int]$MaxOutputTokens,
+        [double]$Temperature,
+        [double]$TopP,
+        [bool]$Store,
+        [object]$ResponsesInputItems,
+        [object]$ResponsesTextFormat,
+        [object[]]$ChatMessages,
+        [object]$ChatResponseFormat,
+        [object[]]$AnthropicMessages,
+        [string]$SystemInstructions
+    )
+
+    $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $PolicyResolved
+    $adviceApiKeyEnv = Get-LlmAdviceProviderApiKeyEnvName -PolicyResolved $PolicyResolved
+    $adviceBaseUrlEnvCandidates = if ($PolicyResolved.provider.base_url_env_candidates) { @($PolicyResolved.provider.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
+    $timeoutMsSafe = [Math]::Max(500, [int]$TimeoutMs)
+    $anthropicVersion = if ($PolicyResolved.provider.anthropic_version) { [string]$PolicyResolved.provider.anthropic_version } else { "2023-06-01" }
+
+    $invokeAnthropic = {
+        $r = Invoke-AnthropicMessagesCreate `
+            -Model $Model `
+            -BaseUrl $BaseUrl `
+            -ApiKeyEnv $adviceApiKeyEnv `
+            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
+            -Messages $AnthropicMessages `
+            -System $SystemInstructions `
+            -MaxTokens $MaxOutputTokens `
+            -Temperature $Temperature `
+            -TopP $TopP `
+            -TimeoutMs $timeoutMsSafe `
+            -AnthropicVersion $anthropicVersion
+        $r | Add-Member -NotePropertyName api -NotePropertyValue "anthropic_messages" -Force
+        return $r
+    }
+
+    if (Test-LlmAdviceProviderIsAnthropicFamily -ProviderType $providerType) {
+        return (& $invokeAnthropic)
+    }
+
+    if (-not (Test-LlmAdviceProviderIsOpenAiFamily -ProviderType $providerType)) {
+        return [pscustomobject]@{
+            ok = $false
+            abstained = $true
+            reason = "unsupported_provider"
+            api = "none"
+            latency_ms = 0
+            output_text = $null
+            error = $null
+        }
+    }
+
+    $preferChat = $false
+    if ($BaseUrl -and ($BaseUrl -notmatch "openai\.com")) {
+        $preferChat = $true
+    }
+
+    $invokeResponses = {
+        $r = Invoke-OpenAiResponsesCreate `
+            -Model $Model `
+            -BaseUrl $BaseUrl `
+            -ApiKeyEnv $adviceApiKeyEnv `
+            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
+            -InputItems $ResponsesInputItems `
+            -TextFormat $ResponsesTextFormat `
+            -Instructions $SystemInstructions `
+            -MaxOutputTokens $MaxOutputTokens `
+            -Temperature $Temperature `
+            -TopP $TopP `
+            -TimeoutMs $timeoutMsSafe `
+            -Store:([bool]$Store)
+        $r | Add-Member -NotePropertyName api -NotePropertyValue "responses" -Force
+        return $r
+    }
+
+    $invokeChat = {
+        $r = Invoke-OpenAiChatCompletionsCreate `
+            -Model $Model `
+            -BaseUrl $BaseUrl `
+            -ApiKeyEnv $adviceApiKeyEnv `
+            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
+            -Messages $ChatMessages `
+            -ResponseFormat $ChatResponseFormat `
+            -MaxTokens $MaxOutputTokens `
+            -Temperature $Temperature `
+            -TopP $TopP `
+            -TimeoutMs $timeoutMsSafe
+        $r | Add-Member -NotePropertyName api -NotePropertyValue "chat_completions" -Force
+        return $r
+    }
+
+    $primary = $null
+    $fallback = $null
+
+    if ($preferChat) {
+        $primary = & $invokeChat
+        if ([bool]$primary.ok -and (-not [bool]$primary.abstained) -and $primary.output_text) { return $primary }
+        if ([string]$primary.reason -eq "missing_intent_advice_api_key") { return $primary }
+
+        $fallback = & $invokeResponses
+        if ([bool]$fallback.ok -and (-not [bool]$fallback.abstained) -and $fallback.output_text) { return $fallback }
+        if ([string]$fallback.reason -eq "missing_intent_advice_api_key") { return $fallback }
+    } else {
+        $primary = & $invokeResponses
+        if ([bool]$primary.ok -and (-not [bool]$primary.abstained) -and $primary.output_text) { return $primary }
+        if ([string]$primary.reason -eq "missing_intent_advice_api_key") { return $primary }
+
+        $fallback = & $invokeChat
+        if ([bool]$fallback.ok -and (-not [bool]$fallback.abstained) -and $fallback.output_text) { return $fallback }
+        if ([string]$fallback.reason -eq "missing_intent_advice_api_key") { return $fallback }
+    }
+
+    if (Test-LlmAdviceShouldTryAnthropicFallback -ProviderType $providerType -BaseUrl $BaseUrl) {
+        $anthropic = & $invokeAnthropic
+        if ([bool]$anthropic.ok -and (-not [bool]$anthropic.abstained) -and $anthropic.output_text) { return $anthropic }
+        return $anthropic
+    }
+
+    if ($fallback) { return $fallback }
+    return $primary
+}
+
 function Invoke-LlmDiffDigestProvider {
     param(
         [object]$PolicyResolved,
@@ -1115,23 +1291,10 @@ function Invoke-LlmDiffDigestProvider {
         [int]$MaxDigestChars
     )
 
-    $providerType = if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.type) { [string]$PolicyResolved.provider.type } else { "openai" }
-    if ($providerType -ne "openai") {
-        return [pscustomobject]@{
-            ok = $false
-            abstained = $true
-            reason = "unsupported_provider"
-            api = "none"
-            latency_ms = 0
-            digest = $null
-            error = $null
-        }
-    }
+    $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $PolicyResolved
+    $adviceApiKeyEnv = Get-LlmAdviceProviderApiKeyEnvName -PolicyResolved $PolicyResolved
 
-    $adviceApiKeyEnv = if ($PolicyResolved.provider.api_key_env) { [string]$PolicyResolved.provider.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
-    $adviceBaseUrlEnvCandidates = if ($PolicyResolved.provider.base_url_env_candidates) { @($PolicyResolved.provider.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
-
-    if (-not (Get-OpenAiApiKey -EnvName $adviceApiKeyEnv)) {
+    if ((Test-LlmAdviceProviderRequiresRemoteCredential -ProviderType $providerType) -and (-not (Get-OpenAiApiKey -EnvName $adviceApiKeyEnv))) {
         return [pscustomobject]@{
             ok = $false
             abstained = $true
@@ -1188,11 +1351,6 @@ function Invoke-LlmDiffDigestProvider {
 
     $instructions = "Return ONLY JSON that matches the JSON Schema. No markdown. No extra keys."
 
-    $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
-    $adviceApiKeyEnv = if ($PolicyResolved.provider.api_key_env) { [string]$PolicyResolved.provider.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
-    $adviceBaseUrlEnvCandidates = if ($PolicyResolved.provider.base_url_env_candidates) { @($PolicyResolved.provider.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
-    $timeoutMsSafe = [Math]::Max(500, [int]$timeoutMs)
-
     $chatResponseFormat = [ordered]@{
         type = "json_schema"
         json_schema = [ordered]@{
@@ -1206,58 +1364,34 @@ function Invoke-LlmDiffDigestProvider {
         [ordered]@{ role = "system"; content = $instructions },
         [ordered]@{ role = "user"; content = $InputText }
     )
-
-    $preferChat = $false
-    if ($baseUrl -and ($baseUrl -notmatch "openai\.com")) { $preferChat = $true }
-
-    $invokeResponses = {
-        $r = Invoke-OpenAiResponsesCreate `
-            -Model $model `
-            -BaseUrl $baseUrl `
-            -ApiKeyEnv $adviceApiKeyEnv `
-            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-            -InputItems $input `
-            -TextFormat $textFormat `
-            -Instructions $instructions `
-            -MaxOutputTokens $maxTokens `
-            -Temperature $temperature `
-            -TopP ([double]$PolicyResolved.provider.top_p) `
-            -TimeoutMs $timeoutMsSafe `
-            -Store:([bool]$PolicyResolved.provider.store)
-        $r | Add-Member -NotePropertyName api -NotePropertyValue "responses" -Force
-        return $r
-    }
-
-    $invokeChat = {
-        $r = Invoke-OpenAiChatCompletionsCreate `
-            -Model $model `
-            -BaseUrl $baseUrl `
-            -ApiKeyEnv $adviceApiKeyEnv `
-            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-            -Messages $chatMessages `
-            -ResponseFormat $chatResponseFormat `
-            -MaxTokens $maxTokens `
-            -Temperature $temperature `
-            -TopP ([double]$PolicyResolved.provider.top_p) `
-            -TimeoutMs $timeoutMsSafe
-        $r | Add-Member -NotePropertyName api -NotePropertyValue "chat_completions" -Force
-        return $r
-    }
-
-    $providerResult = $null
-    if ($preferChat) {
-        $providerResult = & $invokeChat
-        if (-not ([bool]$providerResult.ok -and (-not [bool]$providerResult.abstained) -and $providerResult.output_text)) {
-            $providerResult = & $invokeResponses
+    $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
+    $anthropicMessages = @(
+        [ordered]@{
+            role = "user"
+            content = @(
+                [ordered]@{
+                    type = "text"
+                    text = $InputText
+                }
+            )
         }
-    } else {
-        $providerResult = & $invokeResponses
-        if (-not ([bool]$providerResult.ok -and (-not [bool]$providerResult.abstained) -and $providerResult.output_text)) {
-            if ([string]$providerResult.reason -ne "missing_intent_advice_api_key") {
-                $providerResult = & $invokeChat
-            }
-        }
-    }
+    )
+
+    $providerResult = Invoke-LlmStructuredJsonProvider `
+        -PolicyResolved $PolicyResolved `
+        -Model $model `
+        -BaseUrl $baseUrl `
+        -TimeoutMs $timeoutMs `
+        -MaxOutputTokens $maxTokens `
+        -Temperature $temperature `
+        -TopP ([double]$PolicyResolved.provider.top_p) `
+        -Store ([bool]$PolicyResolved.provider.store) `
+        -ResponsesInputItems $input `
+        -ResponsesTextFormat $textFormat `
+        -ChatMessages $chatMessages `
+        -ChatResponseFormat $chatResponseFormat `
+        -AnthropicMessages $anthropicMessages `
+        -SystemInstructions $instructions
 
     if (-not $providerResult -or -not [bool]$providerResult.ok -or [bool]$providerResult.abstained -or (-not $providerResult.output_text)) {
         $reason = if ($providerResult -and $providerResult.reason) { [string]$providerResult.reason } else { "provider_abstained" }
@@ -1372,18 +1506,7 @@ function Invoke-LlmConfirmQuestionBoosterProvider {
         [int]$MaxQuestions
     )
 
-    $providerType = if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.type) { [string]$PolicyResolved.provider.type } else { "openai" }
-    if ($providerType -ne "openai") {
-        return [pscustomobject]@{
-            ok = $false
-            abstained = $true
-            reason = "provider_not_openai"
-            api = "none"
-            latency_ms = 0
-            confirm_questions = @()
-            error = $null
-        }
-    }
+    $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $PolicyResolved
 
     $cfg = $null
     try { $cfg = $PolicyResolved.enhancements.confirm_question_booster } catch { }
@@ -1420,11 +1543,6 @@ function Invoke-LlmConfirmQuestionBoosterProvider {
 
     $instructions = "Return ONLY JSON that matches the JSON Schema. No markdown. No extra keys."
 
-    $model = [string]$PolicyResolved.provider.model
-    $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
-    $adviceApiKeyEnv = if ($PolicyResolved.provider.api_key_env) { [string]$PolicyResolved.provider.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
-    $adviceBaseUrlEnvCandidates = if ($PolicyResolved.provider.base_url_env_candidates) { @($PolicyResolved.provider.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
-
     $chatResponseFormat = [ordered]@{
         type = "json_schema"
         json_schema = [ordered]@{
@@ -1438,60 +1556,34 @@ function Invoke-LlmConfirmQuestionBoosterProvider {
         [ordered]@{ role = "system"; content = $instructions },
         [ordered]@{ role = "user"; content = $InputText }
     )
-
-    $preferChat = $false
-    if ($baseUrl -and ($baseUrl -notmatch "openai\\.com")) {
-        $preferChat = $true
-    }
-
-    $invokeResponses = {
-        $r = Invoke-OpenAiResponsesCreate `
-            -Model $model `
-            -BaseUrl $baseUrl `
-            -ApiKeyEnv $adviceApiKeyEnv `
-            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-            -InputItems $input `
-            -TextFormat $textFormat `
-            -Instructions $instructions `
-            -MaxOutputTokens $maxTokens `
-            -Temperature $temperature `
-            -TopP ([double]$PolicyResolved.provider.top_p) `
-            -TimeoutMs $timeoutMsSafe `
-            -Store:([bool]$PolicyResolved.provider.store)
-        $r | Add-Member -NotePropertyName api -NotePropertyValue "responses" -Force
-        return $r
-    }
-
-    $invokeChat = {
-        $r = Invoke-OpenAiChatCompletionsCreate `
-            -Model $model `
-            -BaseUrl $baseUrl `
-            -ApiKeyEnv $adviceApiKeyEnv `
-            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-            -Messages $chatMessages `
-            -ResponseFormat $chatResponseFormat `
-            -MaxTokens $maxTokens `
-            -Temperature $temperature `
-            -TopP ([double]$PolicyResolved.provider.top_p) `
-            -TimeoutMs $timeoutMsSafe
-        $r | Add-Member -NotePropertyName api -NotePropertyValue "chat_completions" -Force
-        return $r
-    }
-
-    $providerResult = $null
-    if ($preferChat) {
-        $providerResult = & $invokeChat
-        if (-not ([bool]$providerResult.ok -and (-not [bool]$providerResult.abstained) -and $providerResult.output_text)) {
-            $providerResult = & $invokeResponses
+    $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
+    $anthropicMessages = @(
+        [ordered]@{
+            role = "user"
+            content = @(
+                [ordered]@{
+                    type = "text"
+                    text = $InputText
+                }
+            )
         }
-    } else {
-        $providerResult = & $invokeResponses
-        if (-not ([bool]$providerResult.ok -and (-not [bool]$providerResult.abstained) -and $providerResult.output_text)) {
-            if ([string]$providerResult.reason -ne "missing_intent_advice_api_key") {
-                $providerResult = & $invokeChat
-            }
-        }
-    }
+    )
+
+    $providerResult = Invoke-LlmStructuredJsonProvider `
+        -PolicyResolved $PolicyResolved `
+        -Model ([string]$PolicyResolved.provider.model) `
+        -BaseUrl $baseUrl `
+        -TimeoutMs $timeoutMsSafe `
+        -MaxOutputTokens $maxTokens `
+        -Temperature $temperature `
+        -TopP ([double]$PolicyResolved.provider.top_p) `
+        -Store ([bool]$PolicyResolved.provider.store) `
+        -ResponsesInputItems $input `
+        -ResponsesTextFormat $textFormat `
+        -ChatMessages $chatMessages `
+        -ChatResponseFormat $chatResponseFormat `
+        -AnthropicMessages $anthropicMessages `
+        -SystemInstructions $instructions
 
     if (-not $providerResult -or -not [bool]$providerResult.ok -or [bool]$providerResult.abstained -or (-not $providerResult.output_text)) {
         $reason = if ($providerResult -and $providerResult.reason) { [string]$providerResult.reason } else { "provider_abstained" }
@@ -1551,12 +1643,15 @@ function New-LlmAccelerationProviderPolicyOverride {
             type = if ($prov.type) { [string]$prov.type } else { "openai" }
             model = if ($prov.model) { [string]$prov.model } else { "" }
             base_url = if ($prov.base_url) { [string]$prov.base_url } else { "" }
+            anthropic_version = if ($prov.anthropic_version) { [string]$prov.anthropic_version } else { "" }
             timeout_ms = [Math]::Max(500, [int]$TimeoutMs)
             max_output_tokens = [Math]::Max(200, [int]$MaxOutputTokens)
             temperature = [Math]::Max(0.0, [Math]::Min(1.0, [double]$Temperature))
             top_p = if ($prov.top_p -ne $null) { [double]$prov.top_p } else { 1.0 }
             store = if ($prov.store -ne $null) { [bool]$prov.store } else { $false }
             mock_response_path = if ($prov.mock_response_path) { [string]$prov.mock_response_path } else { "" }
+            api_key_env = if ($prov.api_key_env) { [string]$prov.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
+            base_url_env_candidates = if ($prov.base_url_env_candidates) { @($prov.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
         }
     }
 }
@@ -1619,8 +1714,8 @@ function Invoke-LlmAccelerationProviderCommittee {
         [string]$InputText
     )
 
-    $providerType = if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.type) { [string]$PolicyResolved.provider.type } else { "openai" }
-    if ($providerType -ne "openai") {
+    $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $PolicyResolved
+    if (-not ((Test-LlmAdviceProviderIsOpenAiFamily -ProviderType $providerType) -or (Test-LlmAdviceProviderIsAnthropicFamily -ProviderType $providerType))) {
         return (Invoke-LlmAccelerationProvider -PolicyResolved $PolicyResolved -RepoRoot $RepoRoot -InputText $InputText)
     }
 
@@ -1737,7 +1832,7 @@ function Invoke-LlmAccelerationProviderCommittee {
 	        [string]$InputText
 	    )
 
-	    $providerType = if ($PolicyResolved -and $PolicyResolved.provider -and $PolicyResolved.provider.type) { [string]$PolicyResolved.provider.type } else { "openai" }
+	    $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $PolicyResolved
 
 	    if ($providerType -eq "mock") {
         $mockRel = if ($PolicyResolved.provider.mock_response_path) { [string]$PolicyResolved.provider.mock_response_path } else { "" }
@@ -1798,7 +1893,6 @@ function Invoke-LlmAccelerationProviderCommittee {
 	    $instructions = "Return ONLY JSON that matches the JSON Schema. No markdown. No extra keys."
 
 	    $model = [string]$PolicyResolved.provider.model
-	    $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
 	    $timeoutMs = [int]$PolicyResolved.provider.timeout_ms
 
 	    $chatResponseFormat = [ordered]@{
@@ -1814,66 +1908,34 @@ function Invoke-LlmAccelerationProviderCommittee {
 	        [ordered]@{ role = "system"; content = $instructions },
 	        [ordered]@{ role = "user"; content = $InputText }
 	    )
+        $baseUrl = if ($PolicyResolved.provider.base_url) { [string]$PolicyResolved.provider.base_url } else { "" }
+        $anthropicMessages = @(
+            [ordered]@{
+                role = "user"
+                content = @(
+                    [ordered]@{
+                        type = "text"
+                        text = $InputText
+                    }
+                )
+            }
+        )
 
-	    $adviceApiKeyEnv = if ($PolicyResolved.provider.api_key_env) { [string]$PolicyResolved.provider.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
-	    $adviceBaseUrlEnvCandidates = if ($PolicyResolved.provider.base_url_env_candidates) { @($PolicyResolved.provider.base_url_env_candidates) } else { @("VCO_INTENT_ADVICE_BASE_URL") }
-	    $preferChat = $false
-	    if ($baseUrl -and ($baseUrl -notmatch "openai\.com")) {
-	        # For most OpenAI-compatible gateways, /chat/completions is the safest baseline.
-	        $preferChat = $true
-	    }
-
-	    $invokeResponses = {
-	        $r = Invoke-OpenAiResponsesCreate `
-	            -Model $model `
-	            -BaseUrl $baseUrl `
-	            -ApiKeyEnv $adviceApiKeyEnv `
-	            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-	            -InputItems $input `
-	            -TextFormat $textFormat `
-	            -Instructions $instructions `
-	            -MaxOutputTokens ([int]$PolicyResolved.provider.max_output_tokens) `
-	            -Temperature ([double]$PolicyResolved.provider.temperature) `
-	            -TopP ([double]$PolicyResolved.provider.top_p) `
-	            -TimeoutMs $timeoutMs `
-	            -Store:([bool]$PolicyResolved.provider.store)
-	        $r | Add-Member -NotePropertyName api -NotePropertyValue "responses" -Force
-	        return $r
-	    }
-
-	    $invokeChat = {
-	        $r = Invoke-OpenAiChatCompletionsCreate `
-	            -Model $model `
-	            -BaseUrl $baseUrl `
-	            -ApiKeyEnv $adviceApiKeyEnv `
-	            -BaseUrlEnvCandidates $adviceBaseUrlEnvCandidates `
-	            -Messages $chatMessages `
-	            -ResponseFormat $chatResponseFormat `
-	            -MaxTokens ([int]$PolicyResolved.provider.max_output_tokens) `
-	            -Temperature ([double]$PolicyResolved.provider.temperature) `
-	            -TopP ([double]$PolicyResolved.provider.top_p) `
-	            -TimeoutMs $timeoutMs
-	        $r | Add-Member -NotePropertyName api -NotePropertyValue "chat_completions" -Force
-	        return $r
-	    }
-
-	    $primary = $null
-	    $fallback = $null
-
-	    if ($preferChat) {
-	        $primary = & $invokeChat
-	        if ([bool]$primary.ok -and (-not [bool]$primary.abstained) -and $primary.output_text) { return $primary }
-	        $fallback = & $invokeResponses
-	        if ([bool]$fallback.ok -and (-not [bool]$fallback.abstained) -and $fallback.output_text) { return $fallback }
-	        return $primary
-	    }
-
-	    $primary = & $invokeResponses
-	    if ([bool]$primary.ok -and (-not [bool]$primary.abstained) -and $primary.output_text) { return $primary }
-	    if ([string]$primary.reason -eq "missing_intent_advice_api_key") { return $primary }
-	    $fallback = & $invokeChat
-	    if ([bool]$fallback.ok -and (-not [bool]$fallback.abstained) -and $fallback.output_text) { return $fallback }
-	    return $primary
+        return (Invoke-LlmStructuredJsonProvider `
+            -PolicyResolved $PolicyResolved `
+            -Model $model `
+            -BaseUrl $baseUrl `
+            -TimeoutMs $timeoutMs `
+            -MaxOutputTokens ([int]$PolicyResolved.provider.max_output_tokens) `
+            -Temperature ([double]$PolicyResolved.provider.temperature) `
+            -TopP ([double]$PolicyResolved.provider.top_p) `
+            -Store ([bool]$PolicyResolved.provider.store) `
+            -ResponsesInputItems $input `
+            -ResponsesTextFormat $textFormat `
+            -ChatMessages $chatMessages `
+            -ChatResponseFormat $chatResponseFormat `
+            -AnthropicMessages $anthropicMessages `
+            -SystemInstructions $instructions)
 	}
 
 function Get-DeterministicSampleValueForLlm {
@@ -1939,11 +2001,11 @@ function Get-LlmAccelerationAdvice {
     $topK = [Math]::Max(1, [int]$trigger.top_k)
 
     if ([bool]$trigger.active) {
-        $providerType = [string]$policyResolved.provider.type
+        $providerType = Get-LlmAdviceProviderTypeNormalized -PolicyResolved $policyResolved
         $providerInvokable = $true
 
-        $adviceApiKeyEnv = if ($policyResolved.provider.api_key_env) { [string]$policyResolved.provider.api_key_env } else { "VCO_INTENT_ADVICE_API_KEY" }
-        if ($providerType -eq "openai" -and (-not (Get-OpenAiApiKey -EnvName $adviceApiKeyEnv))) {
+        $adviceApiKeyEnv = Get-LlmAdviceProviderApiKeyEnvName -PolicyResolved $policyResolved
+        if ((Test-LlmAdviceProviderRequiresRemoteCredential -ProviderType $providerType) -and (-not (Get-OpenAiApiKey -EnvName $adviceApiKeyEnv))) {
             $providerInvokable = $false
             $providerSummary = [pscustomobject]@{
                 type = [string]$policyResolved.provider.type

@@ -54,8 +54,6 @@ def build_parser() -> argparse.ArgumentParser:
     route_parser.add_argument('--grade', default='M', choices=('M', 'L', 'XL'))
     route_parser.add_argument('--task-type', default='planning', choices=('planning', 'coding', 'review', 'debug', 'research'))
     route_parser.add_argument('--requested-skill')
-    route_parser.add_argument('--entry-intent-id')
-    route_parser.add_argument('--requested-grade-floor', choices=('L', 'XL'))
     route_parser.add_argument('--host-id')
     route_parser.add_argument('--target-root')
     route_parser.add_argument('--force-runtime-neutral', action='store_true')
