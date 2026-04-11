@@ -53,6 +53,33 @@ def _extract_bullets(text: str, heading: str) -> list[str]:
     return bullets
 
 
+def _normalize_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        items = value
+    elif value is None:
+        items = []
+    else:
+        items = [value]
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
+def _normalize_match_key(value: str) -> str:
+    return " ".join(str(value).split()).strip().lower()
+
+
+def _missing_frozen_items(required_items: list[str], covered_items: list[str]) -> list[str]:
+    covered_keys = {_normalize_match_key(item) for item in _normalize_string_list(covered_items)}
+    missing: list[str] = []
+    for item in _normalize_string_list(required_items):
+        if _normalize_match_key(item) not in covered_keys:
+            missing.append(item)
+    return missing
+
+
+def _requirement_optional_bullets(requirement_text: str, heading: str) -> list[str]:
+    return _normalize_string_list(_extract_bullets(requirement_text, heading))
+
+
 def _manual_spot_checks_from_requirement(requirement_text: str) -> tuple[list[str], bool]:
     raw_items = _extract_bullets(requirement_text, "Manual Spot Checks")
     if not raw_items:
@@ -65,6 +92,78 @@ def _manual_spot_checks_from_requirement(requirement_text: str) -> tuple[list[st
             return [], False
 
     return normalized_items, False
+
+
+def _resolve_artifact_review_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
+    return _resolve_optional_payload(
+        session_root,
+        execute_receipt,
+        inline_key="artifact_review",
+        explicit_path_key="artifact_review_path",
+        sidecar_filename="artifact-review.json",
+        inline_presence_keys=("status", "state", "evidence_paths", "notes"),
+    )
+
+
+def _resolve_tdd_evidence_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
+    return _resolve_optional_payload(
+        session_root,
+        execute_receipt,
+        inline_key="tdd_evidence",
+        explicit_path_key="tdd_evidence_path",
+        sidecar_filename="tdd-evidence.json",
+        inline_presence_keys=(
+            "status",
+            "state",
+            "evidence_paths",
+            "notes",
+            "red_phase_evidence_paths",
+            "green_phase_evidence_paths",
+            "refactor_phase_evidence_paths",
+            "covered_code_task_tdd_evidence_requirements",
+            "covered_code_task_tdd_exceptions",
+        ),
+    )
+
+
+def _resolve_optional_payload(
+    session_root: Path,
+    execute_receipt: dict[str, Any],
+    *,
+    inline_key: str,
+    explicit_path_key: str,
+    sidecar_filename: str,
+    inline_presence_keys: tuple[str, ...],
+) -> dict[str, Any]:
+    inline_payload = execute_receipt.get(inline_key) or {}
+    if isinstance(inline_payload, dict):
+        has_inline_content = any(inline_payload.get(key) for key in inline_presence_keys)
+        if has_inline_content:
+            payload = dict(inline_payload)
+            payload["source_path"] = str(session_root / "phase-execute.json")
+            return payload
+
+    explicit_path_value = str(execute_receipt.get(explicit_path_key) or "").strip()
+    if explicit_path_value:
+        explicit_path = Path(explicit_path_value)
+        if not explicit_path.is_absolute():
+            explicit_path = (session_root / explicit_path).resolve()
+        if explicit_path.exists():
+            payload = load_json(explicit_path)
+            if isinstance(payload, dict):
+                normalized_payload = dict(payload)
+                normalized_payload["source_path"] = str(explicit_path)
+                return normalized_payload
+
+    sidecar_path = session_root / sidecar_filename
+    if sidecar_path.exists():
+        payload = load_json(sidecar_path)
+        if isinstance(payload, dict):
+            normalized_payload = dict(payload)
+            normalized_payload["source_path"] = str(sidecar_path)
+            return normalized_payload
+
+    return {}
 
 
 def _derive_readiness_state(gate_result: str, manual_spot_checks: list[str]) -> str:

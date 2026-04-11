@@ -150,6 +150,37 @@ $lines += @(
 )
 $lines += @(
     '',
+    '## Artifact Review Strategy',
+    '- If the frozen requirement doc declares `Artifact Review Requirements`, execution must leave behind explicit artifact-review evidence rather than relying on generic completion wording.',
+    '- Artifact review may be recorded inline in `phase-execute.json` or through a dedicated `artifact-review.json` sidecar, but one of those governed surfaces must exist when direct artifact review is required.',
+    '- Product acceptance stays blocked when required artifact review remains missing, partial, degraded, or manual-review-only.',
+    '',
+    '## Code Task TDD Evidence Plan',
+    '- Reuse the frozen `Code Task TDD Evidence Requirements` section from the requirement doc rather than inventing late closeout claims.',
+    '- Reuse the frozen `Code Task TDD Exceptions` section when strict failing-first sequencing is intentionally exempted.',
+    '- Map each frozen requirement or exception to an implementation step, a targeted verification command, and a proof artifact.',
+    '- If strict failing-first sequencing is blocked, execution must record the bounded reason and fallback evidence explicitly.',
+    '',
+    '## Baseline Document Quality Mapping',
+    '- Use the frozen `Baseline Document Quality Dimensions` section in the requirement doc as the authoritative list of document-artifact quality dimensions that artifact review must cover before a document delivery can claim full completion.',
+    '- Track each baseline document dimension through artifact-review annotations so the delivery-acceptance report can show which structure, formatting, completeness, reference integrity, layout stability, and output fidelity expectations were inspected.',
+    '- Treat missing document-dimension coverage as a manual-review-required hit and keep this mapping separate from UI baselines and code-task TDD evidence.',
+    '',
+    '## Baseline UI Quality Mapping',
+    '- Use the frozen `Baseline UI Quality Dimensions` section in the requirement doc as the authoritative list of dimensions that artifact review must cover before a UI delivery can claim full completion.',
+    '- Track each baseline dimension through execution and artifact-review annotations so the delivery-acceptance report can show which structure, interaction, state, consistency, responsiveness, and fidelity expectations were inspected.',
+    '- Treat missing dimension coverage as a manual-review-required hit and include explicit mapping steps or targeted verification units that drive reviewers to capture the evidence the requirement doc established.',
+    '',
+    '## Task-Specific Acceptance Mapping',
+    '- Reuse frozen task-specific acceptance extensions from the requirement doc instead of inventing late closeout criteria.',
+    '- Keep base delivery truth separate from task-specific expectations so each can be inspected independently during review.',
+    '',
+    '## Research Augmentation Plan',
+    '- Preserve any frozen research augmentation sources from the requirement doc so later reviewers can tell which external standards strengthened the brief.',
+    '- Research augmentation may strengthen rough asks, but it must not replace the user-owned requirement surface.'
+)
+$lines += @(
+    '',
     '## Execution Topology Snapshot',
     "- Delegation mode: $([string]$executionTopology.delegation_mode)",
     "- Review mode: $([string]$executionTopology.review_mode)",
@@ -201,33 +232,13 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
         }
     }
 }
-$hasPlanMemoryItems = $planMemoryContext -and @($planMemoryContext.items).Count -gt 0
-$hasPlanCapsules = (
-    $planMemoryContext -and
-    $planMemoryContext.PSObject.Properties.Name -contains 'selected_capsules' -and
-    $null -ne $planMemoryContext.selected_capsules -and
-    @($planMemoryContext.selected_capsules).Count -gt 0
-)
-if ($hasPlanMemoryItems -or $hasPlanCapsules) {
+if ($planMemoryContext -and @($planMemoryContext.items).Count -gt 0) {
     $lines += @(
         '',
         '## Memory Context',
-        'Bounded stage-aware memory context injected into execution planning:',
-        ('- Disclosure level: {0}' -f [string]$planMemoryContext.disclosure_level)
+        'Bounded stage-aware memory context injected into execution planning:'
     )
-    if ($hasPlanCapsules) {
-        foreach ($capsule in @($planMemoryContext.selected_capsules)) {
-            $lines += @(
-                ('- Capsule [{0}] {1}' -f [string]$capsule.capsule_id, [string]$capsule.title),
-                ('  Owner: {0}' -f [string]$capsule.owner),
-                ('  Why now: {0}' -f [string]$capsule.why_now),
-                ('  Expansion Ref: {0}' -f [string]$capsule.expansion_ref)
-            )
-            $lines += @($capsule.summary_lines | ForEach-Object { '  Summary: ' + [string]$_ })
-        }
-    } else {
-        $lines += @($planMemoryContext.items | ForEach-Object { "- $_" })
-    }
+    $lines += @($planMemoryContext.items | ForEach-Object { "- $_" })
 }
 $lines += @(
     '',
@@ -297,12 +308,6 @@ $receipt = [pscustomobject]@{
     inherited_execution_plan_path = if ($isChildScope) { $planPath } else { $null }
     runtime_input_packet_path = $RuntimeInputPacketPath
     plan_memory_context_path = $PlanMemoryContextPath
-    plan_memory_disclosure_level = if ($planMemoryContext -and $planMemoryContext.PSObject.Properties.Name -contains 'disclosure_level') { [string]$planMemoryContext.disclosure_level } else { $null }
-    plan_memory_capsule_count = if (
-        $planMemoryContext -and
-        $planMemoryContext.PSObject.Properties.Name -contains 'selected_capsules' -and
-        $null -ne $planMemoryContext.selected_capsules
-    ) { @($planMemoryContext.selected_capsules).Count } else { 0 }
     execution_topology_path = $executionTopologyPath
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 }

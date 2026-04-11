@@ -28,6 +28,20 @@
         "required outputs emitted"
       ]
     },
+    "code_task_tdd_evidence_truth": {
+      "state": "passing",
+      "evidence": [
+        "failing-first evidence captured for the targeted behavior",
+        "green rerun captured for the same behavior"
+      ]
+    },
+    "artifact_review_truth": {
+      "state": "passing",
+      "evidence": [
+        "final artifact reviewed against frozen acceptance expectations",
+        "artifact review notes archived with delivery evidence"
+      ]
+    },
     "product_acceptance_truth": {
       "state": "passing",
       "evidence": [

@@ -26,6 +26,19 @@
         "approved specialist units executed"
       ]
     },
+    "code_task_tdd_evidence_truth": {
+      "state": "passing",
+      "evidence": [
+        "implementation lane captured failing-first and green verification evidence before handoff"
+      ]
+    },
+    "artifact_review_truth": {
+      "state": "manual_review_required",
+      "evidence": [
+        "final scientific artifact still requires direct expert review"
+      ],
+      "notes": "Artifact exists, but the required domain review has not been closed."
+    },
     "product_acceptance_truth": {
       "state": "manual_review_required",
       "evidence": [

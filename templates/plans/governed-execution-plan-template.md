@@ -28,6 +28,28 @@ Prefill from the frozen requirement doc where available. Only diverge with expli
 
 ## Wave Plan
 
+## Delivery Acceptance Plan
+
+## Artifact Review Strategy
+
+## Code Task TDD Evidence Plan
+
+Prefill this section from the frozen requirement doc. Map each frozen requirement or exception to implementation, targeted verification, and proof artifacts. Only diverge with explicit justification.
+
+## Baseline Document Quality Mapping
+
+Prefill this section with how each frozen baseline document quality dimension will map into artifact-review coverage so the governed document rubric documented in the requirement surface is enforced.
+
+## Baseline UI Quality Mapping
+
+Prefill this section with how each frozen baseline UI quality dimension will map into implementation, verification, and artifact-review coverage so the governed UI rubric documented in the requirement surface is enforced.
+
+## Task-Specific Acceptance Mapping
+
+## Research Augmentation Plan
+
+## Completion Language Rules
+
 ## Ownership Boundaries
 
 ## Verification Commands

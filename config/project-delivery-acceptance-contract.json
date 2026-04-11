@@ -1,10 +1,12 @@
 {
-  "contract_id": "vibe-project-delivery-acceptance-v1",
-  "version": 1,
+  "contract_id": "vibe-project-delivery-acceptance-v3",
+  "version": 3,
   "truth_layers": [
     "governance_truth",
     "engineering_verification_truth",
+    "code_task_tdd_evidence_truth",
     "workflow_completion_truth",
+    "artifact_review_truth",
     "product_acceptance_truth"
   ],
   "truth_states": {
@@ -31,6 +33,10 @@
     "not_run": {
       "counts_as_success": false,
       "completion_language_allowed": false
+    },
+    "not_applicable": {
+      "counts_as_success": true,
+      "completion_language_allowed": true
     }
   },
   "forbidden_completion_collapses": [
@@ -54,9 +60,12 @@
     "must_report_fields": [
       "governance_truth",
       "engineering_verification_truth",
+      "code_task_tdd_evidence_truth",
       "workflow_completion_truth",
+      "artifact_review_truth",
       "product_acceptance_truth",
       "completion_language_allowed",
+      "tdd_evidence_coverage",
       "residual_risks",
       "manual_spot_checks"
     ]

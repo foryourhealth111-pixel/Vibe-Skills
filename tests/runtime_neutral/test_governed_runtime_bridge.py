@@ -52,6 +52,10 @@ def _create_fake_command(directory: Path, name: str) -> Path:
 
 
 SPECIALIST_TASK = "I have a failing test and a stack trace. Help me debug systematically before proposing fixes."
+UI_TASK = "Build a responsive dashboard UI with clear interaction feedback, meaningful states, and desktop/mobile layout coverage."
+DOC_TASK = "Reformat the project README headings and spacing without changing application code."
+DOC_CODE_TASK = "Implement the markdown export pipeline for the docs renderer and add targeted verification for the parser."
+DOC_DECK_TASK = "Build the release deck slides and refine presentation spacing without changing application code."
 
 
 def resolve_python_command_spec_via_powershell(command_spec: str, path_entries: list[Path]) -> dict[str, object]:
@@ -278,10 +282,24 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 self.assertIn("## Runtime Input Truth", requirement_doc)
                 self.assertIn("## Specialist Recommendations", requirement_doc)
                 self.assertIn("Eligible recommendations must auto-promote", requirement_doc)
+                self.assertIn("## Artifact Review Requirements", requirement_doc)
+                self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
+                self.assertIn("- Record failing-first evidence for the changed behavior before implementation or defect correction.", requirement_doc)
+                self.assertIn("## Code Task TDD Exceptions", requirement_doc)
+                self.assertIn("No code-task TDD exceptions were frozen for this run.", requirement_doc)
+                self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+                self.assertIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
+                self.assertIn("## Baseline UI Quality Dimensions", requirement_doc)
+                self.assertIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
+                self.assertIn("## Task-Specific Acceptance Extensions", requirement_doc)
+                self.assertIn("## Research Augmentation Sources", requirement_doc)
             self.assertEqual("requirements", requirement_doc_path.parent.name)
             self.assertEqual("plans", execution_plan_path.parent.name)
             execution_plan = execution_plan_path.read_text(encoding="utf-8")
             self.assertIn("## Specialist Skill Dispatch Plan", execution_plan)
+            self.assertIn("## Code Task TDD Evidence Plan", execution_plan)
+            self.assertIn("## Baseline Document Quality Mapping", execution_plan)
+            self.assertIn("## Baseline UI Quality Mapping", execution_plan)
 
             runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
             governance_capsule = json.loads(governance_capsule_path.read_text(encoding="utf-8"))
@@ -354,6 +372,307 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     self.assertFalse(bool(result["verification_passed"]))
                 else:
                     self.assertEqual("completed", result["status"])
+
+    def test_invoke_vibe_runtime_freezes_default_ui_baseline_dimensions_for_ui_task(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-ui"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{UI_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+            )
+
+            payload = json.loads(completed.stdout)
+            session_root = Path(payload["session_root"])
+            summary = payload["summary"]
+            relative_artifacts = summary.get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            self.assertTrue(requirement_doc_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            self.assertIn("## Baseline UI Quality Dimensions", requirement_doc)
+            self.assertIn("- Structure Completeness", requirement_doc)
+            self.assertIn("- Interaction Feedback", requirement_doc)
+            self.assertIn("- State Coverage", requirement_doc)
+            self.assertIn("- Design System Consistency", requirement_doc)
+            self.assertIn("- Responsive Stability", requirement_doc)
+            self.assertIn("- Spec Fidelity", requirement_doc)
+            self.assertNotIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
+            self.assertEqual(run_id, session_root.name)
+
+    def test_invoke_vibe_runtime_freezes_default_document_baseline_dimensions_for_document_task(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-doc"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{DOC_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+            )
+
+            payload = json.loads(completed.stdout)
+            relative_artifacts = payload["summary"].get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            self.assertTrue(requirement_doc_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            self.assertIn("## Artifact Review Requirements", requirement_doc)
+            self.assertIn(
+                "- Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                requirement_doc,
+            )
+            self.assertIn(
+                "- Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.",
+                requirement_doc,
+            )
+            self.assertIn(
+                "- For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
+                requirement_doc,
+            )
+            self.assertNotIn("No additional artifact review requirements were frozen for this run.", requirement_doc)
+            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
+            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertIn("- Structure Integrity", requirement_doc)
+            self.assertIn("- Formatting Consistency", requirement_doc)
+            self.assertIn("- Content Completeness", requirement_doc)
+            self.assertIn("- Link and Reference Integrity", requirement_doc)
+            self.assertIn("- Layout and Asset Stability", requirement_doc)
+            self.assertIn("- Output Fidelity", requirement_doc)
+            self.assertNotIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
+            self.assertIn("## Baseline UI Quality Dimensions", requirement_doc)
+            self.assertIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
+
+    def test_invoke_vibe_runtime_keeps_markdown_code_tasks_on_code_tdd_path(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-doc-code"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{DOC_CODE_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+            )
+
+            payload = json.loads(completed.stdout)
+            relative_artifacts = payload["summary"].get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            self.assertTrue(requirement_doc_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            self.assertIn("## Artifact Review Requirements", requirement_doc)
+            self.assertIn("No additional artifact review requirements were frozen for this run.", requirement_doc)
+            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
+            self.assertIn(
+                "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
+                requirement_doc,
+            )
+            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
+
+    def test_invoke_vibe_runtime_treats_presentation_artifact_tasks_as_non_code_document_work(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-doc-deck"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{DOC_DECK_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+            )
+
+            payload = json.loads(completed.stdout)
+            relative_artifacts = payload["summary"].get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            self.assertTrue(requirement_doc_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            self.assertIn("## Artifact Review Requirements", requirement_doc)
+            self.assertIn(
+                "- Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                requirement_doc,
+            )
+            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
+            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertIn("- Structure Integrity", requirement_doc)
+            self.assertIn("- Output Fidelity", requirement_doc)
+
+    def test_write_requirement_doc_preserves_explicit_document_artifact_review_requirements(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
+        run_id = "pytest-requirement-doc-explicit-artifact-review"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        explicit_requirements = [
+            "Confirm the README heading hierarchy matches the requested structure exactly.",
+            "Confirm spacing changes did not alter link targets or prose content.",
+        ]
+        intent_contract = {
+            "title": "README formatting adjustment",
+            "goal": DOC_TASK,
+            "deliverable": "Updated README formatting only.",
+            "constraints": [
+                "Do not change application code.",
+            ],
+            "acceptance_criteria": [
+                "Requirement document is frozen before execution.",
+            ],
+            "artifact_review_requirements": explicit_requirements,
+            "non_goals": [
+                "Do not widen scope beyond the README formatting task.",
+            ],
+            "autonomy_mode": "interactive_governed",
+            "assumptions": [
+                "The README is the only touched artifact.",
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            intent_contract_path = artifact_root / "intent-contract.json"
+            intent_contract_path.write_text(
+                json.dumps(intent_contract, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{DOC_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-IntentContractPath '{intent_contract_path}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            payload = json.loads(completed.stdout)
+            requirement_doc_path = Path(payload["requirement_doc_path"])
+            self.assertTrue(requirement_doc_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            self.assertIn("## Artifact Review Requirements", requirement_doc)
+            for item in explicit_requirements:
+                self.assertIn(f"- {item}", requirement_doc)
+            self.assertNotIn(
+                "- Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                requirement_doc,
+            )
+            self.assertNotIn(
+                "- Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.",
+                requirement_doc,
+            )
+            self.assertNotIn(
+                "- For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
+                requirement_doc,
+            )
+            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertIn("- Structure Integrity", requirement_doc)
 
     def test_resolve_vgo_python_command_spec_falls_back_to_python3(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

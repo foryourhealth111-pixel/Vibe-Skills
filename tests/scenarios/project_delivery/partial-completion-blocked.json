@@ -26,6 +26,18 @@
         "some units failed"
       ]
     },
+    "code_task_tdd_evidence_truth": {
+      "state": "not_run",
+      "evidence": [
+        "the bounded TDD evidence package was not closed because the target behavior still failed"
+      ]
+    },
+    "artifact_review_truth": {
+      "state": "not_run",
+      "evidence": [
+        "artifact review was not attempted because critical behavior remained broken"
+      ]
+    },
     "product_acceptance_truth": {
       "state": "failing",
       "evidence": [

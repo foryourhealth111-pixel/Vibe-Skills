@@ -39,6 +39,94 @@ def write_artifacts(artifact: dict[str, Any], output_directory: Path) -> None:
         lines.append(
             f"- `{layer}`: state=`{info['state']}` success=`{info['success']}` completion_language_allowed=`{info['completion_language_allowed']}`"
         )
+    frozen_sections = artifact.get("frozen_requirement_sections") or {}
+    if frozen_sections.get("artifact_review_requirements"):
+        lines += ["", "## Frozen Artifact Review Requirements", ""]
+        for item in frozen_sections["artifact_review_requirements"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("code_task_tdd_evidence_requirements"):
+        lines += ["", "## Frozen Code Task TDD Evidence Requirements", ""]
+        for item in frozen_sections["code_task_tdd_evidence_requirements"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("code_task_tdd_exceptions"):
+        lines += ["", "## Frozen Code Task TDD Exceptions", ""]
+        for item in frozen_sections["code_task_tdd_exceptions"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("baseline_document_quality_dimensions"):
+        lines += ["", "## Frozen Baseline Document Quality Dimensions", ""]
+        for item in frozen_sections["baseline_document_quality_dimensions"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("baseline_ui_quality_dimensions"):
+        lines += ["", "## Frozen Baseline UI Quality Dimensions", ""]
+        for item in frozen_sections["baseline_ui_quality_dimensions"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("task_specific_acceptance_extensions"):
+        lines += ["", "## Frozen Task-Specific Acceptance Extensions", ""]
+        for item in frozen_sections["task_specific_acceptance_extensions"]:
+            lines.append(f"- {item}")
+    if frozen_sections.get("research_augmentation_sources"):
+        lines += ["", "## Frozen Research Augmentation Sources", ""]
+        for item in frozen_sections["research_augmentation_sources"]:
+            lines.append(f"- {item}")
+    coverage = artifact.get("artifact_review_coverage") or {}
+    tdd_coverage = artifact.get("tdd_evidence_coverage") or {}
+    if any(
+        tdd_coverage.get(key)
+        for key in (
+            "covered_code_task_tdd_evidence_requirements",
+            "missing_code_task_tdd_evidence_requirements",
+            "covered_code_task_tdd_exceptions",
+            "missing_code_task_tdd_exceptions",
+            "red_phase_evidence_paths",
+            "green_phase_evidence_paths",
+            "refactor_phase_evidence_paths",
+        )
+    ):
+        lines += ["", "## Code Task TDD Evidence Coverage", ""]
+        for item in tdd_coverage.get("covered_code_task_tdd_evidence_requirements") or []:
+            lines.append(f"- Covered code-task TDD evidence requirement: {item}")
+        for item in tdd_coverage.get("missing_code_task_tdd_evidence_requirements") or []:
+            lines.append(f"- Missing code-task TDD evidence requirement: {item}")
+        for item in tdd_coverage.get("covered_code_task_tdd_exceptions") or []:
+            lines.append(f"- Covered code-task TDD exception: {item}")
+        for item in tdd_coverage.get("missing_code_task_tdd_exceptions") or []:
+            lines.append(f"- Missing code-task TDD exception: {item}")
+        for item in tdd_coverage.get("red_phase_evidence_paths") or []:
+            lines.append(f"- Red-phase evidence: {item}")
+        for item in tdd_coverage.get("green_phase_evidence_paths") or []:
+            lines.append(f"- Green-phase evidence: {item}")
+        for item in tdd_coverage.get("refactor_phase_evidence_paths") or []:
+            lines.append(f"- Refactor-phase evidence: {item}")
+    if any(
+        coverage.get(key)
+        for key in (
+            "covered_baseline_document_quality_dimensions",
+            "missing_baseline_document_quality_dimensions",
+            "covered_baseline_ui_quality_dimensions",
+            "missing_baseline_ui_quality_dimensions",
+            "covered_task_specific_acceptance_extensions",
+            "missing_task_specific_acceptance_extensions",
+            "considered_research_augmentation_sources",
+            "missing_research_augmentation_sources",
+        )
+    ):
+        lines += ["", "## Artifact Review Coverage", ""]
+        for item in coverage.get("covered_baseline_document_quality_dimensions") or []:
+            lines.append(f"- Covered baseline document quality dimension: {item}")
+        for item in coverage.get("missing_baseline_document_quality_dimensions") or []:
+            lines.append(f"- Missing baseline document quality dimension: {item}")
+        for item in coverage.get("covered_baseline_ui_quality_dimensions") or []:
+            lines.append(f"- Covered baseline UI quality dimension: {item}")
+        for item in coverage.get("missing_baseline_ui_quality_dimensions") or []:
+            lines.append(f"- Missing baseline UI quality dimension: {item}")
+        for item in coverage.get("covered_task_specific_acceptance_extensions") or []:
+            lines.append(f"- Covered task-specific acceptance: {item}")
+        for item in coverage.get("missing_task_specific_acceptance_extensions") or []:
+            lines.append(f"- Missing task-specific acceptance: {item}")
+        for item in coverage.get("considered_research_augmentation_sources") or []:
+            lines.append(f"- Considered research source: {item}")
+        for item in coverage.get("missing_research_augmentation_sources") or []:
+            lines.append(f"- Missing research source: {item}")
     if artifact["manual_spot_checks"]:
         lines += ["", "## Manual Spot Checks", ""]
         for item in artifact["manual_spot_checks"]:

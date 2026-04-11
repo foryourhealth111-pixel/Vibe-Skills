@@ -32,6 +32,8 @@ class WorkflowAcceptanceRunnerTests(unittest.TestCase):
         self.assertEqual("PASS", artifact["summary"]["gate_result"])
         self.assertTrue(artifact["summary"]["completion_language_allowed"])
         self.assertEqual(0, artifact["summary"]["forbidden_completion_hit_count"])
+        self.assertEqual("passing", artifact["truth_results"]["code_task_tdd_evidence_truth"]["state"])
+        self.assertEqual("passing", artifact["truth_results"]["artifact_review_truth"]["state"])
 
     def test_manual_review_scenario_blocks_completion_language(self) -> None:
         scenario_path = REPO_ROOT / "tests" / "scenarios" / "project_delivery" / "xl-composite-manual-review.json"
@@ -42,6 +44,11 @@ class WorkflowAcceptanceRunnerTests(unittest.TestCase):
             "manual_review_required",
             artifact["truth_results"]["product_acceptance_truth"]["state"],
         )
+        self.assertEqual(
+            "manual_review_required",
+            artifact["truth_results"]["artifact_review_truth"]["state"],
+        )
+        self.assertEqual("passing", artifact["truth_results"]["code_task_tdd_evidence_truth"]["state"])
 
     def test_completed_with_failures_is_forbidden_completion_hit(self) -> None:
         scenario_path = REPO_ROOT / "tests" / "scenarios" / "project_delivery" / "partial-completion-blocked.json"
@@ -51,6 +58,10 @@ class WorkflowAcceptanceRunnerTests(unittest.TestCase):
         self.assertGreaterEqual(artifact["summary"]["forbidden_completion_hit_count"], 1)
         self.assertIn(
             "product_acceptance_truth",
+            artifact["summary"]["incomplete_layers"],
+        )
+        self.assertIn(
+            "code_task_tdd_evidence_truth",
             artifact["summary"]["incomplete_layers"],
         )
 
@@ -76,6 +87,8 @@ class WorkflowAcceptanceRunnerTests(unittest.TestCase):
                             "governance_truth": {"state": "passing"},
                             "engineering_verification_truth": {"state": "passing"},
                             "workflow_completion_truth": {"state": "passing"},
+                            "code_task_tdd_evidence_truth": {"state": "not_applicable"},
+                            "artifact_review_truth": {"state": "passing"},
                             "product_acceptance_truth": {"state": "passing"}
                         }
                     },
