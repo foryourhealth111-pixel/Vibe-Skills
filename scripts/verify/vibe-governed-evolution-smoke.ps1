@@ -1,5 +1,5 @@
 param(
-    [string]$Task = 'Review the current repository and close out with governed artifacts.',
+    [string]$Task = 'Summarize the repository structure, produce governed evolution artifacts, and close the run cleanly.',
     [string]$RepoRoot = '',
     [string]$ArtifactRoot = '',
     [string]$RunId = '',
