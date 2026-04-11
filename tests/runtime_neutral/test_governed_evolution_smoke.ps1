@@ -55,6 +55,39 @@ function Require-Properties {
     }
 }
 
+function Get-RequiredMemberValue {
+    param(
+        [Parameter(Mandatory = $true)]$InputObject,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [System.Collections.Generic.List[string]]$Failures,
+        [string]$Label = 'object'
+    )
+
+    if (-not (Has-Property $InputObject $Name)) {
+        Require $false "$Label missing $Name" $Failures
+        return $null
+    }
+
+    return $InputObject.$Name
+}
+
+function Require-NonEmptyStringMember {
+    param(
+        [Parameter(Mandatory = $true)]$InputObject,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Label,
+        [System.Collections.Generic.List[string]]$Failures
+    )
+
+    if (-not (Has-Property $InputObject $Name)) {
+        Require $false "$Label missing $Name" $Failures
+        return
+    }
+
+    $value = [string]$InputObject.$Name
+    Require (-not [string]::IsNullOrWhiteSpace($value)) "$Label missing populated $Name" $Failures
+}
+
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     $RepoRoot = Resolve-DefaultRepoRoot
 }
@@ -128,7 +161,7 @@ if ($failures.Count -eq 0) {
     $policySuggestion = Read-JsonFile $paths.threshold_policy_suggestion
     $readinessReport = Read-JsonFile $paths.application_readiness_report
 
-    $artifacts = $summary.artifacts
+    $artifacts = Get-RequiredMemberValue -InputObject $summary -Name 'artifacts' -Failures $failures -Label 'runtime-summary.json'
     foreach ($artifactName in @(
         'observed_failure_patterns',
         'observed_pitfall_events',
@@ -143,36 +176,38 @@ if ($failures.Count -eq 0) {
         'application_readiness_report',
         'application_readiness_markdown'
     )) {
-        Require (Has-Property $artifacts $artifactName) "runtime-summary.json missing artifacts.$artifactName" $failures
+        Require-NonEmptyStringMember -InputObject $artifacts -Name $artifactName -Label 'runtime-summary.json artifacts' -Failures $failures
     }
 
-    $failurePatterns = @($failurePayload.patterns)
-    $pitfallEvents = @($pitfallPayload.events)
-    $atomicEvents = @($atomicPayload.events)
-    $cards = @($warningCards.cards)
-    $checks = @($preflightChecklist.checks)
-    $notes = @($remediationNotes.notes)
-    $drafts = @($candidateDraft.drafts)
-    $suggestions = @($policySuggestion.suggestions)
-    $laneACandidates = @($readinessReport.lane_a_candidates)
-    $laneBCandidates = @($readinessReport.lane_b_candidates)
+    $failurePatterns = @()
+    $pitfallEvents = @()
+    $atomicEvents = @()
+    $cards = @()
+    $checks = @()
+    $notes = @()
+    $drafts = @()
+    $suggestions = @()
+    $laneACandidates = @()
+    $laneBCandidates = @()
 
-    Require (Has-Property $failurePayload 'patterns') 'failure-patterns.json missing patterns' $failures
-    Require (Has-Property $pitfallPayload 'events') 'pitfall-events.json missing events' $failures
-    Require (Has-Property $atomicPayload 'events') 'atomic-skill-call-chain.json missing events' $failures
-    Require (Has-Property $warningCards 'cards') 'warning-cards.json missing cards' $failures
-    Require (Has-Property $preflightChecklist 'checks') 'preflight-checklist.json missing checks' $failures
-    Require (Has-Property $remediationNotes 'notes') 'remediation-notes.json missing notes' $failures
-    Require (Has-Property $candidateDraft 'drafts') 'candidate-composite-skill-draft.json missing drafts' $failures
-    Require (Has-Property $policySuggestion 'suggestions') 'threshold-policy-suggestion.json missing suggestions' $failures
+    if (Has-Property $failurePayload 'patterns') { $failurePatterns = @($failurePayload.patterns) } else { Require $false 'failure-patterns.json missing patterns' $failures }
+    if (Has-Property $pitfallPayload 'events') { $pitfallEvents = @($pitfallPayload.events) } else { Require $false 'pitfall-events.json missing events' $failures }
+    if (Has-Property $atomicPayload 'events') { $atomicEvents = @($atomicPayload.events) } else { Require $false 'atomic-skill-call-chain.json missing events' $failures }
+    if (Has-Property $warningCards 'cards') { $cards = @($warningCards.cards) } else { Require $false 'warning-cards.json missing cards' $failures }
+    if (Has-Property $preflightChecklist 'checks') { $checks = @($preflightChecklist.checks) } else { Require $false 'preflight-checklist.json missing checks' $failures }
+    if (Has-Property $remediationNotes 'notes') { $notes = @($remediationNotes.notes) } else { Require $false 'remediation-notes.json missing notes' $failures }
+    if (Has-Property $candidateDraft 'drafts') { $drafts = @($candidateDraft.drafts) } else { Require $false 'candidate-composite-skill-draft.json missing drafts' $failures }
+    if (Has-Property $policySuggestion 'suggestions') { $suggestions = @($policySuggestion.suggestions) } else { Require $false 'threshold-policy-suggestion.json missing suggestions' $failures }
+    if (Has-Property $readinessReport 'lane_a_candidates') { $laneACandidates = @($readinessReport.lane_a_candidates) } else { Require $false 'application-readiness-report.json missing lane_a_candidates' $failures }
+    if (Has-Property $readinessReport 'lane_b_candidates') { $laneBCandidates = @($readinessReport.lane_b_candidates) } else { Require $false 'application-readiness-report.json missing lane_b_candidates' $failures }
 
-    Require ($proposalLayer.mode -eq 'report-only') 'proposal-layer.json mode must be report-only' $failures
-    Require ($proposalLayer.review_status -eq 'pending-review') 'proposal-layer.json review_status must be pending-review' $failures
+    if (Has-Property $proposalLayer 'mode') { Require ($proposalLayer.mode -eq 'report-only') 'proposal-layer.json mode must be report-only' $failures } else { Require $false 'proposal-layer.json missing mode' $failures }
+    if (Has-Property $proposalLayer 'review_status') { Require ($proposalLayer.review_status -eq 'pending-review') 'proposal-layer.json review_status must be pending-review' $failures } else { Require $false 'proposal-layer.json missing review_status' $failures }
     Require (Has-Property $proposalLayer 'artifacts') 'proposal-layer.json missing artifacts' $failures
     Require (Has-Property $proposalLayer 'summary') 'proposal-layer.json missing summary' $failures
 
-    Require ($readinessReport.mode -eq 'report-only') 'application-readiness-report.json mode must be report-only' $failures
-    Require ($readinessReport.review_status -eq 'pending-review') 'application-readiness-report.json review_status must be pending-review' $failures
+    if (Has-Property $readinessReport 'mode') { Require ($readinessReport.mode -eq 'report-only') 'application-readiness-report.json mode must be report-only' $failures } else { Require $false 'application-readiness-report.json missing mode' $failures }
+    if (Has-Property $readinessReport 'review_status') { Require ($readinessReport.review_status -eq 'pending-review') 'application-readiness-report.json review_status must be pending-review' $failures } else { Require $false 'application-readiness-report.json missing review_status' $failures }
     Require (Has-Property $readinessReport 'input_artifacts') 'application-readiness-report.json missing input_artifacts' $failures
     Require (Has-Property $readinessReport 'summary') 'application-readiness-report.json missing summary' $failures
 

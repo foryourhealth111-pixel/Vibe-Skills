@@ -891,8 +891,12 @@ if ([string]$hierarchyState.governance_scope -eq 'child' -and $escalationRequire
 
 $blockedSpecialistUnits = @()
 foreach ($dispatch in @($frozenBlockedDispatch)) {
+    $dispatchSkillId = Get-VibeSkillId -InputObject $dispatch
+    if ([string]::IsNullOrWhiteSpace($dispatchSkillId)) {
+        throw "Blocked specialist dispatch is missing skill_id."
+    }
     $blockedOutcome = New-VibeBlockedSpecialistDispatchResult `
-        -UnitId ("blocked-{0}" -f (Get-VibeSkillId -InputObject $dispatch)) `
+        -UnitId ("blocked-{0}" -f $dispatchSkillId) `
         -Dispatch $dispatch `
         -SessionRoot $sessionRoot `
         -Reason $(if ($dispatch.PSObject.Properties.Name -contains 'recommended_promotion_action' -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.recommended_promotion_action)) { [string]$dispatch.recommended_promotion_action } else { 'require_confirmation' }) `
@@ -900,7 +904,7 @@ foreach ($dispatch in @($frozenBlockedDispatch)) {
         -ReviewMode $(if ($dispatch.PSObject.Properties.Name -contains 'review_mode') { [string]$dispatch.review_mode } else { 'native_contract' })
     $blockedSpecialistUnits += [pscustomobject]@{
         unit_id = [string]$blockedOutcome.result.unit_id
-        skill_id = Get-VibeSkillId -InputObject $dispatch
+        skill_id = $dispatchSkillId
         dispatch_phase = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'dispatch_phase')
         binding_profile = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'binding_profile')
         lane_policy = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'lane_policy')
@@ -916,8 +920,12 @@ foreach ($dispatch in @($frozenBlockedDispatch)) {
 
 $preDispatchDegradedUnits = @()
 foreach ($dispatch in @($frozenDegradedDispatch)) {
+    $dispatchSkillId = Get-VibeSkillId -InputObject $dispatch
+    if ([string]::IsNullOrWhiteSpace($dispatchSkillId)) {
+        throw "Degraded specialist dispatch is missing skill_id."
+    }
     $degradedOutcome = New-VibeDegradedSpecialistDispatchResult `
-        -UnitId ("degraded-{0}" -f (Get-VibeSkillId -InputObject $dispatch)) `
+        -UnitId ("degraded-{0}" -f $dispatchSkillId) `
         -Dispatch $dispatch `
         -SessionRoot $sessionRoot `
         -Policy $runtime.native_specialist_execution_policy `
@@ -926,7 +934,7 @@ foreach ($dispatch in @($frozenDegradedDispatch)) {
         -ReviewMode $(if ($dispatch.PSObject.Properties.Name -contains 'review_mode') { [string]$dispatch.review_mode } else { 'native_contract' })
     $preDispatchDegradedUnits += [pscustomobject]@{
         unit_id = [string]$degradedOutcome.result.unit_id
-        skill_id = Get-VibeSkillId -InputObject $dispatch
+        skill_id = $dispatchSkillId
         dispatch_phase = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'dispatch_phase')
         binding_profile = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'binding_profile')
         lane_policy = [string](Get-VibeOptionalMemberValue -InputObject $dispatch -Name 'lane_policy')

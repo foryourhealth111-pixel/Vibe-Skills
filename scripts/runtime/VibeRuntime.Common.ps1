@@ -1459,7 +1459,7 @@ function Read-VibeJsonArtifactIfExists {
     try {
         return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
     } catch {
-        return $null
+        throw "Failed to parse JSON artifact '$Path': $($_.Exception.Message)"
     }
 }
 
