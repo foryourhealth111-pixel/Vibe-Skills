@@ -591,17 +591,17 @@ These checks confirm that the installed runtime still controls routing, still wr
 
 ## 📦 Standing on the Shoulders of Giants
 
-_These capabilities weren't built from scratch. VibeSkills' foundation is the continuous integration of the best open-source solutions into one governed system._
+_These capabilities were not built in isolation. VibeSkills draws on existing open-source projects, patterns, and tools, then adapts them into one governed runtime._
 
-We know that building in isolation can't keep pace with the rapidly evolving AI landscape. The core strength of VibeSkills comes from continuously absorbing the most mature methods and architectures from the open-source community, and bringing them under a single unified governance and orchestration system.
+VibeSkills does not claim to replace or fully reproduce every upstream project listed below. The practical goal is narrower: reuse proven ideas where they fit, connect them through one runtime and governance layer, and make them easier to activate together in day-to-day work.
 
-> 🙏 **Special Thanks & Acknowledgements**
+> 🙏 **Acknowledgements**
 >
-> This project continuously integrates, absorbs, and governs the core strengths of the following excellent open-source projects:
+> This project references, adapts, or integrates ideas, workflows, or tooling from projects such as:
 >
 > `superpower` · `claude-scientific-skills` · `get-shit-done` · `aios-core` · `OpenSpec` · `ralph-claude-code` · `SuperClaude_Framework` · `spec-kit` · `Agent-S` · `mem0` · `scrapling` · `claude-flow` · `serena` · `everything-claude-code` · `DeepAgent` and more
 >
-> _Thank you to all authors for your generous contributions — without these brilliant stars, VibeSkills would not exist. We have done our best to properly attribute and credit all absorbed repositories. If anything was missed, please open an Issue and we will correct it promptly._
+> _We try to attribute upstream work carefully. If we missed a source or described a dependency inaccurately, please open an Issue and we will correct it._
 
 <br/>
 
@@ -610,9 +610,9 @@ We know that building in isolation can't keep pace with the rapidly evolving AI 
 
 ## 🚀 Getting Started
 
-_You know what this is now. All it takes from here is one prompt:_
+_If VibeSkills is already installed, start with one invocation._
 
-> ⚠️ **Invocation note**: This project uses a **Skills format architecture**. Please invoke it through your host environment's Skills invocation method — **do not** run it as a standalone CLI program.
+> ⚠️ **Invocation note**: VibeSkills uses a **Skills-format runtime**. Invoke it through your host's Skills entrypoint, not as a standalone CLI program.
 
 <br/>
 
@@ -620,9 +620,9 @@ _You know what this is now. All it takes from here is one prompt:_
 
 | Host Environment | Invocation | Example |
 |:---:|:---:|:---|
-| **Claude Code** | `/vibe` | `I want you to design a XXX /vibe` |
-| **Codex** | `$vibe` | `I want you to design a XXXX $vibe` |
-| **OpenCode** | `/vibe` | `Use the vibe skill to plan this change.` |
+| **Claude Code** | `/vibe` | `Plan this task /vibe` |
+| **Codex** | `$vibe` | `Plan this task $vibe` |
+| **OpenCode** | `/vibe` | `Plan this task with vibe.` |
 | **OpenClaw** | Skills entry | Refer to the host docs |
 | **Cursor / Windsurf** | Skills entry | Refer to each platform's Skills docs |
 
@@ -630,11 +630,13 @@ _You know what this is now. All it takes from here is one prompt:_
 
 <br/>
 
-> 💡 **Tip**: To keep every message within the VibeSkills governed workflow, append `$vibe` or `/vibe` to each of your messages. A message without the invocation syntax is treated as a regular request outside the governed runtime.
+- First try a small request such as planning, clarifying, or breaking down a task.
+- If you want later turns to stay inside the governed workflow, append `$vibe` or `/vibe` to each message.
+- If VibeSkills is not installed yet, start with [Prompt-based install (recommended)](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/one-click-install-release-copy.en.md).
 
-> MCP note: `$vibe` or `/vibe` is the governed runtime entry only. It is **not MCP completion**, and neither templates, manifests, sidecars, nor PATH-visible commands should be treated as proof that MCP is installed into a host's native MCP surface.
+> MCP note: `$vibe` or `/vibe` only enters the governed runtime. It is **not MCP completion**, and it does not by itself prove that MCP is installed in the host's native MCP surface.
 
-**Currently supported public host surface**: `codex` (strongest governed lane) · `claude-code` (supported install-and-use path with bounded managed closure) · `cursor` (preview-guidance path) · `windsurf` (runtime-core path with sidecar host-adapter state) · `openclaw` (preview runtime-core adapter path) · `opencode` (preview-guidance adapter path; direct install/check remains the thinner public path)
+**Public host status**: `codex` and `claude-code` are the clearest install-and-use paths today. `cursor`, `windsurf`, `openclaw`, and `opencode` are available too, but some of those paths are still preview-oriented or host-specific.
 
 <br/>
 
@@ -645,14 +647,13 @@ _You know what this is now. All it takes from here is one prompt:_
 
 <br/>
 
-**Understand the system**
-
-- 📖 [System architecture & philosophy](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/quick-start.en.md)
-- 📜 [VibeSkills Manifesto](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/manifesto.en.md)
-
-**Installation & Configuration**
+**Start here**
 
 - ⚡️ [Prompt-based install (recommended)](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/one-click-install-release-copy.en.md)
+- 📖 [System architecture & philosophy](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/quick-start.en.md)
+
+**Open only if needed**
+
 - 🧩 [Custom workflow onboarding](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/custom-workflow-onboarding.en.md)
 - 📄 [OpenClaw host notes](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/openclaw-path.en.md)
 - 📄 [OpenCode host notes](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/opencode-path.en.md)
