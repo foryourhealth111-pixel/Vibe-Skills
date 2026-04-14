@@ -77,7 +77,7 @@ If your AI supports skills, VibeSkills works. 340+ skills spanning coding, resea
 - [What makes it different](#-what-makes-it-different)
 - [Who is it for](#-who-is-it-for)
 - [Intelligent Routing](#-intelligent-routing-how-340-skills-collaborate-without-conflict)
-- [Memory System](#-memory-system-ai-that-truly-remembers)
+- [Memory System](#-memory-system-resume-context-across-the-same-workspace)
 - [Full Capability Map](#-full-capability-map-your-all-in-one-workbench)
 - [Installation & Management](#️-installation--skills-management)
 - [Getting Started](#-getting-started)
@@ -301,74 +301,131 @@ The governance framework adds ~30k initial context overhead, but does not cause 
 ---
 
 
-## 🧠 Memory System: AI That Truly Remembers
+## 🧠 Memory System: Resume Context Across the Same Workspace
 
-_Routing solves "which skill". But there's a deeper question: when the conversation ends, does AI remember you?_
+_Routing decides which skill should lead. Memory decides whether the next session has to start from zero._
 
-Sound familiar?
+VibeSkills memory is built to solve three practical problems:
+
+- resume confirmed project context inside the same workspace
+- keep long tasks resumable after interruption or handoff
+- preserve decisions, handoff notes, and related evidence without dumping full history back into every prompt
+
+It does not mean "save everything forever."
+By default, memory is scoped and layered: session state, project conventions, task-relevant retrieval, and controlled long-term knowledge all have different boundaries.
+
+<br/>
 
 <div align="center">
 
-| ❌ Pain Point | ✅ VibeSkills Solution | Component |
-|:---|:---|:---:|
-| Re-explaining project context every new session | Architecture decisions & conventions auto-loaded on startup | `Serena` |
-| AI hits the same bugs again; insights vanish with context | One sentence saves to Obsidian + GitHub permanently | `knowledge-steward` |
-| Long tasks — AI gradually "forgets" early context | In-session semantic vector cache, instant retrieval | `ruflo` |
-| Cross-project knowledge can't accumulate | Entity relationship graphs grow richer over time | `Cognee` |
-| Long task interrupted — hard to hand off to new agent | Auto-folds into working + tool + evidence memory | `deepagent-memory-fold` |
+| What users usually ask | Default behavior |
+|:---|:---|
+| Do I need to re-explain project context in every new session? | No. Confirmed project context can be resumed inside the same workspace. |
+| What if a long task gets interrupted? | Key progress can be folded into resumable working, tool, and evidence memory. |
+| Will unrelated history flood the prompt? | No. Retrieval stays bounded and task-relevant. |
+| Will one project leak into another? | No. Different workspaces stay isolated by default. |
+| Does it write everything automatically? | No. Durable writes stay governed, and some writes require explicit confirmation. |
 
 </div>
 
 <br/>
 
-<details>
-<summary><b>📐 Expand: Four-Tier Architecture, Memory Skills & Governance Rules</b></summary>
-
-<br/>
-
-VibeSkills builds a **four-tier memory system** — one authoritative component per memory need:
-
-| Tier | Component | Scope | Core Purpose |
-|:---:|:---:|:---:|:---|
-| **L1 Session** | `state_store` | Current session | Execution progress, intermediate results, temp state — always-on "workbench" |
-| **L2 Project** | `Serena` | Current project | Architecture decisions, conventions — written only after explicit user confirmation |
-| **L3 Short-term Semantic** | `ruflo` | Intra-session | Vector cache for fast context retrieval within long-running tasks |
-| **L4 Long-term Graph** | `Cognee` | Cross-session | Entity linking, relationship graphs, long-horizon knowledge accumulation |
-
-> **Optional extensions**: `mem0` as a personal preference backend (opt-in); `Letta` provides memory block mapping vocabulary — neither replaces the four canonical tiers.
-
-<br/>
-
-**Three Dedicated Memory Skills**
-
-| Skill | Role | Trigger |
-|:---:|:---|:---|
-| `knowledge-steward` | **Knowledge Keeper**: Saves insights, bug fixes, and prompts to Obsidian + GitHub permanently | "save this prompt" / "log this bug" / "save this insight" |
-| `digital-brain` | **Second Brain**: Structured personal knowledge base — identity, content, network, retrospectives | Invoke directly; ideal for a personal knowledge OS |
-| `deepagent-memory-fold` | **Context Fold**: Compresses large context into structured working/tool/evidence memory for seamless handoff | Triggers at context limit or manually |
-
-<br/>
-
-**Governance**: Single source of truth (no dual-track) · Explicit write only (`Serena` requires confirmation) · `episodic-memory` permanently disabled · `mem0` limited to personal preferences · Kill switch on every external backend
-
-</details>
-
 ### What the workspace-shared memory upgrade changes in practice
 
-This release adds a workspace-scoped memory broker so memory continuity works the way users expect:
+You can read the current behavior like this:
 
-- **Same workspace, different session/agent**: `codex`, `claude-code`, and other supported hosts can recall the same project memory inside one workspace.
-- **Different workspace, zero bleed**: even if two workspaces point at the same backend root, memory stays isolated by workspace identity instead of leaking across repos.
-- **Related memory only**: retrieval is gated by task-relevant terms after stripping generic runtime noise, so `$vibe`, `plan`, `continuity`, and similar scaffold words do not trigger false recalls by themselves.
-- **Progressive disclosure instead of memory dumps**: requirement and planning stages receive a small set of capsule summaries, while execution gets a richer evidence pack only when needed.
-- **Hard fail over silent downgrade**: if the workspace broker is unavailable, the runtime fails explicitly instead of silently falling back to legacy lane-local storage.
+- **Same workspace can resume**: `codex`, `claude-code`, and other supported hosts can reconnect to the same project memory inside one workspace.
+- **Different workspaces stay isolated**: even if two workspaces point at the same backend root, memory does not bleed across repos.
+- **Only related memory comes back**: generic scaffold terms such as `$vibe`, `plan`, or `continuity` are filtered out so recall depends on task-relevant content instead of noisy keywords.
+- **Long tasks are easier to continue**: the runtime keeps key decisions, handoff cards, and evidence anchors so a later turn or a new agent can continue from the useful parts.
+- **Failure is explicit**: if the workspace broker is unavailable, the runtime fails openly instead of pretending that memory continuity still exists.
 
-Plain-English flow:
+### What this system actually remembers
 
-1. The runtime stores small structured records such as decisions, handoff cards, and relations.
-2. A follow-up task searches only the current workspace and scores records by relevant business terms.
-3. The runtime injects only a few bounded memory capsules into the next stage.
-4. Later stages can reveal more detail, but the full memory store is never dumped into the prompt.
+You can think of it as four memory categories rather than one giant "long-term memory":
+
+- **Session memory**
+  - Keeps current progress, intermediate results, and temporary state
+  - Useful for finishing the work happening right now
+
+- **Project memory**
+  - Keeps confirmed project conventions, architecture decisions, and durable working agreements
+  - Useful when you come back later and do not want to restate the same background
+
+- **Task-semantic memory**
+  - Keeps the relevant fragments of long-running tasks easy to retrieve
+  - Useful when the context gets large and earlier details would otherwise disappear
+
+- **Long-term knowledge memory**
+  - Keeps durable relations, knowledge links, and information worth retaining across sessions
+  - Useful when something should be preserved beyond a single task
+
+<details>
+<summary><b>📐 Expand: memory layers, write boundaries, and how the memory skills fit together</b></summary>
+
+<br/>
+
+This part explains three things:
+
+1. which memory category is responsible for which job
+2. why several memory-related components exist at the same time
+3. which writes are automatic, which require confirmation, and which are optional extensions
+
+### Four memory categories and their primary owners
+
+| Memory Category | Primary Owner | Default Scope | What It Keeps |
+|:---|:---:|:---:|:---|
+| **Session memory** | `state_store` | Current session | execution progress, temporary state, intermediate results |
+| **Project memory** | `Serena` | Current workspace / project | confirmed architecture decisions, conventions, durable project rules |
+| **Task-semantic memory** | `ruflo` | Intra-session / long task retrieval | relevant context fragments for long-running tasks |
+| **Long-term knowledge memory** | `Cognee` | Controlled cross-session knowledge | entities, relations, and durable knowledge links |
+
+> **Optional extensions**: `mem0` can be used as a personal preference backend, and `Letta` can provide memory-block mapping vocabulary. Neither replaces the canonical memory roles above.
+
+### Why several memory layers coexist
+
+They are not duplicate systems. They cover different responsibilities:
+
+- session memory helps finish the current task
+- project memory helps a later session reconnect to the same project
+- task-semantic memory helps long tasks recover the right context without replaying everything
+- long-term knowledge memory keeps the things worth retaining beyond a single task
+
+If you removed any one of these layers, a different part of the workflow would get worse. Session memory alone cannot survive a later return, and long-term memory alone is too coarse to replace current-task state.
+
+### How the memory skills fit into that model
+
+These skills are not a second, competing memory system. They are common entrypoints or helpers around the layers above:
+
+- `knowledge-steward`
+  - Best when a prompt, bug lesson, or insight is worth preserving on purpose
+  - Think of it as "store this in the right long-term place"
+
+- `digital-brain`
+  - Best when you want a more structured personal knowledge base
+  - Think of it as a long-term knowledge organization entrypoint
+
+- `deepagent-memory-fold`
+  - Best when a long task is getting too large and needs a clean handoff
+  - Think of it as a continuity tool for long-running work
+
+### Write boundaries and governance
+
+The important part is the boundary model, not just the feature names:
+
+- not everything becomes durable memory
+- project-level decision writes stay governed, and `Serena` requires confirmation before writing durable project truth
+- retrieval returns only bounded, relevant capsules instead of replaying the whole store
+- `episodic-memory` stays disabled
+- `mem0` is limited to personal preferences rather than project truth or routing authority
+- every external backend can be disabled with a kill switch
+
+### If you remember one thing
+
+The goal is not to make AI remember everything about you.
+The goal is to resume the right project context, preserve the right task state, and keep durable knowledge in controlled places.
+
+</details>
 
 See [workspace memory plane design](./docs/design/workspace-memory-plane.md) for the technical contract and [quantitative Codex memory simulation](./tests/runtime_neutral/test_codex_memory_user_simulation.py) for the benchmark coverage.
 
