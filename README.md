@@ -173,126 +173,65 @@ _Which of those pain points hit home? Find your position — what comes next wil
 
 ## 🔀 Intelligent Routing: How 340+ Skills Collaborate Without Conflict
 
-_You know this is for you. Next question: 340+ skills in one system — how do they stay out of each other's way?_
+_The core point is simple: 340+ skills do not all compete at once. `vibe` is the governed coordinator, and other skills are routed in only when a specific phase or work unit actually needs them._
 
-With 340+ skills, you might wonder: _"Won't similar skills conflict? How does the system know which one to use?"_
+<div align="center">
 
-### How routing works
+| Common worry | What actually happens |
+|:---|:---|
+| Similar skills will fight each other | The router picks one primary route first. Specialist skills stay scoped to a phase or bounded work unit. |
+| Some skills look similar, so why keep both? | They usually exist for different phases, domains, or execution intensity. They are not meant to all fire on the same step. |
+| XL means multiple agents can pull in anything | No. XL first splits the job into bounded units, then assigns skills per unit under coordinator approval. |
 
-VibeSkills uses a **Canonical Router** as the single authoritative routing decision center:
+</div>
 
-```mermaid
-graph LR
-    A[User Task] --> B{Canonical Router}
-    B --> C[Intent Recognition]
-    C --> D[Keyword Extraction]
-    D --> E[Skill Matching]
-    E --> F[Conflict Detection]
-    F --> G[Priority Ranking]
-    G --> H[Routing Decision]
-    H --> I[Execute Skill]
+### How routing works in practice
 
-    style B fill:#7B61FF,stroke:#fff,stroke-width:2px,color:#fff
-    style F fill:#FF9800,stroke:#fff,stroke-width:2px,color:#fff
-```
-
-VibeSkills follows a `Clarify ➔ Plan ➔ Execute ➔ Verify` governed workflow to ensure every task goes through complete quality control:
-
-- **Requirements Clarification**: Skills like `speckit-clarify` define clear boundaries and acceptance criteria
-- **Architecture Planning**: Skills like `aios-architect` design the implementation path
-- **Execution Layer**: 340+ skills called on demand to complete the actual work
-- **Quality Verification**: Skills like `tdd-guide` and `code-review` ensure delivery quality
+- **Start with one primary route**: Most complex tasks enter through `vibe`, which stays responsible for the overall governed flow.
+- **Bring in specialists only when needed**: Requirement, planning, execution, and verification can each pull in different supporting skills, but only for that phase.
+- **Keep the workflow stable**: The path is still `Clarify ➔ Plan ➔ Execute ➔ Verify`, so more available skills do not mean a looser process.
 
 ---
 
-### Why this design?
+### Why similar skills can coexist
 
-Traditional skill repos let AI "freely choose" — the result:
-
-- ❌ AI can't remember what skills exist
-- ❌ Similar skills conflict with each other
-- ❌ Execution paths are unpredictable
-
-VibeSkills routing guarantees:
-
-- ✅ **Determinism**: Same task always follows the same routing logic
-- ✅ **Traceability**: Every routing decision has a clear rationale
-- ✅ **Control**: Users can override default routing via explicit invocation (e.g. `/vibe`)
-- ✅ **Stability**: 129 governance rules prevent conflicts and divergence
+- They are not all active at once. Routing chooses the skill that fits the current task or current step.
+- Some overlap on the surface but serve different roles: clarify vs plan, execute vs verify, or narrow work vs higher-risk work.
+- Governance rules, priority ordering, and exclusion rules keep same-role skills from colliding and provide fallback when the preferred one is unavailable.
 
 ---
 
 ### M / L / XL Execution Levels
 
-After selecting the primary skill, the router also automatically determines the execution level based on task complexity:
+After selecting the primary route, the runtime also chooses the execution grade based on task complexity:
 
 <div align="center">
 
 | Level | Use Case | Characteristics |
 |:---:|:---|:---|
 | **M** | Narrow-scope work with clear boundaries | Single-agent, token-efficient, fast response |
-| **L** | Medium complexity requiring design, planning, and review | Native serial execution by planned steps; bounded delegated units only when explicitly planned |
-| **XL** | Large tasks — parallelizable, long-running, multi-agent wave execution | Wave-sequential orchestration with step-level bounded parallelism for independent units only |
+| **L** | Medium complexity requiring design, planning, and review | Governed multi-step execution, usually in planned serial order |
+| **XL** | Large tasks with independent parts worth splitting | The coordinator breaks work into bounded units and can run independent units in parallel waves |
 
 </div>
 
-> The system automatically selects the level after requirements clarification, before plan execution. Public host-visible entry wrappers ship as `vibe`, `vibe-want`, `vibe-how`, and `vibe-do`. Hosts may render them as `Vibe`, `Vibe: What Do I Want?`, `Vibe: How Do We Do It?`, and `Vibe: Do It`, but they still route into the same governed runtime.
->
-> When the system calls a specialist skill internally (like `tdd-guide` or `code-review`), it is always scoped to a specific phase — they assist without taking over the overall coordination. In XL tasks with multiple agents, worker agents (child lanes) can suggest specialist help, but the coordinator (root) approves it before execution.
->
-> You can also express an explicit preference:
-> ```text
-> Please execute this task according to the plan, launching XL-level workflow /vibe
-> ```
-
-> The only lightweight public grade overrides are `--l` and `--xl`. Aliases like `vibe-l`, `vibe-xl`, or `vibe-how-xl` are intentionally unsupported.
+> Even in XL, this is not a free-for-all. The system decides the main route first, then assigns skills to each bounded unit under the same governed coordinator.
 
 ---
 
 <details>
-<summary><b>🔍 Routing FAQ (click to expand)</b></summary>
+<summary><b>🔍 Expand: wrapper entrypoints, grade overrides, and routing notes</b></summary>
 
 <br/>
 
-**One route or multiple per task?**
-
-Core principle: A task typically routes to one primary skill, but that skill can invoke others as sub-processes.
-
-- **Single primary route**: The Canonical Router selects **the single best-matching primary skill**
-- **Skill composition**: The primary skill can invoke others as needed during execution (e.g. `vibe` can invoke `speckit-clarify`, `aios-architect`, etc.)
-- **Governed coordination**: Multi-skill collaboration is controlled by governance rules, not arbitrary combinations
-
-<br/>
-
-**How are conflicts between similar skills handled?**
-
-When multiple skills appear capable of completing a task, the router avoids conflicts through:
-
-1. **Priority rules**: Each skill has a clear priority and applicable scenario
-2. **Context matching**: Analyzes task complexity, multi-phase needs, and explicit user preferences
-3. **Mutual exclusion rules**: 129 rules include exclusion rules preventing conflicting combinations
-4. **Graceful degradation**: When the preferred skill is unavailable, fallback by priority — no infinite loops
-
-<br/>
-
-**Will too many options cause token explosion?**
-
-No. Routing doesn't dump all options into the model — it uses a smart trigger mechanism:
-
-```
-User command → AI-assisted governance extracts intent keywords → keywords trigger skill routing
-```
-
-The governance framework adds ~30k initial context overhead, but does not cause token explosion.
-
-<br/>
-
-**Real example: User says "Help me refactor this project"**
-
-1. Intent recognition → Complex refactoring task
-2. Keyword extraction → refactor, project, code quality
-3. Skill matching → `vibe` / `autonomous-builder` / `systematic-debugging`
-4. Routing decision → Choose `vibe` (refactoring needs multi-phase: clarify → plan → execute → verify)
+- Public wrapper entries are `vibe`, `vibe-want`, `vibe-how`, and `vibe-do`. Hosts may render them as `Vibe`, `Vibe: What Do I Want?`, `Vibe: How Do We Do It?`, and `Vibe: Do It`, but they still enter the same governed runtime.
+- `vibe` runs the full governed flow.
+- `vibe-want` stops after the requirement is clarified and frozen.
+- `vibe-how` stops after the requirement and plan are frozen.
+- `vibe-do` runs the full governed flow without skipping requirement or plan.
+- The only lightweight public grade overrides are `--l` and `--xl`. Aliases like `vibe-l`, `vibe-xl`, or `vibe-how-xl` are intentionally unsupported.
+- When specialist skills such as `tdd-guide` or `code-review` are called, they assist a phase or a bounded unit. They do not take over global coordination.
+- In XL multi-agent work, worker lanes can suggest specialist help, but the coordinator approves the final assignment.
 
 </details>
 
