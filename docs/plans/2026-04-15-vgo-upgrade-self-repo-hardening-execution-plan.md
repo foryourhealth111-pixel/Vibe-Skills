@@ -30,7 +30,7 @@ Write a failing test in `tests/unit/test_vgo_cli_repo.py` that reads the reposit
 
 - [ ] **Step 2: Add a failed-refresh persistence test**
 
-Write a failing test in `tests/unit/test_vgo_cli_upgradeService.py` that seeds `upgrade-status.json` with a known-good remote and branch, forces `git fetch` to fail, and asserts the file on disk still contains the old good values after the exception.
+Write a failing test in `tests/unit/test_vgo_cli_upgrade_service.py` that seeds `upgrade-status.json` with a known-good remote and branch, forces `git fetch` to fail, and asserts the file on disk still contains the old good values after the exception.
 
 - [ ] **Step 3: Add a missing-persisted-metadata fallback test**
 
