@@ -364,6 +364,11 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual("approved_dispatch", specialist_decision["decision_state"])
             self.assertEqual("approved_dispatch", specialist_decision["resolution_mode"])
             self.assertEqual(
+                runtime_input_packet["specialist_dispatch"]["surfaced_skill_ids"],
+                specialist_decision["surfaced_skill_ids"],
+            )
+            self.assertIn("systematic-debugging", specialist_decision["surfaced_skill_ids"])
+            self.assertEqual(
                 specialist_decision["approved_dispatch_skill_ids"],
                 execute_receipt["specialist_decision"]["approved_dispatch_skill_ids"],
             )

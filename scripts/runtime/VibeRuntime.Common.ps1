@@ -622,6 +622,31 @@ function Get-VibeOptionalSpecialistDecisionOverride {
     }
 }
 
+function Get-VibeSpecialistDecisionDefaultNotes {
+    param(
+        [AllowEmptyString()] [string]$DecisionState = '',
+        [AllowEmptyString()] [string]$ResolutionMode = ''
+    )
+
+    switch ($ResolutionMode) {
+        'approved_dispatch' { return 'Bounded specialist recommendations were surfaced and auto-promoted into approved dispatch.' }
+        'degraded' { return 'Specialist recommendations existed, but execution remained explicitly degraded before live native dispatch closed cleanly.' }
+        'blocked' { return 'Specialist recommendations existed, but execution stayed blocked before live native dispatch could proceed.' }
+        'local_suggestion_only' { return 'Residual local specialist suggestions remained advisory and require explicit escalation before execution.' }
+        'no_specialist_needed' { return 'No bounded specialist recommendations were frozen for this run, and governed execution explicitly recorded that no specialist help was needed.' }
+        'repo_asset_fallback' { return 'No bounded specialist recommendations were frozen for this run, and governed execution explicitly recorded a repo-asset fallback that must remain traceable.' }
+        'pending_resolution' { return 'No bounded specialist recommendations were frozen for this run; execution must explicitly resolve whether no specialist was needed or a repo-asset fallback was used.' }
+    }
+
+    switch ($DecisionState) {
+        'approved_dispatch' { return 'Bounded specialist recommendations were surfaced and auto-promoted into approved dispatch.' }
+        'degraded' { return 'Specialist recommendations existed, but execution remained explicitly degraded before live native dispatch closed cleanly.' }
+        'blocked' { return 'Specialist recommendations existed, but execution stayed blocked before live native dispatch could proceed.' }
+        'local_suggestion_only' { return 'Residual local specialist suggestions remained advisory and require explicit escalation before execution.' }
+        default { return 'No bounded specialist recommendations were frozen for this run; execution must explicitly resolve whether no specialist was needed or a repo-asset fallback was used.' }
+    }
+}
+
 function New-VibeSpecialistDecisionProjection {
     param(
         [AllowNull()] [object]$RuntimeInputPacket = $null,
@@ -629,6 +654,8 @@ function New-VibeSpecialistDecisionProjection {
         [AllowEmptyCollection()] [AllowNull()] [object[]]$LocalSuggestions = @(),
         [AllowEmptyCollection()] [AllowNull()] [object[]]$BlockedDispatch = @(),
         [AllowEmptyCollection()] [AllowNull()] [object[]]$DegradedDispatch = @(),
+        [AllowEmptyCollection()] [AllowNull()] [string[]]$MatchedSkillIds = @(),
+        [AllowEmptyCollection()] [AllowNull()] [string[]]$SurfacedSkillIds = @(),
         [int]$RecommendationCount = -1,
         [AllowNull()] [object]$OverridePayload = $null,
         [AllowEmptyString()] [string]$OverrideSourcePath = ''
@@ -697,12 +724,16 @@ function New-VibeSpecialistDecisionProjection {
             if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
         } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     }
-    $matchedSkillIds = if ($null -ne $dispatchSource -and (Test-VibeObjectHasProperty -InputObject $dispatchSource -PropertyName 'matched_skill_ids')) {
+    $matchedSkillIds = if (@($MatchedSkillIds).Count -gt 0) {
+        @($MatchedSkillIds | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    } elseif ($null -ne $dispatchSource -and (Test-VibeObjectHasProperty -InputObject $dispatchSource -PropertyName 'matched_skill_ids')) {
         @($dispatchSource.matched_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     } else {
         @()
     }
-    $surfacedSkillIds = if ($null -ne $dispatchSource -and (Test-VibeObjectHasProperty -InputObject $dispatchSource -PropertyName 'surfaced_skill_ids')) {
+    $surfacedSkillIds = if (@($SurfacedSkillIds).Count -gt 0) {
+        @($SurfacedSkillIds | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    } elseif ($null -ne $dispatchSource -and (Test-VibeObjectHasProperty -InputObject $dispatchSource -PropertyName 'surfaced_skill_ids')) {
         @($dispatchSource.surfaced_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     } else {
         @()
@@ -734,13 +765,7 @@ function New-VibeSpecialistDecisionProjection {
         'local_suggestion_only' { 'local_suggestion_only' }
         default { 'pending_resolution' }
     }
-    $resolutionNotes = switch ($decisionState) {
-        'approved_dispatch' { 'Bounded specialist recommendations were surfaced and auto-promoted into approved dispatch.' }
-        'degraded' { 'Specialist recommendations existed, but execution remained explicitly degraded before live native dispatch closed cleanly.' }
-        'blocked' { 'Specialist recommendations existed, but execution stayed blocked before live native dispatch could proceed.' }
-        'local_suggestion_only' { 'Residual local specialist suggestions remained advisory and require explicit escalation before execution.' }
-        default { 'No bounded specialist recommendations were frozen for this run; execution must explicitly resolve whether no specialist was needed or a repo-asset fallback was used.' }
-    }
+    $resolutionNotes = Get-VibeSpecialistDecisionDefaultNotes -DecisionState $decisionState -ResolutionMode $resolutionMode
 
     $repoAssetFallback = [pscustomobject]@{
         used = $false
@@ -751,6 +776,7 @@ function New-VibeSpecialistDecisionProjection {
     }
 
     if ($null -ne $OverridePayload) {
+        $overrideProvidedNotes = $false
         if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'decision_state') -and -not [string]::IsNullOrWhiteSpace([string]$OverridePayload.decision_state)) {
             $decisionState = [string]$OverridePayload.decision_state
         }
@@ -759,6 +785,7 @@ function New-VibeSpecialistDecisionProjection {
         }
         if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'notes') -and -not [string]::IsNullOrWhiteSpace([string]$OverridePayload.notes)) {
             $resolutionNotes = [string]$OverridePayload.notes
+            $overrideProvidedNotes = $true
         }
         if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'repo_asset_fallback') -and $null -ne $OverridePayload.repo_asset_fallback) {
             $repoAssetFallbackSource = $OverridePayload.repo_asset_fallback
@@ -774,6 +801,9 @@ function New-VibeSpecialistDecisionProjection {
                 legal_basis = if ((Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'legal_basis') -and -not [string]::IsNullOrWhiteSpace([string]$repoAssetFallbackSource.legal_basis)) { [string]$repoAssetFallbackSource.legal_basis } else { '' }
                 traceability_basis = @($repoAssetFallbackSource.traceability_basis | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
             }
+        }
+        if (-not $overrideProvidedNotes) {
+            $resolutionNotes = Get-VibeSpecialistDecisionDefaultNotes -DecisionState $decisionState -ResolutionMode $resolutionMode
         }
     }
 
@@ -845,6 +875,8 @@ function New-VibeRuntimeInputPacketProjection {
         -LocalSuggestions @($SpecialistDispatch.local_specialist_suggestions) `
         -BlockedDispatch $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked' -and $null -ne $SpecialistDispatch.blocked) { @($SpecialistDispatch.blocked) } else { @() }) `
         -DegradedDispatch $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded' -and $null -ne $SpecialistDispatch.degraded) { @($SpecialistDispatch.degraded) } else { @() }) `
+        -MatchedSkillIds $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $SpecialistDispatch.matched_skill_ids) { @($SpecialistDispatch.matched_skill_ids) } else { @() }) `
+        -SurfacedSkillIds $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $SpecialistDispatch.surfaced_skill_ids) { @($SpecialistDispatch.surfaced_skill_ids) } else { @() }) `
         -RecommendationCount @($SpecialistRecommendations).Count
 
     return [pscustomobject]@{

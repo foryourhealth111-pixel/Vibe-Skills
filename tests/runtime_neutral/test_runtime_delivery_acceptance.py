@@ -414,6 +414,60 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
             report["truth_results"]["specialist_disclosure_truth"]["notes"],
         )
 
+    def test_runtime_delivery_acceptance_treats_approved_dispatch_matching_as_order_independent(self) -> None:
+        approved_dispatch = [
+            {
+                "skill_id": "skill-b",
+                "native_skill_entrypoint": "/tmp/skill-b/SKILL.md",
+            },
+            {
+                "skill_id": "skill-a",
+                "native_skill_entrypoint": "/tmp/skill-a/SKILL.md",
+            },
+        ]
+        session_root = self._build_session(
+            approved_dispatch=approved_dispatch,
+            phase_execute_specialist_user_disclosure={
+                "scope": "approved_dispatch_only",
+                "timing": "before_execution",
+                "path_source": "native_skill_entrypoint",
+                "routed_skills": [
+                    {
+                        "skill_id": "skill-a",
+                        "native_skill_entrypoint": "/tmp/skill-a/SKILL.md",
+                        "entrypoint_requirement_satisfied": True,
+                    },
+                    {
+                        "skill_id": "skill-b",
+                        "native_skill_entrypoint": "/tmp/skill-b/SKILL.md",
+                        "entrypoint_requirement_satisfied": True,
+                    },
+                ],
+            },
+            specialist_accounting={
+                "approved_dispatch": approved_dispatch,
+                "approved_dispatch_count": 2,
+                "effective_execution_status": "live_native_executed",
+            },
+            phase_execute_specialist_decision={
+                "decision_state": "approved_dispatch",
+                "resolution_mode": "approved_dispatch",
+                "approved_dispatch_skill_ids": ["skill-a", "skill-b"],
+                "repo_asset_fallback": {
+                    "used": False,
+                    "asset_paths": [],
+                    "reason": "",
+                    "legal_basis": "",
+                    "traceability_basis": [],
+                },
+            },
+        )
+        report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("PASS", report["summary"]["gate_result"])
+        self.assertEqual("passing", report["truth_results"]["specialist_disclosure_truth"]["state"])
+        self.assertEqual("passing", report["truth_results"]["specialist_decision_truth"]["state"])
+
     def test_runtime_delivery_acceptance_reports_pass_degraded_for_aligned_degraded_specialist_execution(self) -> None:
         approved_dispatch = [
             {
@@ -1080,6 +1134,44 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         self.assertEqual("manual_review_required", report["truth_results"]["code_task_tdd_evidence_truth"]["state"])
         self.assertEqual("", report["execution_context"]["artifact_review_source_path"])
         self.assertEqual("", report["execution_context"]["tdd_evidence_source_path"])
+
+    def test_runtime_delivery_acceptance_rejects_explicit_specialist_decision_paths_outside_session_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            outside_root = Path(tempdir)
+            specialist_decision_payload_path = outside_root / "outside-specialist-decision.json"
+            write_json(
+                specialist_decision_payload_path,
+                {
+                    "decision_state": "no_specialist_recommendations",
+                    "resolution_mode": "repo_asset_fallback",
+                    "repo_asset_fallback": {
+                        "used": True,
+                        "asset_paths": [
+                            "outputs/agent-runs/2026-04-14-scheme-a-clean397-paper-report/scripts/plot_style.py"
+                        ],
+                        "reason": "Reuse the repo plotting asset.",
+                        "legal_basis": "Repo-local plotting asset already present inside governed workspace outputs.",
+                        "traceability_basis": [
+                            "outputs/agent-runs/2026-04-14-scheme-a-clean397-paper-report/scripts/plot_style.py"
+                        ],
+                    },
+                },
+            )
+            session_root = self._build_session(
+                specialist_decision_path=str(specialist_decision_payload_path),
+                omit_default_specialist_decision=True,
+            )
+            self.assertTrue(specialist_decision_payload_path.exists())
+
+            report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("MANUAL_REVIEW_REQUIRED", report["summary"]["gate_result"])
+        self.assertEqual("manual_review_required", report["truth_results"]["specialist_decision_truth"]["state"])
+        self.assertEqual("", report["execution_context"]["specialist_decision_source_path"])
+        self.assertNotIn(
+            str(specialist_decision_payload_path),
+            report["truth_results"]["specialist_decision_truth"]["evidence"],
+        )
 
     def test_runtime_delivery_acceptance_report_surfaces_frozen_sections_and_coverage(self) -> None:
         session_root = self._build_session(

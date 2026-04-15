@@ -474,7 +474,7 @@ $summary = New-VibeRuntimeSummaryProjection `
     -StorageProjection $storageProjection `
     -MemoryActivationReport $memoryActivation.report `
     -DeliveryAcceptanceReport $deliveryAcceptanceReport `
-    -SpecialistDecision $(if ($executionManifestDocument -and $executionManifestDocument.PSObject.Properties.Name -contains 'specialist_decision') { $executionManifestDocument.specialist_decision } elseif ($execute -and $execute.receipt -and $execute.receipt.PSObject.Properties.Name -contains 'specialist_decision') { $execute.receipt.specialist_decision } else { $null }) `
+    -SpecialistDecision $(if ($executionManifestDocument -and $executionManifestDocument.PSObject.Properties.Name -contains 'specialist_decision' -and $null -ne $executionManifestDocument.specialist_decision) { $executionManifestDocument.specialist_decision } elseif ($execute -and $execute.receipt -and $execute.receipt.PSObject.Properties.Name -contains 'specialist_decision' -and $null -ne $execute.receipt.specialist_decision) { $execute.receipt.specialist_decision } else { $null }) `
     -SpecialistUserDisclosure $(if ($execute -and $execute.receipt -and $execute.receipt.PSObject.Properties.Name -contains 'specialist_user_disclosure') { $execute.receipt.specialist_user_disclosure } else { $null }) `
     -SpecialistConsultation (New-VibeSpecialistConsultationRuntimeProjection -Receipts @($discussionConsultation.receipt, $planningConsultation.receipt)) `
     -SpecialistLifecycleDisclosure $specialistLifecycleDisclosure `

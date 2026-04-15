@@ -203,6 +203,8 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             if not bool(record.get("entrypoint_requirement_satisfied", bool(record.get("native_skill_entrypoint"))))
         ]
     )
+    approved_dispatch_skill_id_set = set(approved_dispatch_skill_ids)
+    disclosure_skill_id_set = set(disclosure_skill_ids)
     specialist_degraded_skill_ids = _normalize_skill_id_list(
         specialist_accounting.get("degraded_skill_ids") or specialist_dispatch.get("degraded_skill_ids")
     )
@@ -249,7 +251,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 specialist_disclosure_notes.append(
                     "Specialist user disclosure path source did not stay aligned with native_skill_entrypoint."
                 )
-            if disclosure_skill_ids != approved_dispatch_skill_ids:
+            if disclosure_skill_id_set != approved_dispatch_skill_id_set:
                 specialist_disclosure_state = "failing"
                 specialist_disclosure_notes.append(
                     "Specialist user disclosure did not match effective approved dispatch."
@@ -282,6 +284,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     decision_approved_dispatch_skill_ids = _normalize_skill_id_list(
         specialist_decision_payload.get("approved_dispatch_skill_ids")
     )
+    decision_approved_dispatch_skill_id_set = set(decision_approved_dispatch_skill_ids)
     repo_asset_fallback = specialist_decision_payload.get("repo_asset_fallback") or {}
     repo_asset_used = bool(repo_asset_fallback.get("used"))
     repo_asset_paths = _normalize_string_list(repo_asset_fallback.get("asset_paths"))
@@ -300,7 +303,10 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             specialist_decision_notes.append(
                 "Specialist decision did not stay aligned with approved_dispatch."
             )
-        elif decision_approved_dispatch_skill_ids and decision_approved_dispatch_skill_ids != approved_dispatch_skill_ids:
+        elif (
+            decision_approved_dispatch_skill_ids
+            and decision_approved_dispatch_skill_id_set != approved_dispatch_skill_id_set
+        ):
             specialist_decision_state = "failing"
             specialist_decision_notes.append(
                 "Specialist decision approved dispatch skill ids did not match effective approved dispatch."
@@ -706,6 +712,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "code_task_tdd_evidence_state": _normalize_truth_state(code_task_tdd_evidence_state),
             "artifact_review_source_path": artifact_review_source_path,
             "artifact_review_state": _normalize_truth_state(artifact_review_state),
+            "specialist_decision_source_path": specialist_decision_source_path,
             "approved_dispatch_skill_ids": approved_dispatch_skill_ids,
             "disclosed_specialist_skill_ids": disclosure_skill_ids,
             "specialist_effective_execution_status": effective_specialist_execution_status,

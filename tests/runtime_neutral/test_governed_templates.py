@@ -66,3 +66,18 @@ class GovernedTemplateTests(unittest.TestCase):
 
         self.assertIn("artifact_review_coverage", must_report_fields)
         self.assertIn("tdd_evidence_coverage", must_report_fields)
+
+    def test_project_delivery_contract_id_suffix_tracks_declared_version(self) -> None:
+        contract = json.loads(
+            (REPO_ROOT / "config" / "project-delivery-acceptance-contract.json").read_text(encoding="utf-8")
+        )
+
+        version = int(contract.get("version") or 0)
+        self.assertTrue(str(contract.get("contract_id") or "").endswith(f"-v{version}"))
+
+    def test_frozen_specialist_decision_requirement_doc_defines_specialist_decision_section(self) -> None:
+        headings = _load_section_headings(
+            REPO_ROOT / "docs" / "requirements" / "2026-04-15-vibe-specialist-decision-fallback.md"
+        )
+
+        self.assertIn("Specialist Decision", headings)

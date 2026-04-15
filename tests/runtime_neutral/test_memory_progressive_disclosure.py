@@ -84,6 +84,7 @@ def run_write_requirement_doc(
     artifact_root: Path,
     *,
     memory_context_path: Path | None = None,
+    runtime_input_packet_path: Path | None = None,
 ) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
@@ -101,6 +102,8 @@ def run_write_requirement_doc(
     )
     if memory_context_path is not None:
         ps_command += f"-MemoryContextPath {_ps_single_quote(str(memory_context_path))} "
+    if runtime_input_packet_path is not None:
+        ps_command += f"-RuntimeInputPacketPath {_ps_single_quote(str(runtime_input_packet_path))} "
     ps_command += "$result | ConvertTo-Json -Depth 20 }"
 
     completed = subprocess.run(
@@ -529,6 +532,55 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
 
             self.assertEqual(0, requirement["receipt"]["memory_capsule_count"])
             self.assertEqual(0, plan["receipt"]["plan_memory_capsule_count"])
+
+    def test_write_requirement_doc_pending_specialist_resolution_mentions_legal_basis(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_root = Path(tempdir)
+            runtime_input_packet_path = temp_root / "runtime-input-packet.json"
+            runtime_input_packet_path.write_text(
+                json.dumps(
+                    {
+                        "governance_scope": "root",
+                        "hierarchy": {"root_run_id": "pytest-root-run"},
+                        "route_snapshot": {
+                            "selected_pack": "vibe",
+                            "selected_skill": "vibe",
+                            "route_mode": "governed",
+                            "route_reason": "pytest specialist decision requirement coverage",
+                            "confirm_required": False,
+                        },
+                        "authority_flags": {
+                            "explicit_runtime_skill": "vibe",
+                        },
+                        "specialist_recommendations": [],
+                        "specialist_decision": {
+                            "decision_state": "no_specialist_recommendations",
+                            "resolution_mode": "pending_resolution",
+                            "notes": "Waiting for explicit no-match resolution before closeout.",
+                            "repo_asset_fallback": {
+                                "used": False,
+                                "asset_paths": [],
+                                "reason": "",
+                                "legal_basis": "",
+                                "traceability_basis": [],
+                            },
+                        }
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ) + "\n",
+                encoding="utf-8",
+            )
+
+            requirement = run_write_requirement_doc(
+                "Plan a governed fallback path when no dedicated plotting specialist exists.",
+                temp_root / "requirement-specialist-decision-artifacts",
+                runtime_input_packet_path=runtime_input_packet_path,
+            )
+
+            requirement_text = Path(requirement["requirement_doc_path"]).read_text(encoding="utf-8")
+            self.assertIn("specialist-decision.json", requirement_text)
+            self.assertIn("legal basis", requirement_text)
 
 
 if __name__ == "__main__":

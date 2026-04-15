@@ -1207,6 +1207,8 @@ $specialistDecision = New-VibeSpecialistDecisionProjection `
     -LocalSuggestions @($localSuggestions) `
     -BlockedDispatch @($blockedSpecialistUnits) `
     -DegradedDispatch @($degradedSpecialistUnits) `
+    -MatchedSkillIds $(if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_dispatch' -and $runtimeInputPacket.specialist_dispatch -and $runtimeInputPacket.specialist_dispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $runtimeInputPacket.specialist_dispatch.matched_skill_ids) { @($runtimeInputPacket.specialist_dispatch.matched_skill_ids) } else { @() }) `
+    -SurfacedSkillIds $(if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_dispatch' -and $runtimeInputPacket.specialist_dispatch -and $runtimeInputPacket.specialist_dispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $runtimeInputPacket.specialist_dispatch.surfaced_skill_ids) { @($runtimeInputPacket.specialist_dispatch.surfaced_skill_ids) } else { @() }) `
     -RecommendationCount @($specialistRecommendations).Count `
     -OverridePayload $(if ($specialistDecisionOverride) { $specialistDecisionOverride.payload } else { $null }) `
     -OverrideSourcePath $(if ($specialistDecisionOverride) { [string]$specialistDecisionOverride.path } else { '' })

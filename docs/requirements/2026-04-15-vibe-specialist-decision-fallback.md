@@ -36,6 +36,16 @@ A governed runtime and delivery-acceptance update that:
 - a declared repo-asset fallback without asset paths, reason, legal basis, or traceability fails delivery acceptance
 - a declared, traceable repo-asset fallback produces `PASS_DEGRADED`
 
+## Specialist Decision
+
+- `runtime-input-packet.json` must freeze `specialist_decision` as the canonical structural decision surface for the run.
+- `execution-manifest.json`, `phase-execute.json`, and `runtime-summary.json` must mirror the same `specialist_decision` payload instead of reopening the decision in prose.
+- execution plans must include `## Specialist Decision Plan` so no-match handling stays explicit before `plan_execute`.
+- delivery acceptance reports must evaluate the same payload through `specialist_decision_truth`.
+- `specialist_decision` must record `decision_state` and `resolution_mode`.
+- approved specialist execution must record `approved_dispatch_skill_ids`.
+- repo-asset fallback must record `used`, `asset_paths`, `reason`, `legal_basis`, and `traceability_basis`.
+
 ## Product Acceptance Criteria
 
 - users can always tell whether a specialist existed for the task

@@ -453,7 +453,7 @@ if ($runtimeInputPacket) {
                 ('- Repo-asset fallback traceability basis: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.traceability_basis)))
             )
         } elseif ([string]$specialistDecision.resolution_mode -eq 'pending_resolution') {
-            $lines += '- If execution later relies on repo-local assets instead of a dedicated specialist skill, phase execute must record `specialist-decision.json` with the asset paths, fallback reason, and traceability basis before closure.'
+            $lines += '- If execution later relies on repo-local assets instead of a dedicated specialist skill, phase execute must record `specialist-decision.json` with the asset paths, fallback reason, legal basis, and traceability basis before closure.'
         }
     }
 

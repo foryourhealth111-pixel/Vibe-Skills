@@ -1,5 +1,5 @@
 {
-  "contract_id": "vibe-project-delivery-acceptance-v3",
+  "contract_id": "vibe-project-delivery-acceptance-v5",
   "version": 5,
   "truth_layers": [
     "governance_truth",
