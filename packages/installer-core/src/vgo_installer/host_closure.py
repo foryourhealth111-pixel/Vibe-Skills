@@ -11,7 +11,7 @@ from ._bootstrap import ensure_contracts_src_on_path
 
 ensure_contracts_src_on_path()
 
-from vgo_contracts.runtime_surface_contract import uses_skill_only_activation
+from vgo_contracts.canonical_vibe_contract import uses_skill_only_activation
 
 HOST_BRIDGE_COMMAND_CANDIDATES = {
     "claude-code": ["claude", "claude-code"],

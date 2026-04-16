@@ -13,7 +13,7 @@ CLI_SRC = REPO_ROOT / 'apps' / 'vgo-cli' / 'src'
 if str(CLI_SRC) not in sys.path:
     sys.path.insert(0, str(CLI_SRC))
 
-from vgo_cli.commands import install_command, route_command, runtime_command, upgrade_command, verify_command
+from vgo_cli.commands import canonical_entry_command, install_command, route_command, runtime_command, upgrade_command, verify_command
 from vgo_cli.errors import CliError
 from vgo_cli.main import build_parser
 from vgo_cli.output import parse_json_output, print_install_completion_hint, print_json_payload
@@ -86,6 +86,50 @@ def test_route_command_delegates_to_runtime_core_bridge(monkeypatch: pytest.Monk
         '--force-runtime-neutral',
     ]
     assert recorded['printed_stdout'] == '{"ok": true}\n'
+
+
+def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import vgo_cli.commands as cli_commands
+
+    recorded: dict[str, object] = {}
+
+    def fake_run_canonical_entry_core(repo_root: Path, argv: list[str]) -> subprocess.CompletedProcess[str]:
+        recorded['repo_root'] = repo_root
+        recorded['argv'] = list(argv)
+        return subprocess.CompletedProcess(args=list(argv), returncode=0, stdout='{"run_id":"r1"}\n', stderr='')
+
+    def fake_print(result: subprocess.CompletedProcess[str]) -> None:
+        recorded['printed_stdout'] = result.stdout
+
+    monkeypatch.setattr(cli_commands, 'run_canonical_entry_core', fake_run_canonical_entry_core)
+    monkeypatch.setattr(cli_commands, 'print_process_output', fake_print)
+
+    args = argparse.Namespace(
+        repo_root=str(tmp_path),
+        prompt='plan runtime entry hardening',
+        host_id='codex',
+        entry_id='vibe',
+        requested_stage_stop='phase_cleanup',
+        requested_grade_floor='XL',
+        artifact_root=str(tmp_path / 'artifacts'),
+        run_id='run-123',
+        force_runtime_neutral=True,
+    )
+
+    assert canonical_entry_command(args) == 0
+    assert recorded['repo_root'] == tmp_path.resolve()
+    assert recorded['argv'] == [
+        '--repo-root', str(tmp_path.resolve()),
+        '--host-id', 'codex',
+        '--entry-id', 'vibe',
+        '--prompt', 'plan runtime entry hardening',
+        '--requested-stage-stop', 'phase_cleanup',
+        '--requested-grade-floor', 'XL',
+        '--run-id', 'run-123',
+        '--artifact-root', str((tmp_path / 'artifacts')),
+        '--force-runtime-neutral',
+    ]
+    assert recorded['printed_stdout'] == '{"run_id":"r1"}\n'
 
 
 
@@ -209,6 +253,16 @@ def test_build_parser_includes_upgrade_subcommand() -> None:
     assert args.command == 'upgrade'
     assert args.handler is upgrade_command
     assert args.frontend == 'shell'
+
+
+def test_build_parser_includes_canonical_entry_subcommand() -> None:
+    parser = build_parser()
+    args = parser.parse_args(['canonical-entry', '--repo-root', '/tmp/repo', '--prompt', 'enter canonical vibe'])
+
+    assert args.command == 'canonical-entry'
+    assert args.handler is canonical_entry_command
+    assert args.host_id == 'codex'
+    assert args.entry_id == 'vibe'
 
 
 def test_install_command_skips_external_dependency_install_when_strict_offline(

@@ -40,6 +40,13 @@ def run_package_install(*, host: str, target_root: Path, profile: str = "full") 
 
 
 class OpenCodeManagedPreviewTests(unittest.TestCase):
+    def _assert_canonical_trampoline_wrapper(self, wrapper_path: Path) -> None:
+        text = wrapper_path.read_text(encoding="utf-8")
+        self.assertIn('"schema": "vibe-wrapper-trampoline/v1"', text)
+        self.assertIn('"launch_mode": "canonical-entry"', text)
+        self.assertIn('"host_id": "opencode"', text)
+        self.assertNotIn("Use the `vibe` skill", text)
+
     def test_python_installer_materializes_opencode_host_closure_without_touching_real_config(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             target_root = Path(tempdir)
@@ -62,6 +69,8 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
             self.assertTrue((target_root / "command" / "vibe.md").exists())
             self.assertTrue((target_root / "agents" / "vibe-plan.md").exists())
             self.assertTrue((target_root / "agent" / "vibe-plan.md").exists())
+            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how.md")
             closure = json.loads(closure_path.read_text(encoding="utf-8"))
             self.assertEqual([str((target_root / ".vibeskills" / "host-settings.json").resolve())], closure["settings_materialized"])
             self.assertIsNone(payload["legacy_opencode_config_cleanup"])
@@ -157,6 +166,8 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
             self.assertEqual(original, json.loads(settings_path.read_text(encoding="utf-8")))
             self.assertTrue((target_root / "commands" / "vibe.md").exists())
             self.assertTrue((target_root / "agents" / "vibe-plan.md").exists())
+            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how.md")
             self.assertTrue((target_root / ".vibeskills" / "host-settings.json").exists())
 
 

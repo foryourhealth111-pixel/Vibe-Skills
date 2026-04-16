@@ -28,7 +28,13 @@ def test_build_wrapper_descriptors_renders_all_discoverable_entries_for_codex() 
     assert rendered['vibe-upgrade'].relpath.as_posix() == 'commands/vibe-upgrade.md'
     assert 'Vibe: How Do We Do It?' in rendered['vibe-how'].content
     assert 'Vibe: Upgrade' in rendered['vibe-upgrade'].content
-    assert 'Use the `vibe` skill' in rendered['vibe-how'].content
+    assert '"schema": "vibe-wrapper-trampoline/v1"' in rendered['vibe-how'].content
+    assert '"launch_mode": "canonical-entry"' in rendered['vibe-how'].content
+    assert '"host_id": "codex"' in rendered['vibe-how'].content
+    assert '"entry_id": "vibe-how"' in rendered['vibe-how'].content
+    assert 'Dispatch through canonical-entry runtime bridge.' in rendered['vibe-how'].content
+    assert 'report blocked instead of silently falling back' in rendered['vibe-how'].content
+    assert 'Use the `vibe` skill' not in rendered['vibe-how'].content
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
     assert 'Default stop target: `requirement_doc`' in rendered['vibe-want'].content
     assert 'Public grade flags allowed: no' in rendered['vibe-upgrade'].content
@@ -49,5 +55,11 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert 'name: vibe-upgrade' in rendered['vibe-upgrade'].content
     assert 'Vibe: How Do We Do It?' in rendered['vibe-how'].content
     assert 'Vibe: Upgrade' in rendered['vibe-upgrade'].content
+    assert '"schema": "vibe-wrapper-trampoline/v1"' in rendered['vibe-how'].content
+    assert '"launch_mode": "canonical-entry"' in rendered['vibe-how'].content
+    assert '"host_id": "claude-code"' in rendered['vibe-how'].content
+    assert '"entry_id": "vibe-how"' in rendered['vibe-how'].content
+    assert 'Dispatch through canonical-entry runtime bridge.' in rendered['vibe-how'].content
+    assert 'Use the `vibe` skill' not in rendered['vibe-how'].content
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
     assert '$ARGUMENTS' in rendered['vibe-how'].content

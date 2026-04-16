@@ -27,3 +27,10 @@ def run_router_core(repo_root: Path, argv: Sequence[str]) -> subprocess.Complete
     from vgo_runtime.router_bridge import main as router_main
 
     return invoke_python_core(router_main, list(argv))
+
+
+def run_canonical_entry_core(repo_root: Path, argv: Sequence[str]) -> subprocess.CompletedProcess[str]:
+    extend_workspace_package_path(repo_root)
+    from vgo_runtime.canonical_entry import main as canonical_entry_main
+
+    return invoke_python_core(canonical_entry_main, list(argv))

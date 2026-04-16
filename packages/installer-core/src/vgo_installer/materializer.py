@@ -12,10 +12,10 @@ from ._bootstrap import ensure_contracts_src_on_path
 
 ensure_contracts_src_on_path()
 
+from vgo_contracts.canonical_vibe_contract import uses_skill_only_activation
 from vgo_contracts.runtime_surface_contract import (
     is_ignored_runtime_artifact,
     resolve_packaging_contract,
-    uses_skill_only_activation,
 )
 from vgo_contracts.mirror_topology_contract import (
     resolve_canonical_mirror_relpath,

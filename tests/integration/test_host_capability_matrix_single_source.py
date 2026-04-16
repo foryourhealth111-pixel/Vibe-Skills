@@ -8,6 +8,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DOC_PATH = REPO_ROOT / "docs" / "universalization" / "host-capability-matrix.md"
 ADAPTER_ROOT = REPO_ROOT / "adapters"
+REGISTRY_CONFIG_PATH = REPO_ROOT / "config" / "adapter-registry.json"
+REGISTRY_INDEX_PATH = REPO_ROOT / "adapters" / "index.json"
+SUPPORTED_CANONICAL_HOSTS = ("codex", "claude-code", "opencode")
 
 
 def _read_host_matrix_rows() -> list[dict[str, str]]:
@@ -53,6 +56,11 @@ def _read_host_profiles() -> dict[str, dict[str, str]]:
     return profiles
 
 
+def _read_registry(path: Path) -> dict[str, dict[str, object]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return {str(adapter["id"]): dict(adapter) for adapter in payload["adapters"]}
+
+
 def test_host_capability_matrix_has_unique_host_rows() -> None:
     hosts = [row["host"] for row in _read_host_matrix_rows()]
     duplicates = {host: count for host, count in Counter(hosts).items() if count > 1}
@@ -74,3 +82,29 @@ def test_host_capability_matrix_matches_host_profiles_on_disk() -> None:
         row = row_by_host[host_name]
         assert row["status"] == profile["status"], f"status mismatch for {host_name}"
         assert row["runtime_role"] == profile["runtime_role"], f"runtime_role mismatch for {host_name}"
+
+
+def test_adapter_registry_mirrors_stay_in_sync_for_canonical_vibe_contracts() -> None:
+    config_registry = _read_registry(REGISTRY_CONFIG_PATH)
+    index_registry = _read_registry(REGISTRY_INDEX_PATH)
+    assert set(config_registry) == set(index_registry)
+
+    for host_id in SUPPORTED_CANONICAL_HOSTS:
+        assert config_registry[host_id]["canonical_vibe"] == index_registry[host_id]["canonical_vibe"], host_id
+
+
+def test_supported_hosts_freeze_runtime_backed_canonical_vibe_contract() -> None:
+    registry = _read_registry(REGISTRY_INDEX_PATH)
+    expected = {
+        "codex": {"entry_mode": "direct_runtime", "launcher_kind": "native_command"},
+        "claude-code": {"entry_mode": "bridged_runtime", "launcher_kind": "managed_bridge"},
+        "opencode": {"entry_mode": "bridged_runtime", "launcher_kind": "managed_bridge"},
+    }
+
+    for host_id, contract_expectation in expected.items():
+        canonical_vibe = registry[host_id].get("canonical_vibe") or {}
+        assert canonical_vibe.get("entry_mode") == contract_expectation["entry_mode"], host_id
+        assert canonical_vibe.get("launcher_kind") == contract_expectation["launcher_kind"], host_id
+        assert canonical_vibe.get("fallback_policy") == "blocked", host_id
+        assert canonical_vibe.get("allow_skill_doc_fallback") is False, host_id
+        assert canonical_vibe.get("proof_required") is True, host_id

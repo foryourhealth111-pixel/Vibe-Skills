@@ -6,6 +6,13 @@ from .adapter_registry_support import (
     resolve_adapter_entry,
     resolve_adapter_registry_path,
 )
+from .canonical_vibe_contract import (
+    DEFAULT_CANONICAL_VIBE_ENTRY_MODE,
+    DEFAULT_CANONICAL_VIBE_FALLBACK_POLICY,
+    DEFAULT_CANONICAL_VIBE_LAUNCHER_KIND,
+    resolve_canonical_vibe_contract,
+    uses_skill_only_activation,
+)
 from .catalog_descriptor import CatalogDescriptor
 from .discoverable_entry_surface import (
     DISCOVERABLE_ENTRY_SURFACE_RELPATH,
@@ -21,6 +28,7 @@ from .governance_runtime_roles import (
     derive_required_runtime_marker_projection,
     derive_runtime_payload_roles,
 )
+from .host_launch_receipt import HostLaunchReceipt, write_host_launch_receipt
 from .install_ledger import InstallLedger
 from .mirror_topology_contract import (
     DEFAULT_BUNDLED_ROOT,
@@ -52,10 +60,8 @@ from .runtime_surface_contract import (
     DEFAULT_IGNORE_JSON_KEYS,
     DEFAULT_PACKAGING_DIRECTORIES,
     DEFAULT_PACKAGING_FILES,
-    SKILL_ONLY_ACTIVATION_HOSTS,
     is_ignored_runtime_artifact,
     resolve_packaging_contract,
-    uses_skill_only_activation,
 )
 from .verification_scenario import VerificationScenario
 
@@ -66,6 +72,11 @@ __all__ = [
     'normalize_adapter_host_id',
     'resolve_adapter_entry',
     'resolve_adapter_registry_path',
+    'DEFAULT_CANONICAL_VIBE_ENTRY_MODE',
+    'DEFAULT_CANONICAL_VIBE_FALLBACK_POLICY',
+    'DEFAULT_CANONICAL_VIBE_LAUNCHER_KIND',
+    'resolve_canonical_vibe_contract',
+    'uses_skill_only_activation',
     'CatalogDescriptor',
     'DISCOVERABLE_ENTRY_SURFACE_RELPATH',
     'DiscoverableEntry',
@@ -77,6 +88,8 @@ __all__ = [
     'derive_required_runtime_marker_groups',
     'derive_required_runtime_marker_projection',
     'derive_runtime_payload_roles',
+    'HostLaunchReceipt',
+    'write_host_launch_receipt',
     'InstallLedger',
     'DEFAULT_BUNDLED_ROOT',
     'DEFAULT_CANONICAL_TARGET_ID',
@@ -104,8 +117,6 @@ __all__ = [
     'DEFAULT_IGNORE_JSON_KEYS',
     'DEFAULT_PACKAGING_DIRECTORIES',
     'DEFAULT_PACKAGING_FILES',
-    'SKILL_ONLY_ACTIVATION_HOSTS',
     'is_ignored_runtime_artifact',
     'resolve_packaging_contract',
-    'uses_skill_only_activation',
 ]

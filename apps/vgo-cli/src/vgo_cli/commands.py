@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .core_bridge import run_installer_core, run_router_core, run_uninstaller_core
+from .core_bridge import run_canonical_entry_core, run_installer_core, run_router_core, run_uninstaller_core
 from .errors import CliError
 from .external import maybe_install_external_dependencies
 from .hosts import (
@@ -130,6 +130,30 @@ def route_command(args: argparse.Namespace) -> int:
         command.append('--force-runtime-neutral')
 
     result = run_router_core(repo_root, command)
+    print_process_output(result)
+    return int(result.returncode)
+
+
+def canonical_entry_command(args: argparse.Namespace) -> int:
+    repo_root = Path(args.repo_root).resolve()
+    host_id = normalize_host_id(args.host_id)
+    command = [
+        '--repo-root', str(repo_root),
+        '--host-id', host_id,
+        '--entry-id', args.entry_id,
+        '--prompt', args.prompt,
+    ]
+    if args.requested_stage_stop:
+        command.extend(['--requested-stage-stop', args.requested_stage_stop])
+    if args.requested_grade_floor:
+        command.extend(['--requested-grade-floor', args.requested_grade_floor])
+    if args.run_id:
+        command.extend(['--run-id', args.run_id])
+    if args.artifact_root:
+        command.extend(['--artifact-root', args.artifact_root])
+    if args.force_runtime_neutral:
+        command.append('--force-runtime-neutral')
+    result = run_canonical_entry_core(repo_root, command)
     print_process_output(result)
     return int(result.returncode)
 

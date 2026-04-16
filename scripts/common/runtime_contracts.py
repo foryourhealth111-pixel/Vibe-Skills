@@ -28,6 +28,13 @@ from vgo_contracts.installed_runtime_contract import (
     default_installed_runtime_config,
     merge_installed_runtime_config,
 )
+from vgo_contracts.canonical_vibe_contract import (
+    DEFAULT_CANONICAL_VIBE_ENTRY_MODE,
+    DEFAULT_CANONICAL_VIBE_FALLBACK_POLICY,
+    DEFAULT_CANONICAL_VIBE_LAUNCHER_KIND,
+    resolve_canonical_vibe_contract,
+    uses_skill_only_activation,
+)
 from vgo_contracts.runtime_surface_contract import (
     DEFAULT_IGNORE_JSON_KEYS,
     DEFAULT_PACKAGING_DIRECTORIES,
@@ -36,14 +43,15 @@ from vgo_contracts.runtime_surface_contract import (
     RUNTIME_IGNORED_FILE_NAMES,
     RUNTIME_IGNORED_FILE_PREFIXES,
     RUNTIME_IGNORED_SUFFIXES,
-    SKILL_ONLY_ACTIVATION_HOSTS,
     is_ignored_runtime_artifact,
     load_json_file,
     resolve_packaging_contract,
-    uses_skill_only_activation,
 )
 
 __all__ = [
+    "DEFAULT_CANONICAL_VIBE_ENTRY_MODE",
+    "DEFAULT_CANONICAL_VIBE_FALLBACK_POLICY",
+    "DEFAULT_CANONICAL_VIBE_LAUNCHER_KIND",
     "COHERENCE_REQUIRED_RUNTIME_MARKERS_DEFAULT",
     "DEFAULT_IGNORE_JSON_KEYS",
     "DEFAULT_INSTALLED_RUNTIME_COHERENCE_GATE",
@@ -62,13 +70,13 @@ __all__ = [
     "RUNTIME_IGNORED_FILE_NAMES",
     "RUNTIME_IGNORED_FILE_PREFIXES",
     "RUNTIME_IGNORED_SUFFIXES",
-    "SKILL_ONLY_ACTIVATION_HOSTS",
     "default_coherence_runtime_config",
     "default_freshness_runtime_config",
     "default_installed_runtime_config",
     "is_ignored_runtime_artifact",
     "load_json_file",
     "merge_installed_runtime_config",
+    "resolve_canonical_vibe_contract",
     "resolve_packaging_contract",
     "uses_skill_only_activation",
 ]

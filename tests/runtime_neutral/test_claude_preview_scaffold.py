@@ -59,6 +59,13 @@ def run_package_install(*, host: str, target_root: Path, profile: str = "full") 
 class ClaudePreviewScaffoldTests(unittest.TestCase):
     EXPECTED_WRAPPER_SKILLS = ("vibe", "vibe-want", "vibe-how", "vibe-do", "vibe-upgrade")
 
+    def _assert_canonical_trampoline_wrapper(self, wrapper_path: Path) -> None:
+        text = wrapper_path.read_text(encoding="utf-8")
+        self.assertIn('"schema": "vibe-wrapper-trampoline/v1"', text)
+        self.assertIn('"launch_mode": "canonical-entry"', text)
+        self.assertIn('"host_id": "claude-code"', text)
+        self.assertNotIn("Use the `vibe` skill", text)
+
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.root = Path(self.tempdir.name)
@@ -144,6 +151,7 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertTrue(bootstrap_receipt_path.exists())
         for name in self.EXPECTED_WRAPPER_SKILLS:
             self.assertTrue((self.target_root / 'skills' / name / 'SKILL.md').exists())
+        self._assert_canonical_trampoline_wrapper(self.target_root / 'skills' / 'vibe-how' / 'SKILL.md')
         self.assertFalse((self.target_root / 'commands').exists())
         self.assertEqual('preview-guidance', payload['install_mode'])
         self.assertEqual(str(closure_path), payload['host_closure_path'])
@@ -185,6 +193,7 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self.assertTrue((self.target_root / 'CLAUDE.md').exists())
         for name in self.EXPECTED_WRAPPER_SKILLS:
             self.assertTrue((self.target_root / 'skills' / name / 'SKILL.md').exists())
+        self._assert_canonical_trampoline_wrapper(self.target_root / 'skills' / 'vibe-how' / 'SKILL.md')
         self.assertFalse((self.target_root / 'commands').exists())
 
 

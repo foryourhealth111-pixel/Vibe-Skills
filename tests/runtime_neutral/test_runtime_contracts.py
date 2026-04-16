@@ -23,10 +23,17 @@ def load_module(module_name: str, path: Path):
 
 
 class RuntimeContractsTests(unittest.TestCase):
-    def test_install_and_uninstall_share_skills_only_activation_contract(self) -> None:
+    def test_install_and_uninstall_share_canonical_vibe_activation_contract(self) -> None:
         contracts = load_module("runtime_contracts", CONTRACTS_PATH)
         install = load_module("install_vgo_adapter", INSTALL_PATH)
         uninstall = load_module("uninstall_vgo_adapter", UNINSTALL_PATH)
+
+        for host_id in {"codex", "claude-code", "opencode"}:
+            contract = contracts.resolve_canonical_vibe_contract(REPO_ROOT, host_id)
+            self.assertEqual(host_id, contract["host_id"])
+            self.assertEqual("blocked", contract["fallback_policy"])
+            self.assertFalse(contract["allow_skill_doc_fallback"])
+            self.assertTrue(contract["proof_required"])
 
         expected_true = {"claude-code", "cursor", "windsurf", "openclaw", "opencode"}
         for host_id in expected_true:

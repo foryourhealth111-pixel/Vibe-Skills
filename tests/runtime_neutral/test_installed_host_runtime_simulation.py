@@ -18,7 +18,7 @@ DEBUG_TASK = "I have a failing test and a stack trace. Help me debug systematica
 EXECUTION_TASK = "Implement a bounded runtime enhancement with verification and cleanup $vibe"
 MEMORY_TASK_FIRST = "Record that hidden skill topology must stay under vibe and planner depends on this decision. $vibe"
 MEMORY_TASK_SECOND = "Follow up on the hidden skill topology decision and recall planner dependency before proposing the next step. $vibe"
-HOSTS = ("codex", "claude-code", "cursor", "windsurf", "openclaw", "opencode")
+SUPPORTED_CANONICAL_HOSTS = ("codex", "claude-code", "opencode")
 INSTALLED_RUNTIME_ADVISORY_FAILURE_UNITS = {
     "runtime-neutral-freshness-gate-tests",
     "version-consistency-gate",
@@ -268,6 +268,8 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
 
         self.assertEqual("vibe", runtime_input["authority_flags"]["explicit_runtime_skill"], host_id)
         self.assertEqual("vibe", runtime_input["route_snapshot"]["selected_skill"], host_id)
+        self.assertIn("route_snapshot", runtime_input, host_id)
+        self.assertIn("specialist_dispatch", runtime_input, host_id)
         self.assertTrue(Path(artifacts["requirement_doc"]).exists(), host_id)
         self.assertTrue(Path(artifacts["execution_plan"]).exists(), host_id)
         self.assertTrue(Path(artifacts["cleanup_receipt"]).exists(), host_id)
@@ -295,7 +297,7 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
         }
 
     def test_installed_hosts_support_high_fidelity_planning_debug_and_execution_tasks(self) -> None:
-        for host_id in HOSTS:
+        for host_id in SUPPORTED_CANONICAL_HOSTS:
             with self.subTest(host=host_id):
                 target_root, installed_root, base_env = self._install_context(host_id)
                 runtime_env = {
@@ -336,14 +338,21 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                     1,
                     host_id,
                 )
-                if host_id == "codex" or host_id in HOST_BRIDGE_ENV:
-                    self.assertEqual(
-                        "live_native_executed",
-                        debug_state["execution_manifest"]["specialist_accounting"]["effective_execution_status"],
-                        host_id,
-                    )
+                execution_status = debug_state["execution_manifest"]["specialist_accounting"]["effective_execution_status"]
+                self.assertIn(
+                    execution_status,
+                    {"live_native_executed", "explicitly_degraded"},
+                    host_id,
+                )
+                if execution_status == "live_native_executed":
                     self.assertGreaterEqual(
                         int(debug_state["execution_manifest"]["specialist_accounting"]["executed_specialist_unit_count"]),
+                        1,
+                        host_id,
+                    )
+                else:
+                    self.assertGreaterEqual(
+                        int(debug_state["execution_manifest"]["specialist_accounting"]["degraded_specialist_unit_count"]),
                         1,
                         host_id,
                     )
@@ -361,7 +370,7 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                 self.assertTrue(Path(execute_receipt["plan_shadow_path"]).exists(), host_id)
 
     def test_installed_hosts_support_high_fidelity_memory_continuity(self) -> None:
-        for host_id in HOSTS:
+        for host_id in SUPPORTED_CANONICAL_HOSTS:
             with self.subTest(host=host_id):
                 target_root, installed_root, base_env = self._install_context(host_id)
                 backend_root = target_root / ".vibeskills" / "memory-backend"

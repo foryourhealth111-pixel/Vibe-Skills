@@ -22,6 +22,7 @@ import vgo_cli.core_bridge as core_bridge
         ('run_installer_core', 'vgo_installer', 'vgo_installer.install_runtime'),
         ('run_uninstaller_core', 'vgo_installer', 'vgo_installer.uninstall_runtime'),
         ('run_router_core', 'vgo_runtime', 'vgo_runtime.router_bridge'),
+        ('run_canonical_entry_core', 'vgo_runtime', 'vgo_runtime.canonical_entry'),
     ],
 )
 def test_core_bridge_extends_workspace_and_invokes_selected_entrypoint(

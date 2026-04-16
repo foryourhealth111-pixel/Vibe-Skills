@@ -28,3 +28,22 @@ def test_official_runtime_baseline_surfaces_are_removed() -> None:
     assert not (REPO_ROOT / "scripts" / "verify" / "vibe-official-runtime-baseline-gate.ps1").exists()
     assert not (REPO_ROOT / "docs" / "universalization" / "official-runtime-baseline.md").exists()
     assert not (REPO_ROOT / "references" / "proof-bundles" / "official-runtime-baseline").exists()
+
+
+def test_canonical_entry_truth_gate_rejects_doc_only_activation_claims() -> None:
+    truth_gate = (REPO_ROOT / "scripts" / "verify" / "vibe-canonical-entry-truth-gate.ps1").read_text(encoding="utf-8")
+
+    assert "host-launch-receipt.json" in truth_gate
+    assert "reading SKILL.md alone is not canonical vibe entry" in truth_gate
+
+
+def test_canonical_entry_bridge_and_truth_gating_contract_are_present() -> None:
+    bridge_path = REPO_ROOT / "scripts" / "runtime" / "Invoke-VibeCanonicalEntry.ps1"
+    launcher = (REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "canonical_entry.py").read_text(encoding="utf-8")
+
+    assert bridge_path.exists()
+    assert "MINIMUM_TRUTH_ARTIFACTS" in launcher
+    assert "runtime_input_packet" in launcher
+    assert "governance_capsule" in launcher
+    assert "stage_lineage" in launcher
+    assert "Missing required runtime artifacts" in launcher

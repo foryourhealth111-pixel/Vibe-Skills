@@ -9,8 +9,17 @@ def test_vgo_cli_uses_installer_core_modules() -> None:
     commands_content = (REPO_ROOT / 'apps' / 'vgo-cli' / 'src' / 'vgo_cli' / 'commands.py').read_text(encoding='utf-8')
     core_bridge = (REPO_ROOT / 'apps' / 'vgo-cli' / 'src' / 'vgo_cli' / 'core_bridge.py').read_text(encoding='utf-8')
 
-    assert 'from .commands import install_command, passthrough_command, route_command, runtime_command, uninstall_command, verify_command' in main_content
-    assert 'from .core_bridge import run_installer_core, run_router_core, run_uninstaller_core' in commands_content
+    assert 'install_command' in main_content
+    assert 'route_command' in main_content
+    assert 'runtime_command' in main_content
+    assert 'uninstall_command' in main_content
+    assert 'verify_command' in main_content
+    assert 'canonical_entry_command' in main_content
+    assert 'from .core_bridge import ' in commands_content
+    assert 'run_installer_core' in commands_content
+    assert 'run_router_core' in commands_content
+    assert 'run_uninstaller_core' in commands_content
+    assert 'run_canonical_entry_core' in commands_content
     assert 'vgo_installer.install_runtime' in core_bridge
     assert 'vgo_installer.uninstall_runtime' in core_bridge
     assert 'scripts/install/install_vgo_adapter.py' not in main_content
@@ -42,7 +51,10 @@ def test_installer_core_reads_runtime_surface_contracts_from_contracts_package()
     host_closure = (REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'host_closure.py').read_text(encoding='utf-8')
 
     for content in (install_runtime, materializer, uninstall_service, host_closure):
-        assert 'vgo_contracts.runtime_surface_contract' in content
+        assert (
+            'vgo_contracts.runtime_surface_contract' in content
+            or 'vgo_contracts.canonical_vibe_contract' in content
+        )
         assert 'from runtime_contracts import' not in content
         assert 'scripts/common/resolve_vgo_adapter.py' not in content
 
@@ -119,7 +131,6 @@ def test_install_runtime_delegates_materialization_semantics() -> None:
     assert 'copy_skill_roots_without_self_shadow' in install_runtime
     assert 'copy_file' in install_runtime
     assert 'sync_vibe_canonical' in install_runtime
-    assert 'materialize_generated_nested_compatibility' in install_runtime
     assert 'materialize_allowlisted_skills' in install_runtime
     assert 'install_codex_payload' in install_runtime
     assert 'install_opencode_guidance_payload' in install_runtime
@@ -130,7 +141,6 @@ def test_install_runtime_delegates_materialization_semantics() -> None:
     assert 'def copy_skill_roots_without_self_shadow' not in install_runtime
     assert 'def copy_file' not in install_runtime
     assert 'def sync_vibe_canonical' not in install_runtime
-    assert 'def materialize_generated_nested_compatibility' not in install_runtime
     assert 'def materialize_allowlisted_skills' not in install_runtime
     assert 'def ensure_skill_present' not in install_runtime
     assert 'def install_codex_payload' not in install_runtime

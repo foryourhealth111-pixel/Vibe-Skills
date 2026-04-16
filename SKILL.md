@@ -286,6 +286,9 @@ Minimum invariants:
 - no silent no-regression claims
 - requirement and plan artifacts remain traceable
 - cleanup receipts are emitted before phase completion is claimed
+- Reading `SKILL.md`, wrapper markdown, or bootstrap text alone is not proof of canonical vibe entry.
+- canonical vibe claims require `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json`
+- canonical vibe claims require runtime artifact proof, not SKILL.md-only simulation
 
 ## Outputs
 
@@ -293,11 +296,13 @@ The governed runtime should leave behind:
 
 - `outputs/runtime/vibe-sessions/<run-id>/skeleton-receipt.json`
 - `outputs/runtime/vibe-sessions/<run-id>/intent-contract.json`
+- `outputs/runtime/vibe-sessions/<run-id>/runtime-input-packet.json` with `route_snapshot` and specialist surfaces
 - `docs/requirements/YYYY-MM-DD-<topic>.md`
 - `docs/plans/YYYY-MM-DD-<topic>-execution-plan.md`
 - `outputs/runtime/vibe-sessions/<run-id>/phase-*.json`
 - `outputs/runtime/vibe-sessions/<run-id>/cleanup-receipt.json`
 - specialist recommendation and dispatch accounting when bounded specialist help is planned
+- canonical host-entry receipts when host launch bridges are used (`host-launch-receipt.json`)
 
 ## Known Boundaries
 

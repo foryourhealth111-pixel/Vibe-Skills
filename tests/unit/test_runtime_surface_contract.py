@@ -59,16 +59,11 @@ def test_runtime_surface_contract_resolves_packaging_payload_from_manifest_sourc
     assert contract["allow_installed_only"] == ["docs/compat-only.md"]
     assert contract["normalized_json_ignore_keys"] == ["updated", "generated_at"]
 
-
-def test_runtime_surface_contract_owns_activation_and_runtime_ignore_policy() -> None:
+def test_runtime_surface_contract_owns_runtime_ignore_policy() -> None:
     module = _load_module()
 
-    for host_id in ("claude-code", "cursor", "windsurf", "openclaw", "opencode"):
-        assert module.uses_skill_only_activation(host_id) is True
-
-    for host_id in ("codex", "unknown", None):
-        assert module.uses_skill_only_activation(host_id) is False
-
+    assert not hasattr(module, "uses_skill_only_activation")
+    assert not hasattr(module, "SKILL_ONLY_ACTIVATION_HOSTS")
     assert module.is_ignored_runtime_artifact(Path("scripts/common/__pycache__/helper.cpython-310.pyc"))
     assert module.is_ignored_runtime_artifact(Path("scripts/.coverage"))
     assert not module.is_ignored_runtime_artifact(Path("scripts/runtime/native_specialist_runner.py"))

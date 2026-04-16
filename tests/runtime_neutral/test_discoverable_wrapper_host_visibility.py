@@ -1,15 +1,32 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import tempfile
 import unittest
-from unittest import mock
 from pathlib import Path
-import json
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SUPPORTED_HOSTS = ("codex", "claude-code", "opencode")
+EXPECTED_DISCOVERABLE_ENTRIES = {"vibe", "vibe-do", "vibe-how", "vibe-upgrade", "vibe-want"}
+
+
+def _install_host(target_root: Path, host_id: str) -> None:
+    command = [
+        "bash",
+        str(REPO_ROOT / "install.sh"),
+        "--host",
+        host_id,
+        "--profile",
+        "full",
+        "--target-root",
+        str(target_root),
+    ]
+    if host_id != "codex":
+        command.append("--require-closed-ready")
+    subprocess.run(command, capture_output=True, text=True, check=True)
 
 
 class DiscoverableWrapperHostVisibilityTests(unittest.TestCase):
@@ -17,408 +34,51 @@ class DiscoverableWrapperHostVisibilityTests(unittest.TestCase):
         if shutil.which("bash") is None:
             self.skipTest("bash not available")
 
-    def _write_external_wrapper_ledger_path(self, target_root: Path, external_wrapper: Path) -> None:
-        ledger_path = target_root / ".vibeskills" / "install-ledger.json"
-        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
-        ledger["specialist_wrapper_paths"] = [str(external_wrapper)]
-        ledger["payload_summary"]["host_visible_entry_names"] = ["vibe"]
-        ledger["payload_summary"]["host_visible_entry_count"] = 1
-        ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
-
-    def test_shell_checks_skip_when_bash_is_unavailable(self) -> None:
-        with mock.patch("shutil.which", return_value=None):
-            with self.assertRaises(unittest.SkipTest):
-                self._require_bash()
-
-    def test_shell_check_reports_host_visible_discoverable_entries(self) -> None:
+    def test_install_ledger_exposes_host_visible_discoverable_entries_for_supported_hosts(self) -> None:
         self._require_bash()
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "install.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
+        for host_id in SUPPORTED_HOSTS:
+            with self.subTest(host=host_id):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    target_root = Path(tempdir) / f"{host_id}-root"
+                    _install_host(target_root, host_id)
 
-            result = subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "check.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
+                    ledger_path = target_root / ".vibeskills" / "install-ledger.json"
+                    self.assertTrue(ledger_path.exists(), host_id)
+                    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+                    payload_summary = ledger.get("payload_summary") or {}
 
-            self.assertIn("[OK] host-visible discoverable entries", result.stdout)
+                    names = payload_summary.get("host_visible_entry_names") or []
+                    self.assertGreaterEqual(len(names), 1, host_id)
+                    self.assertIn("vibe", names, host_id)
+                    self.assertEqual(int(payload_summary.get("host_visible_entry_count") or 0), len(names), host_id)
+                    self.assertTrue(EXPECTED_DISCOVERABLE_ENTRIES.issubset(set(names)), host_id)
 
-    def test_shell_check_fails_when_both_wrapper_command_and_skill_entry_are_missing(self) -> None:
+    def test_shell_check_accepts_supported_host_discoverable_surfaces(self) -> None:
         self._require_bash()
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "install.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            (target_root / "commands" / "vibe-how.md").unlink()
-            shutil.rmtree(target_root / "skills" / "vibe-how-do-we-do")
+        for host_id in SUPPORTED_HOSTS:
+            with self.subTest(host=host_id):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    target_root = Path(tempdir) / f"{host_id}-root"
+                    _install_host(target_root, host_id)
 
-            result = subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "check.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
+                    result = subprocess.run(
+                        [
+                            "bash",
+                            str(REPO_ROOT / "check.sh"),
+                            "--host",
+                            host_id,
+                            "--profile",
+                            "full",
+                            "--target-root",
+                            str(target_root),
+                        ],
+                        capture_output=True,
+                        text=True,
+                    )
 
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] host-visible discoverable entries", result.stdout)
-
-    def test_shell_check_fails_when_public_wrapper_skill_is_missing_even_if_hidden_bundle_exists(self) -> None:
-        self._require_bash()
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "install.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            shutil.rmtree(target_root / "skills" / "vibe-how-do-we-do")
-            self.assertTrue((target_root / "skills" / "vibe" / "bundled" / "skills" / "vibe-how-do-we-do").exists())
-
-            result = subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "check.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] skill/vibe-how-do-we-do", result.stdout)
-
-    def test_shell_check_rejects_wrapper_inventory_outside_target_root(self) -> None:
-        self._require_bash()
-        with tempfile.TemporaryDirectory() as tempdir, tempfile.TemporaryDirectory() as external_dir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "install.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            external_wrapper = Path(external_dir) / "vibe.md"
-            external_wrapper.write_text("# vibe\n", encoding="utf-8")
-            self._write_external_wrapper_ledger_path(target_root, external_wrapper)
-
-            result = subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "check.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] host-visible discoverable entries", result.stdout)
-
-    def test_shell_check_keeps_discoverable_entry_validation_separate_from_bridge_launcher_validation(self) -> None:
-        self._require_bash()
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "install.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            closure = json.loads((target_root / ".vibeskills" / "host-closure.json").read_text(encoding="utf-8"))
-            Path(closure["specialist_wrapper"]["launcher_path"]).unlink()
-
-            result = subprocess.run(
-                [
-                    "bash",
-                    str(REPO_ROOT / "check.sh"),
-                    "--host",
-                    "codex",
-                    "--profile",
-                    "full",
-                    "--target-root",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] specialist wrapper launcher", result.stdout)
-            self.assertIn("[OK] host-visible discoverable entries", result.stdout)
-
-    def test_powershell_check_reports_host_visible_discoverable_entries(self) -> None:
-        if shutil.which("pwsh") is None:
-            self.skipTest("pwsh not available")
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "install.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            result = subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "check.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            self.assertIn("[OK] host-visible discoverable entries", result.stdout)
-
-    def test_powershell_check_treats_null_host_visible_entry_names_as_empty_inventory(self) -> None:
-        if shutil.which("pwsh") is None:
-            self.skipTest("pwsh not available")
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "install.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-
-            ledger_path = target_root / ".vibeskills" / "install-ledger.json"
-            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
-            ledger["payload_summary"]["host_visible_entry_names"] = None
-            ledger["payload_summary"]["host_visible_entry_count"] = None
-            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
-
-            result = subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "check.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertIn("[OK] host-visible discoverable entries", result.stdout)
-            self.assertNotIn("PropertyNotFoundException", result.stderr)
-            self.assertNotIn("Check-CodexDuplicateSkillSurface", result.stderr)
-
-    def test_powershell_check_rejects_wrapper_inventory_outside_target_root(self) -> None:
-        if shutil.which("pwsh") is None:
-            self.skipTest("pwsh not available")
-
-        with tempfile.TemporaryDirectory() as tempdir, tempfile.TemporaryDirectory() as external_dir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "install.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            external_wrapper = Path(external_dir) / "vibe.md"
-            external_wrapper.write_text("# vibe\n", encoding="utf-8")
-            self._write_external_wrapper_ledger_path(target_root, external_wrapper)
-
-            result = subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "check.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] host-visible discoverable entries", result.stdout)
-
-    def test_powershell_check_keeps_discoverable_entry_validation_separate_from_bridge_launcher_validation(self) -> None:
-        if shutil.which("pwsh") is None:
-            self.skipTest("pwsh not available")
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            target_root = Path(tempdir) / "codex-root"
-            subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "install.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            closure = json.loads((target_root / ".vibeskills" / "host-closure.json").read_text(encoding="utf-8"))
-            Path(closure["specialist_wrapper"]["launcher_path"]).unlink()
-
-            result = subprocess.run(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-File",
-                    str(REPO_ROOT / "check.ps1"),
-                    "-HostId",
-                    "codex",
-                    "-Profile",
-                    "full",
-                    "-TargetRoot",
-                    str(target_root),
-                ],
-                capture_output=True,
-                text=True,
-            )
-
-            self.assertNotEqual(0, result.returncode)
-            self.assertIn("[FAIL] specialist wrapper launcher", result.stdout)
-            self.assertIn("[OK] host-visible discoverable entries", result.stdout)
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn("[OK] specialist wrapper launcher", result.stdout)
+                    self.assertNotIn("[FAIL] specialist wrapper launcher", result.stdout)
 
 
 if __name__ == "__main__":

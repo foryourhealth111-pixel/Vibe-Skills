@@ -36,6 +36,7 @@ from vgo_contracts.adapter_registry_support import (
     resolve_adapter_entry,
     resolve_adapter_registry_path,
 )
+from vgo_contracts.canonical_vibe_contract import resolve_canonical_vibe_contract as resolve_host_canonical_vibe_contract
 
 
 def resolve_registry_path(repo_root: Path) -> tuple[Path, Path]:
@@ -118,6 +119,17 @@ def resolve_target_root_spec(repo_root: Path, host_id: str | None) -> tuple[str,
     if not normalized:
         raise SystemExit(f'Unsupported VGO host id: {host_id}')
     return normalized, _target_root_spec_from_entry(entry)
+
+
+def resolve_canonical_vibe_contract(repo_root: Path, host_id: str | None) -> dict[str, Any]:
+    contract = resolve_host_canonical_vibe_contract(repo_root, host_id)
+    entry = resolve_adapter(repo_root, str(host_id or ''))
+    return {
+        **contract,
+        "host_id": str(entry.get("id") or contract["host_id"]).strip().lower(),
+        "bootstrap_mode": str(entry.get("bootstrap_mode") or "").strip(),
+        "discoverable_entries": dict(entry.get("discoverable_entries") or {}),
+    }
 
 
 def resolve_default_target_root(

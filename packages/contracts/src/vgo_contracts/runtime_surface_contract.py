@@ -4,17 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
-SKILL_ONLY_ACTIVATION_HOSTS = frozenset(
-    {
-        "claude-code",
-        "cursor",
-        "windsurf",
-        "openclaw",
-        "opencode",
-    }
-)
-
 RUNTIME_IGNORED_DIR_NAMES = frozenset(
     {
         "__pycache__",
@@ -44,10 +33,6 @@ DEFAULT_PACKAGING_DIRECTORIES = (
     "scripts",
 )
 DEFAULT_IGNORE_JSON_KEYS = ("updated", "generated_at")
-
-
-def uses_skill_only_activation(host_id: str | None) -> bool:
-    return (host_id or "").strip().lower() in SKILL_ONLY_ACTIVATION_HOSTS
 
 
 def is_ignored_runtime_artifact(path: str | Path) -> bool:

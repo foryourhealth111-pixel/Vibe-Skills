@@ -68,12 +68,16 @@ Official governed entry is runtime-validated with artifact-backed lineage:
 
 - `governance-capsule.json`: root-authored runtime authority capsule for the governed run
 - `stage-lineage.json`: ordered stage-transition ledger for the current run
+- `host-launch-receipt.json`: host-facing canonical entry receipt that must be `verified` before claiming canonical vibe entry
 - `host-stage-disclosure.json`: append-only host-consumption event stream for confirmed specialist activity across discussion, planning, and execution
 - `delegation-envelope.json`: root-authored child startup contract for inherited requirement/plan truth
 - `delegation-validation-receipt.json`: child proof that envelope validation passed before bounded execution
 
 These artifacts strengthen the official governed path only.
 They do not claim OS-level or arbitrary shell-session enforcement.
+
+Reading `SKILL.md`, wrapper markdown, or bootstrap text alone is not proof of canonical vibe entry.
+Canonical claims require `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json`.
 
 ## Fixed 6-Stage State Machine
 
@@ -266,10 +270,12 @@ Expected runtime artifacts:
 
 - `outputs/runtime/vibe-sessions/<run-id>/skeleton-receipt.json`
 - `outputs/runtime/vibe-sessions/<run-id>/intent-contract.json`
+- `outputs/runtime/vibe-sessions/<run-id>/runtime-input-packet.json` with non-empty `route_snapshot` and specialist surfaces
 - requirement document
 - execution plan
 - phase receipts
 - cleanup receipt
+- execution-manifest specialist accounting/disclosure receipts
 - runtime-input packet specialist recommendations when bounded specialist help is available
 - execution-manifest specialist dispatch accounting when the plan uses bounded specialist help
 - hierarchy-scoped authority markers indicating `root_governed` versus `child_governed` lane
@@ -289,3 +295,4 @@ The governed runtime is considered healthy only when:
 - downstream delivery truth is evaluated separately from runtime/process truth before full completion wording is allowed
 - no fallback or degraded path is presented as equivalent success
 - any fallback or degraded path emits a standalone hazard alert
+- no run claims canonical vibe entry without runtime-input packet, route snapshot proof, and specialist dispatch accounting artifacts

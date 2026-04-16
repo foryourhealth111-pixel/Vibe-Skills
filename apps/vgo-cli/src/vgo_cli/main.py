@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .commands import install_command, passthrough_command, route_command, runtime_command, uninstall_command, upgrade_command, verify_command
+from .commands import canonical_entry_command, install_command, passthrough_command, route_command, runtime_command, uninstall_command, upgrade_command, verify_command
 from .errors import CliError
 
 
@@ -58,6 +58,18 @@ def build_parser() -> argparse.ArgumentParser:
     route_parser.add_argument('--target-root')
     route_parser.add_argument('--force-runtime-neutral', action='store_true')
     route_parser.set_defaults(handler=route_command)
+
+    canonical_entry_parser = subparsers.add_parser('canonical-entry')
+    canonical_entry_parser.add_argument('--repo-root', required=True)
+    canonical_entry_parser.add_argument('--host-id', default='codex')
+    canonical_entry_parser.add_argument('--entry-id', default='vibe')
+    canonical_entry_parser.add_argument('--prompt', required=True)
+    canonical_entry_parser.add_argument('--requested-stage-stop')
+    canonical_entry_parser.add_argument('--requested-grade-floor', choices=('L', 'XL'))
+    canonical_entry_parser.add_argument('--run-id')
+    canonical_entry_parser.add_argument('--artifact-root')
+    canonical_entry_parser.add_argument('--force-runtime-neutral', action='store_true')
+    canonical_entry_parser.set_defaults(handler=canonical_entry_command)
 
     check_parser = subparsers.add_parser('check')
     check_parser.add_argument('--repo-root', required=True)

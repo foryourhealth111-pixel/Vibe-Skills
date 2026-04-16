@@ -1,3 +1,5 @@
 """Runtime core package for Vibe-Skills clean architecture."""
 
-__all__: list[str] = []
+from .canonical_entry import CanonicalEntryResult, CanonicalLaunchResult, launch_canonical_vibe
+
+__all__ = ["CanonicalEntryResult", "CanonicalLaunchResult", "launch_canonical_vibe"]

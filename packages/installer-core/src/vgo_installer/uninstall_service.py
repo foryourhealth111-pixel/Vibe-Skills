@@ -11,7 +11,7 @@ from ._io import load_json, write_json, write_json_file
 
 ensure_contracts_src_on_path()
 
-from vgo_contracts.runtime_surface_contract import uses_skill_only_activation
+from vgo_contracts.canonical_vibe_contract import uses_skill_only_activation
 from vgo_contracts.mirror_topology_contract import resolve_generated_nested_compatibility_suffix
 
 from .adapter_registry import resolve_adapter
