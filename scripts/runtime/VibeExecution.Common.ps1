@@ -1505,6 +1505,18 @@ function New-VibeDirectRoutedSpecialistDispatchResult {
     } else {
         $null
     }
+    $effectiveUsageRequired = if ($Dispatch.PSObject.Properties.Name -contains 'usage_required') {
+        [bool]$Dispatch.usage_required
+    } elseif ($Dispatch.PSObject.Properties.Name -contains 'native_usage_required') {
+        [bool]$Dispatch.native_usage_required
+    } else {
+        $false
+    }
+    $nativeUsageRequired = if ($Dispatch.PSObject.Properties.Name -contains 'native_usage_required') {
+        [bool]$Dispatch.native_usage_required
+    } else {
+        [bool]$effectiveUsageRequired
+    }
 
     $unitResult = [pscustomobject]@{
         unit_id = $UnitId
@@ -1528,8 +1540,12 @@ function New-VibeDirectRoutedSpecialistDispatchResult {
         verification_passed = $true
         specialist_skill_id = [string]$Dispatch.skill_id
         bounded_role = [string]$Dispatch.bounded_role
-        native_usage_required = [bool]$Dispatch.native_usage_required
+        native_usage_required = [bool]$nativeUsageRequired
+        usage_required = [bool]$effectiveUsageRequired
         must_preserve_workflow = [bool]$Dispatch.must_preserve_workflow
+        native_skill_entrypoint = $entrypoint
+        skill_root = if ($Dispatch.PSObject.Properties.Name -contains 'skill_root') { [string]$Dispatch.skill_root } else { $null }
+        visibility_class = if ($Dispatch.PSObject.Properties.Name -contains 'visibility_class') { [string]$Dispatch.visibility_class } else { $null }
         write_scope = $WriteScope
         review_mode = $ReviewMode
         execution_driver = 'direct_current_session_route'

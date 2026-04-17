@@ -369,9 +369,14 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                     host_id,
                 )
                 execution_status = debug_state["execution_manifest"]["specialist_accounting"]["effective_execution_status"]
-                self.assertEqual("live_native_executed", execution_status, host_id)
-                self.assertGreaterEqual(
+                self.assertEqual("direct_current_session_routed", execution_status, host_id)
+                self.assertEqual(
+                    0,
                     int(debug_state["execution_manifest"]["specialist_accounting"]["executed_specialist_unit_count"]),
+                    host_id,
+                )
+                self.assertGreaterEqual(
+                    int(debug_state["execution_manifest"]["specialist_accounting"]["direct_routed_specialist_unit_count"]),
                     1,
                     host_id,
                 )

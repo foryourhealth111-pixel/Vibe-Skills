@@ -161,14 +161,12 @@ class SkillPromotionMetricsTests(unittest.TestCase):
     def test_metrics_capture_match_surface_dispatch_and_execute(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_path = Path(tempdir)
-            fake_codex = create_fake_codex_command(temp_path)
             payload = run_runtime(
                 ML_PROMPT,
                 temp_path,
                 extra_env={
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
-                    "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
             summary = payload["summary"]
@@ -178,7 +176,8 @@ class SkillPromotionMetricsTests(unittest.TestCase):
             self.assertGreaterEqual(int(funnel["matched"]), 1)
             self.assertGreaterEqual(int(funnel["surfaced"]), int(funnel["matched"]))
             self.assertGreaterEqual(int(funnel["dispatched"]), 1)
-            self.assertGreaterEqual(int(funnel["executed"]), 1)
+            self.assertEqual(0, int(funnel["executed"]))
+            self.assertGreaterEqual(int(funnel["routed"]), 1)
             self.assertEqual(0, int(funnel["ghost_match"]))
 
     def test_metrics_record_destructive_block_instead_of_ghost_match(self) -> None:

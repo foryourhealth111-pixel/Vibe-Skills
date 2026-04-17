@@ -882,7 +882,6 @@ class NativeExecutionTopologyTests(unittest.TestCase):
     def test_approved_specialist_dispatch_routes_directly_in_current_session_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_path = Path(tempdir)
-            fake_codex = create_fake_codex_command(temp_path)
             payload = run_runtime(
                 task="I have a failing test and stack trace. Debug systematically and execute specialist workflow.",
                 artifact_root=temp_path,
@@ -890,7 +889,6 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 extra_env={
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
-                    "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
             summary = payload["summary"]
@@ -900,7 +898,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertEqual("native_bounded_units", specialist_accounting["execution_mode"])
             self.assertEqual("direct_current_session_routed", specialist_accounting["effective_execution_status"])
             self.assertGreaterEqual(int(specialist_accounting["direct_routed_specialist_unit_count"]), 1)
-            self.assertGreaterEqual(int(specialist_accounting["executed_specialist_unit_count"]), 1)
+            self.assertEqual(0, int(specialist_accounting["executed_specialist_unit_count"]))
             self.assertEqual(0, int(specialist_accounting["degraded_specialist_unit_count"]))
             self.assertEqual("completed", execution_manifest["status"])
 
@@ -918,6 +916,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                     self.assertTrue(bool(result["direct_route"]))
                     self.assertEqual("direct_current_session_route", result["execution_driver"])
                     self.assertFalse(bool(result["live_native_execution"]))
+                    self.assertFalse(bool(result.get("host_adapter_id")))
                     self.assertFalse(bool(result["degraded"]))
                     self.assertFalse(bool(result["blocked"]))
                     self.assertFalse(bool(result.get("prompt_path")))

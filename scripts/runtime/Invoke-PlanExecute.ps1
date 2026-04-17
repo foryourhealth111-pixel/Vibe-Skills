@@ -1143,14 +1143,29 @@ $effectiveUnitExecution = if ($parallelUnitsExecutedCount -gt 0 -and ($executedU
     'sequential'
 }
 
+$liveAttemptedSpecialistUnits = @($executedSpecialistUnits | Where-Object { [bool]$_.live_native_execution })
+$liveSpecialistUnits = @($liveAttemptedSpecialistUnits | Where-Object { [bool]$_.verification_passed })
+$failedLiveSpecialistUnits = @($liveAttemptedSpecialistUnits | Where-Object { -not [bool]$_.verification_passed })
+$directRoutedSpecialistUnits = @($executedSpecialistUnits | Where-Object {
+    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'live_native_execution') { $_.live_native_execution } else { $false }) -and
+    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'degraded') { $_.degraded } else { $false }) -and
+    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'blocked') { $_.blocked } else { $false }) -and
+    [string]$_.execution_driver -eq 'direct_current_session_route'
+})
+$verifiedSpecialistUnits = @($liveSpecialistUnits)
+
 $recommendationSkillIds = @($specialistRecommendations | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
 $approvedDispatchSkillIds = @($approvedDispatch | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
 $localSuggestionSkillIds = @($localSuggestions | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-$executedSpecialistSkillIds = @($executedSpecialistUnits | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+$executedSpecialistSkillIds = @($verifiedSpecialistUnits | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+$directRoutedSpecialistSkillIds = @($directRoutedSpecialistUnits | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+$resolvedSpecialistSkillIds = @((@($executedSpecialistSkillIds) + @($directRoutedSpecialistSkillIds)) | Select-Object -Unique)
 
 $approvedDispatchMissingFromRecommendations = @($approvedDispatchSkillIds | Where-Object { $_ -notin $recommendationSkillIds })
 $approvedDispatchNotExecuted = @($approvedDispatchSkillIds | Where-Object { $_ -notin $executedSpecialistSkillIds })
+$approvedDispatchNotResolved = @($approvedDispatchSkillIds | Where-Object { $_ -notin $resolvedSpecialistSkillIds })
 $executedWithoutApproval = @($executedSpecialistSkillIds | Where-Object { $_ -notin $approvedDispatchSkillIds })
+$routedWithoutApproval = @($directRoutedSpecialistSkillIds | Where-Object { $_ -notin $approvedDispatchSkillIds })
 $localSuggestionsExecutedWithoutApproval = @($localSuggestionSkillIds | Where-Object { $_ -in $executedSpecialistSkillIds })
 $dispatchContractIncompleteSkillIds = @(
     $approvedDispatch | Where-Object {
@@ -1197,6 +1212,8 @@ $dispatchIntegrity = [pscustomobject]@{
     degraded_skill_ids = @($degradedSkillIds)
     ghost_match_skill_ids = @($ghostMatchSkillIds)
     executed_specialist_skill_ids = @($executedSpecialistSkillIds)
+    direct_routed_specialist_skill_ids = @($directRoutedSpecialistSkillIds)
+    resolved_specialist_skill_ids = @($resolvedSpecialistSkillIds)
     approved_dispatch_subset_of_recommendations = [bool](@($approvedDispatchMissingFromRecommendations).Count -eq 0)
     inherited_root_approval_allowed = [bool]([string]$hierarchyState.governance_scope -eq 'child')
     approved_dispatch_supported_by_recommendation_or_inherited_approval = [bool](
@@ -1204,36 +1221,31 @@ $dispatchIntegrity = [pscustomobject]@{
         ([string]$hierarchyState.governance_scope -eq 'child')
     )
     approved_dispatch_fully_executed = [bool](@($approvedDispatchNotExecuted).Count -eq 0)
+    approved_dispatch_fully_resolved = [bool](@($approvedDispatchNotResolved).Count -eq 0)
     executed_specialists_subset_of_approved_dispatch = [bool](@($executedWithoutApproval).Count -eq 0)
+    routed_specialists_subset_of_approved_dispatch = [bool](@($routedWithoutApproval).Count -eq 0)
     local_suggestions_contained = [bool](@($localSuggestionsExecutedWithoutApproval).Count -eq 0)
     native_contract_complete_for_approved_dispatch = [bool](@($dispatchContractIncompleteSkillIds).Count -eq 0)
     matched_skills_resolved = [bool](@($ghostMatchSkillIds).Count -eq 0)
     approved_dispatch_missing_from_recommendations = @($approvedDispatchMissingFromRecommendations)
     approved_dispatch_not_executed = @($approvedDispatchNotExecuted)
+    approved_dispatch_not_resolved = @($approvedDispatchNotResolved)
     executed_without_approval = @($executedWithoutApproval)
+    routed_without_approval = @($routedWithoutApproval)
     local_suggestions_executed_without_approval = @($localSuggestionsExecutedWithoutApproval)
     dispatch_contract_incomplete_skill_ids = @($dispatchContractIncompleteSkillIds)
 }
 $dispatchIntegrity | Add-Member -NotePropertyName 'proof_passed' -NotePropertyValue ([bool](
     $dispatchIntegrity.approved_dispatch_supported_by_recommendation_or_inherited_approval -and
-    $dispatchIntegrity.approved_dispatch_fully_executed -and
+    $dispatchIntegrity.approved_dispatch_fully_resolved -and
     $dispatchIntegrity.executed_specialists_subset_of_approved_dispatch -and
+    $dispatchIntegrity.routed_specialists_subset_of_approved_dispatch -and
     $dispatchIntegrity.local_suggestions_contained -and
     $dispatchIntegrity.native_contract_complete_for_approved_dispatch -and
     $dispatchIntegrity.matched_skills_resolved
 ))
 
 $baseStatus = if ($failedUnitCount -eq 0 -and $executedUnitCount -ge [int]$profile.expected_minimum_units) { 'completed' } elseif ($executedUnitCount -eq 0) { 'failed' } else { 'completed_with_failures' }
-$liveAttemptedSpecialistUnits = @($executedSpecialistUnits | Where-Object { [bool]$_.live_native_execution })
-$liveSpecialistUnits = @($liveAttemptedSpecialistUnits | Where-Object { [bool]$_.verification_passed })
-$failedLiveSpecialistUnits = @($liveAttemptedSpecialistUnits | Where-Object { -not [bool]$_.verification_passed })
-$directRoutedSpecialistUnits = @($executedSpecialistUnits | Where-Object {
-    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'live_native_execution') { $_.live_native_execution } else { $false }) -and
-    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'degraded') { $_.degraded } else { $false }) -and
-    -not [bool]$(if ($_.PSObject.Properties.Name -contains 'blocked') { $_.blocked } else { $false }) -and
-    [string]$_.execution_driver -eq 'direct_current_session_route'
-})
-$verifiedSpecialistUnits = @(@($liveSpecialistUnits) + @($directRoutedSpecialistUnits))
 $degradedSpecialistUnits = @(@($executedSpecialistUnits | Where-Object { [bool]$_.degraded }) + @($preDispatchDegradedUnits))
 $nonDegradedExecutedSpecialistUnits = @($executedSpecialistUnits | Where-Object { -not [bool]$_.degraded })
 $totalSpecialistDispatchOutcomeCount = @($nonDegradedExecutedSpecialistUnits).Count + @($blockedSpecialistUnits).Count + @($degradedSpecialistUnits).Count
@@ -1377,6 +1389,7 @@ $executionManifest = [pscustomobject]@{
             surfaced = @($surfacedSkillIds).Count
             dispatched = @($approvedDispatch).Count
             executed = @($verifiedSpecialistUnits).Count
+            routed = @($directRoutedSpecialistUnits).Count
             blocked_due_to_destructive = @($blockedSkillIds).Count
             degraded_due_to_missing_contract = @($degradedSkillIds).Count
             ghost_match = @($ghostMatchSkillIds).Count

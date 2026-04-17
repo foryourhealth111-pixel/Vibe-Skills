@@ -1086,6 +1086,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             for receipt in (discussion_receipt, planning_receipt):
                 self.assertTrue(bool(receipt["enabled"]))
                 self.assertGreaterEqual(len(list(receipt["approved_consultation"])), 1)
+                self.assertEqual([], list(receipt["consulted_units"]))
+                self.assertGreaterEqual(len(list(receipt["routed_units"])), 1)
                 self.assertGreaterEqual(len(list(receipt["user_disclosures"])), 1)
                 disclosure = next(
                     item for item in list(receipt["user_disclosures"]) if item["skill_id"] == "systematic-debugging"
@@ -1101,6 +1103,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 ["discussion", "planning"],
                 [str(window["window_id"]) for window in list(specialist_consultation["windows"])],
             )
+            self.assertEqual(0, int(specialist_consultation["consulted_unit_count"]))
+            self.assertGreaterEqual(int(specialist_consultation["routed_unit_count"]), 2)
             self.assertGreaterEqual(int(specialist_consultation["user_disclosure_count"]), 2)
             self.assertNotIn("specialist_consultation", summary["specialist_user_disclosure"])
 
@@ -1137,8 +1141,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             self.assertEqual(
                 [
                     "discussion_routing_frozen",
-                    "discussion_consultation_completed",
-                    "planning_consultation_completed",
+                    "discussion_consultation_routed",
+                    "planning_consultation_routed",
                     "execution_dispatch_confirmed",
                 ],
                 [str(event["event_id"]) for event in list(host_stage_disclosure["events"])],
@@ -1167,7 +1171,10 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 [str(segment["segment_id"]) for segment in list(host_user_briefing["segments"])],
             )
             self.assertIn("Vibe routed these Skills", host_user_briefing["rendered_text"])
-            self.assertIn("Vibe consulted these Skills during discussion", host_user_briefing["rendered_text"])
+            self.assertIn(
+                "Vibe routed these Skills for direct current-session consultation during discussion",
+                host_user_briefing["rendered_text"],
+            )
             self.assertIn("freeze gate: passed", host_user_briefing["rendered_text"])
             self.assertIn("Vibe approved these Skills for execution", host_user_briefing["rendered_text"])
             self.assertIn("systematic-debugging", host_user_briefing["rendered_text"])

@@ -463,8 +463,10 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(host_stage_disclosure, summary["host_stage_disclosure"])
 
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
+            self.assertFalse(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_resolved"]))
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["executed_specialists_subset_of_approved_dispatch"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["routed_specialists_subset_of_approved_dispatch"]))
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["local_suggestions_contained"]))
             self.assertTrue(execution_proof["proof_passed"])
             self.assertGreaterEqual(execution_proof["executed_unit_count"], 2)

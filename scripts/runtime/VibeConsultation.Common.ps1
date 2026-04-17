@@ -597,8 +597,8 @@ function New-VibeDirectRoutedSpecialistConsultationResult {
     $result = [pscustomobject]@{
         unit_id = $UnitId
         kind = 'specialist_consultation'
-        status = 'completed'
-        verification_passed = $true
+        status = 'routed_pending_current_session'
+        verification_passed = $false
         skill_id = [string]$Consultation.skill_id
         consultation_window_id = [string]$WindowId
         consultation_stage = [string]$Stage
@@ -626,13 +626,13 @@ function New-VibeDirectRoutedSpecialistConsultationResult {
         response_json_path = $null
         prompt_path = $null
         schema_path = $null
-        result_reason = 'direct_current_session_route'
+        result_reason = 'pending_direct_current_session_route'
     }
     $resultPath = Join-Path $resultsRoot ("{0}.json" -f $UnitId)
     Write-VibeJsonArtifact -Path $resultPath -Value $result
 
     return [pscustomobject]@{
-        category = 'consulted'
+        category = 'routed'
         result = $result
         result_path = $resultPath
     }
@@ -842,6 +842,7 @@ function New-VibeSpecialistConsultationWindowSummary {
         [AllowEmptyCollection()] [AllowNull()] [object[]]$Blocked = @(),
         [AllowEmptyCollection()] [AllowNull()] [object[]]$Degraded = @(),
         [AllowEmptyCollection()] [AllowNull()] [object[]]$ConsultedUnits = @(),
+        [AllowEmptyCollection()] [AllowNull()] [object[]]$RoutedUnits = @(),
         [AllowEmptyCollection()] [AllowNull()] [object[]]$UserDisclosures = @()
     )
 
@@ -853,12 +854,14 @@ function New-VibeSpecialistConsultationWindowSummary {
         blocked_count = @($Blocked).Count
         degraded_count = @($Degraded).Count
         consulted_unit_count = @($ConsultedUnits).Count
+        routed_unit_count = @($RoutedUnits).Count
         user_disclosure_count = @($UserDisclosures).Count
         approved_skill_ids = @($ApprovedConsultation | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
         deferred_skill_ids = @($DeferredToExecution | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
         blocked_skill_ids = @($Blocked | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
         degraded_skill_ids = @($Degraded | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
         consulted_skill_ids = @($ConsultedUnits | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
+        routed_skill_ids = @($RoutedUnits | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
     }
 }
 
@@ -875,6 +878,7 @@ function Test-VibeSpecialistConsultationFreezeGate {
             errors = @()
             approved_skill_ids = @()
             consulted_skill_ids = @()
+            routed_skill_ids = @()
             degraded_skill_ids = @()
             deferred_skill_ids = @()
             blocked_skill_ids = @()
@@ -884,6 +888,7 @@ function Test-VibeSpecialistConsultationFreezeGate {
 
     $approvedSkillIds = @($Receipt.approved_consultation | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $consultedSkillIds = @($Receipt.consulted_units | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $routedSkillIds = @($Receipt.routed_units | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $degradedSkillIds = @($Receipt.degraded | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $deferredSkillIds = @($Receipt.deferred_to_execution | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $blockedSkillIds = @($Receipt.blocked | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
@@ -893,6 +898,12 @@ function Test-VibeSpecialistConsultationFreezeGate {
     foreach ($entry in @($Receipt.consulted_units)) {
         if ($null -ne $entry -and -not [string]::IsNullOrWhiteSpace([string]$entry.skill_id)) {
             $consultedIndex[[string]$entry.skill_id] = $entry
+        }
+    }
+    $routedIndex = @{}
+    foreach ($entry in @($Receipt.routed_units)) {
+        if ($null -ne $entry -and -not [string]::IsNullOrWhiteSpace([string]$entry.skill_id)) {
+            $routedIndex[[string]$entry.skill_id] = $entry
         }
     }
     $degradedIndex = @{}
@@ -906,6 +917,7 @@ function Test-VibeSpecialistConsultationFreezeGate {
     foreach ($skillId in @($approvedSkillIds)) {
         $outcomeCount = 0
         if ($consultedIndex.ContainsKey($skillId)) { $outcomeCount += 1 }
+        if ($routedIndex.ContainsKey($skillId)) { $outcomeCount += 1 }
         if ($degradedIndex.ContainsKey($skillId)) { $outcomeCount += 1 }
         if ($deferredSkillIds -contains $skillId) { $outcomeCount += 1 }
         if ($blockedSkillIds -contains $skillId) { $outcomeCount += 1 }
@@ -950,6 +962,7 @@ function Test-VibeSpecialistConsultationFreezeGate {
         errors = [string[]]$errors.ToArray()
         approved_skill_ids = @($approvedSkillIds)
         consulted_skill_ids = @($consultedSkillIds)
+        routed_skill_ids = @($routedSkillIds)
         degraded_skill_ids = @($degradedSkillIds)
         deferred_skill_ids = @($deferredSkillIds)
         blocked_skill_ids = @($blockedSkillIds)
@@ -1007,6 +1020,7 @@ function Invoke-VibeSpecialistConsultationWindow {
             blocked = @()
             degraded = @()
             consulted_units = @()
+            routed_units = @()
             user_disclosures = @()
             summary = New-VibeSpecialistConsultationWindowSummary -WindowId $WindowId -Stage $defaultStage
         }
@@ -1033,6 +1047,7 @@ function Invoke-VibeSpecialistConsultationWindow {
         -Policy $resolvedPolicy
 
     $consultedUnits = New-Object System.Collections.Generic.List[object]
+    $routedUnits = New-Object System.Collections.Generic.List[object]
     $degraded = New-Object System.Collections.Generic.List[object]
     foreach ($consultation in @($approvedConsultation)) {
         $unitId = ('consult-{0}-{1}' -f [string]$WindowId, [string]$consultation.skill_id)
@@ -1050,6 +1065,8 @@ function Invoke-VibeSpecialistConsultationWindow {
         $entry = $outcome.result | Select-Object *, @{ Name = 'result_path'; Expression = { [string]$outcome.result_path } }
         if ([string]$outcome.category -eq 'consulted') {
             $consultedUnits.Add($entry) | Out-Null
+        } elseif ([string]$outcome.category -eq 'routed') {
+            $routedUnits.Add($entry) | Out-Null
         } else {
             $degraded.Add($entry) | Out-Null
         }
@@ -1067,6 +1084,7 @@ function Invoke-VibeSpecialistConsultationWindow {
         blocked = @($blocked)
         degraded = [object[]]$degraded.ToArray()
         consulted_units = [object[]]$consultedUnits.ToArray()
+        routed_units = [object[]]$routedUnits.ToArray()
         user_disclosures = @($userDisclosures)
         summary = New-VibeSpecialistConsultationWindowSummary `
             -WindowId $WindowId `
@@ -1076,6 +1094,7 @@ function Invoke-VibeSpecialistConsultationWindow {
             -Blocked @($blocked) `
             -Degraded @($degraded.ToArray()) `
             -ConsultedUnits @($consultedUnits.ToArray()) `
+            -RoutedUnits @($routedUnits.ToArray()) `
             -UserDisclosures @($userDisclosures)
     }
     $receipt | Add-Member -NotePropertyName freeze_gate -NotePropertyValue (Test-VibeSpecialistConsultationFreezeGate -Receipt $receipt -Policy $resolvedPolicy)
@@ -1103,9 +1122,11 @@ function New-VibeSpecialistConsultationRuntimeProjection {
                 stage = [string]$receipt.stage
                 approved_consultation_count = if ($receipt.summary) { [int]$receipt.summary.approved_consultation_count } else { 0 }
                 consulted_unit_count = if ($receipt.summary) { [int]$receipt.summary.consulted_unit_count } else { 0 }
+                routed_unit_count = if ($receipt.summary) { [int]$receipt.summary.routed_unit_count } else { 0 }
                 user_disclosure_count = if ($receipt.summary) { [int]$receipt.summary.user_disclosure_count } else { 0 }
                 approved_skill_ids = if ($receipt.summary) { [object[]]@($receipt.summary.approved_skill_ids) } else { @() }
                 consulted_skill_ids = if ($receipt.summary) { [object[]]@($receipt.summary.consulted_skill_ids) } else { @() }
+                routed_skill_ids = if ($receipt.summary) { [object[]]@($receipt.summary.routed_skill_ids) } else { @() }
                 deferred_skill_ids = if ($receipt.summary) { [object[]]@($receipt.summary.deferred_skill_ids) } else { @() }
                 degraded_skill_ids = if ($receipt.summary) { [object[]]@($receipt.summary.degraded_skill_ids) } else { @() }
                 freeze_gate_passed = if ($receipt.PSObject.Properties.Name -contains 'freeze_gate') { [bool]$receipt.freeze_gate.passed } else { $true }
@@ -1120,6 +1141,7 @@ function New-VibeSpecialistConsultationRuntimeProjection {
         window_count = @($windowArray).Count
         approved_consultation_count = [int]((@($windowArray | ForEach-Object { [int]$_.approved_consultation_count }) | Measure-Object -Sum).Sum)
         consulted_unit_count = [int]((@($windowArray | ForEach-Object { [int]$_.consulted_unit_count }) | Measure-Object -Sum).Sum)
+        routed_unit_count = [int]((@($windowArray | ForEach-Object { [int]$_.routed_unit_count }) | Measure-Object -Sum).Sum)
         user_disclosure_count = [int]((@($windowArray | ForEach-Object { [int]$_.user_disclosure_count }) | Measure-Object -Sum).Sum)
         freeze_gate_passed = [bool](@($windowArray | Where-Object { -not [bool]$_.freeze_gate_passed }).Count -eq 0)
         freeze_gate_error_count = [int]((@($windowArray | ForEach-Object { [int]$_.freeze_gate_error_count }) | Measure-Object -Sum).Sum)
