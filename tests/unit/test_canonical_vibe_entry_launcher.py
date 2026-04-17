@@ -123,6 +123,82 @@ def test_canonical_entry_writes_host_launch_receipt(
     assert receipt["launch_status"] == "verified"
 
 
+def test_canonical_entry_prewrites_launched_receipt_before_runtime_invocation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_id = "pytest-canonical-entry-prewrite"
+    session_root = tmp_path / "outputs" / "runtime" / "vibe-sessions" / run_id
+
+    monkeypatch.setattr(
+        canonical_entry,
+        "resolve_canonical_vibe_contract",
+        lambda repo_root, host_id: {"fallback_policy": "blocked", "allow_skill_doc_fallback": False},
+    )
+
+    def fake_invoke_runtime(**kwargs: object) -> dict[str, object]:
+        receipt_path = session_root / "host-launch-receipt.json"
+        assert receipt_path.exists()
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        assert receipt["launch_status"] == "launched"
+        assert receipt["run_id"] == run_id
+        _write_valid_truth_artifacts(session_root)
+        return {
+            "run_id": run_id,
+            "session_root": str(session_root),
+            "summary_path": str(session_root / "runtime-summary.json"),
+            "summary": {"run_id": run_id},
+        }
+
+    monkeypatch.setattr(canonical_entry, "invoke_vibe_runtime_entrypoint", fake_invoke_runtime)
+
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=tmp_path,
+        host_id="codex",
+        entry_id="vibe",
+        prompt="x",
+        requested_stage_stop="phase_cleanup",
+        run_id=run_id,
+        artifact_root=tmp_path,
+    )
+
+    receipt = json.loads(result.host_launch_receipt_path.read_text(encoding="utf-8"))
+    assert receipt["launch_status"] == "verified"
+
+
+def test_canonical_entry_marks_receipt_failed_when_runtime_invocation_raises(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_id = "pytest-canonical-entry-runtime-failure"
+    session_root = tmp_path / "outputs" / "runtime" / "vibe-sessions" / run_id
+
+    monkeypatch.setattr(
+        canonical_entry,
+        "resolve_canonical_vibe_contract",
+        lambda repo_root, host_id: {"fallback_policy": "blocked", "allow_skill_doc_fallback": False},
+    )
+
+    def fake_invoke_runtime(**kwargs: object) -> dict[str, object]:
+        raise RuntimeError("runtime exploded")
+
+    monkeypatch.setattr(canonical_entry, "invoke_vibe_runtime_entrypoint", fake_invoke_runtime)
+
+    with pytest.raises(RuntimeError, match="runtime exploded"):
+        canonical_entry.launch_canonical_vibe(
+            repo_root=tmp_path,
+            host_id="codex",
+            entry_id="vibe",
+            prompt="x",
+            requested_stage_stop="phase_cleanup",
+            run_id=run_id,
+            artifact_root=tmp_path,
+        )
+
+    receipt = json.loads((session_root / "host-launch-receipt.json").read_text(encoding="utf-8"))
+    assert receipt["launch_status"] == "failed"
+
+
 def test_canonical_entry_rejects_non_blocked_fallback_policy(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

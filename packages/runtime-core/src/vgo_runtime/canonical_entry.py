@@ -89,6 +89,26 @@ def _normalize_requested_entry_id(entry_id: str | None) -> str:
     return requested_entry_id
 
 
+def _new_run_id() -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    suffix = os.urandom(4).hex()
+    return f"{timestamp}-{suffix}"
+
+
+def _resolve_artifact_root(repo_root: Path, artifact_root: str | Path | None) -> Path:
+    if artifact_root in (None, ""):
+        return (repo_root / ".vibeskills").resolve()
+
+    artifact_root_path = Path(str(artifact_root)).expanduser()
+    if artifact_root_path.is_absolute():
+        return artifact_root_path.resolve()
+    return (repo_root / artifact_root_path).resolve()
+
+
+def _resolve_session_root(*, repo_root: Path, run_id: str, artifact_root: str | Path | None) -> Path:
+    return (_resolve_artifact_root(repo_root, artifact_root) / "outputs" / "runtime" / "vibe-sessions" / run_id).resolve()
+
+
 def invoke_vibe_runtime_entrypoint(
     *,
     repo_root: Path,
@@ -308,25 +328,9 @@ def launch_canonical_vibe(
     if bool(contract.get("allow_skill_doc_fallback", False)):
         raise RuntimeError("unsupported fallback policy for canonical entry launcher")
 
-    payload = invoke_vibe_runtime_entrypoint(
-        repo_root=repo_root_path,
-        host_id=host_id,
-        entry_id=requested_entry_id,
-        prompt=prompt,
-        requested_stage_stop=requested_stage_stop,
-        requested_grade_floor=requested_grade_floor,
-        run_id=run_id,
-        artifact_root=artifact_root,
-        force_runtime_neutral=force_runtime_neutral,
-    )
-    session_root = Path(str(payload["session_root"])).resolve()
-    resolved_run_id = str(payload.get("run_id") or run_id or session_root.name)
-    summary_path = Path(str(payload.get("summary_path") or (session_root / "runtime-summary.json"))).resolve()
-
-    summary = dict(payload.get("summary") or {})
-    if summary_path.exists():
-        summary = _load_json_dict(summary_path, label="runtime-summary")
-
+    resolved_run_id = str(run_id or "").strip() or _new_run_id()
+    session_root = _resolve_session_root(repo_root=repo_root_path, run_id=resolved_run_id, artifact_root=artifact_root)
+    summary_path = (session_root / "runtime-summary.json").resolve()
     receipt = HostLaunchReceipt(
         host_id=host_id,
         entry_id=CANONICAL_RUNTIME_ENTRY_ID,
@@ -341,14 +345,47 @@ def launch_canonical_vibe(
     )
     receipt_path = write_host_launch_receipt(session_root, receipt)
 
-    artifacts = assert_minimum_truth_artifacts(session_root)
-    assert_minimum_truth_consistency(
-        receipt=receipt,
-        requested_entry_id=requested_entry_id,
-        runtime_packet_path=artifacts["runtime_input_packet"],
-        governance_capsule_path=artifacts["governance_capsule"],
-        stage_lineage_path=artifacts["stage_lineage"],
-    )
+    try:
+        payload = invoke_vibe_runtime_entrypoint(
+            repo_root=repo_root_path,
+            host_id=host_id,
+            entry_id=requested_entry_id,
+            prompt=prompt,
+            requested_stage_stop=requested_stage_stop,
+            requested_grade_floor=requested_grade_floor,
+            run_id=resolved_run_id,
+            artifact_root=artifact_root,
+            force_runtime_neutral=force_runtime_neutral,
+        )
+    except Exception:
+        failed_receipt = HostLaunchReceipt(**{**receipt.model_dump(), "launch_status": "failed"})
+        write_host_launch_receipt(receipt_path, failed_receipt)
+        raise
+
+    session_root = Path(str(payload["session_root"])).resolve()
+    resolved_run_id = str(payload.get("run_id") or resolved_run_id or session_root.name)
+    summary_path = Path(str(payload.get("summary_path") or summary_path)).resolve()
+
+    summary = dict(payload.get("summary") or {})
+    if summary_path.exists():
+        summary = _load_json_dict(summary_path, label="runtime-summary")
+
+    if receipt_path.parent != session_root:
+        receipt_path = write_host_launch_receipt(session_root, receipt)
+
+    try:
+        artifacts = assert_minimum_truth_artifacts(session_root)
+        assert_minimum_truth_consistency(
+            receipt=receipt,
+            requested_entry_id=requested_entry_id,
+            runtime_packet_path=artifacts["runtime_input_packet"],
+            governance_capsule_path=artifacts["governance_capsule"],
+            stage_lineage_path=artifacts["stage_lineage"],
+        )
+    except Exception:
+        failed_receipt = HostLaunchReceipt(**{**receipt.model_dump(), "launch_status": "failed"})
+        write_host_launch_receipt(receipt_path, failed_receipt)
+        raise
 
     verified_receipt = HostLaunchReceipt(**{**receipt.model_dump(), "launch_status": "verified"})
     receipt_path = write_host_launch_receipt(receipt_path, verified_receipt)
