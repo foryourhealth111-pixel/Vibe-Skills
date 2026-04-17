@@ -40,7 +40,17 @@ python -m vgo_cli.main canonical-entry `
   --prompt "<full user request>"
 ```
 
-If `python` is unavailable in Windows PowerShell, try `py -3` with the same arguments.
+If `python` is unavailable in Windows PowerShell, use the same invocation with `py -3` instead, for example:
+
+```powershell
+$env:PYTHONPATH = "<skill_root>/apps/vgo-cli/src"
+py -3 -m vgo_cli.main canonical-entry `
+  --repo-root "<skill_root>" `
+  --artifact-root "<workspace_root>" `
+  --host-id "<host_id>" `
+  --entry-id "vibe" `
+  --prompt "<full user request>"
+```
 
 Discoverable wrapper ids still enter canonical `vibe`; only the bounded stop changes:
 

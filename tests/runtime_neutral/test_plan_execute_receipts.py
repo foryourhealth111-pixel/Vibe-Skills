@@ -52,6 +52,14 @@ def extract_powershell_function(script_path: Path, function_name: str) -> str:
     return text[start:index]
 
 
+def require_preview_line(preview_lines: object, prefix: str) -> str:
+    normalized = [str(line) for line in list(preview_lines)]
+    line = next((line for line in normalized if line.startswith(prefix)), None)
+    if line is None:
+        raise AssertionError(f"{prefix} line not found in preview: {normalized}")
+    return line
+
+
 def create_repo_check_fake_codex_command(directory: Path) -> Path:
     suffix = ".cmd" if os.name == "nt" else ""
     command_path = directory / f"codex-repo-check{suffix}"
@@ -222,6 +230,7 @@ def create_codex_home_seed_verifying_fake_dispatch_command(directory: Path) -> P
             "if not exist \"%CODEX_HOME%\\config\\seed.json\" exit /b 8\r\n"
             "if not exist \"%CODEX_HOME%\\mcp\\seed.json\" exit /b 9\r\n"
             "> \"%OUT%\" echo {\"status\":\"completed\",\"summary\":\"Executed specialist from a seeded codex home.\",\"verification_notes\":[\"Execution used copied auth and config in the sidecar.\"],\"changed_files\":[],\"bounded_output_notes\":[\"Sidecar was seeded from the current host codex home before launch.\"]}\r\n"
+            "echo CODEX_HOME=%CODEX_HOME%\r\n"
             "echo CODEX_HOME_SEEDED=1\r\n"
             "exit /b 0\r\n",
             encoding="utf-8",
@@ -263,6 +272,7 @@ def create_codex_home_seed_verifying_fake_dispatch_command(directory: Path) -> P
             "  exit 9\n"
             "fi\n"
             "printf '%s' '{\"status\":\"completed\",\"summary\":\"Executed specialist from a seeded codex home.\",\"verification_notes\":[\"Execution used copied auth and config in the sidecar.\"],\"changed_files\":[],\"bounded_output_notes\":[\"Sidecar was seeded from the current host codex home before launch.\"]}' > \"$OUT\"\n"
+            "printf 'CODEX_HOME=%s\\n' \"$CODEX_HOME\"\n"
             "printf 'CODEX_HOME_SEEDED=1\\n'\n",
             encoding="utf-8",
         )
@@ -540,7 +550,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
             result = json.loads(completed.stdout)
             self.assertEqual("completed", result["status"])
             self.assertTrue(result["live_native_execution"])
-            self.assertEqual(non_git_root.as_posix(), result["cwd"])
+            self.assertEqual(non_git_root.resolve(), Path(result["cwd"]).resolve())
             self.assertIn("--skip-git-repo-check", list(result["arguments"]))
             self.assertTrue(Path(result["response_json_path"]).exists())
             self.assertEqual([], list(result["observed_changed_files"]))
@@ -612,7 +622,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
 
             result = json.loads(completed.stdout)
             self.assertEqual("completed", result["status"])
-            self.assertEqual(temp_path.as_posix(), result["cwd"])
+            self.assertEqual(temp_path.resolve(), Path(result["cwd"]).resolve())
             self.assertIn("--skip-git-repo-check", list(result["arguments"]))
             self.assertTrue(Path(result["response_json_path"]).exists())
 
@@ -677,18 +687,15 @@ class PlanExecuteReceiptTests(unittest.TestCase):
             result = json.loads(completed.stdout)
             self.assertEqual("completed", result["status"])
             self.assertTrue(result["live_native_execution"])
-            self.assertEqual(non_git_root.as_posix(), result["cwd"])
-            codex_home_line = next(
-                line for line in list(result["stdout_preview"]) if str(line).startswith("CODEX_HOME=")
-            )
+            self.assertEqual(non_git_root.resolve(), Path(result["cwd"]).resolve())
+            codex_home_line = require_preview_line(result["stdout_preview"], "CODEX_HOME=")
             codex_home = codex_home_line.split("=", 1)[1]
             self.assertNotIn(str(session_root), codex_home)
             self.assertNotIn(str(temp_path), codex_home)
-            skill_surface_line = next(
-                line for line in list(result["stdout_preview"]) if str(line).startswith("SKILL_SURFACE=")
-            )
+            self.assertFalse(Path(codex_home).exists())
+            skill_surface_line = require_preview_line(result["stdout_preview"], "SKILL_SURFACE=")
             skill_surface = skill_surface_line.split("=", 1)[1]
-            self.assertTrue(Path(skill_surface).exists())
+            self.assertFalse(Path(skill_surface).exists())
             self.assertEqual("SKILL.md", Path(skill_surface).name)
 
     def test_specialist_dispatch_seeds_sidecar_codex_home_from_current_host(self) -> None:
@@ -760,7 +767,10 @@ class PlanExecuteReceiptTests(unittest.TestCase):
             result = json.loads(completed.stdout)
             self.assertEqual("completed", result["status"])
             self.assertTrue(result["live_native_execution"])
+            codex_home_line = require_preview_line(result["stdout_preview"], "CODEX_HOME=")
+            codex_home = codex_home_line.split("=", 1)[1]
             self.assertIn("CODEX_HOME_SEEDED=1", list(result["stdout_preview"]))
+            self.assertFalse(Path(codex_home).exists())
 
 
 if __name__ == "__main__":

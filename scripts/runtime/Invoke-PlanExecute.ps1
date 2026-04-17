@@ -337,6 +337,9 @@ function ConvertTo-VibeExecutedUnitReceipt {
         execution_driver = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'execution_driver') { [string]$Outcome.lane_result.execution_driver } else { $null }
         live_native_execution = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'live_native_execution') { [bool]$Outcome.lane_result.live_native_execution } else { $false }
         degraded = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'degraded') { [bool]$Outcome.lane_result.degraded } else { $false }
+        prompt_path = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'prompt_path' -and -not [string]::IsNullOrWhiteSpace([string]$Outcome.lane_result.prompt_path)) { [string]$Outcome.lane_result.prompt_path } else { $null }
+        prompt_injection_complete = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'prompt_injection_complete') { [bool]$Outcome.lane_result.prompt_injection_complete } else { $false }
+        missing_prompt_injection_fields = if ($Outcome.lane_result -and $Outcome.lane_result.PSObject.Properties.Name -contains 'missing_prompt_injection_fields') { @($Outcome.lane_result.missing_prompt_injection_fields) } else { @() }
     }
 }
 

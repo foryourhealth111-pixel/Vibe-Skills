@@ -613,13 +613,18 @@ function Invoke-VibeSpecialistConsultationUnit {
         -RepoRoot $RepoRoot `
         -SessionRoot $SessionRoot `
         -SourceArtifactPath $SourceArtifactPath
-    $environmentOverrides = Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides `
+    $codexHomeBinding = Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides `
         -AdapterResolution $adapterResolution `
         -SkillRecord $Consultation `
         -RunId $RunId `
         -UnitId $UnitId
+    $environmentOverrides = if ($null -ne $codexHomeBinding -and (Test-VibeObjectHasProperty -InputObject $codexHomeBinding -PropertyName 'environment_overrides')) {
+        $codexHomeBinding.environment_overrides
+    } else {
+        $null
+    }
 
-    $beforeSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $workingRoot
+    $beforeSnapshot = Get-VibePathStatusSnapshot -RootPath $workingRoot
     Write-VgoUtf8NoBomText -Path $beforeGitPath -Content ((@($beforeSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
 
     $arguments = @()
@@ -640,29 +645,34 @@ function Invoke-VibeSpecialistConsultationUnit {
     )
 
     $startedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')
-    $processResult = Invoke-VibeCapturedProcess `
-        -Command ([string]$adapterResolution.command_path) `
-        -Arguments $arguments `
-        -WorkingDirectory $workingRoot `
-        -TimeoutSeconds ([int]$nativePolicy.default_timeout_seconds) `
-        -StdOutPath $stdoutPath `
-        -StdErrPath $stderrPath `
-        -EnvironmentOverrides $environmentOverrides
-    $finishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')
-
-    $afterSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $workingRoot
-    Write-VgoUtf8NoBomText -Path $afterGitPath -Content ((@($afterSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
-
-    $beforeLookup = @{}
-    foreach ($path in @($beforeSnapshot.paths)) {
-        $beforeLookup[[string]$path] = $true
-    }
-    $observedChangedFiles = @()
-    foreach ($path in @($afterSnapshot.paths)) {
-        if (-not $beforeLookup.ContainsKey([string]$path)) {
-            $observedChangedFiles += [string]$path
+    $processResult = $null
+    try {
+        $processResult = Invoke-VibeCapturedProcess `
+            -Command ([string]$adapterResolution.command_path) `
+            -Arguments $arguments `
+            -WorkingDirectory $workingRoot `
+            -TimeoutSeconds ([int]$nativePolicy.default_timeout_seconds) `
+            -StdOutPath $stdoutPath `
+            -StdErrPath $stderrPath `
+            -EnvironmentOverrides $environmentOverrides
+    } finally {
+        if (
+            $null -ne $codexHomeBinding -and
+            (Test-VibeObjectHasProperty -InputObject $codexHomeBinding -PropertyName 'codex_home_root')
+        ) {
+            Remove-VibeNativeSpecialistCodexHomeRoot -CodexHomeRoot ([string]$codexHomeBinding.codex_home_root)
         }
     }
+    $finishedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')
+
+    $afterSnapshot = Get-VibePathStatusSnapshot -RootPath $workingRoot
+    Write-VgoUtf8NoBomText -Path $afterGitPath -Content ((@($afterSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
+
+    $observedChangedFiles = Get-VibeObservedChangedPaths `
+        -BeforeSnapshot $beforeSnapshot `
+        -AfterSnapshot $afterSnapshot `
+        -SnapshotRoot $workingRoot `
+        -IgnoredPaths @($SessionRoot)
 
     $parsedResponse = $null
     $responseParseError = $null

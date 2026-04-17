@@ -341,26 +341,33 @@ function Initialize-VibeNativeSpecialistDirectoryCopy {
 function Resolve-VibeCurrentCodexHomeRoot {
     $homeDir = Resolve-VgoHomeDirectory
     $defaultCodexHome = Join-Path $homeDir '.codex'
-    $nativeSpecialistRoot = Join-Path $homeDir '.vibeskills'
-    $nativeSpecialistRoot = Join-Path $nativeSpecialistRoot 'runtime-native-specialist'
-    $nativeSpecialistRoot = Join-Path $nativeSpecialistRoot 'codex-home'
-    $nativeSpecialistRoot = [System.IO.Path]::GetFullPath($nativeSpecialistRoot)
 
     $envCodexHome = [Environment]::GetEnvironmentVariable('CODEX_HOME')
     if (-not [string]::IsNullOrWhiteSpace($envCodexHome) -and (Test-Path -LiteralPath $envCodexHome -PathType Container)) {
         $resolvedEnvCodexHome = [System.IO.Path]::GetFullPath([string]$envCodexHome)
-        $sidecarPrefix = $nativeSpecialistRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-        $sidecarPrefixWithSeparator = $sidecarPrefix + [System.IO.Path]::DirectorySeparatorChar
-        if (-not $resolvedEnvCodexHome.StartsWith($sidecarPrefixWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $sidecarMarkerPath = Get-VibeNativeSpecialistCodexHomeMarkerPath -CodexHomeRoot $resolvedEnvCodexHome
+        if (-not (Test-Path -LiteralPath $sidecarMarkerPath -PathType Leaf)) {
             return $resolvedEnvCodexHome
         }
     }
 
     if (Test-Path -LiteralPath $defaultCodexHome -PathType Container) {
-        return [System.IO.Path]::GetFullPath($defaultCodexHome)
+        $resolvedDefaultCodexHome = [System.IO.Path]::GetFullPath($defaultCodexHome)
+        $sidecarMarkerPath = Get-VibeNativeSpecialistCodexHomeMarkerPath -CodexHomeRoot $resolvedDefaultCodexHome
+        if (-not (Test-Path -LiteralPath $sidecarMarkerPath -PathType Leaf)) {
+            return $resolvedDefaultCodexHome
+        }
     }
 
     return $null
+}
+
+function Get-VibeNativeSpecialistCodexHomeMarkerPath {
+    param(
+        [Parameter(Mandatory)] [string]$CodexHomeRoot
+    )
+
+    return [System.IO.Path]::GetFullPath((Join-Path $CodexHomeRoot '.vibe-native-specialist-sidecar'))
 }
 
 function Initialize-VibeNativeSpecialistCodexHomeSeed {
@@ -368,17 +375,22 @@ function Initialize-VibeNativeSpecialistCodexHomeSeed {
         [Parameter(Mandatory)] [string]$TargetCodexHomeRoot
     )
 
+    $targetRoot = [System.IO.Path]::GetFullPath($TargetCodexHomeRoot)
+    New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
+
+    $sidecarMarkerPath = Get-VibeNativeSpecialistCodexHomeMarkerPath -CodexHomeRoot $targetRoot
+    if (-not (Test-Path -LiteralPath $sidecarMarkerPath -PathType Leaf)) {
+        Write-VgoUtf8NoBomText -Path $sidecarMarkerPath -Content ''
+    }
+
     $sourceCodexHomeRoot = Resolve-VibeCurrentCodexHomeRoot
     if ([string]::IsNullOrWhiteSpace($sourceCodexHomeRoot)) {
         return $null
     }
 
-    $targetRoot = [System.IO.Path]::GetFullPath($TargetCodexHomeRoot)
     if ([System.StringComparer]::OrdinalIgnoreCase.Equals($sourceCodexHomeRoot, $targetRoot)) {
         return $sourceCodexHomeRoot
     }
-
-    New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
 
     $seedEntries = @(
         [pscustomobject]@{ relative_path = 'config.toml'; kind = 'file' },
@@ -447,13 +459,31 @@ function Get-VibeNativeSpecialistCodexHomeRoot {
         [Parameter(Mandatory)] [string]$UnitId
     )
 
-    $homeDir = Resolve-VgoHomeDirectory
-    $baseRoot = Join-Path $homeDir '.vibeskills'
-    $baseRoot = Join-Path $baseRoot 'runtime-native-specialist'
-    $baseRoot = Join-Path $baseRoot 'codex-home'
+    $baseRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'vibe-native-specialist-codex-home'
     $runSegment = ConvertTo-VibeSlug -Text $RunId
     $unitSegment = ConvertTo-VibeSlug -Text $UnitId
-    return [System.IO.Path]::GetFullPath((Join-Path $baseRoot ("{0}-{1}" -f $runSegment, $unitSegment)))
+    $instanceSegment = [System.Guid]::NewGuid().ToString('N')
+    return [System.IO.Path]::GetFullPath((Join-Path $baseRoot ("{0}-{1}-{2}" -f $runSegment, $unitSegment, $instanceSegment)))
+}
+
+function Remove-VibeNativeSpecialistCodexHomeRoot {
+    param(
+        [AllowEmptyString()] [string]$CodexHomeRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CodexHomeRoot)) {
+        return
+    }
+
+    $candidatePath = [System.IO.Path]::GetFullPath($CodexHomeRoot)
+    if (-not (Test-Path -LiteralPath $candidatePath)) {
+        return
+    }
+
+    try {
+        Remove-Item -LiteralPath $candidatePath -Recurse -Force -ErrorAction Stop
+    } catch {
+    }
 }
 
 function Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides {
@@ -510,8 +540,11 @@ function Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides {
         Write-VgoUtf8NoBomText -Path $configPath -Content ''
     }
 
-    return @{
-        CODEX_HOME = [System.IO.Path]::GetFullPath($codexHomeRoot)
+    return [pscustomobject]@{
+        codex_home_root = [System.IO.Path]::GetFullPath($codexHomeRoot)
+        environment_overrides = @{
+            CODEX_HOME = [System.IO.Path]::GetFullPath($codexHomeRoot)
+        }
     }
 }
 
@@ -924,12 +957,13 @@ function Get-VibeGitStatusSnapshot {
         [Parameter(Mandatory)] [string]$RepoRoot
     )
 
-    $gitDir = Join-Path $RepoRoot '.git'
-    if (-not (Test-Path -LiteralPath $gitDir)) {
+    if (-not (Test-VibePathIsGitWorkTree -Path $RepoRoot)) {
         return [pscustomobject]@{
             available = $false
+            mode = 'git'
             paths = @()
             lines = @()
+            entries = @{}
         }
     }
 
@@ -937,8 +971,10 @@ function Get-VibeGitStatusSnapshot {
     if (-not $gitCommand) {
         return [pscustomobject]@{
             available = $false
+            mode = 'git'
             paths = @()
             lines = @()
+            entries = @{}
         }
     }
 
@@ -946,12 +982,15 @@ function Get-VibeGitStatusSnapshot {
     if ($LASTEXITCODE -ne 0) {
         return [pscustomobject]@{
             available = $false
+            mode = 'git'
             paths = @()
             lines = @()
+            entries = @{}
         }
     }
 
     $paths = @()
+    $entries = @{}
     foreach ($line in @($snapshot)) {
         $text = [string]$line
         if ([string]::IsNullOrWhiteSpace($text) -or $text.Length -lt 4) {
@@ -962,15 +1001,197 @@ function Get-VibeGitStatusSnapshot {
             $pathText = ($pathText -split ' -> ')[-1].Trim()
         }
         if (-not [string]::IsNullOrWhiteSpace($pathText)) {
-            $paths += $pathText
+            $normalizedPath = ConvertTo-VibeSnapshotComparablePath -RelativePath $pathText
+            $paths += $normalizedPath
+            $entries[$normalizedPath] = $text
         }
     }
 
     return [pscustomobject]@{
         available = $true
+        mode = 'git'
         paths = @($paths | Select-Object -Unique)
         lines = @($snapshot)
+        entries = $entries
     }
+}
+
+function ConvertTo-VibeSnapshotComparablePath {
+    param(
+        [AllowEmptyString()] [string]$RelativePath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        return ''
+    }
+
+    $normalized = [string]$RelativePath
+    $normalized = $normalized.Replace('\', '/')
+    while ($normalized.StartsWith('./', [System.StringComparison]::Ordinal)) {
+        $normalized = $normalized.Substring(2)
+    }
+    return $normalized.Trim('/')
+}
+
+function Get-VibeFileSystemStatusSnapshot {
+    param(
+        [Parameter(Mandatory)] [string]$RootPath
+    )
+
+    $resolvedRoot = [System.IO.Path]::GetFullPath($RootPath)
+    if (-not (Test-Path -LiteralPath $resolvedRoot -PathType Container)) {
+        return [pscustomobject]@{
+            available = $false
+            mode = 'filesystem'
+            paths = @()
+            lines = @()
+            entries = @{}
+        }
+    }
+
+    $entries = @{}
+    $lines = New-Object System.Collections.Generic.List[string]
+    $items = @(Get-ChildItem -LiteralPath $resolvedRoot -Recurse -Force -ErrorAction SilentlyContinue | Sort-Object FullName)
+    foreach ($item in @($items)) {
+        $relativePath = ConvertTo-VibeSnapshotComparablePath -RelativePath (Get-VibeRelativePathCompat -BasePath $resolvedRoot -TargetPath ([string]$item.FullName))
+        if ([string]::IsNullOrWhiteSpace($relativePath)) {
+            continue
+        }
+
+        if ($item.PSIsContainer) {
+            $fingerprint = 'dir'
+            $lineText = ('D {0}' -f $relativePath)
+        } else {
+            try {
+                $hashValue = [string](Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256 -ErrorAction Stop).Hash
+            } catch {
+                $hashValue = ('fallback:{0}:{1}' -f [string]$item.Length, [string]$item.LastWriteTimeUtc.Ticks)
+            }
+            $fingerprint = ('file:{0}' -f $hashValue)
+            $lineText = ('F {0} {1}' -f $hashValue, $relativePath)
+        }
+
+        $entries[$relativePath] = $fingerprint
+        $lines.Add($lineText) | Out-Null
+    }
+
+    return [pscustomobject]@{
+        available = $true
+        mode = 'filesystem'
+        paths = @($entries.Keys | Sort-Object)
+        lines = @($lines)
+        entries = $entries
+    }
+}
+
+function Get-VibePathStatusSnapshot {
+    param(
+        [Parameter(Mandatory)] [string]$RootPath
+    )
+
+    $gitSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $RootPath
+    if ([bool]$gitSnapshot.available) {
+        return $gitSnapshot
+    }
+
+    return Get-VibeFileSystemStatusSnapshot -RootPath $RootPath
+}
+
+function Test-VibeSnapshotPathIgnored {
+    param(
+        [AllowEmptyString()] [string]$RelativePath,
+        [string[]]$IgnoredRelativePaths = @()
+    )
+
+    $candidate = ConvertTo-VibeSnapshotComparablePath -RelativePath $RelativePath
+    if ([string]::IsNullOrWhiteSpace($candidate)) {
+        return $false
+    }
+
+    foreach ($ignoredPath in @($IgnoredRelativePaths)) {
+        $normalizedIgnoredPath = ConvertTo-VibeSnapshotComparablePath -RelativePath ([string]$ignoredPath)
+        if ([string]::IsNullOrWhiteSpace($normalizedIgnoredPath)) {
+            continue
+        }
+        if (
+            [System.StringComparer]::OrdinalIgnoreCase.Equals($candidate, $normalizedIgnoredPath) -or
+            $candidate.StartsWith(($normalizedIgnoredPath + '/'), [System.StringComparison]::OrdinalIgnoreCase)
+        ) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Get-VibeObservedChangedPaths {
+    param(
+        [AllowNull()] [object]$BeforeSnapshot = $null,
+        [AllowNull()] [object]$AfterSnapshot = $null,
+        [Parameter(Mandatory)] [string]$SnapshotRoot,
+        [string[]]$IgnoredPaths = @()
+    )
+
+    $resolvedRoot = [System.IO.Path]::GetFullPath($SnapshotRoot)
+    $ignoredRelativePaths = New-Object System.Collections.Generic.List[string]
+    foreach ($ignoredPath in @($IgnoredPaths)) {
+        if ([string]::IsNullOrWhiteSpace([string]$ignoredPath)) {
+            continue
+        }
+
+        $resolvedIgnoredPath = [System.IO.Path]::GetFullPath([string]$ignoredPath)
+        if (-not (Test-Path -LiteralPath $resolvedIgnoredPath)) {
+            continue
+        }
+        if ([System.StringComparer]::OrdinalIgnoreCase.Equals($resolvedRoot, $resolvedIgnoredPath)) {
+            continue
+        }
+
+        $relativePath = ConvertTo-VibeSnapshotComparablePath -RelativePath (Get-VibeRelativePathCompat -BasePath $resolvedRoot -TargetPath $resolvedIgnoredPath)
+        if ([string]::IsNullOrWhiteSpace($relativePath)) {
+            continue
+        }
+        if (-not $ignoredRelativePaths.Contains($relativePath)) {
+            $ignoredRelativePaths.Add($relativePath) | Out-Null
+        }
+    }
+
+    $beforeEntries = if ($null -ne $BeforeSnapshot -and (Test-VibeObjectHasProperty -InputObject $BeforeSnapshot -PropertyName 'entries') -and $null -ne $BeforeSnapshot.entries) {
+        $BeforeSnapshot.entries
+    } else {
+        @{}
+    }
+    $afterEntries = if ($null -ne $AfterSnapshot -and (Test-VibeObjectHasProperty -InputObject $AfterSnapshot -PropertyName 'entries') -and $null -ne $AfterSnapshot.entries) {
+        $AfterSnapshot.entries
+    } else {
+        @{}
+    }
+
+    $candidatePaths = New-Object System.Collections.Generic.List[string]
+    foreach ($key in @($beforeEntries.Keys + $afterEntries.Keys | Select-Object -Unique)) {
+        $normalizedKey = ConvertTo-VibeSnapshotComparablePath -RelativePath ([string]$key)
+        if ([string]::IsNullOrWhiteSpace($normalizedKey)) {
+            continue
+        }
+        if (-not $candidatePaths.Contains($normalizedKey)) {
+            $candidatePaths.Add($normalizedKey) | Out-Null
+        }
+    }
+
+    $changedPaths = New-Object System.Collections.Generic.List[string]
+    foreach ($path in @($candidatePaths | Sort-Object)) {
+        if (Test-VibeSnapshotPathIgnored -RelativePath $path -IgnoredRelativePaths @($ignoredRelativePaths)) {
+            continue
+        }
+
+        $beforeExists = $beforeEntries.ContainsKey($path)
+        $afterExists = $afterEntries.ContainsKey($path)
+        if (-not $beforeExists -or -not $afterExists -or -not [System.StringComparer]::Ordinal.Equals([string]$beforeEntries[$path], [string]$afterEntries[$path])) {
+            $changedPaths.Add($path) | Out-Null
+        }
+    }
+
+    return @($changedPaths)
 }
 
 function Test-VibePathIsGitWorkTree {
@@ -1383,13 +1604,18 @@ function Invoke-VibeSpecialistDispatchUnit {
         -SessionRoot $SessionRoot `
         -RequirementDocPath $RequirementDocPath `
         -ExecutionPlanPath $ExecutionPlanPath
-    $environmentOverrides = Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides `
+    $codexHomeBinding = Get-VibeNativeSpecialistCodexHomeEnvironmentOverrides `
         -AdapterResolution $adapterResolution `
         -SkillRecord $Dispatch `
         -RunId $RunId `
         -UnitId $UnitId
+    $environmentOverrides = if ($null -ne $codexHomeBinding -and (Test-VibeObjectHasProperty -InputObject $codexHomeBinding -PropertyName 'environment_overrides')) {
+        $codexHomeBinding.environment_overrides
+    } else {
+        $null
+    }
 
-    $beforeSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $workingRoot
+    $beforeSnapshot = Get-VibePathStatusSnapshot -RootPath $workingRoot
     Write-VgoUtf8NoBomText -Path $beforeGitPath -Content ((@($beforeSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
 
     $arguments = @()
@@ -1408,16 +1634,26 @@ function Invoke-VibeSpecialistDispatchUnit {
         '-o', $responsePath,
         $prompt
     )
-    $processResult = Invoke-VibeCapturedProcess `
-        -Command ([string]$adapterResolution.command_path) `
-        -Arguments $arguments `
-        -WorkingDirectory $workingRoot `
-        -TimeoutSeconds ([int]$policy.default_timeout_seconds) `
-        -StdOutPath $stdoutPath `
-        -StdErrPath $stderrPath `
-        -EnvironmentOverrides $environmentOverrides
+    $processResult = $null
+    try {
+        $processResult = Invoke-VibeCapturedProcess `
+            -Command ([string]$adapterResolution.command_path) `
+            -Arguments $arguments `
+            -WorkingDirectory $workingRoot `
+            -TimeoutSeconds ([int]$policy.default_timeout_seconds) `
+            -StdOutPath $stdoutPath `
+            -StdErrPath $stderrPath `
+            -EnvironmentOverrides $environmentOverrides
+    } finally {
+        if (
+            $null -ne $codexHomeBinding -and
+            (Test-VibeObjectHasProperty -InputObject $codexHomeBinding -PropertyName 'codex_home_root')
+        ) {
+            Remove-VibeNativeSpecialistCodexHomeRoot -CodexHomeRoot ([string]$codexHomeBinding.codex_home_root)
+        }
+    }
 
-    $afterSnapshot = Get-VibeGitStatusSnapshot -RepoRoot $workingRoot
+    $afterSnapshot = Get-VibePathStatusSnapshot -RootPath $workingRoot
     Write-VgoUtf8NoBomText -Path $afterGitPath -Content ((@($afterSnapshot.lines) -join [Environment]::NewLine) + [Environment]::NewLine)
 
     $parsedResponse = $null
@@ -1432,16 +1668,11 @@ function Invoke-VibeSpecialistDispatchUnit {
         $responseParseError = 'native_specialist_response_missing'
     }
 
-    $beforeLookup = @{}
-    foreach ($path in @($beforeSnapshot.paths)) {
-        $beforeLookup[[string]$path] = $true
-    }
-    $observedChangedFiles = @()
-    foreach ($path in @($afterSnapshot.paths)) {
-        if (-not $beforeLookup.ContainsKey([string]$path)) {
-            $observedChangedFiles += [string]$path
-        }
-    }
+    $observedChangedFiles = Get-VibeObservedChangedPaths `
+        -BeforeSnapshot $beforeSnapshot `
+        -AfterSnapshot $afterSnapshot `
+        -SnapshotRoot $workingRoot `
+        -IgnoredPaths @($SessionRoot)
 
     $responseStatus = if ($parsedResponse -and $parsedResponse.PSObject.Properties.Name -contains 'status') {
         [string]$parsedResponse.status
