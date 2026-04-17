@@ -163,6 +163,8 @@ class SkillPromotionDestructiveGateTests(unittest.TestCase):
                 ML_PROMPT,
                 temp_path,
                 extra_env={
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
@@ -172,5 +174,6 @@ class SkillPromotionDestructiveGateTests(unittest.TestCase):
             specialist_accounting = execution_manifest["specialist_accounting"]
 
             self.assertGreaterEqual(int(specialist_accounting["approved_dispatch_count"]), 1)
-            self.assertGreaterEqual(int(specialist_accounting["executed_specialist_unit_count"]), 1)
-            self.assertEqual("live_native_executed", specialist_accounting["effective_execution_status"])
+            self.assertEqual(0, int(specialist_accounting["executed_specialist_unit_count"]))
+            self.assertGreaterEqual(int(specialist_accounting["direct_routed_specialist_unit_count"]), 1)
+            self.assertEqual("direct_current_session_routed", specialist_accounting["effective_execution_status"])

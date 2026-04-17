@@ -2,6 +2,7 @@
   "version": 2,
   "updated_at": "2026-03-29",
   "enabled": true,
+  "mode": "direct_current_session_route",
   "default_adapter_id": "codex",
   "enable_env": "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION",
   "disable_env": "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION",

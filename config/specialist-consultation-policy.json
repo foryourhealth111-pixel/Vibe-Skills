@@ -3,6 +3,7 @@
   "policy_id": "specialist-consultation-v1",
   "updated_at": "2026-04-12",
   "enabled": true,
+  "mode": "direct_current_session_route",
   "max_consults_per_window": 2,
   "allowed_windows": [
     "discussion",

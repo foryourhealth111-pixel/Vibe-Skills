@@ -643,6 +643,131 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             completed.stderr,
         )
 
+    def test_consultation_lifecycle_projection_handles_summary_only_receipt(self) -> None:
+        result = run_runtime_common_json(
+            """
+            $receipt = [pscustomobject]@{
+                enabled = $true
+                window_id = 'discussion'
+                stage = 'requirement_doc'
+                summary = [pscustomobject]@{
+                    consulted_unit_count = 0
+                    routed_unit_count = 1
+                }
+                user_disclosures = @(
+                    [pscustomobject]@{
+                        skill_id = 'systematic-debugging'
+                        why_now = 'need debugging guidance before requirement freeze'
+                        native_skill_entrypoint = 'scripts/runtime/systematic-debugging/SKILL.md'
+                    }
+                )
+            }
+            $result = New-VibeSpecialistConsultationLifecycleLayerProjection -ConsultationReceipt $receipt
+            $result | ConvertTo-Json -Depth 20
+            """
+        )
+
+        self.assertEqual("discussion_consultation", result["layer_id"])
+        self.assertEqual(1, int(result["skill_count"]))
+        self.assertIn("Specialist consultation routing during discussion:", result["rendered_text"])
+        skill = list(result["skills"])[0]
+        self.assertEqual("systematic-debugging", skill["skill_id"])
+        self.assertEqual("consultation_disclosed", skill["state"])
+
+    def test_consultation_lifecycle_projection_uses_chain_header_for_mixed_consultation_state(self) -> None:
+        result = run_runtime_common_json(
+            """
+            $receipt = [pscustomobject]@{
+                enabled = $true
+                window_id = 'discussion'
+                stage = 'requirement_doc'
+                summary = [pscustomobject]@{
+                    consulted_unit_count = 1
+                    routed_unit_count = 1
+                }
+                user_disclosures = @(
+                    [pscustomobject]@{
+                        skill_id = 'systematic-debugging'
+                        why_now = 'need debugging guidance before requirement freeze'
+                        native_skill_entrypoint = 'scripts/runtime/systematic-debugging/SKILL.md'
+                    }
+                )
+            }
+            $result = New-VibeSpecialistConsultationLifecycleLayerProjection -ConsultationReceipt $receipt
+            $result | ConvertTo-Json -Depth 20
+            """
+        )
+
+        self.assertIn("Recorded specialist consultation chain during discussion:", result["rendered_text"])
+
+    def test_host_stage_disclosure_treats_suffix_routed_states_as_routed(self) -> None:
+        result = run_runtime_common_json(
+            """
+            $segment = [pscustomobject]@{
+                segment_id = 'discussion_consultation'
+                stage = 'deep_interview'
+                skills = @(
+                    [pscustomobject]@{
+                        skill_id = 'systematic-debugging'
+                        state = 'direct_current_session_routed'
+                    }
+                )
+            }
+            $result = New-VibeHostStageDisclosureEventProjection -Segment $segment
+            $result | ConvertTo-Json -Depth 20
+            """
+        )
+
+        self.assertEqual("discussion_consultation_routed", result["event_id"])
+
+    def test_invalid_specialist_consultation_mode_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            completed = run_runtime(
+                SPECIALIST_TASK,
+                Path(tempdir),
+                extra_env={
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "typo-mode",
+                },
+                check=False,
+            )
+
+        assert isinstance(completed, subprocess.CompletedProcess)
+        self.assertNotEqual(0, completed.returncode)
+        self.assertIn(
+            "Unsupported specialist consultation mode: typo-mode",
+            "\n".join([completed.stdout, completed.stderr]),
+        )
+
+    def test_host_user_briefing_segment_handles_missing_consultation_receipt(self) -> None:
+        result = run_runtime_common_json(
+            """
+            $layer = [pscustomobject]@{
+                layer_id = 'discussion_consultation'
+                stage = 'deep_interview'
+                truth_layer = 'consultation'
+                skills = @(
+                    [pscustomobject]@{
+                        skill_id = 'systematic-debugging'
+                        state = 'direct_current_session_routed'
+                        why_now = 'need debugging guidance before requirement freeze'
+                        native_skill_entrypoint = 'scripts/runtime/systematic-debugging/SKILL.md'
+                    }
+                )
+            }
+            $result = New-VibeHostUserBriefingSegmentProjection -LifecycleLayer $layer -ConsultationReceipt $null
+            $result | ConvertTo-Json -Depth 20
+            """
+        )
+
+        self.assertEqual("consultation", result["category"])
+        self.assertEqual("gate_unknown", result["status"])
+        self.assertIn(
+            "Vibe recorded these Skills in the discussion consultation chain; freeze gate: not_applicable.",
+            result["rendered_text"],
+        )
+
     def test_consultation_window_invokes_specialist_and_emits_progressive_disclosure(self) -> None:
         shell = resolve_powershell()
         if shell is None:
@@ -688,6 +813,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -769,6 +896,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -830,6 +959,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -893,6 +1024,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                         **os.environ,
                         "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                         "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                        "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                        "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                         "VGO_CODEX_EXECUTABLE": str(fake_codex),
                     },
                 )
@@ -960,6 +1093,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -1036,6 +1171,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     "CODEX_HOME": str(source_codex_home),
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -1054,7 +1191,11 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             payload = run_runtime(
                 SPECIALIST_TASK,
                 artifact_root,
-                extra_env={"VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                extra_env={
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                },
             )
             summary = payload["summary"]
             artifacts = summary["artifacts"]
@@ -1074,6 +1215,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             for receipt in (discussion_receipt, planning_receipt):
                 self.assertTrue(bool(receipt["enabled"]))
                 self.assertGreaterEqual(len(list(receipt["approved_consultation"])), 1)
+                self.assertEqual([], list(receipt["consulted_units"]))
+                self.assertGreaterEqual(len(list(receipt["routed_units"])), 1)
                 self.assertGreaterEqual(len(list(receipt["user_disclosures"])), 1)
                 disclosure = next(
                     item for item in list(receipt["user_disclosures"]) if item["skill_id"] == "systematic-debugging"
@@ -1089,6 +1232,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 ["discussion", "planning"],
                 [str(window["window_id"]) for window in list(specialist_consultation["windows"])],
             )
+            self.assertEqual(0, int(specialist_consultation["consulted_unit_count"]))
+            self.assertGreaterEqual(int(specialist_consultation["routed_unit_count"]), 2)
             self.assertGreaterEqual(int(specialist_consultation["user_disclosure_count"]), 2)
             self.assertNotIn("specialist_consultation", summary["specialist_user_disclosure"])
 
@@ -1125,8 +1270,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             self.assertEqual(
                 [
                     "discussion_routing_frozen",
-                    "discussion_consultation_completed",
-                    "planning_consultation_completed",
+                    "discussion_consultation_routed",
+                    "planning_consultation_routed",
                     "execution_dispatch_confirmed",
                 ],
                 [str(event["event_id"]) for event in list(host_stage_disclosure["events"])],
@@ -1155,7 +1300,10 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 [str(segment["segment_id"]) for segment in list(host_user_briefing["segments"])],
             )
             self.assertIn("Vibe routed these Skills", host_user_briefing["rendered_text"])
-            self.assertIn("Vibe consulted these Skills during discussion", host_user_briefing["rendered_text"])
+            self.assertIn(
+                "Vibe routed these Skills for direct current-session consultation during discussion",
+                host_user_briefing["rendered_text"],
+            )
             self.assertIn("freeze gate: passed", host_user_briefing["rendered_text"])
             self.assertIn("Vibe approved these Skills for execution", host_user_briefing["rendered_text"])
             self.assertIn("systematic-debugging", host_user_briefing["rendered_text"])
@@ -1214,6 +1362,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -1244,6 +1394,8 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 extra_env={
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
                 check=False,

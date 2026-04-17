@@ -714,6 +714,7 @@ class RuntimeContractSchemaTests(unittest.TestCase):
                 "surfaced",
                 "dispatched",
                 "executed",
+                "routed",
                 "blocked_due_to_destructive",
                 "degraded_due_to_missing_contract",
                 "ghost_match",

@@ -518,7 +518,7 @@ if ($discussionConsultation -and [bool]$discussionConsultation.enabled) {
     $lines += @(
         '',
         '## Specialist Consultation',
-        'These are specialists actually consulted during discussion-time under governed `vibe` before this requirement doc was frozen.'
+        'These are specialists resolved for discussion-time handling under governed `vibe` before this requirement doc was frozen. Depending on policy, they may be consulted live or routed for direct current-session loading.'
     )
     foreach ($disclosure in @($discussionConsultation.user_disclosures)) {
         $lines += @(

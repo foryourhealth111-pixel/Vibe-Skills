@@ -156,6 +156,69 @@ class MultiHostSpecialistExecutionTests(unittest.TestCase):
                 execution_manifest["route_runtime_alignment"]["effective_host_adapter_id"],
             )
 
+    def test_non_codex_hosts_route_directly_by_default_even_when_wrapper_is_configured(self) -> None:
+        for host_id, env_name, command_name in HOST_CASES:
+            with self.subTest(host_id=host_id):
+                with tempfile.TemporaryDirectory() as tempdir:
+                    temp_path = Path(tempdir)
+                    wrapper = create_fake_wrapper(temp_path, command_name, host_id)
+                    payload = run_runtime(
+                        TASK,
+                        artifact_root=temp_path,
+                        extra_env={
+                            "VCO_HOST_ID": host_id,
+                            "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "",
+                            "VGO_SPECIALIST_CONSULTATION_MODE": "",
+                            "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                            "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                            env_name: str(wrapper),
+                        },
+                    )
+                    summary = payload["summary"]
+                    execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
+                    specialist_accounting = execution_manifest["specialist_accounting"]
+
+                    self.assertEqual("direct_current_session_routed", specialist_accounting["effective_execution_status"])
+                    self.assertGreaterEqual(int(specialist_accounting["direct_routed_specialist_unit_count"]), 1)
+                    self.assertEqual(host_id, specialist_accounting["effective_host_adapter_id"])
+
+                    routed_units = list(specialist_accounting["direct_routed_specialist_units"])
+                    self.assertGreaterEqual(len(routed_units), 1)
+                    for unit in routed_units:
+                        result = load_json(unit["result_path"])
+                        self.assertEqual("direct_current_session_route", result["execution_driver"])
+                        self.assertTrue(bool(result["direct_route"]))
+                        self.assertFalse(bool(result["live_native_execution"]))
+                        self.assertFalse(bool(result["degraded"]))
+                        self.assertFalse(bool(result["blocked"]))
+
+    def test_invalid_specialist_execution_mode_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            payload = run_runtime(
+                TASK,
+                artifact_root=Path(tempdir),
+                extra_env={
+                    "VCO_HOST_ID": "openclaw",
+                    "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "typo-mode",
+                },
+            )
+            summary = payload["summary"]
+            execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
+            specialist_accounting = execution_manifest["specialist_accounting"]
+
+            self.assertEqual("explicitly_degraded", specialist_accounting["effective_execution_status"])
+            self.assertEqual(0, int(specialist_accounting["executed_specialist_unit_count"]))
+            self.assertEqual(0, int(specialist_accounting["direct_routed_specialist_unit_count"]))
+            degraded_units = list(specialist_accounting["degraded_specialist_units"])
+            self.assertGreaterEqual(len(degraded_units), 1)
+            first = load_json(degraded_units[0]["result_path"])
+            self.assertEqual(
+                "native_specialist_execution_mode_invalid:typo-mode",
+                first["degradation_reason"],
+            )
+
     def test_non_codex_hosts_can_execute_live_specialist_lane_when_wrapper_is_configured(self) -> None:
         for host_id, env_name, command_name in HOST_CASES:
             with self.subTest(host_id=host_id):
@@ -169,6 +232,7 @@ class MultiHostSpecialistExecutionTests(unittest.TestCase):
                             "VCO_HOST_ID": host_id,
                             "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                             "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                            "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                             env_name: str(wrapper),
                         },
                     )
@@ -199,6 +263,7 @@ class MultiHostSpecialistExecutionTests(unittest.TestCase):
                     "VCO_HOST_ID": "windsurf",
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                 },
             )
             summary = payload["summary"]
@@ -257,6 +322,7 @@ class MultiHostSpecialistExecutionTests(unittest.TestCase):
                     "OPENCLAW_HOME": str(target_root),
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                 },
             )
             summary = payload["summary"]

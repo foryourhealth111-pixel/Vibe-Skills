@@ -543,6 +543,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -554,6 +555,125 @@ class PlanExecuteReceiptTests(unittest.TestCase):
             self.assertIn("--skip-git-repo-check", list(result["arguments"]))
             self.assertTrue(Path(result["response_json_path"]).exists())
             self.assertEqual([], list(result["observed_changed_files"]))
+
+    def test_delegated_lane_receipt_normalizes_legacy_usage_required_dispatch(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell not available")
+
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Invoke-DelegatedLaneUnit.ps1"
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_path = Path(tempdir)
+            fake_codex = create_repo_check_fake_codex_command(temp_path)
+            non_git_root = temp_path / "non-git-workspace"
+            non_git_root.mkdir(parents=True, exist_ok=True)
+            lane_root = temp_path / "lane-root"
+            requirement_doc = temp_path / "requirement.md"
+            execution_plan = temp_path / "plan.md"
+            skill_root = temp_path / "skills" / "systematic-debugging"
+            skill_root.mkdir(parents=True, exist_ok=True)
+            entrypoint_path = skill_root / "SKILL.runtime-mirror.md"
+            requirement_doc.write_text("# Requirement\n", encoding="utf-8")
+            execution_plan.write_text("# Plan\n", encoding="utf-8")
+            entrypoint_path.write_text("# Specialist\n", encoding="utf-8")
+
+            lane_id = "lane-" + uuid.uuid4().hex[:8]
+            envelope_path = temp_path / "delegation-envelope.json"
+            envelope_path.write_text(
+                json.dumps(
+                    {
+                        "root_run_id": "root-run-1",
+                        "parent_run_id": "parent-run-1",
+                        "parent_unit_id": "parent-unit-1",
+                        "child_run_id": lane_id,
+                        "governance_scope": "child_governed",
+                        "requirement_doc_path": str(requirement_doc.resolve()),
+                        "execution_plan_path": str(execution_plan.resolve()),
+                        "write_scope": "read_only",
+                        "approved_specialists": ["systematic-debugging"],
+                        "review_mode": "native_contract",
+                        "prompt_tail_required": "$vibe",
+                        "allow_requirement_freeze": False,
+                        "allow_plan_freeze": False,
+                        "allow_root_completion_claim": False,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            lane_spec_path = temp_path / "lane-spec.json"
+            lane_spec_path.write_text(
+                json.dumps(
+                    {
+                        "lane_id": lane_id,
+                        "lane_kind": "specialist_dispatch",
+                        "lane_root": str(lane_root.resolve()),
+                        "run_id": lane_id,
+                        "mode": "interactive_governed",
+                        "governance_scope": "child",
+                        "root_run_id": "root-run-1",
+                        "parent_run_id": "parent-run-1",
+                        "parent_unit_id": "parent-unit-1",
+                        "requirement_doc_path": str(requirement_doc.resolve()),
+                        "execution_plan_path": str(execution_plan.resolve()),
+                        "repo_root": str(non_git_root.resolve()),
+                        "default_timeout_seconds": 120,
+                        "parallelizable": False,
+                        "write_scope": "read_only",
+                        "review_mode": "native_contract",
+                        "delegation_envelope_path": str(envelope_path.resolve()),
+                        "tokens": {},
+                        "dispatch": {
+                            "skill_id": "systematic-debugging",
+                            "bounded_role": "specialist_assist",
+                            "native_skill_entrypoint": str(entrypoint_path.resolve()),
+                            "skill_root": str(skill_root.resolve()),
+                            "visibility_class": "path_resolved",
+                            "usage_required": True,
+                            "must_preserve_workflow": True,
+                            "required_inputs": ["requirement_doc", "execution_plan"],
+                            "expected_outputs": ["verification_notes", "changed_files"],
+                            "verification_expectation": "Return bounded execution guidance.",
+                            "progressive_load_policy": [
+                                "Open the declared specialist entrypoint before executing."
+                            ],
+                        },
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                [
+                    powershell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-Command",
+                    f"& '{script_path.as_posix()}' -LaneSpecPath '{lane_spec_path.as_posix()}'",
+                ],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+                env={
+                    **os.environ,
+                    "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
+                    "VGO_CODEX_EXECUTABLE": str(fake_codex),
+                },
+            )
+
+            payload = json.loads(completed.stdout)
+            receipt = payload["receipt"]
+            self.assertTrue(bool(receipt["native_usage_required"]))
+            self.assertTrue(bool(receipt["usage_required"]))
+            notes = Path(payload["lane_notes_path"]).read_text(encoding="utf-8")
+            self.assertIn("native_usage_required: True", notes)
+            self.assertIn("usage_required: True", notes)
 
     def test_specialist_dispatch_falls_back_to_requirement_workspace_when_repo_root_is_read_only(self) -> None:
         powershell = resolve_powershell()
@@ -614,6 +734,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
                         **os.environ,
                         "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                         "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                        "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                         "VGO_CODEX_EXECUTABLE": str(fake_codex),
                     },
                 )
@@ -680,6 +801,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
                     **os.environ,
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )
@@ -760,6 +882,7 @@ class PlanExecuteReceiptTests(unittest.TestCase):
                     "CODEX_HOME": str(source_codex_home),
                     "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                     "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
                     "VGO_CODEX_EXECUTABLE": str(fake_codex),
                 },
             )

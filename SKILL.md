@@ -160,6 +160,7 @@ Use this when the system should still ask the user high-value questions, confirm
 That means:
 
 - governed `vibe` runs must surface bounded specialist recommendations and must treat router-selected specialist skills as route truth or executable recommendation candidates
+- direct specialist handling should stay in the current host session by default; do not create hidden specialist sub-sessions unless policy explicitly opts back into that bridge path
 - runtime-selected skill remains `vibe` for governed entry
 - eligible specialist help must auto-promote into bounded native-mode assistance by default
 - specialist help must preserve the specialist skill's own workflow, inputs, outputs, and validation style

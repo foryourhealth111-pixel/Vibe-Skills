@@ -97,6 +97,7 @@ switch ($laneKind) {
     }
     'specialist_dispatch' {
         $dispatch = $laneSpec.dispatch
+        $usageRequirementState = Get-VibeDispatchUsageRequirementState -Dispatch $dispatch
         $executed = Invoke-VibeSpecialistDispatchUnit `
             -UnitId ("{0}-specialist" -f [string]$laneSpec.lane_id) `
             -Dispatch $dispatch `
@@ -134,7 +135,8 @@ switch ($laneKind) {
             dispatch_phase = if ($dispatch.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$dispatch.dispatch_phase } else { 'in_execution' }
             binding_profile = if ($dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$dispatch.binding_profile } else { 'default' }
             lane_policy = if ($dispatch.PSObject.Properties.Name -contains 'lane_policy') { [string]$dispatch.lane_policy } else { 'inherit_grade' }
-            native_usage_required = [bool]$dispatch.native_usage_required
+            native_usage_required = [bool]$usageRequirementState.native_usage_required
+            usage_required = [bool]$usageRequirementState.usage_required
             must_preserve_workflow = [bool]$dispatch.must_preserve_workflow
             result_path = $resultPath
             started_at = [string]$executed.result.started_at
@@ -151,7 +153,8 @@ switch ($laneKind) {
             "- binding_profile: $(if ($dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$dispatch.binding_profile } else { 'default' })",
             "- lane_policy: $(if ($dispatch.PSObject.Properties.Name -contains 'lane_policy') { [string]$dispatch.lane_policy } else { 'inherit_grade' })",
             "- parallelizable: $([bool]$laneSpec.parallelizable)",
-            "- native_usage_required: $([bool]$dispatch.native_usage_required)",
+            "- native_usage_required: $([bool]$usageRequirementState.native_usage_required)",
+            "- usage_required: $([bool]$usageRequirementState.usage_required)",
             "- verification_expectation: $([string]$dispatch.verification_expectation)",
             "- required_inputs: $([string]::Join(', ', @($dispatch.required_inputs)))",
             "- expected_outputs: $([string]::Join(', ', @($dispatch.expected_outputs)))",

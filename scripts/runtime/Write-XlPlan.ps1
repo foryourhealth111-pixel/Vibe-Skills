@@ -348,7 +348,7 @@ if ($planningConsultation -and [bool]$planningConsultation.enabled) {
     $lines += @(
         '',
         '## Specialist Consultation',
-        'These are specialists actually consulted during plan-time under governed `vibe` before this execution plan was frozen.'
+        'These are specialists resolved for plan-time handling under governed `vibe` before this execution plan was frozen. Depending on policy, they may be consulted live or routed for direct current-session loading.'
     )
     foreach ($disclosure in @($planningConsultation.user_disclosures)) {
         $lines += @(
