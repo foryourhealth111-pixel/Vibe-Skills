@@ -34,8 +34,8 @@ class BuiltInSkillGovernanceGateTests(unittest.TestCase):
         self.assertIn("outputs/verify", text)
         self.assertIn("../..", text)
         self.assertIn("config/bundled-skill-governance-policy.json", text)
-        self.assertNotIn(r"outputs\\verify", text)
-        self.assertNotIn(r"config\\bundled-skill-governance-policy.json", text)
+        self.assertNotIn("outputs\\verify", text)
+        self.assertNotIn("config\\bundled-skill-governance-policy.json", text)
 
     def setUp(self) -> None:
         self.powershell = resolve_powershell()
@@ -67,7 +67,7 @@ class BuiltInSkillGovernanceGateTests(unittest.TestCase):
         )
 
     def _write_fixture(self) -> None:
-        self._write("scripts/verify/vibe-built-in-skill-governance-gate.ps1", GATE.read_text(encoding="utf-8"))
+        self._write("scripts/verify/vibe-built-in-skill-governance-gate.ps1", GATE.read_text(encoding="utf-8-sig"))
         self._write("config/bundled-skill-governance-policy.json", POLICY.read_text(encoding="utf-8"))
 
         self._write(
@@ -134,7 +134,12 @@ class BuiltInSkillGovernanceGateTests(unittest.TestCase):
         ]
         if write_artifacts:
             command.append("-WriteArtifacts")
-        return subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+        try:
+            return subprocess.run(command, cwd=self.root, capture_output=True, text=True, timeout=120)
+        except subprocess.TimeoutExpired as exc:
+            raise AssertionError(
+                f"PowerShell governance gate timed out after 120s: {command}\nstdout:\n{exc.stdout or ''}\nstderr:\n{exc.stderr or ''}"
+            ) from exc
 
     def test_gate_passes_for_neutral_built_in_skill_wording(self) -> None:
         result = self._run_gate()

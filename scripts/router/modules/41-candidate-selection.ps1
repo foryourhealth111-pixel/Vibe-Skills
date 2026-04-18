@@ -1,5 +1,38 @@
 ﻿# Auto-extracted router module. Keep function bodies behavior-identical.
 
+function New-RequestedSkillSelection {
+    param(
+        [string]$RequestedCandidate,
+        [object[]]$StageAssistantCandidates,
+        [object[]]$BlockedByTask
+    )
+
+    return [pscustomobject]@{
+        selected = $RequestedCandidate
+        score = 1.0
+        reason = "requested_skill"
+        ranking = @(
+            [pscustomobject]@{
+                skill = $RequestedCandidate
+                score = 1.0
+                keyword_score = 1.0
+                name_score = 1.0
+                positive_score = 1.0
+                negative_score = 0.0
+                canonical_for_task_hit = 1.0
+                route_authority_eligible = $true
+                stage_assistant_eligible = $false
+                routing_role = "explicit_request"
+            }
+        )
+        top1_top2_gap = 1.0
+        filtered_out_by_task = @($BlockedByTask)
+        route_authority_eligible = $true
+        relevance_score = 1.0
+        stage_assistant_candidates = @($StageAssistantCandidates)
+    }
+}
+
 function Select-PackCandidate {
     param(
         [string]$PromptLower,
@@ -70,30 +103,7 @@ function Select-PackCandidate {
 
     if ($filteredCandidates.Count -eq 0) {
         if ($requestedCandidate) {
-            return [pscustomobject]@{
-                selected = $requestedCandidate
-                score = 1.0
-                reason = "requested_skill"
-                ranking = @(
-                    [pscustomobject]@{
-                        skill = $requestedCandidate
-                        score = 1.0
-                        keyword_score = 1.0
-                        name_score = 1.0
-                        positive_score = 1.0
-                        negative_score = 0.0
-                        canonical_for_task_hit = 1.0
-                        route_authority_eligible = $true
-                        stage_assistant_eligible = $false
-                        routing_role = "explicit_request"
-                    }
-                )
-                top1_top2_gap = 1.0
-                filtered_out_by_task = @($blockedByTask)
-                route_authority_eligible = $true
-                relevance_score = 1.0
-                stage_assistant_candidates = @()
-            }
+            return New-RequestedSkillSelection -RequestedCandidate $requestedCandidate -StageAssistantCandidates @() -BlockedByTask @($blockedByTask)
         }
         if ($defaultCandidate) {
             return [pscustomobject]@{
@@ -204,30 +214,7 @@ function Select-PackCandidate {
     $stageAssistantRanked = @($ranked | Where-Object { $_.stage_assistant_eligible -and -not $_.route_authority_eligible })
 
     if ($requestedCandidate) {
-        return [pscustomobject]@{
-            selected = $requestedCandidate
-            score = 1.0
-            reason = "requested_skill"
-            ranking = @(
-                [pscustomobject]@{
-                    skill = $requestedCandidate
-                    score = 1.0
-                    keyword_score = 1.0
-                    name_score = 1.0
-                    positive_score = 1.0
-                    negative_score = 0.0
-                    canonical_for_task_hit = 1.0
-                    route_authority_eligible = $true
-                    stage_assistant_eligible = $false
-                    routing_role = "explicit_request"
-                }
-            )
-            top1_top2_gap = 1.0
-            filtered_out_by_task = @($blockedByTask)
-            route_authority_eligible = $true
-            relevance_score = 1.0
-            stage_assistant_candidates = @($stageAssistantRanked | Select-Object -First 4)
-        }
+        return New-RequestedSkillSelection -RequestedCandidate $requestedCandidate -StageAssistantCandidates @($stageAssistantRanked | Select-Object -First 4) -BlockedByTask @($blockedByTask)
     }
 
     $top = $authorityRanked | Select-Object -First 1

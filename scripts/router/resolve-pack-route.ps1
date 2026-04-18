@@ -712,6 +712,7 @@ $aiRerankAdvice = Get-AiRerankAdvice `
     -Confidence $confidence `
     -AiRerankPolicy $aiRerankPolicy
 
+# Overlay advice reports whether it proposed an override; the router still gates actual application on authority eligibility.
 $aiRerankRouteOverrideRequested = [bool]($aiRerankAdvice -and $aiRerankAdvice.route_override_applied)
 $aiRerankRouteOverride = $false
 $aiRerankOverrideBlockReason = $null
@@ -787,6 +788,7 @@ if ($routeMode -eq "pack_overlay" -and $llmAccelerationAdvice -and $llmAccelerat
     $llmAccelerationConfirmOverride = $true
 }
 
+# Overlay advice reports whether it proposed an override; the router still gates actual application on authority eligibility.
 $llmAccelerationRouteOverrideRequested = [bool]($llmAccelerationAdvice -and $llmAccelerationAdvice.route_override_applied)
 $llmAccelerationRouteOverride = $false
 $llmAccelerationOverrideBlockReason = $null

@@ -297,12 +297,9 @@ $noneRoutingCount = @($routingCoverage | Where-Object { $_.routing_coverage -eq 
 
 $noAutoViolations = ($autoViolations.Count -eq 0)
 $autoViolationDetails = @($autoViolations | ForEach-Object { $_.skill_id })
-$assertions.Add([pscustomobject]@{
-        pass = [bool]$noAutoViolations
-        message = 'bundled built-in skills do not claim autonomous activation'
-        details = $autoViolationDetails
-    }) | Out-Null
-Write-Host ('[{0}] {1}' -f $(if ($noAutoViolations) { 'PASS' } else { 'FAIL' }), 'bundled built-in skills do not claim autonomous activation') -ForegroundColor $(if ($noAutoViolations) { 'Green' } else { 'Red' })
+Add-Assertion -Assertions $assertions -Pass $noAutoViolations `
+    -Message 'bundled built-in skills do not claim autonomous activation' `
+    -Details $autoViolationDetails
 
 $artifact = [pscustomobject]@{
     gate = 'vibe-built-in-skill-governance-gate'

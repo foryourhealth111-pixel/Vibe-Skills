@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import configparser
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -101,7 +102,12 @@ class PythonValidationContractTests(unittest.TestCase):
         mismatches: dict[str, dict[str, str]] = {}
 
         for pack in manifest["packs"]:
-            authority = {skill.casefold() for skill in pack.get("route_authority_candidates", [])}
+            authority_source = (
+                pack.get("route_authority_candidates")
+                if "route_authority_candidates" in pack
+                else pack.get("skill_candidates")
+            )
+            authority = {skill.casefold() for skill in (authority_source or [])}
             if not authority:
                 continue
 
@@ -117,6 +123,7 @@ class PythonValidationContractTests(unittest.TestCase):
 
     def test_pack_route_overrides_stay_inside_authority_ranked_results(self) -> None:
         text = RESOLVE_PACK_ROUTE.read_text(encoding="utf-8-sig")
+        normalized_text = re.sub(r"\s+", " ", text)
         authority_lookup = (
             "$overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | "
             "Select-Object -First 1"
@@ -126,8 +133,8 @@ class PythonValidationContractTests(unittest.TestCase):
             "Select-Object -First 1"
         )
 
-        self.assertEqual(2, text.count(authority_lookup))
-        self.assertNotIn(ranked_lookup, text)
+        self.assertEqual(2, normalized_text.count(authority_lookup))
+        self.assertNotIn(ranked_lookup, normalized_text)
         self.assertIn("ai_rerank_override_block_reason", text)
         self.assertIn("llm_acceleration_override_block_reason", text)
         self.assertIn("route_override_requested", text)
