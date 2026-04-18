@@ -6,7 +6,7 @@
   "stability": "preview",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "summary": "OpenClaw host adapter preview. Uses the shared runtime-core installer and host-root payloads without claiming governed closure.",
   "runtime_ownership": {

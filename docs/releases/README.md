@@ -10,7 +10,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ### Current Release Surface
 
-- [`v3.0.4.md`](v3.0.4.md): direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair
+- [`v3.0.4.md`](v3.0.4.md): Windows verification gate Python resolution / direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair
 
 ### Release Runtime / Proof Handoff
 
@@ -24,7 +24,7 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
-- [`v3.0.4.md`](v3.0.4.md) - 2026-04-18 - direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair
+- [`v3.0.4.md`](v3.0.4.md) - 2026-04-19 - Windows verification gate Python resolution / direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair
 - [`v3.0.3.md`](v3.0.3.md) - 2026-04-15 - host-global bootstrap lifecycle / specialist decision truth / upgrade metadata hardening / installed runtime payload coverage repair
 - [`v3.0.2.md`](v3.0.2.md) - 2026-04-13 - mainline upgrade flow / workspace memory plane / document artifact governance / specialist lifecycle disclosure / release truth refresh
 - [`v3.0.0.md`](v3.0.0.md) - 2026-04-07 - major public baseline / architecture closure / host-safe install-uninstall / governed execution proof / native MCP-first readiness

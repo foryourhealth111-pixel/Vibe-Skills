@@ -1,9 +1,10 @@
 # VCO Changelog
 
-## v3.0.4 (2026-04-18)
+## v3.0.4 (2026-04-19)
 
-- Moved specialist routing onto the current session by default, strengthened canonical-entry truth artifacts and launch-failure receipt handling, and repaired upgrade intent/truth handling across target installs and empty `/vibe-upgrade` invocations.
-- Removed a release-train stop-ship contradiction by letting adaptive-routing readiness self-seed replay telemetry through the governed observability path instead of assuming tracked `outputs/telemetry` evidence in a clean checkout.
+- Refreshed `v3.0.4` from the later maintained source at `eeb09f3` so the public release surface now includes the Windows PowerShell verification-gate Python resolver hardening that landed after the original `2026-04-18` cut.
+- Kept the original `v3.0.4` behavior upgrades intact: specialists route on the current session by default, canonical-entry truth and launch-failure receipt handling are stricter, adaptive-routing readiness self-seeds replay telemetry from a clean checkout, and upgrade intent/truth handling stays repaired across target installs and empty `/vibe-upgrade` invocations.
+- PowerShell verification gates now stay on the governed Python resolver end to end, skip WindowsApps `python` / `python3` stubs, scan later PATH candidates, and prefer `python3` before `python` to match the shell-side Python 3 policy.
 - Detailed release notes: `docs/releases/v3.0.4.md`.
 
 

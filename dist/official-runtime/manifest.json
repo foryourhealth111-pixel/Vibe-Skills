@@ -5,7 +5,7 @@
   "stability": "tier-1",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "summary": "Reference lane for the current governed official runtime. This dist pack points to it and must not rewrite it.",
   "runtime_ownership": {

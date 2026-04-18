@@ -54,7 +54,7 @@
   "summary": "Codex is the current strongest practical reference lane for the governed runtime payload, but some key surfaces remain host-managed and certain platforms are degraded.",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",
