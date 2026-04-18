@@ -792,6 +792,22 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertTrue(str(resolved["host_leaf"]).startswith("python3"))
             self.assertEqual([], resolved["prefix_arguments"])
 
+    def test_resolve_vgo_python_command_spec_prefers_python3_over_python(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            python3_dir = root / "python3-dir"
+            python_dir = root / "python-dir"
+            python3_dir.mkdir(parents=True)
+            python_dir.mkdir(parents=True)
+            _create_fake_command(python3_dir, "python3")
+            _create_fake_command(python_dir, "python")
+
+            resolved = resolve_python_command_spec_via_powershell("${VGO_PYTHON}", [python3_dir, python_dir])
+
+            self.assertTrue(str(resolved["host_leaf"]).startswith("python3"))
+            self.assertEqual(python3_dir.resolve(), Path(str(resolved["host_path"])).resolve().parent)
+            self.assertEqual([], resolved["prefix_arguments"])
+
     def test_resolve_vgo_python_command_spec_skips_windowsapps_python3_stub_and_uses_python(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)

@@ -749,14 +749,14 @@ function Resolve-VgoPythonCandidate {
 }
 
 function Get-VgoPythonCommand {
-    $python = Resolve-VgoPythonCandidate -CommandName 'python'
-    if ($null -ne $python) {
-        return $python
-    }
-
     $python3 = Resolve-VgoPythonCandidate -CommandName 'python3'
     if ($null -ne $python3) {
         return $python3
+    }
+
+    $python = Resolve-VgoPythonCandidate -CommandName 'python'
+    if ($null -ne $python) {
+        return $python
     }
 
     $pyLauncher = Resolve-VgoPythonCandidate -CommandName 'py' -PrefixArguments @('-3')
