@@ -534,7 +534,7 @@ function Resolve-VgoDirectRuntimeExecutable {
         }
     }
 
-    $invocationKind = if ($policyAdapter.PSObject.Properties.Name -contains 'invocation_kind') { [string]$policyAdapter.invocation_kind } else { 'direct' }
+    $invocationKind = if ($policyAdapter.PSObject.Properties.Name -contains 'invocation_kind' -and -not [string]::IsNullOrWhiteSpace([string]$policyAdapter.invocation_kind)) { [string]$policyAdapter.invocation_kind } else { $null }
     $envName = if ($policyAdapter.PSObject.Properties.Name -contains 'executable_env') { [string]$policyAdapter.executable_env } else { '' }
     $configuredCommand = if ($policyAdapter.PSObject.Properties.Name -contains 'command') { [string]$policyAdapter.command } else { '' }
     $command = $configuredCommand
@@ -806,12 +806,12 @@ function Write-VgoHostClosure {
         direct_runtime = [ordered]@{
             required = [bool]$runtimeReadiness.direct_runtime.required
             ready = [bool]$runtimeReadiness.direct_runtime.ready
-            invocation_kind = [string]$runtimeReadiness.direct_runtime.invocation_kind
-            executable_env = [string]$runtimeReadiness.direct_runtime.executable_env
-            command = [string]$runtimeReadiness.direct_runtime.command
-            resolved_path = [string]$runtimeReadiness.direct_runtime.resolved_path
-            source = [string]$runtimeReadiness.direct_runtime.source
-            reason = [string]$runtimeReadiness.direct_runtime.reason
+            invocation_kind = if ($null -eq $runtimeReadiness.direct_runtime.invocation_kind) { $null } else { [string]$runtimeReadiness.direct_runtime.invocation_kind }
+            executable_env = if ($null -eq $runtimeReadiness.direct_runtime.executable_env) { $null } else { [string]$runtimeReadiness.direct_runtime.executable_env }
+            command = if ($null -eq $runtimeReadiness.direct_runtime.command) { $null } else { [string]$runtimeReadiness.direct_runtime.command }
+            resolved_path = if ($null -eq $runtimeReadiness.direct_runtime.resolved_path) { $null } else { [string]$runtimeReadiness.direct_runtime.resolved_path }
+            source = if ($null -eq $runtimeReadiness.direct_runtime.source) { $null } else { [string]$runtimeReadiness.direct_runtime.source }
+            reason = if ($null -eq $runtimeReadiness.direct_runtime.reason) { $null } else { [string]$runtimeReadiness.direct_runtime.reason }
         }
         specialist_wrapper = [ordered]@{
             launcher_path = [string]$wrapperInfo.launcher_path

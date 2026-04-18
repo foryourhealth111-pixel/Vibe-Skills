@@ -380,7 +380,12 @@ def build_summary(
                     "Direct runtime is available, but the local install surfaces are incomplete. Re-run installation to refresh host closure, commands, and managed settings."
                 )
         else:
-            manual_actions.append("Host runtime is not fully ready; complete the specialist bridge setup and re-run check.")
+            if effective_runtime_ready:
+                manual_actions.append(
+                    "Bridged host wrapper is available, but the local install surfaces are incomplete. Re-run installation to refresh host closure, commands, and managed settings."
+                )
+            else:
+                manual_actions.append("Host runtime is not fully ready; complete the specialist bridge setup and re-run check.")
     intent_advice_api_key_state, intent_advice_api_key_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_API_KEY")
     intent_advice_model_state, intent_advice_model_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_MODEL")
     vector_diff_api_key_state, vector_diff_api_key_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_API_KEY")
