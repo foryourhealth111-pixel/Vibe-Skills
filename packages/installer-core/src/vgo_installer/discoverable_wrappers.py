@@ -67,6 +67,11 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         "proof_required": bool(contract.get("proof_required", True)),
     }
     trampoline_json = json.dumps(trampoline_payload, ensure_ascii=False, indent=2)
+    empty_request_line = (
+        "If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result."
+        if entry.id == "vibe-upgrade"
+        else None
+    )
     return [
         "Canonical runtime trampoline contract (installer-managed wrapper):",
         "```json",
@@ -79,6 +84,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         bounded_warning,
         "Dispatch through canonical-entry runtime bridge. Do not treat this file as ordinary SKILL.md prose.",
         "If canonical runtime cannot be launched, report blocked instead of silently falling back.",
+        *([empty_request_line] if empty_request_line else []),
         "",
         "Request:",
         "$ARGUMENTS",

@@ -26,5 +26,7 @@ When this wrapper is chosen, bias canonical `vibe` toward:
 - overwrite-style upgrade for the selected supported host
 - post-upgrade verification and concise before/after reporting
 
+If invoked with no arguments, default the request to upgrading the current host installation through shared `vgo-cli upgrade` and verifying the result.
+
 Request:
 $ARGUMENTS

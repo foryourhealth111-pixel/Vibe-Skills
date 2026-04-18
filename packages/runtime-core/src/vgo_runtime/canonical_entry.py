@@ -89,6 +89,20 @@ def _normalize_requested_entry_id(entry_id: str | None) -> str:
     return requested_entry_id
 
 
+def _resolve_effective_prompt(*, host_id: str, entry_id: str, prompt: str) -> str:
+    prompt_text = str(prompt or "")
+    if prompt_text.strip():
+        return prompt_text
+    if entry_id != "vibe-upgrade":
+        return prompt_text
+    resolved_host_id = str(host_id or "").strip() or "current-host"
+    return (
+        f"Upgrade the local Vibe-Skills installation for host {resolved_host_id} "
+        "using the shared vgo-cli upgrade flow against the official default branch. "
+        "Reinstall the supported host surface, verify the result, and report concise before-and-after status."
+    )
+
+
 def _new_run_id() -> str:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     suffix = os.urandom(4).hex()
@@ -322,6 +336,7 @@ def launch_canonical_vibe(
 ) -> CanonicalLaunchResult:
     repo_root_path = Path(repo_root).resolve()
     requested_entry_id = _normalize_requested_entry_id(entry_id)
+    effective_prompt = _resolve_effective_prompt(host_id=host_id, entry_id=requested_entry_id, prompt=prompt)
     contract = resolve_canonical_vibe_contract(repo_root_path, host_id)
     if str(contract.get("fallback_policy") or "").strip() != "blocked":
         raise RuntimeError("unsupported fallback policy for canonical entry launcher")
@@ -350,7 +365,7 @@ def launch_canonical_vibe(
             repo_root=repo_root_path,
             host_id=host_id,
             entry_id=requested_entry_id,
-            prompt=prompt,
+            prompt=effective_prompt,
             requested_stage_stop=requested_stage_stop,
             requested_grade_floor=requested_grade_floor,
             run_id=resolved_run_id,

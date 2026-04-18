@@ -41,6 +41,7 @@ def test_build_wrapper_descriptors_renders_all_discoverable_entries_for_codex() 
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
     assert 'Default stop target: `requirement_doc`' in rendered['vibe-want'].content
     assert 'Public grade flags allowed: no' in rendered['vibe-upgrade'].content
+    assert 'If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.' in rendered['vibe-upgrade'].content
 
 
 def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts() -> None:
@@ -66,6 +67,7 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert 'Use the `vibe` skill' not in rendered['vibe-how'].content
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
     assert '$ARGUMENTS' in rendered['vibe-how'].content
+    assert 'If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.' in rendered['vibe-upgrade'].content
 
 
 def test_build_wrapper_descriptors_fails_closed_when_canonical_contract_is_unresolved(monkeypatch) -> None:

@@ -166,6 +166,48 @@ def test_canonical_entry_prewrites_launched_receipt_before_runtime_invocation(
     assert receipt["launch_status"] == "verified"
 
 
+def test_canonical_entry_synthesizes_default_prompt_for_empty_vibe_upgrade_request(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_id = "pytest-canonical-entry-upgrade-default-prompt"
+    session_root = tmp_path / "outputs" / "runtime" / "vibe-sessions" / run_id
+
+    monkeypatch.setattr(
+        canonical_entry,
+        "resolve_canonical_vibe_contract",
+        lambda repo_root, host_id: {"fallback_policy": "blocked", "allow_skill_doc_fallback": False},
+    )
+
+    def fake_invoke_runtime(**kwargs: object) -> dict[str, object]:
+        prompt = str(kwargs["prompt"])
+        assert "Upgrade the local Vibe-Skills installation" in prompt
+        assert "host codex" in prompt
+        assert "shared vgo-cli upgrade flow" in prompt
+        _write_valid_truth_artifacts(session_root, entry_intent_id="vibe-upgrade")
+        return {
+            "run_id": run_id,
+            "session_root": str(session_root),
+            "summary_path": str(session_root / "runtime-summary.json"),
+            "summary": {"run_id": run_id},
+        }
+
+    monkeypatch.setattr(canonical_entry, "invoke_vibe_runtime_entrypoint", fake_invoke_runtime)
+
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=tmp_path,
+        host_id="codex",
+        entry_id="vibe-upgrade",
+        prompt="   ",
+        requested_stage_stop="phase_cleanup",
+        run_id=run_id,
+        artifact_root=tmp_path,
+    )
+
+    receipt = json.loads(result.host_launch_receipt_path.read_text(encoding="utf-8"))
+    assert receipt["launch_status"] == "verified"
+
+
 def test_canonical_entry_marks_receipt_failed_when_runtime_invocation_raises(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
