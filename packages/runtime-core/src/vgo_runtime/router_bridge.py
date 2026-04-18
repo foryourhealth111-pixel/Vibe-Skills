@@ -4,10 +4,10 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
+from .powershell_bridge import run_powershell_json_command
 from .router_contract_runtime import route_prompt
 from .router_contract_support import resolve_repo_root
 
@@ -53,8 +53,7 @@ def invoke_canonical_router(args: argparse.Namespace, shell: str) -> dict:
         command.extend(['-HostId', args.host_id])
     if args.target_root:
         command.extend(['-TargetRoot', args.target_root])
-    completed = subprocess.run(command, cwd=repo_root, capture_output=True, text=True, check=True)
-    return json.loads(completed.stdout)
+    return run_powershell_json_command(command, cwd=repo_root, bridge_label="canonical router bridge")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

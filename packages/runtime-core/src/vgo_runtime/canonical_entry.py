@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 from typing import Any
 
@@ -17,6 +16,7 @@ if str(CONTRACTS_SRC) not in sys.path:
 
 from vgo_contracts.canonical_vibe_contract import resolve_canonical_vibe_contract
 from vgo_contracts.host_launch_receipt import HostLaunchReceipt, write_host_launch_receipt
+from vgo_runtime.powershell_bridge import run_powershell_json_command
 from vgo_runtime.router import load_allowed_vibe_entry_ids
 
 RUNTIME_ENTRYPOINT_RELPATH = "scripts/runtime/invoke-vibe-runtime.ps1"
@@ -172,21 +172,12 @@ def invoke_vibe_runtime_entrypoint(
 
     env = dict(os.environ)
     env["VCO_HOST_ID"] = host_id
-    completed = subprocess.run(
+    return run_powershell_json_command(
         command,
         cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=True,
+        bridge_label="canonical entry bridge",
         env=env,
     )
-    try:
-        payload = json.loads(completed.stdout)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError("canonical entry bridge returned invalid JSON") from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError("canonical entry bridge returned non-object payload")
-    return payload
 
 
 def assert_minimum_truth_artifacts(session_root: str | Path) -> dict[str, str]:
