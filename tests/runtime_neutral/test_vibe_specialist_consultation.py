@@ -615,6 +615,39 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             result["rendered_text"],
         )
 
+    def test_observed_changed_paths_ignores_snapshot_root_when_explicitly_ignored(self) -> None:
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            snapshot_root = Path(tempdir) / "snapshot-root"
+            snapshot_root.mkdir(parents=True, exist_ok=True)
+
+            ps_script = (
+                "& { "
+                f". {_ps_single_quote(str(RUNTIME_COMMON))}; "
+                f". {_ps_single_quote(str(EXECUTION_COMMON))}; "
+                f"$root = {_ps_single_quote(str(snapshot_root))}; "
+                "$before = Get-VibePathStatusSnapshot -RootPath $root; "
+                "Set-Content -LiteralPath (Join-Path $root 'foo.txt') -Value 'x' -Encoding utf8; "
+                "$after = Get-VibePathStatusSnapshot -RootPath $root; "
+                "$changed = Get-VibeObservedChangedPaths -BeforeSnapshot $before -AfterSnapshot $after -SnapshotRoot $root -IgnoredPaths @($root); "
+                "[pscustomobject]@{ changed = @($changed) } | ConvertTo-Json -Depth 5 -Compress }"
+            )
+            completed = subprocess.run(
+                [shell, "-NoLogo", "-NoProfile", "-Command", ps_script],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=True,
+                env=dict(os.environ),
+            )
+
+            payload = json.loads(completed.stdout)
+            self.assertEqual([], list(payload["changed"]))
+
     def test_consultation_lifecycle_projection_rejects_missing_window_id(self) -> None:
         completed = run_runtime_common_json(
             """
@@ -642,6 +675,68 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             "Enabled specialist consultation receipts must declare window_id as",
             completed.stderr,
         )
+
+    def test_consultation_unit_ignores_session_root_artifacts_when_working_root_matches_session_root(self) -> None:
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            fake_codex = create_fake_codex_command(artifact_root)
+            session_root = artifact_root / "session"
+            session_root.mkdir(parents=True, exist_ok=True)
+            skill_root = artifact_root / "skills" / "systematic-debugging"
+            skill_root.mkdir(parents=True, exist_ok=True)
+            entrypoint_path = skill_root / "SKILL.runtime-mirror.md"
+            entrypoint_path.write_text("# Specialist\n", encoding="utf-8")
+            source_artifact = session_root / "discussion-seed.md"
+            source_artifact.write_text("# Intent\nNeed session-root consultation coverage.\n", encoding="utf-8")
+
+            ps_script = (
+                "& { "
+                f". {_ps_single_quote(str(RUNTIME_COMMON))}; "
+                f". {_ps_single_quote(str(EXECUTION_COMMON))}; "
+                f". {_ps_single_quote(str(CONSULTATION_SCRIPT))}; "
+                f"$runtime = Get-VibeRuntimeContext -ScriptPath {_ps_single_quote(str(CONSULTATION_SCRIPT))}; "
+                "$consultation = [pscustomobject]@{ "
+                "skill_id = 'systematic-debugging'; "
+                f"native_skill_entrypoint = {_ps_single_quote(entrypoint_path.as_posix())}; "
+                f"skill_root = {_ps_single_quote(skill_root.as_posix())}; "
+                "consultation_reason = 'verify session-root ignore coverage'; "
+                "consultation_scope = 'bounded consultation'; "
+                "consultation_role = 'discussion_consultant'; "
+                "required_inputs = @('source_artifact'); "
+                "expected_outputs = @('consultation_notes'); "
+                "verification_expectation = 'Return structured consultation output.' "
+                "}; "
+                f"$result = Invoke-VibeSpecialistConsultationUnit -UnitId 'consult-session-root' -Consultation $consultation -SessionRoot {_ps_single_quote(session_root.as_posix())} -RepoRoot $runtime.repo_root -Task 'debug this workflow' -RunId 'run-session-root' -WindowId 'discussion' -Stage 'deep_interview' -SourceArtifactPath {_ps_single_quote(source_artifact.as_posix())} -Policy $runtime.specialist_consultation_policy; "
+                "$result.result | ConvertTo-Json -Depth 20 }"
+            )
+            completed = subprocess.run(
+                [shell, "-NoLogo", "-NoProfile", "-Command", ps_script],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=True,
+                env={
+                    **os.environ,
+                    "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "1",
+                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
+                    "VGO_SPECIALIST_CONSULTATION_MODE": "host_subprocess",
+                    "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "host_subprocess",
+                    "VGO_CODEX_EXECUTABLE": str(fake_codex),
+                },
+            )
+
+            result = json.loads(completed.stdout)
+            self.assertEqual("completed", result["status"])
+            self.assertTrue(bool(result["verification_passed"]))
+            self.assertEqual(session_root.resolve(), Path(result["cwd"]).resolve())
+            self.assertEqual([], list(result["observed_changed_files"]))
+            self.assertTrue(source_artifact.exists())
+            self.assertTrue(Path(result["response_json_path"]).exists())
 
     def test_consultation_lifecycle_projection_handles_summary_only_receipt(self) -> None:
         result = run_runtime_common_json(
