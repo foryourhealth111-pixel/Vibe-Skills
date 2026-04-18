@@ -804,8 +804,31 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
             resolved = resolve_python_command_spec_via_powershell("${VGO_PYTHON}", [windowsapps_dir, real_dir])
 
-            self.assertEqual("python", str(resolved["host_leaf"]))
-            self.assertEqual(str((real_dir / "python").resolve()), str(Path(str(resolved["host_path"])).resolve()))
+            host_leaf = str(resolved["host_leaf"])
+            self.assertTrue(host_leaf.startswith("python"))
+            self.assertFalse(host_leaf.startswith("python3"))
+            resolved_host = Path(str(resolved["host_path"])).resolve()
+            self.assertEqual(real_dir.resolve(), resolved_host.parent)
+            self.assertEqual([], resolved["prefix_arguments"])
+
+    def test_resolve_vgo_python_command_spec_skips_windowsapps_python_stub_and_uses_real_python_later_on_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            windowsapps_dir = root / "Microsoft" / "WindowsApps"
+            real_dir = root / "real-python"
+            windowsapps_dir.mkdir(parents=True)
+            real_dir.mkdir(parents=True)
+            _create_fake_command(windowsapps_dir, "python")
+            _create_fake_command(windowsapps_dir, "python3")
+            _create_fake_command(real_dir, "python")
+
+            resolved = resolve_python_command_spec_via_powershell("${VGO_PYTHON}", [windowsapps_dir, real_dir])
+
+            host_leaf = str(resolved["host_leaf"])
+            self.assertTrue(host_leaf.startswith("python"))
+            self.assertFalse(host_leaf.startswith("python3"))
+            resolved_host = Path(str(resolved["host_path"])).resolve()
+            self.assertEqual(real_dir.resolve(), resolved_host.parent)
             self.assertEqual([], resolved["prefix_arguments"])
 
     def test_resolve_vgo_python_command_spec_skips_windowsapps_python_stub_and_uses_py_launcher(self) -> None:

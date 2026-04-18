@@ -728,20 +728,24 @@ function Resolve-VgoPythonCandidate {
         [string[]]$PrefixArguments = @()
     )
 
-    $resolved = Get-Command $CommandName -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
-    if ([string]::IsNullOrWhiteSpace($resolved) -or -not (Test-Path -LiteralPath $resolved)) {
-        return $null
+    $candidates = @(Get-Command $CommandName -All -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate) -or -not (Test-Path -LiteralPath $candidate)) {
+            continue
+        }
+
+        if (Test-VgoWindowsAppsPythonStubPath -Path $candidate -CommandName $CommandName) {
+            continue
+        }
+
+        return [pscustomobject]@{
+            host_path = [System.IO.Path]::GetFullPath($candidate)
+            host_leaf = [System.IO.Path]::GetFileName($candidate).ToLowerInvariant()
+            prefix_arguments = @($PrefixArguments)
+        }
     }
 
-    if (Test-VgoWindowsAppsPythonStubPath -Path $resolved -CommandName $CommandName) {
-        return $null
-    }
-
-    return [pscustomobject]@{
-        host_path = [System.IO.Path]::GetFullPath($resolved)
-        host_leaf = [System.IO.Path]::GetFileName($resolved).ToLowerInvariant()
-        prefix_arguments = @($PrefixArguments)
-    }
+    return $null
 }
 
 function Get-VgoPythonCommand {
