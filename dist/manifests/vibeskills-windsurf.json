@@ -51,7 +51,7 @@
   "summary": "Windsurf may consume the shared runtime-core payload through a documented host root, but this repository does not claim host-native governed closure for it.",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

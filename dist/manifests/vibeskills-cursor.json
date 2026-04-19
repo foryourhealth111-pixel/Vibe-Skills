@@ -51,7 +51,7 @@
   "summary": "Cursor exposes preview adapter entrypoints and truthful readiness boundaries, but this repository does not claim governed or host-native closure for it.",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

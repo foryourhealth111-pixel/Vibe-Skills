@@ -5,7 +5,7 @@
   "stability": "preview",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "summary": "Universal contracts only. No install/check runtime closure is promised by this lane.",
   "runtime_ownership": {

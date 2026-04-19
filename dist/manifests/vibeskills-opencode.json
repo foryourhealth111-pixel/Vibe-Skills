@@ -54,7 +54,7 @@
   "summary": "OpenCode now has a truthful preview adapter lane with bounded install/check entrypoints, skills payload, and wrapper scaffolds, but the repository still avoids claiming full host closure or platform parity.",
   "source_release": {
     "version": "3.0.4",
-    "updated": "2026-04-18"
+    "updated": "2026-04-19"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

@@ -2,9 +2,9 @@
   "schema_version": 2,
   "release": {
     "version": "3.0.4",
-    "updated": "2026-04-18",
+    "updated": "2026-04-19",
     "channel": "stable",
-    "notes": "direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair"
+    "notes": "Windows verification gate Python resolution / direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair"
   },
   "source_of_truth": {
     "canonical_root": ".",
