@@ -5,12 +5,23 @@ from typing import Any
 from .router_contract_support import RepoContext, read_skill_descriptor
 
 
-def _collect_clarification_questions(route_result: dict[str, Any], max_items: int = 8) -> list[str]:
+# UI string constants for confirm UI rendering
+CONFIRM_UI_BATCH_PROMPT = "请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里："
+CONFIRM_UI_ROUTE_PREFIX = "路由需要确认：当前命中候选包"
+CONFIRM_UI_COMBINED_INSTRUCTION = "你可以在同一条回复里同时回答上面的问题，并输入序号或 `$<skill>` 来指定技能。"
+CONFIRM_UI_SIMPLE_INSTRUCTION = "回复序号或 `$<skill>` 来明确选择。"
+
+# Deep discovery first question template (from deep-discovery-policy.json)
+DEEP_DISCOVERY_FIRST_QUESTION = "你希望这次任务最终交付什么形式"
+
+
+def _collect_clarification_questions(route_result: dict[str, Any], max_items: int = 6) -> list[str]:
+    cap = min(max_items, 6)
     questions: list[str] = []
     sources = [
-        route_result.get("deep_discovery_advice", {}).get("interview_questions", []),
-        route_result.get("llm_acceleration_advice", {}).get("confirm_questions", []),
-        route_result.get("prompt_asset_boost_advice", {}).get("confirm_questions", []),
+        (route_result.get("deep_discovery_advice") or {}).get("interview_questions", []),
+        (route_result.get("llm_acceleration_advice") or {}).get("confirm_questions", []),
+        (route_result.get("prompt_asset_boost_advice") or {}).get("confirm_questions", []),
     ]
 
     for source in sources:
@@ -19,10 +30,10 @@ def _collect_clarification_questions(route_result: dict[str, Any], max_items: in
             if not question or question in questions:
                 continue
             questions.append(question)
-            if len(questions) >= max_items:
-                return questions
+            if len(questions) >= cap:
+                return questions[:cap]
 
-    return questions
+    return questions[:cap]
 
 
 def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_root: str | None, host_id: str | None = None) -> dict[str, Any] | None:
@@ -64,11 +75,11 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
             rendered.append(str(hazard["recovery_action"]))
         rendered.append("")
     if clarification_questions:
-        rendered.append("请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里：")
+        rendered.append(CONFIRM_UI_BATCH_PROMPT)
         for index, question in enumerate(clarification_questions, start=1):
             rendered.append(f"Q{index}. {question}")
         rendered.append("")
-    rendered.append(f"路由需要确认：当前命中候选包 `{selected['pack_id']}`。")
+    rendered.append(f"{CONFIRM_UI_ROUTE_PREFIX} `{selected['pack_id']}`。")
     for option in options:
         score = option["score"]
         score_text = f" (score={round(float(score), 4)})" if score is not None else ""
@@ -77,9 +88,9 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
         else:
             rendered.append(f"{option['option_id']}. `{option['skill']}`{score_text}")
     if clarification_questions:
-        rendered.append("你可以在同一条回复里同时回答上面的问题，并输入序号或 `$<skill>` 来指定技能。")
+        rendered.append(CONFIRM_UI_COMBINED_INSTRUCTION)
     else:
-        rendered.append("回复序号或 `$<skill>` 来明确选择。")
+        rendered.append(CONFIRM_UI_SIMPLE_INSTRUCTION)
 
     return {
         "enabled": True,

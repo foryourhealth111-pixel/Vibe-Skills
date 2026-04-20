@@ -8,6 +8,13 @@ import sys
 import unittest
 from pathlib import Path
 
+# Import UI constants for testing
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "runtime-core" / "src"))
+from vgo_runtime.router_contract_presentation import (
+    CONFIRM_UI_BATCH_PROMPT,
+    DEEP_DISCOVERY_FIRST_QUESTION,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRIDGE_SCRIPT = REPO_ROOT / "scripts" / "router" / "invoke-pack-route.py"
@@ -76,8 +83,8 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertTrue(result["confirm_ui"]["enabled"])
         self.assertGreaterEqual(len(result["confirm_ui"]["options"]), 1)
         self.assertGreaterEqual(len(result["confirm_ui"]["clarification_questions"]), 6)
-        self.assertIn("请尽量一次性回答下面问题", result["confirm_ui"]["rendered_text"])
-        self.assertIn("你希望这次任务最终交付什么形式", result["confirm_ui"]["rendered_text"])
+        self.assertIn(CONFIRM_UI_BATCH_PROMPT, result["confirm_ui"]["rendered_text"])
+        self.assertIn(DEEP_DISCOVERY_FIRST_QUESTION, result["confirm_ui"]["rendered_text"])
 
     def test_ml_critical_discussion_routes_to_lqf_ml_expert(self) -> None:
         result = run_bridge(
