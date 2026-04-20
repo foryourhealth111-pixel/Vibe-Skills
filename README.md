@@ -127,7 +127,7 @@ If your AI supports skills, VibeSkills works. 340+ skills spanning coding, resea
 > Traditional skill repos answer: _"What tools do I have?"_
 > **VibeSkills tackles the core pain point of heavy AI users: _"How do I manage and invoke large numbers of Skills, and get work done efficiently and reliably?"_**
 
-<sub>Works with **Claude Code** · **Codex** · **Windsurf** · **OpenClaw** · **OpenCode** · **Cursor** and any AI environment that supports the Skills protocol. Native **MCP** compatibility.</sub>
+
 
 <br/>
 
