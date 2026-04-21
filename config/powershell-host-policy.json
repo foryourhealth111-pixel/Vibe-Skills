@@ -1,0 +1,6 @@
+{
+  "preferred_powershell_host": "pwsh",
+  "require_pwsh_on_non_windows": true,
+  "allow_windows_powershell_fallback": true,
+  "record_host_resolution_artifacts": true
+}

@@ -1371,11 +1371,13 @@ $confirmSkillOptions = Build-ConfirmSkillOptions `
     -HostId $HostId
 if ($confirmSkillOptions) {
     $confirmText = Build-ConfirmUiText -ConfirmSkillOptions $confirmSkillOptions -UnattendedDecision $unattendedDecision -Result $result
+    $confirmClarificationQuestions = @(Get-ConfirmUiClarificationQuestions -Result $result)
     $result | Add-Member -NotePropertyName "confirm_ui" -NotePropertyValue ([pscustomobject]@{
         enabled = $true
         pack_id = [string]$confirmSkillOptions.selected_pack
         selected_skill = [string]$confirmSkillOptions.selected_skill
         options = @($confirmSkillOptions.options)
+        clarification_questions = @($confirmClarificationQuestions)
         rendered_text = $confirmText
         hazard_alert_required = [bool]$result.hazard_alert_required
         truth_level = [string]$result.truth_level

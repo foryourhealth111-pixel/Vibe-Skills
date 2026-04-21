@@ -21,7 +21,7 @@ MEMORY_TASK_SECOND = "Follow up on the hidden skill topology decision and recall
 SUPPORTED_CANONICAL_HOSTS = ("codex", "claude-code", "opencode")
 INSTALLED_RUNTIME_ADVISORY_FAILURE_UNITS = {
     "runtime-neutral-freshness-gate-tests",
-    "version-consistency-gate",
+    "release-install-runtime-coherence-gate",
 }
 HOST_BRIDGE_ENV = {
     "claude-code": "VGO_CLAUDE_CODE_SPECIALIST_BRIDGE_COMMAND",

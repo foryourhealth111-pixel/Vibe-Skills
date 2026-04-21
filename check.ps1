@@ -152,6 +152,42 @@ function Resolve-DirectRuntimeExecutableForCheck {
   }
 }
 
+function Invoke-RuntimeNeutralBootstrapDoctor {
+  param(
+    [Parameter(Mandatory)] [string]$RepoRoot,
+    [Parameter(Mandatory)] [string]$TargetRoot
+  )
+
+  $doctorPath = Join-Path $RepoRoot 'scripts\verify\runtime_neutral\bootstrap_doctor.py'
+  if (-not (Test-Path -LiteralPath $doctorPath)) {
+    return 127
+  }
+
+  $pythonCommand = $null
+  foreach ($candidate in @('python', 'python3', 'py')) {
+    $command = Get-Command $candidate -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $pythonCommand = $command
+      break
+    }
+  }
+  if ($null -eq $pythonCommand) {
+    return 127
+  }
+
+  $pythonLeaf = [System.IO.Path]::GetFileName([string]$pythonCommand.Source).ToLowerInvariant()
+  $pythonArgs = @()
+  if ($pythonLeaf -eq 'py.exe' -or $pythonLeaf -eq 'py') {
+    $pythonArgs += '-3'
+  }
+  $pythonArgs += @($doctorPath, '--target-root', $TargetRoot, '--write-artifacts')
+  & $pythonCommand.Source @pythonArgs 2>&1 | ForEach-Object { Write-Host $_ }
+  if ($null -eq $LASTEXITCODE) {
+    return 0
+  }
+  return [int]$LASTEXITCODE
+}
+
 function Resolve-CheckTargetContext {
   param(
     [Parameter(Mandatory)] [string]$InputRoot,
@@ -886,15 +922,18 @@ if ($Adapter.check_mode -eq 'governed' -and (Get-Command npm -ErrorAction Silent
 }
 
 if ($Deep) {
-  if ($Adapter.check_mode -eq 'governed') {
+  if ($Adapter.check_mode -eq 'governed' -or $HostId -eq 'claude-code') {
     $doctorPath = Join-Path $RepoRoot 'scripts\verify\vibe-bootstrap-doctor-gate.ps1'
     if (-not (Test-Path -LiteralPath $doctorPath)) {
       Write-Host "[FAIL] vibe bootstrap doctor gate script -> $doctorPath" -ForegroundColor Red
       $fail++
     } else {
-      $global:LASTEXITCODE = 0
-      & $doctorPath -TargetRoot $TargetRoot -WriteArtifacts
-      $doctorExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+      $doctorExitCode = Invoke-RuntimeNeutralBootstrapDoctor -RepoRoot $RepoRoot -TargetRoot $TargetRoot
+      if ($doctorExitCode -eq 127) {
+        $global:LASTEXITCODE = 0
+        & $doctorPath -TargetRoot $TargetRoot -WriteArtifacts
+        $doctorExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+      }
       if ($doctorExitCode -eq 0) {
         Write-Host '[OK] vibe bootstrap doctor gate'
         $pass++
@@ -904,7 +943,7 @@ if ($Deep) {
       }
     }
   } else {
-    Write-Host "[WARN] deep doctor skipped for adapter mode '$($Adapter.check_mode)'" -ForegroundColor Yellow
+    Write-Host "[WARN] deep doctor skipped for adapter mode '$($Adapter.check_mode)' on host '$HostId'" -ForegroundColor Yellow
     $warn++
   }
 }

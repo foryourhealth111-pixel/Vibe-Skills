@@ -5,11 +5,43 @@ from typing import Any
 from .router_contract_support import RepoContext, read_skill_descriptor
 
 
+# UI string constants for confirm UI rendering
+CONFIRM_UI_BATCH_PROMPT = "请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里："  # noqa: RUF001
+CONFIRM_UI_ROUTE_PREFIX = "路由需要确认：当前命中候选包"  # noqa: RUF001
+CONFIRM_UI_COMBINED_INSTRUCTION = "你可以在同一条回复里同时回答上面的问题，并输入序号或 `$<skill>` 来指定技能。"  # noqa: RUF001
+CONFIRM_UI_SIMPLE_INSTRUCTION = "回复序号或 `$<skill>` 来明确选择。"
+
+# Deep discovery first question template (from deep-discovery-policy.json)
+DEEP_DISCOVERY_FIRST_QUESTION = "你希望这次任务最终交付什么形式"
+
+
+def _collect_clarification_questions(route_result: dict[str, Any], max_items: int = 6) -> list[str]:
+    cap = min(max_items, 6)
+    questions: list[str] = []
+    sources = [
+        (route_result.get("deep_discovery_advice") or {}).get("interview_questions", []),
+        (route_result.get("llm_acceleration_advice") or {}).get("confirm_questions", []),
+        (route_result.get("prompt_asset_boost_advice") or {}).get("confirm_questions", []),
+    ]
+
+    for source in sources:
+        for item in source or []:
+            question = str(item).strip()
+            if not question or question in questions:
+                continue
+            questions.append(question)
+            if len(questions) >= cap:
+                return questions[:cap]
+
+    return questions[:cap]
+
+
 def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_root: str | None, host_id: str | None = None) -> dict[str, Any] | None:
     if route_result["route_mode"] != "confirm_required" or not route_result.get("selected"):
         return None
 
     selected = route_result["selected"]
+    clarification_questions = _collect_clarification_questions(route_result)
     ranking = []
     for row in route_result.get("ranked", []):
         if row["pack_id"] == selected["pack_id"]:
@@ -38,11 +70,16 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
         rendered.append(str(hazard.get("title") or "FALLBACK HAZARD ALERT"))
         rendered.append(str(hazard.get("message") or "This result came from a fallback or degraded path and is not equivalent to standard success."))
         if hazard.get("reason"):
-            rendered.append(f"Trigger reason: `{hazard['reason']}`.")
+            rendered.append(f"触发原因：`{hazard['reason']}`。")  # noqa: RUF001
         if hazard.get("recovery_action"):
             rendered.append(str(hazard["recovery_action"]))
         rendered.append("")
-    rendered.append(f"Route confirmation required for pack `{selected['pack_id']}`.")
+    if clarification_questions:
+        rendered.append(CONFIRM_UI_BATCH_PROMPT)
+        for index, question in enumerate(clarification_questions, start=1):
+            rendered.append(f"Q{index}. {question}")
+        rendered.append("")
+    rendered.append(f"{CONFIRM_UI_ROUTE_PREFIX} `{selected['pack_id']}`。")
     for option in options:
         score = option["score"]
         score_text = f" (score={round(float(score), 4)})" if score is not None else ""
@@ -50,13 +87,17 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
             rendered.append(f"{option['option_id']}. `{option['skill']}`{score_text} - {option['description']}")
         else:
             rendered.append(f"{option['option_id']}. `{option['skill']}`{score_text}")
-    rendered.append("Reply with the option number or `$<skill>` to choose explicitly.")
+    if clarification_questions:
+        rendered.append(CONFIRM_UI_COMBINED_INSTRUCTION)
+    else:
+        rendered.append(CONFIRM_UI_SIMPLE_INSTRUCTION)
 
     return {
         "enabled": True,
         "pack_id": selected["pack_id"],
         "selected_skill": selected["skill"],
         "options": options,
+        "clarification_questions": clarification_questions,
         "rendered_text": "\n".join(rendered),
         "hazard_alert_required": bool(route_result.get("hazard_alert_required")),
         "truth_level": route_result.get("truth_level"),

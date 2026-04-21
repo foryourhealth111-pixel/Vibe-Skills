@@ -8,6 +8,13 @@ import sys
 import unittest
 from pathlib import Path
 
+# Import UI constants for testing
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "runtime-core" / "src"))
+from vgo_runtime.router_contract_presentation import (
+    CONFIRM_UI_BATCH_PROMPT,
+    DEEP_DISCOVERY_FIRST_QUESTION,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRIDGE_SCRIPT = REPO_ROOT / "scripts" / "router" / "invoke-pack-route.py"
@@ -64,16 +71,20 @@ class RouterBridgeTests(unittest.TestCase):
                 if "selected_skill" in expected:
                     self.assertEqual(expected["selected_skill"], result["selected"]["skill"])
 
-    def test_confirm_required_returns_confirm_ui(self) -> None:
+    def test_confirm_required_returns_batched_clarification_bundle(self) -> None:
         result = run_bridge(
-            "create PRD and user story backlog with quality gate",
+            "Help me clarify scope, choose repo path, define constraints, and then implement the feature with verification and deliverables.",
             "L",
             "planning",
         )
-        if result["route_mode"] == "confirm_required":
-            self.assertIn("confirm_ui", result)
-            self.assertTrue(result["confirm_ui"]["enabled"])
-            self.assertGreaterEqual(len(result["confirm_ui"]["options"]), 1)
+        self.assertEqual("confirm_required", result["route_mode"])
+        self.assertGreaterEqual(len(result["deep_discovery_advice"]["interview_questions"]), 6)
+        self.assertIn("confirm_ui", result)
+        self.assertTrue(result["confirm_ui"]["enabled"])
+        self.assertGreaterEqual(len(result["confirm_ui"]["options"]), 1)
+        self.assertGreaterEqual(len(result["confirm_ui"]["clarification_questions"]), 6)
+        self.assertIn(CONFIRM_UI_BATCH_PROMPT, result["confirm_ui"]["rendered_text"])
+        self.assertIn(DEEP_DISCOVERY_FIRST_QUESTION, result["confirm_ui"]["rendered_text"])
 
     def test_ml_critical_discussion_routes_to_lqf_ml_expert(self) -> None:
         result = run_bridge(

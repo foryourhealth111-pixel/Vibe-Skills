@@ -9,6 +9,7 @@ from .router_contract_support import (
     RepoContext,
     candidate_name_score,
     keyword_ratio,
+    load_json,
     load_router_config_bundle,
     normalize_keyword_list,
     normalize_text,
@@ -20,6 +21,160 @@ from .router_contract_support import (
     resolve_skill_md_path,
     resolve_target_root,
 )
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value).strip()
+        if not text or text in seen:
+            continue
+        deduped.append(text)
+        seen.add(text)
+    return deduped
+
+
+def _build_deep_discovery_advice(repo: RepoContext, prompt_lower: str, grade: str, task_type: str) -> dict[str, object] | None:
+    policy_path = repo.config_root / "deep-discovery-policy.json"
+    catalog_path = repo.config_root / "capability-catalog.json"
+    if not policy_path.exists() or not catalog_path.exists():
+        return None
+
+    policy = load_json(policy_path)
+    catalog = load_json(catalog_path)
+    if not isinstance(policy, dict) or not isinstance(catalog, dict):
+        return None
+    if not bool(policy.get("enabled", False)):
+        return None
+
+    mode = str(policy.get("mode") or "off").strip() or "off"
+    if mode == "off":
+        return None
+
+    scope = policy.get("scope") or {}
+    grade_allow = [normalize_text(item) for item in scope.get("grade_allow") or []]
+    task_allow = [normalize_text(item) for item in scope.get("task_allow") or []]
+    scope_reasons: list[str] = []
+    if grade_allow and grade not in grade_allow:
+        scope_reasons.append("grade_not_allowed")
+    if task_allow and task_type not in task_allow:
+        scope_reasons.append("task_not_allowed")
+    scope_applicable = not scope_reasons
+
+    capabilities = catalog.get("capabilities") or []
+    capability_hits: list[dict[str, object]] = []
+    for capability in capabilities:
+        if not isinstance(capability, dict):
+            continue
+        capability_task_allow = [normalize_text(item) for item in capability.get("task_allow") or []]
+        if capability_task_allow and task_type not in capability_task_allow:
+            continue
+        matched_keywords = [
+            str(keyword).strip()
+            for keyword in capability.get("keywords") or []
+            if normalize_text(str(keyword)) and normalize_text(str(keyword)) in prompt_lower
+        ]
+        if not matched_keywords:
+            continue
+        capability_hits.append(
+            {
+                "capability_id": str(capability.get("id") or ""),
+                "display_name": str(capability.get("display_name") or ""),
+                "matched_keyword_count": len(matched_keywords),
+                "matched_keywords": matched_keywords,
+                "skills": [str(skill).strip() for skill in capability.get("skills") or [] if str(skill).strip()],
+            }
+        )
+
+    capability_hits.sort(
+        key=lambda item: (
+            -int(item.get("matched_keyword_count", 0)),
+            str(item.get("display_name") or ""),
+        )
+    )
+
+    trigger_cfg = policy.get("trigger") or {}
+    trigger_keywords = _dedupe_strings(
+        [str(keyword) for key in ("ambiguity_keywords", "composite_keywords", "execution_keywords") for keyword in trigger_cfg.get(key) or []]
+    )
+    trigger_active = any(normalize_text(keyword) in prompt_lower for keyword in trigger_keywords if normalize_text(keyword))
+
+    interview_cfg = policy.get("interview") or {}
+    max_questions = max(1, int(interview_cfg.get("max_questions", 3)))
+    question_templates = [str(item) for item in interview_cfg.get("question_templates") or [] if str(item).strip()]
+    if not question_templates:
+        question_templates = [
+            "你希望这次任务最终交付什么形式（脚本、报告、文档、可运行流程）？",
+            "你最优先的两个能力域是什么：{capabilities}？",
+            "你希望我先做方案确认，再执行，还是直接按当前描述执行？",
+        ]
+
+    capability_names = [str(item.get("display_name") or "").strip() for item in capability_hits if str(item.get("display_name") or "").strip()]
+    capability_name_text = " / ".join(capability_names) if capability_names else "需求澄清与方案规划 / 工程实现与落地执行"
+
+    questions: list[str] = []
+    for template in question_templates:
+        if len(questions) >= max_questions:
+            break
+        question = template.replace("{capabilities}", capability_name_text).strip()
+        if question and question not in questions:
+            questions.append(question)
+
+    for item in catalog.get("default_interview_questions") or []:
+        if len(questions) >= max_questions:
+            break
+        if not isinstance(item, dict):
+            continue
+        question = str(item.get("prompt") or "").strip()
+        if question and question not in questions:
+            questions.append(question)
+
+    recommended_capabilities = _dedupe_strings([str(item.get("capability_id") or "") for item in capability_hits])
+    recommended_skills = _dedupe_strings(
+        [skill for item in capability_hits for skill in item.get("skills", []) if isinstance(skill, str)]
+    )
+    interview_required = scope_applicable and bool(trigger_active or recommended_capabilities)
+
+    enforcement = "none"
+    reason = "outside_scope"
+    confirm_required = False
+    if scope_applicable:
+        if mode == "shadow":
+            enforcement = "advisory"
+            reason = "shadow_discovery_signal" if trigger_active else "shadow_scope_only"
+        elif mode in {"soft", "strict"}:
+            if trigger_active:
+                enforcement = "confirm_required"
+                reason = "deep_discovery_interview_required"
+                confirm_required = True
+            else:
+                enforcement = "advisory"
+                reason = "scope_match_no_trigger"
+        else:
+            enforcement = "advisory"
+            reason = "unknown_mode_advisory"
+
+    intent_contract = policy.get("intent_contract") or {}
+    return {
+        "enabled": True,
+        "mode": mode,
+        "scope_applicable": scope_applicable,
+        "scope_reasons": scope_reasons,
+        "trigger_active": trigger_active,
+        "capability_hit_count": len(capability_hits),
+        "capability_hits": capability_hits,
+        "recommended_capabilities": recommended_capabilities,
+        "recommended_skills": recommended_skills,
+        "interview_required": interview_required,
+        "interview_questions": questions[:max_questions],
+        "max_questions": max_questions,
+        "min_completeness_for_confirm_required": float(intent_contract.get("min_completeness_for_confirm_required", 0.45)),
+        "enforcement": enforcement,
+        "reason": reason,
+        "confirm_required": confirm_required,
+        "should_apply_hook": scope_applicable,
+    }
 
 
 def route_prompt(
@@ -235,6 +390,9 @@ def route_prompt(
             "admitted_candidates": custom_admission.get("admitted_candidates"),
         },
     }
+    deep_discovery_advice = _build_deep_discovery_advice(repo, prompt_lower, grade, task_type)
+    if deep_discovery_advice:
+        result["deep_discovery_advice"] = deep_discovery_advice
     result.update(build_fallback_truth(result, fallback_policy))
 
     confirm_ui = build_confirm_ui(repo, result, target_root, host_id)

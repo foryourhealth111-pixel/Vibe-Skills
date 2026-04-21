@@ -218,7 +218,7 @@ function Get-PromptAssetBoostJsonSchema {
             }
             confirm_questions = [ordered]@{
                 type = "array"
-                maxItems = 3
+                maxItems = 6
                 items = [ordered]@{ type = "string"; maxLength = 140 }
             }
             rationale = [ordered]@{
@@ -718,7 +718,7 @@ function Get-PromptAssetBoostAdvice {
         confirm_required = $confirmRequired
         search_plan = $searchPlan
         overlay_candidates = @($cleanCandidates)
-        confirm_questions = @($confirmQuestions | Where-Object { $_ } | Select-Object -First 3)
+        confirm_questions = @($confirmQuestions | Where-Object { $_ } | Select-Object -First 6)
         rationale = if ($rationale) { $rationale.Trim() } else { $null }
         provider = [pscustomobject]@{
             ok = [bool]$provider.ok

@@ -196,6 +196,43 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
         self._assert_canonical_trampoline_wrapper(self.target_root / 'skills' / 'vibe-how' / 'SKILL.md')
         self.assertFalse((self.target_root / 'commands').exists())
 
+    def test_preview_check_deep_runs_bootstrap_doctor_for_claude_code(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest('PowerShell executable not available in PATH')
+
+        install_cmd = [
+            powershell,
+            '-NoProfile',
+            '-File',
+            str(REPO_ROOT / 'install.ps1'),
+            '-HostId',
+            'claude-code',
+            '-TargetRoot',
+            str(self.target_root),
+            '-Profile',
+            'full',
+        ]
+        subprocess.run(install_cmd, capture_output=True, text=True, check=True)
+
+        check_cmd = [
+            powershell,
+            '-NoProfile',
+            '-File',
+            str(REPO_ROOT / 'check.ps1'),
+            '-HostId',
+            'claude-code',
+            '-Profile',
+            'full',
+            '-TargetRoot',
+            str(self.target_root),
+            '-Deep',
+        ]
+        result = subprocess.run(check_cmd, capture_output=True, text=True)
+
+        self.assertNotIn("deep doctor skipped", result.stdout)
+        self.assertIn("[OK] vibe bootstrap doctor gate", result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

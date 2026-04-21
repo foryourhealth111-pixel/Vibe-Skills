@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -21,6 +22,10 @@ HOST_GLOBAL_INSTRUCTION_TARGETS = {
     "claude-code": {"relpath": "CLAUDE.md", "documented_path": "~/.claude/CLAUDE.md"},
     "opencode": {"relpath": "AGENTS.md", "documented_path": "~/.config/opencode/AGENTS.md"},
 }
+IS_WINDOWS = os.name == "nt"
+WINDOWS_NPX_COMMANDS = {"npx", "npx.cmd", "npx.exe", "npx.ps1"}
+WINDOWS_CMD_COMMANDS = {"cmd", "cmd.exe"}
+CLAUDE_FLOW_COMMANDS = {"claude-flow", "claude-flow.cmd", "claude-flow.exe", "claude-flow.ps1"}
 
 
 def setting_value(settings: dict[str, Any] | None, name: str) -> str | None:
@@ -75,6 +80,203 @@ def resolved_setting_state(settings: dict[str, Any] | None, name: str) -> tuple[
 
 def command_present(name: str) -> bool:
     return shutil.which(name) is not None
+
+
+def _command_basename(command: str | None) -> str:
+    if command is None:
+        return ""
+    value = str(command).strip().strip('"').strip("'")
+    if not value:
+        return ""
+    return Path(value).name.lower()
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
+
+
+def _is_windows_cmd_wrapped_npx(command: str | None, args: list[str]) -> bool:
+    if _command_basename(command) not in WINDOWS_CMD_COMMANDS:
+        return False
+    if len(args) < 2:
+        return False
+    return str(args[0]).lower() == "/c" and _command_basename(args[1]) in WINDOWS_NPX_COMMANDS
+
+
+def _looks_like_bare_windows_npx(command: str | None, args: list[str]) -> bool:
+    return IS_WINDOWS and _command_basename(command) in WINDOWS_NPX_COMMANDS and not _is_windows_cmd_wrapped_npx(command, args)
+
+
+def _looks_like_claude_flow_mcp_server(command: str | None, args: list[str]) -> bool:
+    if _command_basename(command) not in CLAUDE_FLOW_COMMANDS:
+        return False
+    return len(args) >= 2 and args[0] == "mcp" and args[1] == "start"
+
+
+def _resolve_claude_flow_package_root(command: str | None) -> Path | None:
+    candidates: list[Path] = []
+    command_text = str(command or "").strip().strip('"').strip("'")
+    if command_text:
+        command_path = Path(command_text)
+        if command_path.is_absolute() or command_path.drive:
+            candidates.append(command_path.resolve(strict=False).parent / "node_modules" / "claude-flow")
+    resolved = shutil.which("claude-flow")
+    if resolved:
+        candidates.append(Path(resolved).resolve(strict=False).parent / "node_modules" / "claude-flow")
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        candidates.append(Path(appdata) / "npm" / "node_modules" / "claude-flow")
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _inspect_claude_flow_package(command: str | None) -> dict[str, Any]:
+    package_root = _resolve_claude_flow_package_root(command)
+    if package_root is None:
+        return {
+            "package_root": None,
+            "package_version": None,
+            "hooks_schema_issue_detected": False,
+            "hooks_schema_issue": None,
+        }
+
+    package_version = None
+    package_json_path = package_root / "package.json"
+    if package_json_path.exists():
+        try:
+            package_payload = json.loads(package_json_path.read_text(encoding="utf-8"))
+        except Exception:
+            package_payload = None
+        if isinstance(package_payload, dict):
+            version_value = package_payload.get("version")
+            if version_value is not None:
+                package_version = str(version_value)
+
+    hooks_tools_path = package_root / "v3" / "@claude-flow" / "cli" / "dist" / "src" / "mcp-tools" / "hooks-tools.js"
+    hooks_schema_issue_detected = False
+    hooks_schema_issue = None
+    if hooks_tools_path.exists():
+        hooks_text = hooks_tools_path.read_text(encoding="utf-8", errors="ignore")
+        if re.search(
+            r"trajectoryIds:\s*\{(?P<body>[^{}]*type:\s*['\"]array['\"][^{}]*)\}",
+            hooks_text,
+        ) and "items" not in hooks_text.split("trajectoryIds:", 1)[1].split("}", 1)[0]:
+            hooks_schema_issue_detected = True
+        if hooks_schema_issue_detected:
+            hooks_schema_issue = "hooks_intelligence_learn.trajectoryIds array schema missing items"
+
+    return {
+        "package_root": str(package_root.resolve(strict=False)),
+        "package_version": package_version,
+        "hooks_schema_issue_detected": hooks_schema_issue_detected,
+        "hooks_schema_issue": hooks_schema_issue,
+    }
+
+
+def inspect_claude_code_global_mcp_config(target_root: Path) -> dict[str, Any]:
+    global_config_path = Path.home() / ".claude.json"
+    result: dict[str, Any] = {
+        "applicable": True,
+        "config_path": str(global_config_path.resolve(strict=False)),
+        "exists": global_config_path.exists(),
+        "parseable": False,
+        "status": "not_present",
+        "windows_bare_npx_servers": [],
+        "claude_flow_mcp_servers": [],
+        "duplicate_claude_flow_aliases": [],
+        "claude_flow_schema_issue": {
+            "detected": False,
+            "detail": None,
+            "package_version": None,
+            "package_root": None,
+        },
+    }
+    if not global_config_path.exists():
+        return result
+
+    try:
+        payload = json.loads(global_config_path.read_text(encoding="utf-8"))
+    except Exception:
+        result["status"] = "parse_failed"
+        return result
+
+    result["parseable"] = True
+    server_tables: list[tuple[str, dict[str, Any]]] = []
+    mcp_servers = payload.get("mcpServers") if isinstance(payload, dict) else None
+    if isinstance(mcp_servers, dict):
+        server_tables.append(("global", mcp_servers))
+    projects = payload.get("projects") if isinstance(payload, dict) else None
+    if isinstance(projects, dict):
+        for project_name, project in projects.items():
+            if not isinstance(project, dict):
+                continue
+            project_mcp_servers = project.get("mcpServers")
+            if isinstance(project_mcp_servers, dict):
+                server_tables.append((f"project:{project_name}", project_mcp_servers))
+    if not server_tables:
+        result["status"] = "no_mcp_servers"
+        return result
+
+    bare_npx_servers: list[str] = []
+    claude_flow_mcp_servers: list[str] = []
+    claude_flow_command = None
+    for scope, table in server_tables:
+        for name, config in table.items():
+            if not isinstance(config, dict):
+                continue
+            scoped_name = f"{scope}:{name}"
+            command = str(config.get("command") or "")
+            args = _string_list(config.get("args"))
+            if _looks_like_bare_windows_npx(command, args):
+                bare_npx_servers.append(scoped_name)
+            if _looks_like_claude_flow_mcp_server(command, args):
+                claude_flow_mcp_servers.append(scoped_name)
+                if claude_flow_command is None:
+                    claude_flow_command = command
+
+    claude_flow_schema_issue = {
+        "detected": False,
+        "detail": None,
+        "package_version": None,
+        "package_root": None,
+    }
+    if claude_flow_mcp_servers:
+        package_inspection = _inspect_claude_flow_package(claude_flow_command)
+        claude_flow_schema_issue = {
+            "detected": bool(package_inspection["hooks_schema_issue_detected"]),
+            "detail": package_inspection["hooks_schema_issue"],
+            "package_version": package_inspection["package_version"],
+            "package_root": package_inspection["package_root"],
+        }
+
+    duplicate_claude_flow_aliases = claude_flow_mcp_servers if len(claude_flow_mcp_servers) > 1 else []
+    issue_count = 0
+    if bare_npx_servers:
+        issue_count += 1
+    if duplicate_claude_flow_aliases:
+        issue_count += 1
+    if claude_flow_schema_issue["detected"]:
+        issue_count += 1
+
+    result.update(
+        {
+            "status": "issues_detected" if issue_count else "healthy",
+            "windows_bare_npx_servers": bare_npx_servers,
+            "claude_flow_mcp_servers": claude_flow_mcp_servers,
+            "duplicate_claude_flow_aliases": duplicate_claude_flow_aliases,
+            "claude_flow_schema_issue": claude_flow_schema_issue,
+            "issue_count": issue_count,
+        }
+    )
+    return result
 
 
 def _load_bootstrap_receipts(target_root: Path) -> list[dict[str, Any]]:

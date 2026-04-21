@@ -7,6 +7,7 @@ from vgo_contracts.host_runtime_readiness import evaluate_host_runtime_readiness
 
 from .bootstrap_doctor_support import (
     command_present,
+    inspect_claude_code_global_mcp_config,
     inspect_global_instruction_bootstrap,
     load_json,
     os_environ,
@@ -227,6 +228,11 @@ def collect_host_runtime(repo_root: Path, target_root: Path) -> dict[str, Any]:
         target_root,
         host_id=str(runtime_readiness.get("host_id") or host_id or "").strip() or None,
     )
+    claude_code_global_mcp = (
+        inspect_claude_code_global_mcp_config(target_root)
+        if (str(runtime_readiness.get("host_id") or host_id or "").strip() == "claude-code")
+        else {"applicable": False}
+    )
     return {
         "host_id": str(runtime_readiness.get("host_id") or host_id or "").strip() or None,
         "entry_mode": str(runtime_readiness["entry_mode"]),
@@ -250,6 +256,7 @@ def collect_host_runtime(repo_root: Path, target_root: Path) -> dict[str, Any]:
         "vibe_host_ready": vibe_host_ready,
         "direct_runtime": dict(runtime_readiness["direct_runtime"]),
         "global_instruction_bootstrap": global_instruction_bootstrap,
+        "claude_code_global_mcp": claude_code_global_mcp,
     }
 
 
@@ -355,6 +362,35 @@ def build_summary(
             status = str(global_instruction_bootstrap.get("status") or "unhealthy")
             blocking_issues.append(
                 f"global instruction bootstrap is unhealthy ({status})"
+            )
+    claude_code_global_mcp = host_runtime.get("claude_code_global_mcp") if isinstance(host_runtime, dict) else None
+    if isinstance(claude_code_global_mcp, dict) and bool(claude_code_global_mcp.get("applicable")):
+        repair_hint = "Run scripts/setup/repair-claude-code-global-mcp.ps1 or fix ~/.claude.json manually."
+        if str(claude_code_global_mcp.get("status") or "") == "parse_failed":
+            warnings.append("Claude Code global MCP config exists but could not be parsed; inspect ~/.claude.json manually.")
+        bare_npx_servers = [str(item) for item in claude_code_global_mcp.get("windows_bare_npx_servers") or []]
+        if bare_npx_servers:
+            manual_actions.append(
+                "Claude Code global MCP config uses bare npx entries on Windows for: "
+                + ", ".join(bare_npx_servers)
+                + f". {repair_hint}"
+            )
+        duplicate_aliases = [str(item) for item in claude_code_global_mcp.get("duplicate_claude_flow_aliases") or []]
+        if duplicate_aliases:
+            warnings.append(
+                "Claude Code global MCP config registers multiple claude-flow MCP aliases: "
+                + ", ".join(duplicate_aliases)
+                + ". Keep at most one alias."
+            )
+        schema_issue = claude_code_global_mcp.get("claude_flow_schema_issue") or {}
+        if isinstance(schema_issue, dict) and bool(schema_issue.get("detected")):
+            package_version = str(schema_issue.get("package_version") or "unknown")
+            manual_actions.append(
+                "Installed claude-flow "
+                + package_version
+                + " emits an invalid MCP schema for hooks_intelligence_learn.trajectoryIds. "
+                + "Disable/remove global claude-flow/ruflo MCP entries or upgrade claude-flow. "
+                + repair_hint
             )
     if install_state != "installed_locally":
         warnings.append(f"Install state is '{install_state}'; verify the local install receipt.")

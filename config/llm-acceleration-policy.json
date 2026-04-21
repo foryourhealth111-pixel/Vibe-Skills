@@ -58,8 +58,8 @@
     "confirm_question_booster": {
       "enabled": true,
       "only_when_confirm_required": true,
-      "max_questions": 3,
-      "max_output_tokens": 340,
+      "max_questions": 6,
+      "max_output_tokens": 560,
       "temperature": 0.1,
       "timeout_ms": 6000
     }
@@ -104,7 +104,6 @@
     "max_live_apply_rate": 1.0
   }
 }
-
 
 
 

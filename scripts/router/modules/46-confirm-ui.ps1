@@ -423,6 +423,54 @@ function Build-ConfirmSkillOptions {
     }
 }
 
+function Get-ConfirmUiClarificationQuestions {
+    param(
+        [object]$Result,
+        [int]$MaxQuestions = 8
+    )
+
+    if (-not $Result) { return @() }
+
+    $limit = [Math]::Max(1, [int]$MaxQuestions)
+    $sources = @()
+
+    try {
+        if ($Result.deep_discovery_advice -and $Result.deep_discovery_advice.interview_questions) {
+            $sources += ,@($Result.deep_discovery_advice.interview_questions)
+        }
+    } catch { }
+
+    try {
+        if ($Result.llm_acceleration_advice -and $Result.llm_acceleration_advice.confirm_questions) {
+            $sources += ,@($Result.llm_acceleration_advice.confirm_questions)
+        }
+    } catch { }
+
+    try {
+        if ($Result.prompt_asset_boost_advice -and $Result.prompt_asset_boost_advice.confirm_questions) {
+            $sources += ,@($Result.prompt_asset_boost_advice.confirm_questions)
+        }
+    } catch { }
+
+    $questions = @()
+    foreach ($source in @($sources)) {
+        foreach ($item in @($source)) {
+            $question = [string]$item
+            if (-not $question) { continue }
+            $question = $question.Trim()
+            if (-not $question) { continue }
+            if (-not ($questions -contains $question)) {
+                $questions += $question
+            }
+            if ($questions.Count -ge $limit) {
+                return @($questions)
+            }
+        }
+    }
+
+    return @($questions)
+}
+
 function Build-ConfirmUiText {
     param(
         [object]$ConfirmSkillOptions,
@@ -432,6 +480,7 @@ function Build-ConfirmUiText {
 
     if (-not $ConfirmSkillOptions -or -not $ConfirmSkillOptions.options) { return $null }
     $lines = @()
+    $clarificationQuestions = @(Get-ConfirmUiClarificationQuestions -Result $Result)
     if ($Result -and [bool]$Result.hazard_alert_required -and $Result.hazard_alert) {
         $lines += [string]$Result.hazard_alert.title
         $lines += [string]$Result.hazard_alert.message
@@ -440,6 +489,15 @@ function Build-ConfirmUiText {
         }
         if ($Result.hazard_alert.recovery_action) {
             $lines += [string]$Result.hazard_alert.recovery_action
+        }
+        $lines += ''
+    }
+    if ($clarificationQuestions.Count -gt 0) {
+        $lines += "请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里："
+        $questionIndex = 0
+        foreach ($question in @($clarificationQuestions)) {
+            $questionIndex++
+            $lines += ("Q{0}. {1}" -f $questionIndex, [string]$question)
         }
         $lines += ''
     }
@@ -455,7 +513,11 @@ function Build-ConfirmUiText {
         }
     }
 
-    $lines += "回复任一项来选择：输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）。"
+    if ($clarificationQuestions.Count -gt 0) {
+        $lines += "你可以在同一条回复里同时回答上面的问题，并输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）来指定技能。"
+    } else {
+        $lines += "回复任一项来选择：输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）。"
+    }
     if ($UnattendedDecision -and [bool]$UnattendedDecision.unattended) {
         $lines += ("当前处于无人值守：将跳过选择，自动使用 `{0}`。" -f [string]$ConfirmSkillOptions.selected_skill)
     } else {

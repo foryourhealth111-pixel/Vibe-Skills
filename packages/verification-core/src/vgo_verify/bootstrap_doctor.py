@@ -54,6 +54,21 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
             f"- Corruption: `{global_instruction_bootstrap.get('corruption')}`",
             "",
         ]
+    claude_code_global_mcp = ((artifact.get("host_runtime") or {}).get("claude_code_global_mcp") or {})
+    if claude_code_global_mcp.get("applicable"):
+        schema_issue = claude_code_global_mcp.get("claude_flow_schema_issue") or {}
+        lines += [
+            "## Claude Code Global MCP",
+            "",
+            f"- Status: `{claude_code_global_mcp.get('status')}`",
+            f"- Config Path: `{claude_code_global_mcp.get('config_path')}`",
+            f"- Bare npx Servers: `{', '.join(claude_code_global_mcp.get('windows_bare_npx_servers') or []) or 'none'}`",
+            f"- claude-flow MCP Aliases: `{', '.join(claude_code_global_mcp.get('claude_flow_mcp_servers') or []) or 'none'}`",
+            f"- Duplicate claude-flow Aliases: `{', '.join(claude_code_global_mcp.get('duplicate_claude_flow_aliases') or []) or 'none'}`",
+            f"- Schema Issue Detected: `{schema_issue.get('detected')}`",
+            f"- claude-flow Version: `{schema_issue.get('package_version')}`",
+            "",
+        ]
     if artifact["plugins"]:
         lines += ["## Plugin Readiness", ""]
         for plugin in artifact["plugins"]:
@@ -152,6 +167,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[FAIL] {exc}", file=sys.stderr)
         return 1
     print(f"[INFO] readiness_state={artifact['summary']['readiness_state']}")
+    for issue in artifact["summary"]["blocking_issues"]:
+        print(f"[BLOCK] {issue}")
+    for action in artifact["summary"]["manual_actions"]:
+        print(f"[ACTION] {action}")
+    for warning in artifact["summary"]["warnings"]:
+        print(f"[WARN] {warning}")
     return 0 if artifact["gate_result"] == "PASS" else 1
 
 

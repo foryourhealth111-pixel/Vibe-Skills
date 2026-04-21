@@ -64,8 +64,8 @@ function Get-LlmAccelerationPolicyDefaults {
             confirm_question_booster = [pscustomobject]@{
                 enabled = $false
                 only_when_confirm_required = $true
-                max_questions = 3
-                max_output_tokens = 340
+                max_questions = 6
+                max_output_tokens = 560
                 temperature = 0.1
                 timeout_ms = 6000
             }
@@ -909,6 +909,7 @@ function Get-VcoGitContextSnippet {
 }
 
 function Get-LlmAccelerationJsonSchema {
+    $maxConfirmQuestions = 6
     $schema = [ordered]@{
         type = "object"
         additionalProperties = $false
@@ -919,7 +920,7 @@ function Get-LlmAccelerationJsonSchema {
             confirm_required = [ordered]@{ type = "boolean" }
             confirm_questions = [ordered]@{
                 type = "array"
-                maxItems = 3
+                maxItems = $maxConfirmQuestions
                 items = [ordered]@{ type = "string" }
             }
             rerank = [ordered]@{
@@ -1036,6 +1037,7 @@ function New-LlmAccelerationInputText {
     $text += "- Output MUST be valid JSON that matches the provided JSON Schema."
     $text += "- If you suggest a pack/skill override, it MUST be one of the provided top_candidates pack_id and skill candidates."
     $text += "- If unsure, set abstain=true and rerank.abstain=true."
+    $text += "- If confirm_required=true, make confirm_questions a single batched clarification round that can be answered in one reply."
     $text += "- Always include QA recommendations (testing department can help at any stage)."
     $text += ""
     $text += "Context(JSON):"
@@ -1439,6 +1441,7 @@ function Invoke-LlmDiffDigestProvider {
 }
 
 function Get-LlmConfirmQuestionBoosterJsonSchema {
+    $maxConfirmQuestions = 6
     $schema = [ordered]@{
         type = "object"
         additionalProperties = $false
@@ -1446,7 +1449,7 @@ function Get-LlmConfirmQuestionBoosterJsonSchema {
         properties = [ordered]@{
             confirm_questions = [ordered]@{
                 type = "array"
-                maxItems = 3
+                maxItems = $maxConfirmQuestions
                 items = [ordered]@{ type = "string" }
             }
         }
@@ -1465,7 +1468,7 @@ function New-LlmConfirmQuestionBoosterInputText {
         [int]$MaxQuestions
     )
 
-    $maxQ = [Math]::Max(1, [Math]::Min(3, [int]$MaxQuestions))
+    $maxQ = [Math]::Max(1, [Math]::Min(6, [int]$MaxQuestions))
     $ctx = [ordered]@{
         vco = [ordered]@{
             grade = $Grade
@@ -1475,7 +1478,7 @@ function New-LlmConfirmQuestionBoosterInputText {
             original = $PromptText
             normalized = if ($PromptNormalization -and $PromptNormalization.normalized) { [string]$PromptNormalization.normalized } else { $PromptText }
         }
-        existing_confirm_questions = @($ExistingConfirmQuestions | Where-Object { $_ } | Select-Object -First 5)
+        existing_confirm_questions = @($ExistingConfirmQuestions | Where-Object { $_ } | Select-Object -First $maxQ)
         constraints = [ordered]@{
             max_questions = $maxQ
         }
@@ -1489,8 +1492,8 @@ function New-LlmConfirmQuestionBoosterInputText {
     $text += "Rules:"
     $text += "- Return ONLY JSON that matches the JSON Schema. No markdown. No extra keys."
     $text += "- Provide <= {0} questions." -f $maxQ
-    $text += "- Questions must be short, high-signal, and non-redundant."
-    $text += "- Prefer questions that enable immediate execution (repo/path, expected output, constraints, and acceptance criteria)."
+    $text += "- Questions must be short, high-signal, non-redundant, and designed to be answered in one batched reply."
+    $text += "- Cover the missing essentials first: deliverable/output, repo/path/data scope, existing inputs/context, constraints, execution posture, and acceptance/verification when relevant."
     $text += ""
     $text += "Context(JSON):"
     $text += $json
@@ -1602,7 +1605,7 @@ function Invoke-LlmConfirmQuestionBoosterProvider {
     try {
         $obj = ($providerResult.output_text.Trim() | ConvertFrom-Json)
         if ($obj -and $obj.confirm_questions) {
-            $questions = @($obj.confirm_questions | Where-Object { $_ } | Select-Object -First ([Math]::Max(1, [Math]::Min(3, [int]$MaxQuestions))))
+            $questions = @($obj.confirm_questions | Where-Object { $_ } | Select-Object -First ([Math]::Max(1, [Math]::Min(6, [int]$MaxQuestions))))
         }
     } catch { }
 
@@ -1661,7 +1664,7 @@ function Get-LlmAccelerationCommitteeMemberFocus {
 
     switch ($MemberIndex) {
         1 { return "Focus on rerank quality: only suggest overrides when clearly better and within top_candidates; be conservative." }
-        2 { return "Focus on clarification: generate the minimal set of confirm_questions (<=3) that would remove ambiguity fast." }
+        2 { return "Focus on clarification: generate a batched, comprehensive set of confirm_questions (<=6) that removes ambiguity in one reply." }
         3 { return "Focus on QA/testing: propose the most valuable tests/checks for this stage; keep them actionable." }
         default { return "Be balanced: rerank only if needed; ask good confirm questions; include QA recommendations." }
     }
@@ -1694,7 +1697,7 @@ function New-LlmAccelerationJudgeInputText {
     $text += ""
     $text += "Rules:"
     $text += "- If suggesting a pack/skill override, it MUST be one of the provided top_candidates pack_id and skill candidates."
-    $text += "- Prefer fewer, higher-signal confirm_questions (<=3)."
+    $text += "- Prefer batched, comprehensive, non-redundant confirm_questions (<=6) that cover output, scope, context, constraints, execution posture, and verification when relevant."
     $text += "- Always include QA recommendations."
     $text += "- If uncertain, abstain."
     $text += ""
@@ -2188,12 +2191,13 @@ function Get-LlmAccelerationAdvice {
     $overridePack = $null
     $overrideSkill = $null
     $suggestionConfidence = 0.0
+    $confirmQuestionLimit = [Math]::Max(1, [Math]::Min(6, [int]$policyResolved.enhancements.confirm_question_booster.max_questions))
 
     if ($parsed) {
         $abstained = [bool]$parsed.abstain
         $reason = if ($parsed.notes) { "model_notes" } else { "model_output" }
         $confirmRequired = [bool]$parsed.confirm_required
-        $confirmQuestions = @($parsed.confirm_questions | Where-Object { $_ } | Select-Object -First 3)
+        $confirmQuestions = @($parsed.confirm_questions | Where-Object { $_ } | Select-Object -First $confirmQuestionLimit)
         $qaRecommendations = @($parsed.qa.recommendations | Where-Object { $_ } | Select-Object -First 8)
 
         if ($parsed.rerank -and -not [bool]$parsed.rerank.abstain) {
@@ -2216,8 +2220,8 @@ function Get-LlmAccelerationAdvice {
         $cb = $policyResolved.enhancements.confirm_question_booster
         $cbEnabled = [bool]($cb -and $cb.enabled)
         $onlyWhenConfirm = if ($cb -and ($cb.only_when_confirm_required -ne $null)) { [bool]$cb.only_when_confirm_required } else { $true }
-        $maxQ = if ($cb -and ($cb.max_questions -ne $null)) { [int]$cb.max_questions } else { 3 }
-        $maxQ = [Math]::Max(1, [Math]::Min(3, $maxQ))
+        $maxQ = if ($cb -and ($cb.max_questions -ne $null)) { [int]$cb.max_questions } else { 6 }
+        $maxQ = [Math]::Max(1, [Math]::Min(6, $maxQ))
 
         $shouldBoost = $cbEnabled -and $parsed -and (-not $parseError)
         if ($onlyWhenConfirm) { $shouldBoost = $shouldBoost -and [bool]$confirmRequired }

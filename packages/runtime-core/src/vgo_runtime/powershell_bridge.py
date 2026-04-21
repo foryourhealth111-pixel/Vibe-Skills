@@ -148,6 +148,70 @@ def _command_preview(command: Sequence[str]) -> str:
     return " ".join(redacted)
 
 
+def _stream_preview_parts(*, stdout: bytes | str | None, stderr: bytes | str | None) -> list[str]:
+    parts: list[str] = []
+    stdout_preview = _preview_stream(stdout)
+    stderr_preview = _preview_stream(stderr)
+    if stdout_preview:
+        parts.append(f"stdout={stdout_preview}")
+    if stderr_preview:
+        parts.append(f"stderr={stderr_preview}")
+    return parts
+
+
+def _classify_bridge_failure(bridge_label: str) -> str:
+    normalized = bridge_label.strip().lower()
+    if "delegated lane" in normalized:
+        return "delegated lane payload handoff"
+    if "canonical entry" in normalized:
+        return "canonical bridge startup"
+    return "powershell bridge invocation"
+
+
+def _bridge_context_parts(
+    *,
+    command: Sequence[str],
+    cwd: Path,
+    completed: subprocess.CompletedProcess[bytes] | None = None,
+    stdout: bytes | str | None = None,
+    stderr: bytes | str | None = None,
+    extra_parts: Sequence[str] | None = None,
+) -> list[str]:
+    context_parts = [f"cwd={cwd}", f"command={_command_preview(command)}"]
+    if completed is not None:
+        context_parts.insert(0, f"exit={completed.returncode}")
+        stdout = completed.stdout
+        stderr = completed.stderr
+    context_parts.extend(extra_parts or [])
+    context_parts.extend(_stream_preview_parts(stdout=stdout, stderr=stderr))
+    return context_parts
+
+
+def _raise_bridge_failure(
+    *,
+    bridge_label: str,
+    message: str,
+    command: Sequence[str],
+    cwd: Path,
+    completed: subprocess.CompletedProcess[bytes] | None = None,
+    stdout: bytes | str | None = None,
+    stderr: bytes | str | None = None,
+    extra_parts: Sequence[str] | None = None,
+) -> None:
+    failure_kind = _classify_bridge_failure(bridge_label)
+    details = "; ".join(
+        _bridge_context_parts(
+            command=command,
+            cwd=cwd,
+            completed=completed,
+            stdout=stdout,
+            stderr=stderr,
+            extra_parts=extra_parts,
+        )
+    )
+    raise RuntimeError(f"{bridge_label} failed during {failure_kind}: {message} ({details})")
+
+
 def _build_stream_detail(
     *,
     stdout: bytes | str | None,
@@ -260,25 +324,34 @@ def run_powershell_json_command(
             timeout=resolved_timeout,
         )
     except subprocess.TimeoutExpired as exc:
-        detail_parts = [f"timeout={resolved_timeout}s", f"cwd={cwd}", f"command={_command_preview(command)}"]
-        stdout_preview = _preview_stream(exc.stdout)
-        stderr_preview = _preview_stream(exc.stderr)
-        if stdout_preview:
-            detail_parts.append(f"stdout={stdout_preview}")
-        if stderr_preview:
-            detail_parts.append(f"stderr={stderr_preview}")
-        raise RuntimeError(f"{bridge_label} timed out ({'; '.join(detail_parts)})") from exc
+        _raise_bridge_failure(
+            bridge_label=bridge_label,
+            message=f"timed out after {resolved_timeout}s",
+            command=command,
+            cwd=cwd,
+            stdout=exc.stdout,
+            stderr=exc.stderr,
+            extra_parts=[f"timeout={resolved_timeout}s"],
+        )
     if completed.returncode != 0:
-        detail_parts = [f"exit={completed.returncode}", f"cwd={cwd}", f"command={_command_preview(command)}"]
-        stdout_preview = _preview_stream(completed.stdout)
-        stderr_preview = _preview_stream(completed.stderr)
-        if stdout_preview:
-            detail_parts.append(f"stdout={stdout_preview}")
-        if stderr_preview:
-            detail_parts.append(f"stderr={stderr_preview}")
-        raise RuntimeError(f"{bridge_label} failed ({'; '.join(detail_parts)})")
-    return _decode_json_object_stdout(
-        completed.stdout,
-        bridge_label=bridge_label,
-        stderr=completed.stderr,
-    )
+        _raise_bridge_failure(
+            bridge_label=bridge_label,
+            message="subprocess exited non-zero before JSON payload was returned",
+            command=command,
+            cwd=cwd,
+            completed=completed,
+        )
+    try:
+        return _decode_json_object_stdout(
+            completed.stdout,
+            bridge_label=bridge_label,
+            stderr=completed.stderr,
+        )
+    except RuntimeError as exc:
+        _raise_bridge_failure(
+            bridge_label=bridge_label,
+            message=str(exc),
+            command=command,
+            cwd=cwd,
+            completed=completed,
+        )

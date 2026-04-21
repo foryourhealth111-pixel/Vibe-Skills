@@ -280,6 +280,11 @@ import json
 import sys
 from pathlib import Path
 
+def emit(value):
+    if value is None:
+        raise SystemExit(1)
+    sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
+
 codex_root, name = sys.argv[1:3]
 settings_path = Path(codex_root) / "settings.json"
 if not settings_path.exists():
@@ -294,7 +299,7 @@ except Exception:
 env = settings.get("env", {})
 value = env.get(name)
 if isinstance(value, str) and value.strip():
-    print(value)
+    emit(value)
     raise SystemExit(0)
 raise SystemExit(1)
 PY

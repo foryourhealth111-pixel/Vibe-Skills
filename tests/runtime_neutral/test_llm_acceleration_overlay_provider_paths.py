@@ -227,12 +227,12 @@ class LlmAccelerationOverlayProviderPathTests(unittest.TestCase):
                 "        reason = 'ok'",
                 "        status_code = 200",
                 "        latency_ms = 21",
-                "        output_text = '{\"confirm_questions\":[\"What repo should I touch?\",\"What output do you expect?\"]}'",
+                "        output_text = '{\"confirm_questions\":[\"What repo should I touch?\",\"What output do you expect?\",\"What constraints matter most?\",\"How should success be verified?\"]}'",
                 "        response = $null",
                 "        error = $null",
                 "    }",
                 "}",
-                "$result = Invoke-LlmConfirmQuestionBoosterProvider -PolicyResolved (Get-LlmAccelerationPolicy -Policy $policy) -RepoRoot $repoRoot -InputText 'improve confirm questions' -MaxQuestions 3",
+                "$result = Invoke-LlmConfirmQuestionBoosterProvider -PolicyResolved (Get-LlmAccelerationPolicy -Policy $policy) -RepoRoot $repoRoot -InputText 'improve confirm questions' -MaxQuestions 6",
                 "[pscustomobject]@{",
                 "    ok = [bool]$result.ok",
                 "    abstained = [bool]$result.abstained",
@@ -248,7 +248,12 @@ class LlmAccelerationOverlayProviderPathTests(unittest.TestCase):
         self.assertEqual("ok", payload["reason"])
         self.assertEqual("anthropic_messages", payload["api"])
         self.assertEqual(
-            ["What repo should I touch?", "What output do you expect?"],
+            [
+                "What repo should I touch?",
+                "What output do you expect?",
+                "What constraints matter most?",
+                "How should success be verified?",
+            ],
             payload["confirm_questions"],
         )
 

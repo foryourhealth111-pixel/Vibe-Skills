@@ -83,6 +83,7 @@ function New-VibeDelegatedLaneSpec {
         lane_id = $laneId
         lane_root = $laneRoot
         spec_path = $specPath
+        repo_root = [string]$laneSpec.repo_root
         lane_entry = $LaneEntry
     }
 }
@@ -178,6 +179,147 @@ function New-VibeExecutedSpecialistUnitSummary {
         prompt_path = if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_path' -and -not [string]::IsNullOrWhiteSpace([string]$UnitReceipt.prompt_path)) { [string]$UnitReceipt.prompt_path } else { $null }
         prompt_injection_complete = if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_injection_complete') { [bool]$UnitReceipt.prompt_injection_complete } else { $false }
         missing_prompt_injection_fields = if ($UnitReceipt.PSObject.Properties.Name -contains 'missing_prompt_injection_fields') { @($UnitReceipt.missing_prompt_injection_fields) } else { @() }
+function Resolve-VibeDelegatedLaneWorkingDirectory {
+    param(
+        [Parameter(Mandatory)] [object]$LaneRuntime
+    )
+
+    $requestedLaneRoot = if (
+        $LaneRuntime.PSObject.Properties.Name -contains 'lane_root' -and
+        -not [string]::IsNullOrWhiteSpace([string]($LaneRuntime.lane_root))
+    ) {
+        [string]($LaneRuntime.lane_root)
+    } else {
+        $null
+    }
+    $resolvedLaneRoot = $null
+    $laneRootValid = $false
+    if (-not [string]::IsNullOrWhiteSpace($requestedLaneRoot)) {
+        try {
+            $resolvedLaneRoot = [System.IO.Path]::GetFullPath($requestedLaneRoot)
+            $laneRootValid = Test-Path -LiteralPath $resolvedLaneRoot -PathType Container
+        } catch {
+            $resolvedLaneRoot = $requestedLaneRoot
+            $laneRootValid = $false
+        }
+    }
+
+    $requestedWorkingDirectory = if (
+        $LaneRuntime.PSObject.Properties.Name -contains 'repo_root' -and
+        -not [string]::IsNullOrWhiteSpace([string]($LaneRuntime.repo_root))
+    ) {
+        [string]($LaneRuntime.repo_root)
+    } else {
+        $null
+    }
+
+    $resolvedRepoRoot = $null
+    $repoRootValid = $false
+    if (-not [string]::IsNullOrWhiteSpace($requestedWorkingDirectory)) {
+        try {
+            $resolvedRepoRoot = [System.IO.Path]::GetFullPath($requestedWorkingDirectory)
+            $repoRootValid = Test-Path -LiteralPath $resolvedRepoRoot -PathType Container
+        } catch {
+            $resolvedRepoRoot = $requestedWorkingDirectory
+            $repoRootValid = $false
+        }
+    }
+
+    $laneRootFallbackReason = if ($laneRootValid) { $null } elseif ([string]::IsNullOrWhiteSpace($requestedLaneRoot)) { 'lane_root_missing' } else { 'lane_root_invalid' }
+    $effectiveWorkingDirectory = if ($repoRootValid) {
+        $resolvedRepoRoot
+    } elseif (-not [string]::IsNullOrWhiteSpace($resolvedLaneRoot)) {
+        $resolvedLaneRoot
+    } elseif (-not [string]::IsNullOrWhiteSpace($requestedLaneRoot)) {
+        $requestedLaneRoot
+    } else {
+        [System.IO.Path]::GetFullPath('.')
+    }
+    return [pscustomobject]@{
+        lane_root = if (-not [string]::IsNullOrWhiteSpace($resolvedLaneRoot)) { $resolvedLaneRoot } elseif (-not [string]::IsNullOrWhiteSpace($requestedLaneRoot)) { $requestedLaneRoot } else { [System.IO.Path]::GetFullPath('.') }
+        requested_lane_root = $requestedLaneRoot
+        resolved_lane_root = $resolvedLaneRoot
+        lane_root_valid = [bool]$laneRootValid
+        lane_root_fallback_reason = if ($null -eq $laneRootFallbackReason) { $null } else { [string]$laneRootFallbackReason }
+        requested_working_directory = $requestedWorkingDirectory
+        resolved_repo_root = $resolvedRepoRoot
+        repo_root_valid = [bool]$repoRootValid
+        effective_working_directory = $effectiveWorkingDirectory
+        fallback_reason = if ($repoRootValid) {
+            if ($null -eq $laneRootFallbackReason) { $null } else { [string]$laneRootFallbackReason }
+        } elseif ([string]::IsNullOrWhiteSpace($requestedWorkingDirectory)) {
+            'repo_root_missing'
+        } else {
+            'repo_root_invalid'
+        }
+    }
+}
+
+function Get-VibeDelegatedLanePayloadContractVersion {
+    return '1.0'
+}
+
+function Resolve-VibeDelegatedLanePayload {
+    param(
+        [AllowEmptyString()] [string]$StdoutText = '',
+        [Parameter(Mandatory)] [string]$PayloadPath
+    )
+
+    $payloadCandidates = @()
+    $parseFailures = @()
+    $payloadText = ($StdoutText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
+    if (-not [string]::IsNullOrWhiteSpace($payloadText)) {
+        $payloadCandidates += [pscustomobject]@{
+            source = 'stdout_terminal_json'
+            content = $payloadText
+        }
+    }
+
+    if (Test-Path -LiteralPath $PayloadPath) {
+        try {
+            $payloadCandidates += [pscustomobject]@{
+                source = 'lane_payload_artifact'
+                content = Get-Content -LiteralPath $PayloadPath -Raw -Encoding UTF8
+            }
+        } catch {
+            $parseFailures += 'lane_payload_artifact:read_failed'
+        }
+    }
+
+    foreach ($candidate in @($payloadCandidates)) {
+        if ([string]::IsNullOrWhiteSpace([string]$candidate.content)) {
+            $parseFailures += ('{0}:empty' -f [string]$candidate.source)
+            continue
+        }
+
+        try {
+            $payload = [string]$candidate.content | ConvertFrom-Json
+        } catch {
+            $parseFailures += ('{0}:invalid_json' -f [string]$candidate.source)
+            continue
+        }
+
+        if (-not ($payload.PSObject.Properties.Name -contains 'lane_receipt_path')) {
+            $parseFailures += ('{0}:missing_lane_receipt_path' -f [string]$candidate.source)
+            continue
+        }
+        $laneReceiptPath = [string]$payload.lane_receipt_path
+        if ([string]::IsNullOrWhiteSpace($laneReceiptPath)) {
+            $parseFailures += ('{0}:empty_lane_receipt_path' -f [string]$candidate.source)
+            continue
+        }
+
+        return [pscustomobject]@{
+            payload = $payload
+            source = [string]$candidate.source
+            parse_failures = @($parseFailures)
+        }
+    }
+
+    return [pscustomobject]@{
+        payload = $null
+        source = $null
+        parse_failures = @($parseFailures)
     }
 }
 
@@ -189,7 +331,10 @@ function Start-VibeDelegatedLaneProcess {
 
     $stdoutPath = Join-Path ([string]($LaneRuntime.lane_root)) 'lane-process.stdout.log'
     $stderrPath = Join-Path ([string]($LaneRuntime.lane_root)) 'lane-process.stderr.log'
+    $payloadPath = Join-Path ([string]($LaneRuntime.lane_root)) 'lane-payload.json'
+    $launchMetadataPath = Join-Path ([string]($LaneRuntime.lane_root)) 'lane-launch.json'
     $invocation = Get-VgoPowerShellFileInvocation -ScriptPath $HelperScriptPath -ArgumentList @('-LaneSpecPath', ([string]($LaneRuntime.spec_path))) -NoProfile
+    $workingDirectoryInfo = Resolve-VibeDelegatedLaneWorkingDirectory -LaneRuntime $LaneRuntime
 
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = [string]($invocation.host_path)
@@ -197,7 +342,7 @@ function Start-VibeDelegatedLaneProcess {
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
     $startInfo.CreateNoWindow = $true
-    $startInfo.WorkingDirectory = Split-Path -Parent ([string]($LaneRuntime.spec_path))
+    $startInfo.WorkingDirectory = [string]$workingDirectoryInfo.effective_working_directory
 
     $quotedArguments = foreach ($argument in @($invocation.arguments)) {
         $text = [string]$argument
@@ -208,6 +353,44 @@ function Start-VibeDelegatedLaneProcess {
         }
     }
     $startInfo.Arguments = [string]::Join(' ', @($quotedArguments))
+
+    $launchMetadata = [pscustomobject]@{
+        lane_id = [string]($LaneRuntime.lane_id)
+        lane_root = [string]($LaneRuntime.lane_root)
+        spec_path = [string]($LaneRuntime.spec_path)
+        helper_script_path = [string]$HelperScriptPath
+        host_kind = if ($invocation.PSObject.Properties.Name -contains 'host_kind') { [string]$invocation.host_kind } else { 'pwsh' }
+        powershell_host_path = [string]($invocation.host_path)
+        fallback_used = [bool]$(if ($invocation.PSObject.Properties.Name -contains 'fallback_used') { $invocation.fallback_used } else { $false })
+        resolved_command = [string]($invocation.host_path)
+        resolved_arguments = @($invocation.arguments)
+        arguments_render_mode = 'RenderedString'
+        payload_contract_version = Get-VibeDelegatedLanePayloadContractVersion
+        requested_lane_root = if ($null -eq $workingDirectoryInfo.requested_lane_root) { $null } else { [string]$workingDirectoryInfo.requested_lane_root }
+        resolved_lane_root = if ($null -eq $workingDirectoryInfo.resolved_lane_root) { $null } else { [string]$workingDirectoryInfo.resolved_lane_root }
+        lane_root_valid = [bool]$workingDirectoryInfo.lane_root_valid
+        lane_root_fallback_reason = if ($null -eq $workingDirectoryInfo.lane_root_fallback_reason) { $null } else { [string]$workingDirectoryInfo.lane_root_fallback_reason }
+        requested_working_directory = if ($null -eq $workingDirectoryInfo.requested_working_directory) { $null } else { [string]$workingDirectoryInfo.requested_working_directory }
+        resolved_repo_root = if ($null -eq $workingDirectoryInfo.resolved_repo_root) { $null } else { [string]$workingDirectoryInfo.resolved_repo_root }
+        effective_working_directory = [string]$workingDirectoryInfo.effective_working_directory
+        resolved_working_directory = [string]$workingDirectoryInfo.effective_working_directory
+        repo_root_valid = [bool]$workingDirectoryInfo.repo_root_valid
+        fallback_reason = if ($null -eq $workingDirectoryInfo.fallback_reason) { $null } else { [string]$workingDirectoryInfo.fallback_reason }
+        preflight = [pscustomobject]@{
+            executable_exists = [bool](Test-Path -LiteralPath ([string]($invocation.host_path)))
+            executable_is_file = [bool](Test-Path -LiteralPath ([string]($invocation.host_path)) -PathType Leaf)
+            working_directory_exists = [bool](Test-Path -LiteralPath ([string]$workingDirectoryInfo.effective_working_directory))
+            working_directory_is_directory = [bool](Test-Path -LiteralPath ([string]$workingDirectoryInfo.effective_working_directory) -PathType Container)
+            script_exists = [bool](Test-Path -LiteralPath ([string]$HelperScriptPath))
+            script_is_file = [bool](Test-Path -LiteralPath ([string]$HelperScriptPath) -PathType Leaf)
+            script_used_as_executable = [bool]([string]($invocation.host_path) -eq [string]$HelperScriptPath)
+        }
+        stdout_path = $stdoutPath
+        stderr_path = $stderrPath
+        payload_path = $payloadPath
+        generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    }
+    Write-VibeJsonArtifact -Path $launchMetadataPath -Value $launchMetadata
 
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $startInfo
@@ -222,8 +405,48 @@ function Start-VibeDelegatedLaneProcess {
         process = $process
         stdout_path = $stdoutPath
         stderr_path = $stderrPath
+        payload_path = $payloadPath
+        launch_metadata_path = $launchMetadataPath
+        requested_working_directory = if ($null -eq $workingDirectoryInfo.requested_working_directory) { $null } else { [string]$workingDirectoryInfo.requested_working_directory }
+        effective_working_directory = [string]$workingDirectoryInfo.effective_working_directory
+        repo_root_valid = [bool]$workingDirectoryInfo.repo_root_valid
         stdout_task = $process.StandardOutput.ReadToEndAsync()
         stderr_task = $process.StandardError.ReadToEndAsync()
+    }
+}
+
+function Stop-VibeDelegatedLaneHandle {
+    param(
+        [Parameter(Mandatory)] [object]$Handle
+    )
+
+    if ($null -eq $Handle -or $null -eq $Handle.process) {
+        return
+    }
+
+    try {
+        $hasExited = $true
+        try {
+            $hasExited = [bool]$Handle.process.HasExited
+        } catch {
+            $hasExited = $true
+        }
+
+        if (-not $hasExited) {
+            try {
+                $Handle.process.Kill($true)
+            } catch {
+            }
+            try {
+                $Handle.process.WaitForExit()
+            } catch {
+            }
+        }
+    } finally {
+        try {
+            $Handle.process.Dispose()
+        } catch {
+        }
     }
 }
 
@@ -247,28 +470,47 @@ function Wait-VibeDelegatedLaneProcess {
     Write-VgoUtf8NoBomText -Path ([string]($Handle.stdout_path)) -Content $stdoutText
     Write-VgoUtf8NoBomText -Path ([string]($Handle.stderr_path)) -Content $stderrText
 
-    $payloadText = ($stdoutText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
-    if ([string]::IsNullOrWhiteSpace($payloadText)) {
-        throw ("Delegated lane process returned empty payload for {0}" -f ([string]($Handle.lane_id)))
-    }
-
-    $payload = $payloadText | ConvertFrom-Json
-    if (-not ($payload.PSObject.Properties.Name -contains 'lane_receipt_path')) {
-        $payloadPath = Join-Path ([string]($Handle.lane_root)) 'lane-payload.json'
-        if (-not (Test-Path -LiteralPath $payloadPath)) {
-            throw ("Delegated lane payload missing lane_receipt_path and no lane-payload.json exists for {0}" -f ([string]($Handle.lane_id)))
-        }
-        $payload = Get-Content -LiteralPath $payloadPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    }
-    $laneReceipt = Get-Content -LiteralPath ([string]($payload.lane_receipt_path)) -Raw -Encoding UTF8 | ConvertFrom-Json
-    $laneResult = if ($payload.lane_result_path -and (Test-Path -LiteralPath ([string]($payload.lane_result_path)))) {
-        Get-Content -LiteralPath ([string]($payload.lane_result_path)) -Raw -Encoding UTF8 | ConvertFrom-Json
-    } else {
-        $null
-    }
-
     $processExitCode = if ($timedOut) { -1 } else { [int]($Handle.process.ExitCode) }
-    $Handle.process.Dispose()
+    $payloadRecovery = Resolve-VibeDelegatedLanePayload -StdoutText $stdoutText -PayloadPath ([string]($Handle.payload_path))
+    if ($timedOut -or $processExitCode -ne 0 -or $null -eq $payloadRecovery.payload) {
+        $failureReasons = @()
+        if ($timedOut) {
+            $failureReasons += 'timeout'
+        }
+        if ($processExitCode -ne 0) {
+            $failureReasons += ('exit_code={0}' -f $processExitCode)
+        }
+        if ($null -eq $payloadRecovery.payload) {
+            $failureReasons += 'payload_unavailable'
+        }
+        if (@($payloadRecovery.parse_failures).Count -gt 0) {
+            $failureReasons += ('payload_parse_failures={0}' -f ([string]::Join(', ', @($payloadRecovery.parse_failures))))
+        }
+
+        $message = @(
+            ('Delegated lane payload handoff failed for lane_id={0}' -f ([string]($Handle.lane_id))),
+            ('reasons={0}' -f ([string]::Join(', ', @($failureReasons)))),
+            ('effective_working_directory={0}' -f [string]($Handle.effective_working_directory)),
+            ('requested_working_directory={0}' -f $(if ($Handle.requested_working_directory) { [string]$Handle.requested_working_directory } else { '<none>' })),
+            ('stdout_path={0}' -f [string]($Handle.stdout_path)),
+            ('stderr_path={0}' -f [string]($Handle.stderr_path)),
+            ('payload_path={0}' -f [string]($Handle.payload_path))
+        ) -join '; '
+        Stop-VibeDelegatedLaneHandle -Handle $Handle
+        throw $message
+    }
+
+    $payload = $payloadRecovery.payload
+    try {
+        $laneReceipt = Get-Content -LiteralPath ([string]($payload.lane_receipt_path)) -Raw -Encoding UTF8 | ConvertFrom-Json
+        $laneResult = if ($payload.lane_result_path -and (Test-Path -LiteralPath ([string]($payload.lane_result_path)))) {
+            Get-Content -LiteralPath ([string]($payload.lane_result_path)) -Raw -Encoding UTF8 | ConvertFrom-Json
+        } else {
+            $null
+        }
+    } finally {
+        $Handle.process.Dispose()
+    }
 
     return [pscustomobject]@{
         lane_id = [string]($Handle.lane_id)
@@ -277,6 +519,10 @@ function Wait-VibeDelegatedLaneProcess {
         timed_out = [bool]$timedOut
         stdout_path = [string]($Handle.stdout_path)
         stderr_path = [string]($Handle.stderr_path)
+        payload_path = [string]($Handle.payload_path)
+        payload_source = [string]$payloadRecovery.source
+        effective_working_directory = [string]($Handle.effective_working_directory)
+        requested_working_directory = if ($Handle.requested_working_directory) { [string]$Handle.requested_working_directory } else { $null }
         lane_receipt_path = [string]($payload.lane_receipt_path)
         lane_notes_path = [string]($payload.lane_notes_path)
         lane_result_path = if ($payload.lane_result_path) { [string]($payload.lane_result_path) } else { $null }
@@ -948,7 +1194,7 @@ function Get-VibeEffectiveExecutionPolicy {
                             -ScriptPath 'scripts/verify/vibe-installed-runtime-freshness-gate.ps1'
                         continue
                     }
-                    'version-consistency-gate' {
+                    { $_ -in @('version-consistency-gate', 'release-install-runtime-coherence-gate') } {
                         New-VibeInstalledRuntimeVerificationUnit `
                             -UnitId 'release-install-runtime-coherence-gate' `
                             -ScriptPath 'scripts/verify/vibe-release-install-runtime-coherence-gate.ps1'
@@ -1226,8 +1472,20 @@ foreach ($topologyWave in @($executionTopology.waves)) {
                     }
 
                     $windowOutcomes = @()
-                    foreach ($handle in @($handles)) {
-                        $windowOutcomes += Wait-VibeDelegatedLaneProcess -Handle $handle -TimeoutSeconds ([int]$policy.scheduler.default_timeout_seconds)
+                    $completedLaneIds = New-Object 'System.Collections.Generic.HashSet[string]'
+                    try {
+                        foreach ($handle in @($handles)) {
+                            $windowOutcomes += Wait-VibeDelegatedLaneProcess -Handle $handle -TimeoutSeconds ([int]$policy.scheduler.default_timeout_seconds)
+                            [void]$completedLaneIds.Add([string]$handle.lane_id)
+                        }
+                    } catch {
+                        foreach ($remainingHandle in @($handles)) {
+                            if ($completedLaneIds.Contains([string]$remainingHandle.lane_id)) {
+                                continue
+                            }
+                            Stop-VibeDelegatedLaneHandle -Handle $remainingHandle
+                        }
+                        throw
                     }
                     $stepOutcomes += $windowOutcomes
                     $parallelUnitsExecutedCount += @($windowOutcomes).Count

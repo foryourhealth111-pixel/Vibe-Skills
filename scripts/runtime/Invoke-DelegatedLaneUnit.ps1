@@ -170,6 +170,7 @@ Write-VibeJsonArtifact -Path $receiptPath -Value $receipt
 $payload = [pscustomobject]@{
     lane_id = [string]$laneSpec.lane_id
     lane_kind = $laneKind
+    payload_contract_version = '1.0'
     status = if ($receipt) { [string]$receipt.status } else { '' }
     payload_written = $true
     lane_receipt_path = $receiptPath
@@ -180,4 +181,4 @@ $payload = [pscustomobject]@{
 }
 Write-VibeJsonArtifact -Path $payloadPath -Value $payload
 
-$payload | ConvertTo-Json -Depth 20 -Compress
+[Console]::Out.WriteLine(($payload | ConvertTo-Json -Depth 20 -Compress))

@@ -68,6 +68,95 @@ function New-VibeExecutedSpecialistUnitSummary {
     }
 }
 
+function New-VibeProcessPreflightResult {
+    param(
+        [Parameter(Mandatory)] [string]$Command,
+        [string[]]$Arguments = @(),
+        [Parameter(Mandatory)] [string]$WorkingDirectory,
+        [AllowEmptyString()] [string]$HostKind = '',
+        [AllowEmptyString()] [string]$ScriptPath = '',
+        [AllowEmptyString()] [string]$PythonCommandSpec = '',
+        [AllowNull()] [object]$Invocation = $null
+    )
+
+    $resolvedCommand = if ([string]::IsNullOrWhiteSpace($Command)) {
+        ''
+    } elseif ([System.IO.Path]::IsPathRooted($Command) -or [string]$Command -match '[\\/]') {
+        try { [System.IO.Path]::GetFullPath($Command) } catch { [string]$Command }
+    } else {
+        $commandCandidate = Get-Command -Name $Command -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandType -in @('Application', 'ExternalScript') } |
+            Select-Object -First 1
+        if ($null -ne $commandCandidate) {
+            if ($commandCandidate.PSObject.Properties.Name -contains 'Source' -and -not [string]::IsNullOrWhiteSpace([string]$commandCandidate.Source)) {
+                [string]$commandCandidate.Source
+            } elseif ($commandCandidate.PSObject.Properties.Name -contains 'Path' -and -not [string]::IsNullOrWhiteSpace([string]$commandCandidate.Path)) {
+                [string]$commandCandidate.Path
+            } else {
+                [string]$Command
+            }
+        } else {
+            [string]$Command
+        }
+    }
+    $resolvedWorkingDirectory = try { [System.IO.Path]::GetFullPath($WorkingDirectory) } catch { [string]$WorkingDirectory }
+    $resolvedScriptPath = if ([string]::IsNullOrWhiteSpace($ScriptPath)) { $null } else { try { [System.IO.Path]::GetFullPath($ScriptPath) } catch { [string]$ScriptPath } }
+    $resolvedPythonSpec = if ([string]::IsNullOrWhiteSpace($PythonCommandSpec)) { $null } else { [string]$PythonCommandSpec }
+
+    $commandExists = (-not [string]::IsNullOrWhiteSpace($resolvedCommand)) -and (Test-Path -LiteralPath $resolvedCommand)
+    $commandIsFile = (-not [string]::IsNullOrWhiteSpace($resolvedCommand)) -and (Test-Path -LiteralPath $resolvedCommand -PathType Leaf)
+    $workingDirectoryExists = Test-Path -LiteralPath $resolvedWorkingDirectory
+    $workingDirectoryIsDirectory = Test-Path -LiteralPath $resolvedWorkingDirectory -PathType Container
+    $scriptExists = if ($null -eq $resolvedScriptPath) { $null } else { [bool](Test-Path -LiteralPath $resolvedScriptPath) }
+    $scriptIsFile = if ($null -eq $resolvedScriptPath) { $null } else { [bool](Test-Path -LiteralPath $resolvedScriptPath -PathType Leaf) }
+    $scriptUsedAsExecutable = if ($null -eq $resolvedScriptPath) { $false } else { [string]$resolvedCommand -eq [string]$resolvedScriptPath }
+    $pythonSpecExpanded = if ($null -eq $Invocation) { $null } else { [bool](-not [string]::IsNullOrWhiteSpace([string]$Invocation.host_path)) }
+
+    $failures = @()
+    if (-not $commandExists) {
+        $failures += ('resolved executable does not exist: {0}' -f $resolvedCommand)
+    } elseif (-not $commandIsFile) {
+        $failures += ('resolved executable is not a file: {0}' -f $resolvedCommand)
+    }
+    if (-not $workingDirectoryExists) {
+        $failures += ('working directory does not exist: {0}' -f $resolvedWorkingDirectory)
+    } elseif (-not $workingDirectoryIsDirectory) {
+        $failures += ('working directory is not a directory: {0}' -f $resolvedWorkingDirectory)
+    }
+    if ($null -ne $resolvedScriptPath) {
+        if (-not [bool]$scriptExists) {
+            $failures += ('powershell script path does not exist: {0}' -f $resolvedScriptPath)
+        } elseif (-not [bool]$scriptIsFile) {
+            $failures += ('powershell script path is not a file: {0}' -f $resolvedScriptPath)
+        }
+        if ($scriptUsedAsExecutable) {
+            $failures += ('powershell script path is being used as the executable instead of the host: {0}' -f $resolvedScriptPath)
+        }
+    }
+    if ($null -ne $resolvedPythonSpec -and -not [bool]$pythonSpecExpanded) {
+        $failures += ('python command spec did not resolve to a host executable: {0}' -f $resolvedPythonSpec)
+    }
+
+    return [pscustomobject]@{
+        host_kind = if ([string]::IsNullOrWhiteSpace($HostKind)) { $null } else { [string]$HostKind }
+        resolved_command = [string]$resolvedCommand
+        resolved_arguments = @($Arguments | ForEach-Object { [string]$_ })
+        resolved_working_directory = [string]$resolvedWorkingDirectory
+        script_path = $resolvedScriptPath
+        python_command_spec = $resolvedPythonSpec
+        executable_exists = [bool]$commandExists
+        executable_is_file = [bool]$commandIsFile
+        working_directory_exists = [bool]$workingDirectoryExists
+        working_directory_is_directory = [bool]$workingDirectoryIsDirectory
+        script_exists = $scriptExists
+        script_is_file = $scriptIsFile
+        script_used_as_executable = [bool]$scriptUsedAsExecutable
+        python_spec_expanded = $pythonSpecExpanded
+        passed = [bool](@($failures).Count -eq 0)
+        failures = @($failures)
+    }
+}
+
 function Invoke-VibeCapturedProcess {
     param(
         [Parameter(Mandatory)] [string]$Command,
@@ -76,7 +165,9 @@ function Invoke-VibeCapturedProcess {
         [Parameter(Mandatory)] [int]$TimeoutSeconds,
         [Parameter(Mandatory)] [string]$StdOutPath,
         [Parameter(Mandatory)] [string]$StdErrPath,
-        [AllowNull()] [hashtable]$EnvironmentOverrides = $null
+        [AllowNull()] [hashtable]$EnvironmentOverrides = $null,
+        [AllowNull()] [object]$Preflight = $null,
+        [AllowEmptyString()] [string]$LaunchMetadataPath = ''
     )
 
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -133,6 +224,7 @@ function Invoke-VibeCapturedProcess {
         $usedArgumentList = $false
     }
 
+    $renderedArguments = $null
     if (-not $usedArgumentList) {
         $quotedArguments = foreach ($argument in @($Arguments)) {
             $text = [string]$argument
@@ -142,15 +234,55 @@ function Invoke-VibeCapturedProcess {
                 $text
             }
         }
-        $startInfo.Arguments = [string]::Join(' ', @($quotedArguments))
+        $renderedArguments = [string]::Join(' ', @($quotedArguments))
+        $startInfo.Arguments = $renderedArguments
+    }
+
+    $launchMetadataResolvedCommand = if (
+        $null -ne $Preflight -and
+        $Preflight.PSObject.Properties.Name -contains 'resolved_command' -and
+        -not [string]::IsNullOrWhiteSpace([string]$Preflight.resolved_command)
+    ) {
+        [string]$Preflight.resolved_command
+    } else {
+        [string]$Command
+    }
+
+    $launchMetadata = [ordered]@{
+        command = [string]$Command
+        resolved_command = $launchMetadataResolvedCommand
+        resolved_arguments = @($Arguments | ForEach-Object { [string]$_ })
+        resolved_working_directory = [string]$WorkingDirectory
+        stdout_path = [string]$StdOutPath
+        stderr_path = [string]$StdErrPath
+        arguments_render_mode = if ($usedArgumentList) { 'ArgumentList' } else { 'RenderedString' }
+        rendered_arguments = if ($usedArgumentList) { $null } else { [string]$renderedArguments }
+        preflight = if ($null -eq $Preflight) { $null } else { $Preflight }
+        generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    }
+    if (-not [string]::IsNullOrWhiteSpace($LaunchMetadataPath)) {
+        try {
+            Write-VibeJsonArtifact -Path $LaunchMetadataPath -Value ([pscustomobject]$launchMetadata)
+        } catch {
+            Write-Warning ("Failed to persist launch metadata to {0}: {1}" -f [string]$LaunchMetadataPath, $_.Exception.Message)
+        }
+    }
+
+    if ($null -ne $Preflight -and -not [bool]$Preflight.passed) {
+        throw ('Process preflight failed: {0}' -f ([string]::Join('; ', @($Preflight.failures))))
     }
 
     $process = New-Object System.Diagnostics.Process
     $process.StartInfo = $startInfo
 
     try {
-        if (-not $process.Start()) {
-            throw "Failed to start process: $Command"
+        try {
+            if (-not $process.Start()) {
+                throw "Failed to start process: $Command"
+            }
+        } catch {
+            $message = if ($_.Exception -and -not [string]::IsNullOrWhiteSpace([string]$_.Exception.Message)) { [string]$_.Exception.Message } else { [string]$_ }
+            throw ('Process startup failed for {0}: {1}; working_directory={2}; arguments_render_mode={3}' -f [string]$Command, $message, [string]$WorkingDirectory, [string]$launchMetadata.arguments_render_mode)
         }
         try {
             $process.StandardInput.Close()
@@ -181,6 +313,10 @@ function Invoke-VibeCapturedProcess {
             stderr_path = $StdErrPath
             stdout_preview = (($stdoutText -split "`r?`n" | Where-Object { $_ -ne '' }) | Select-Object -First 5)
             stderr_preview = (($stderrText -split "`r?`n" | Where-Object { $_ -ne '' }) | Select-Object -First 5)
+            arguments_render_mode = [string]$launchMetadata.arguments_render_mode
+            rendered_arguments = if ($usedArgumentList) { $null } else { [string]$renderedArguments }
+            preflight = if ($null -eq $Preflight) { $null } else { $Preflight }
+            launch_metadata_path = if ([string]::IsNullOrWhiteSpace($LaunchMetadataPath)) { $null } else { [string]$LaunchMetadataPath }
         }
     } finally {
         $process.Dispose()
@@ -228,6 +364,12 @@ function Invoke-VibeExecutionUnit {
     $command = ''
     $arguments = @()
     $display = ''
+    $hostKind = $null
+    $fallbackUsed = $false
+    $scriptPath = $null
+    $pythonCommandSpec = $null
+    $invocationDetails = $null
+    $launchMetadataPath = Join-Path $logsRoot ("{0}.launch.json" -f $unitId)
 
     switch ($kind) {
         'powershell_file' {
@@ -247,9 +389,13 @@ function Invoke-VibeExecutionUnit {
             $command = [string]$invocation.host_path
             $arguments = @($invocation.arguments)
             $display = @($command) + @($arguments) -join ' '
+            $hostKind = if ($invocation.PSObject.Properties.Name -contains 'host_kind') { [string]$invocation.host_kind } else { 'pwsh' }
+            $fallbackUsed = [bool]$(if ($invocation.PSObject.Properties.Name -contains 'fallback_used') { $invocation.fallback_used } else { $false })
+            $invocationDetails = $invocation
         }
         'python_command' {
             $commandSpec = Expand-VibeExecutionTemplate -Text ([string]$Unit.command) -Tokens $Tokens
+            $pythonCommandSpec = $commandSpec
             $pythonInvocation = Resolve-VgoPythonCommandSpec -Command $commandSpec
             $command = [string]$pythonInvocation.host_path
             $arguments = @($pythonInvocation.prefix_arguments)
@@ -257,6 +403,8 @@ function Invoke-VibeExecutionUnit {
                 $arguments += (Expand-VibeExecutionTemplate -Text ([string]$arg) -Tokens $Tokens)
             }
             $display = @($command) + @($arguments) -join ' '
+            $hostKind = 'python'
+            $invocationDetails = $pythonInvocation
         }
         'shell_command' {
             $command = Expand-VibeExecutionTemplate -Text ([string]$Unit.command) -Tokens $Tokens
@@ -264,13 +412,15 @@ function Invoke-VibeExecutionUnit {
                 $arguments += (Expand-VibeExecutionTemplate -Text ([string]$arg) -Tokens $Tokens)
             }
             $display = @($command) + @($arguments) -join ' '
+            $hostKind = 'shell'
         }
         default {
             throw "Unsupported execution unit kind: $kind"
         }
     }
 
-    $processResult = Invoke-VibeCapturedProcess -Command $command -Arguments $arguments -WorkingDirectory $cwd -TimeoutSeconds $timeoutSeconds -StdOutPath $stdoutPath -StdErrPath $stderrPath
+    $preflight = New-VibeProcessPreflightResult -Command $command -Arguments $arguments -WorkingDirectory $cwd -HostKind $hostKind -ScriptPath $scriptPath -PythonCommandSpec $pythonCommandSpec -Invocation $invocationDetails
+    $processResult = Invoke-VibeCapturedProcess -Command $command -Arguments $arguments -WorkingDirectory $cwd -TimeoutSeconds $timeoutSeconds -StdOutPath $stdoutPath -StdErrPath $stderrPath -Preflight $preflight -LaunchMetadataPath $launchMetadataPath
 
     $resolvedArtifacts = @()
     foreach ($artifact in @($Unit.expected_artifacts)) {
@@ -297,6 +447,8 @@ function Invoke-VibeExecutionUnit {
         finished_at = $finishedAt
         command = $command
         arguments = @($arguments)
+        host_kind = $hostKind
+        fallback_used = [bool]$fallbackUsed
         display_command = $display
         cwd = $cwd
         timeout_seconds = $timeoutSeconds
@@ -307,6 +459,10 @@ function Invoke-VibeExecutionUnit {
         stderr_path = $processResult.stderr_path
         stdout_preview = @($processResult.stdout_preview)
         stderr_preview = @($processResult.stderr_preview)
+        arguments_render_mode = if ($processResult.PSObject.Properties.Name -contains 'arguments_render_mode') { [string]$processResult.arguments_render_mode } else { $null }
+        rendered_arguments = if ($processResult.PSObject.Properties.Name -contains 'rendered_arguments') { $processResult.rendered_arguments } else { $null }
+        launch_metadata_path = if ($processResult.PSObject.Properties.Name -contains 'launch_metadata_path') { [string]$processResult.launch_metadata_path } else { $launchMetadataPath }
+        preflight = if ($processResult.PSObject.Properties.Name -contains 'preflight') { $processResult.preflight } else { $preflight }
         expected_artifacts = @($resolvedArtifacts)
         verification_passed = [bool]$verificationPassed
     }

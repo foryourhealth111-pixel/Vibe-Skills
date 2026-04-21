@@ -49,11 +49,11 @@
               "expected_artifacts": []
             },
             {
-              "unit_id": "version-consistency-gate",
+              "unit_id": "release-install-runtime-coherence-gate",
               "kind": "powershell_file",
               "parallelizable": true,
               "write_scope": "scripts/verify",
-              "script_path": "scripts/verify/vibe-version-consistency-gate.ps1",
+              "script_path": "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
               "arguments": [],
               "cwd": "${REPO_ROOT}",
               "timeout_seconds": 240,

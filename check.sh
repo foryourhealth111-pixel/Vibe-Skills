@@ -403,6 +403,11 @@ import os
 import re
 import sys
 
+def emit(text):
+    if text is None:
+        return
+    sys.stdout.buffer.write(f"{text}\n".encode("utf-8", errors="backslashreplace"))
+
 value = (sys.argv[1] or "").strip()
 cwd = sys.argv[2]
 normalized = value.replace("\\", "/")
@@ -421,7 +426,7 @@ else:
     candidate = os.path.abspath(os.path.join(cwd, normalized))
 
 candidate = re.sub(r"/+", "/", candidate).rstrip("/")
-print(candidate.lower() if candidate else candidate)
+emit(candidate.lower() if candidate else candidate)
 PY
     return 0
   fi
@@ -439,6 +444,12 @@ json_query_lines_from_file() {
   if command -v python3 >/dev/null 2>&1; then
     python3 - "$json_path" "$expr" <<'PY'
 import json, sys
+
+def emit(value):
+    if value is None:
+        return
+    sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
+
 path, expr = sys.argv[1], sys.argv[2]
 with open(path, encoding='utf-8-sig') as fh:
     data = json.load(fh)
@@ -447,18 +458,24 @@ for part in expr.split('.'):
     value = value[part]
 if isinstance(value, list):
     for item in value:
-        print('true' if item is True else 'false' if item is False else item)
+        emit('true' if item is True else 'false' if item is False else item)
 elif isinstance(value, bool):
-    print('true' if value else 'false')
+    emit('true' if value else 'false')
 elif value is None:
     pass
 else:
-    print(value)
+    emit(value)
 PY
     return $?
   elif command -v python >/dev/null 2>&1; then
     python - "$json_path" "$expr" <<'PY'
 import json, sys
+
+def emit(value):
+    if value is None:
+        return
+    sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
+
 path, expr = sys.argv[1], sys.argv[2]
 with open(path, encoding='utf-8-sig') as fh:
     data = json.load(fh)
@@ -467,13 +484,13 @@ for part in expr.split('.'):
     value = value[part]
 if isinstance(value, list):
     for item in value:
-        print('true' if item is True else 'false' if item is False else item)
+        emit('true' if item is True else 'false' if item is False else item)
 elif isinstance(value, bool):
-    print('true' if value else 'false')
+    emit('true' if value else 'false')
 elif value is None:
     pass
 else:
-    print(value)
+    emit(value)
 PY
     return $?
   elif pick_powershell >/dev/null 2>&1; then
@@ -998,8 +1015,8 @@ else
 fi
 
 if [[ "${DEEP}" == "true" ]]; then
-  if [[ "${ADAPTER_CHECK_MODE}" != "governed" ]]; then
-    echo "[WARN] deep doctor skipped for adapter mode '${ADAPTER_CHECK_MODE}'"
+  if [[ "${ADAPTER_CHECK_MODE}" != "governed" && "${HOST_ID}" != "claude-code" ]]; then
+    echo "[WARN] deep doctor skipped for adapter mode '${ADAPTER_CHECK_MODE}' on host '${HOST_ID}'"
     WARN=$((WARN+1))
   else
     doctor_path="${SCRIPT_DIR}/scripts/verify/vibe-bootstrap-doctor-gate.ps1"

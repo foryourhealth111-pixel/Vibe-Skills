@@ -10,6 +10,12 @@
 - Verify server entries in `mcp/servers.template.json`
 - Check environment variables and local binaries
 
+## Claude Code Windows MCP warnings
+- Run `check.ps1 -HostId claude-code -TargetRoot ~/.claude -Deep`
+- If doctor reports bare `npx` MCP commands under `~/.claude.json`, wrap them as `cmd /c npx`
+- If doctor reports `claude-flow` / `ruflo` schema breakage, remove those MCP registrations or upgrade `claude-flow`
+- Use `scripts/setup/repair-claude-code-global-mcp.ps1` for the supported in-repo repair path
+
 ## Upstream update broke behavior
 - Do not hot-replace bundled content from upstream
 - Use manual merge workflow and update `config/upstream-lock.json`
