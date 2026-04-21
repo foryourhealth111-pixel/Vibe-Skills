@@ -5,6 +5,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 import importlib
 
@@ -680,15 +681,83 @@ class BootstrapDoctorTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-        artifact = self.module.evaluate(self.root, self.target_root)
+        with mock.patch.object(support_module.Path, "home", return_value=self.root):
+            artifact = self.module.evaluate(self.root, self.target_root)
 
         global_mcp = artifact["host_runtime"]["claude_code_global_mcp"]
         self.assertEqual("issues_detected", global_mcp["status"])
-        self.assertEqual(["chrome"], global_mcp["windows_bare_npx_servers"])
-        self.assertEqual(["ruflo", "claude-flow"], global_mcp["duplicate_claude_flow_aliases"])
+        self.assertEqual(["global:chrome"], global_mcp["windows_bare_npx_servers"])
+        self.assertEqual(["global:ruflo", "global:claude-flow"], global_mcp["duplicate_claude_flow_aliases"])
         self.assertTrue(global_mcp["claude_flow_schema_issue"]["detected"])
         self.assertTrue(any("bare npx entries" in item for item in artifact["summary"]["manual_actions"]))
         self.assertTrue(any("invalid MCP schema" in item for item in artifact["summary"]["manual_actions"]))
+
+    def test_claude_code_doctor_scans_project_level_mcp_servers(self) -> None:
+        support_module = importlib.import_module("vgo_verify.bootstrap_doctor_support")
+        original_is_windows = support_module.IS_WINDOWS
+        self.addCleanup(setattr, support_module, "IS_WINDOWS", original_is_windows)
+        support_module.IS_WINDOWS = True
+
+        sidecar_root = self.target_root / ".vibeskills"
+        sidecar_root.mkdir(parents=True, exist_ok=True)
+        (sidecar_root / "mcp-auto-provision.json").write_text(
+            json.dumps(
+                {
+                    "install_state": "installed_locally",
+                    "mcp_auto_provision_attempted": True,
+                    "mcp_results": [],
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        runtime_skill_entry = self.target_root / "skills" / "vibe" / "SKILL.md"
+        runtime_skill_entry.parent.mkdir(parents=True, exist_ok=True)
+        runtime_skill_entry.write_text("---\nname: vibe\n---\n", encoding="utf-8")
+        commands_root = self.target_root / "commands"
+        commands_root.mkdir(parents=True, exist_ok=True)
+        (sidecar_root / "host-closure.json").write_text(
+            json.dumps(
+                {
+                    "host_id": "claude-code",
+                    "runtime_skill_entry": str(runtime_skill_entry.resolve()),
+                    "commands_root": str(commands_root.resolve()),
+                    "commands_materialized": True,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
+        (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
+        (self.target_root / "settings.json").write_text(
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            encoding="utf-8",
+        )
+        (self.root / ".claude.json").write_text(
+            json.dumps(
+                {
+                    "projects": {
+                        "D:/table/demo": {
+                            "mcpServers": {
+                                "playwright": {"type": "stdio", "command": "npx", "args": ["@playwright/mcp@latest"]},
+                                "claude-flow": {"type": "stdio", "command": "claude-flow", "args": ["mcp", "start"]},
+                            }
+                        }
+                    }
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        with mock.patch.object(support_module.Path, "home", return_value=self.root):
+            artifact = self.module.evaluate(self.root, self.target_root)
+
+        global_mcp = artifact["host_runtime"]["claude_code_global_mcp"]
+        self.assertEqual("issues_detected", global_mcp["status"])
+        self.assertEqual(["project:D:/table/demo:playwright"], global_mcp["windows_bare_npx_servers"])
+        self.assertEqual(["project:D:/table/demo:claude-flow"], global_mcp["claude_flow_mcp_servers"])
 
 
 if __name__ == "__main__":

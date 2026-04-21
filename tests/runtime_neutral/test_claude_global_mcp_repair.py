@@ -94,6 +94,37 @@ class ClaudeGlobalMcpRepairTests(unittest.TestCase):
         self.assertEqual("cmd", config["projects"]["D:/table/demo"]["mcpServers"]["playwright"]["command"])
         self.assertEqual(["other"], config["projects"]["D:/table/demo"]["disabledMcpServers"])
 
+    def test_repair_script_preserves_claude_flow_aliases_when_requested(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        result = subprocess.run(
+            [
+                powershell,
+                "-NoProfile",
+                "-File",
+                str(SCRIPT_PATH),
+                "-UserConfigPath",
+                str(self.config_path),
+                "-PreserveClaudeFlowAliases",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        payload = json.loads(result.stdout)
+        config = json.loads(self.config_path.read_text(encoding="utf-8"))
+
+        self.assertEqual([], payload["removed_servers"])
+        self.assertEqual([], payload["cleaned_lists"])
+        self.assertIn("claude-flow", config["mcpServers"])
+        self.assertIn("ruflo", config["mcpServers"])
+        self.assertEqual(["claude-flow", "other"], config["projects"]["D:/table/demo"]["disabledMcpServers"])
+        self.assertEqual("cmd", config["mcpServers"]["chrome"]["command"])
+        self.assertEqual("cmd", config["projects"]["D:/table/demo"]["mcpServers"]["playwright"]["command"])
+
 
 if __name__ == "__main__":
     unittest.main()

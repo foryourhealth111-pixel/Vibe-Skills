@@ -175,13 +175,13 @@ function Invoke-RuntimeNeutralBootstrapDoctor {
     return 127
   }
 
-  $args = @()
-  if ([System.IO.Path]::GetFileName([string]$pythonCommand.Source).ToLowerInvariant() -eq 'py.exe' -or
-      [System.IO.Path]::GetFileName([string]$pythonCommand.Source).ToLowerInvariant() -eq 'py') {
-    $args += '-3'
+  $pythonLeaf = [System.IO.Path]::GetFileName([string]$pythonCommand.Source).ToLowerInvariant()
+  $pythonArgs = @()
+  if ($pythonLeaf -eq 'py.exe' -or $pythonLeaf -eq 'py') {
+    $pythonArgs += '-3'
   }
-  $args += @($doctorPath, '--target-root', $TargetRoot, '--write-artifacts')
-  & $pythonCommand.Source @args | ForEach-Object { Write-Host $_ }
+  $pythonArgs += @($doctorPath, '--target-root', $TargetRoot, '--write-artifacts')
+  & $pythonCommand.Source @pythonArgs 2>&1 | ForEach-Object { Write-Host $_ }
   if ($null -eq $LASTEXITCODE) {
     return 0
   }

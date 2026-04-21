@@ -182,7 +182,7 @@ def _inspect_claude_flow_package(command: str | None) -> dict[str, Any]:
 
 
 def inspect_claude_code_global_mcp_config(target_root: Path) -> dict[str, Any]:
-    global_config_path = target_root.parent / ".claude.json"
+    global_config_path = Path.home() / ".claude.json"
     result: dict[str, Any] = {
         "applicable": True,
         "config_path": str(global_config_path.resolve(strict=False)),
@@ -209,25 +209,38 @@ def inspect_claude_code_global_mcp_config(target_root: Path) -> dict[str, Any]:
         return result
 
     result["parseable"] = True
+    server_tables: list[tuple[str, dict[str, Any]]] = []
     mcp_servers = payload.get("mcpServers") if isinstance(payload, dict) else None
-    if not isinstance(mcp_servers, dict):
+    if isinstance(mcp_servers, dict):
+        server_tables.append(("global", mcp_servers))
+    projects = payload.get("projects") if isinstance(payload, dict) else None
+    if isinstance(projects, dict):
+        for project_name, project in projects.items():
+            if not isinstance(project, dict):
+                continue
+            project_mcp_servers = project.get("mcpServers")
+            if isinstance(project_mcp_servers, dict):
+                server_tables.append((f"project:{project_name}", project_mcp_servers))
+    if not server_tables:
         result["status"] = "no_mcp_servers"
         return result
 
     bare_npx_servers: list[str] = []
     claude_flow_mcp_servers: list[str] = []
     claude_flow_command = None
-    for name, config in mcp_servers.items():
-        if not isinstance(config, dict):
-            continue
-        command = str(config.get("command") or "")
-        args = _string_list(config.get("args"))
-        if _looks_like_bare_windows_npx(command, args):
-            bare_npx_servers.append(str(name))
-        if _looks_like_claude_flow_mcp_server(command, args):
-            claude_flow_mcp_servers.append(str(name))
-            if claude_flow_command is None:
-                claude_flow_command = command
+    for scope, table in server_tables:
+        for name, config in table.items():
+            if not isinstance(config, dict):
+                continue
+            scoped_name = f"{scope}:{name}"
+            command = str(config.get("command") or "")
+            args = _string_list(config.get("args"))
+            if _looks_like_bare_windows_npx(command, args):
+                bare_npx_servers.append(scoped_name)
+            if _looks_like_claude_flow_mcp_server(command, args):
+                claude_flow_mcp_servers.append(scoped_name)
+                if claude_flow_command is None:
+                    claude_flow_command = command
 
     claude_flow_schema_issue = {
         "detected": False,

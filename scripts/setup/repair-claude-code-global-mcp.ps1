@@ -124,6 +124,10 @@ function Repair-McpNameLists {
         return
     }
 
+    if ($PreserveClaudeFlowAliases) {
+        return
+    }
+
     foreach ($propertyName in @('enabledMcpServers', 'disabledMcpServers', 'enabledMcpjsonServers', 'disabledMcpjsonServers')) {
         if ($Node.PSObject.Properties.Name -notcontains $propertyName) {
             continue
@@ -144,11 +148,11 @@ function Repair-McpNameLists {
 }
 
 if ([string]::IsNullOrWhiteSpace($UserConfigPath)) {
-    $home = [Environment]::GetFolderPath('UserProfile')
-    if ([string]::IsNullOrWhiteSpace($home)) {
+    $userProfile = [Environment]::GetFolderPath('UserProfile')
+    if ([string]::IsNullOrWhiteSpace($userProfile)) {
         throw 'Unable to resolve the current user profile directory.'
     }
-    $UserConfigPath = Join-Path $home '.claude.json'
+    $UserConfigPath = Join-Path $userProfile '.claude.json'
 }
 
 $configPath = [System.IO.Path]::GetFullPath($UserConfigPath)

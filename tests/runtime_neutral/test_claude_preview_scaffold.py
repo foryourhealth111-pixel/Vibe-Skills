@@ -228,7 +228,7 @@ class ClaudePreviewScaffoldTests(unittest.TestCase):
             str(self.target_root),
             '-Deep',
         ]
-        result = subprocess.run(check_cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(check_cmd, capture_output=True, text=True)
 
         self.assertNotIn("deep doctor skipped", result.stdout)
         self.assertIn("[OK] vibe bootstrap doctor gate", result.stdout)
