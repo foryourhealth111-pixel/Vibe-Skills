@@ -26,6 +26,7 @@ SUPPORTED_POWERSHELL_HOSTS = frozenset({"pwsh", "windows-powershell"})
 
 
 def _powershell_host_policy() -> dict[str, Any]:
+    """Load the shared PowerShell host policy with strict field validation."""
     policy = dict(POWERSHELL_HOST_POLICY_DEFAULTS)
     try:
         raw_payload = POWERSHELL_HOST_POLICY_PATH.read_text(encoding="utf-8")
@@ -92,10 +93,12 @@ def _powershell_host_policy() -> dict[str, Any]:
 
 
 def _is_windows_host() -> bool:
+    """Return whether the current Python host is running on Windows."""
     return os.name == "nt"
 
 
 def choose_powershell(*, return_diagnostics: bool = False) -> str | dict[str, Any] | None:
+    """Resolve the preferred PowerShell executable for the current platform."""
     policy = _powershell_host_policy()
     is_windows = _is_windows_host()
     prefer_pwsh = str(policy["preferred_powershell_host"]).strip().lower() == "pwsh"
@@ -174,6 +177,7 @@ def choose_powershell(*, return_diagnostics: bool = False) -> str | dict[str, An
 
 
 def print_process_output(result: subprocess.CompletedProcess[str]) -> None:
+    """Forward captured subprocess output streams to the current process."""
     if result.stdout:
         sys.stdout.write(result.stdout)
     if result.stderr:
@@ -181,6 +185,7 @@ def print_process_output(result: subprocess.CompletedProcess[str]) -> None:
 
 
 def run_subprocess(command: Sequence[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    """Run a subprocess with captured UTF-8 text output."""
     return subprocess.run(list(command), cwd=cwd, capture_output=True, text=True)
 
 
@@ -188,6 +193,7 @@ def invoke_python_core(
     main_fn: Callable[[Sequence[str] | None], int | None],
     argv: Sequence[str],
 ) -> subprocess.CompletedProcess[str]:
+    """Invoke a Python CLI entry point and capture its exit code and streams."""
     stdout_buffer = io.StringIO()
     stderr_buffer = io.StringIO()
     exit_code = 0
@@ -214,6 +220,7 @@ def invoke_python_core(
 
 
 def run_powershell_file(script_path: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Run a PowerShell script file through the resolved host executable."""
     resolution = choose_powershell(return_diagnostics=True)
     if not isinstance(resolution, dict) or not resolution.get("host_path"):
         checked = []

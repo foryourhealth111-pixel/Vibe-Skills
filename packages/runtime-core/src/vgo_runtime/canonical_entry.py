@@ -48,6 +48,7 @@ REQUIRED_TRUTH_PACKET_FIELDS = (
 
 @dataclass(slots=True)
 class CanonicalLaunchResult:
+    """Structured result returned after a verified canonical vibe launch."""
     run_id: str
     session_root: Path
     summary_path: Path
@@ -57,6 +58,7 @@ class CanonicalLaunchResult:
     artifacts: dict[str, str]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize the launch result using JSON-friendly path strings."""
         payload = asdict(self)
         payload["session_root"] = str(self.session_root)
         payload["summary_path"] = str(self.summary_path)
@@ -70,6 +72,7 @@ CanonicalEntryResult = CanonicalLaunchResult
 
 
 def _powershell_host_policy() -> dict[str, Any]:
+    """Load the shared PowerShell host policy with strict field validation."""
     policy = dict(POWERSHELL_HOST_POLICY_DEFAULTS)
     try:
         raw_payload = POWERSHELL_HOST_POLICY_PATH.read_text(encoding="utf-8")
@@ -136,10 +139,12 @@ def _powershell_host_policy() -> dict[str, Any]:
 
 
 def _is_windows_host() -> bool:
+    """Return whether the current Python host is running on Windows."""
     return os.name == "nt"
 
 
 def _resolve_powershell_host(*, return_diagnostics: bool = False) -> str | dict[str, Any] | None:
+    """Resolve the PowerShell host path or return detailed search diagnostics."""
     policy = _powershell_host_policy()
     is_windows = _is_windows_host()
     prefer_pwsh = str(policy["preferred_powershell_host"]).strip().lower() == "pwsh"
@@ -216,6 +221,7 @@ def _resolve_powershell_host(*, return_diagnostics: bool = False) -> str | dict[
 
 
 def _load_json_dict(path: Path, *, label: str) -> dict[str, Any]:
+    """Load a JSON object from disk and raise consistent runtime errors on failure."""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -226,6 +232,7 @@ def _load_json_dict(path: Path, *, label: str) -> dict[str, Any]:
 
 
 def _normalize_requested_entry_id(entry_id: str | None) -> str:
+    """Normalize and validate the requested canonical entry identifier."""
     requested_entry_id = str(entry_id or "").strip() or CANONICAL_RUNTIME_ENTRY_ID
     if requested_entry_id not in load_allowed_vibe_entry_ids():
         raise RuntimeError(f"unsupported canonical vibe entry id: {requested_entry_id}")
@@ -233,6 +240,7 @@ def _normalize_requested_entry_id(entry_id: str | None) -> str:
 
 
 def _resolve_effective_prompt(*, host_id: str, entry_id: str, prompt: str) -> str:
+    """Derive the runtime prompt, including the upgrade fallback prompt."""
     prompt_text = str(prompt or "")
     if prompt_text.strip():
         return prompt_text
@@ -247,12 +255,14 @@ def _resolve_effective_prompt(*, host_id: str, entry_id: str, prompt: str) -> st
 
 
 def _new_run_id() -> str:
+    """Generate a unique canonical launch run identifier."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     suffix = os.urandom(4).hex()
     return f"{timestamp}-{suffix}"
 
 
 def _resolve_artifact_root(repo_root: Path, artifact_root: str | Path | None) -> Path:
+    """Resolve the artifact root relative to the repository when needed."""
     if artifact_root in (None, ""):
         return (repo_root / ".vibeskills").resolve()
 
@@ -263,6 +273,7 @@ def _resolve_artifact_root(repo_root: Path, artifact_root: str | Path | None) ->
 
 
 def _resolve_session_root(*, repo_root: Path, run_id: str, artifact_root: str | Path | None) -> Path:
+    """Build the canonical session output directory for a run."""
     return (_resolve_artifact_root(repo_root, artifact_root) / "outputs" / "runtime" / "vibe-sessions" / run_id).resolve()
 
 
@@ -278,6 +289,7 @@ def invoke_vibe_runtime_entrypoint(
     artifact_root: str | Path | None,
     force_runtime_neutral: bool = False,
 ) -> dict[str, Any]:
+    """Invoke the PowerShell canonical entry bridge and return its JSON payload."""
     if force_runtime_neutral:
         raise RuntimeError("canonical entry requires PowerShell runtime bridge")
 
@@ -340,6 +352,7 @@ def invoke_vibe_runtime_entrypoint(
 
 
 def assert_minimum_truth_artifacts(session_root: str | Path) -> dict[str, str]:
+    """Verify that the minimum canonical truth artifacts exist for a session."""
     base = Path(session_root).resolve()
     resolved: dict[str, str] = {}
     missing: list[str] = []
@@ -355,6 +368,7 @@ def assert_minimum_truth_artifacts(session_root: str | Path) -> dict[str, str]:
 
 
 def _extract_terminal_stage(stage_lineage: dict[str, Any]) -> str | None:
+    """Extract the terminal stage name from known stage-lineage shapes."""
     last_stage_name = str(stage_lineage.get("last_stage_name") or stage_lineage.get("last_stage") or "").strip()
     if last_stage_name:
         return last_stage_name
@@ -384,6 +398,7 @@ def assert_minimum_truth_consistency(
     governance_capsule_path: str | Path,
     stage_lineage_path: str | Path,
 ) -> None:
+    """Validate cross-artifact consistency for a canonical vibe launch."""
     runtime_packet = _load_json_dict(Path(runtime_packet_path), label="runtime-input-packet")
     missing_truth_fields = [field for field in REQUIRED_TRUTH_PACKET_FIELDS if field not in runtime_packet]
     if missing_truth_fields:
@@ -484,6 +499,7 @@ def launch_canonical_vibe(
     artifact_root: str | Path | None = None,
     force_runtime_neutral: bool = False,
 ) -> CanonicalLaunchResult:
+    """Launch canonical vibe, verify its artifacts, and return launch metadata."""
     repo_root_path = Path(repo_root).resolve()
     requested_entry_id = _normalize_requested_entry_id(entry_id)
     effective_prompt = _resolve_effective_prompt(host_id=host_id, entry_id=requested_entry_id, prompt=prompt)
@@ -568,6 +584,7 @@ def launch_canonical_vibe(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point for launching canonical vibe and emitting JSON output."""
     parser = argparse.ArgumentParser(description="Launch canonical vibe entry and emit receipt-backed JSON output.")
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--host-id", default="codex")

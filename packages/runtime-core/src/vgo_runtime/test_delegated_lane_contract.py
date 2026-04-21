@@ -23,6 +23,7 @@ from vgo_runtime.powershell_bridge import run_powershell_json_command
 
 
 def _restore_modules(originals: dict[str, types.ModuleType | None]) -> None:
+    """Restore sys.modules entries after dynamic import stubbing."""
     for name, original in originals.items():
         if original is None:
             sys.modules.pop(name, None)
@@ -31,6 +32,7 @@ def _restore_modules(originals: dict[str, types.ModuleType | None]) -> None:
 
 
 def _load_canonical_entry_module() -> types.ModuleType:
+    """Import canonical_entry.py with lightweight contract and router stubs."""
     touched = {
         "vgo_runtime",
         "vgo_contracts",
@@ -94,6 +96,7 @@ def _load_canonical_entry_module() -> types.ModuleType:
 
 
 def _load_cli_process_module() -> types.ModuleType:
+    """Import the CLI process module while restoring the previous module state."""
     cli_root = REPO_ROOT / "apps" / "vgo-cli" / "src"
     if str(cli_root) not in sys.path:
         sys.path.insert(0, str(cli_root))
@@ -126,6 +129,7 @@ def _load_cli_process_module() -> types.ModuleType:
 
 
 class DynamicLoaderIsolationTests(unittest.TestCase):
+    """Verify dynamic import helpers do not leak stub modules across tests."""
     def test_canonical_entry_loader_restores_sys_modules(self):
         managed = (
             "vgo_runtime",
@@ -151,6 +155,7 @@ class DynamicLoaderIsolationTests(unittest.TestCase):
 
 
 class CliProcessPowerShellPolicyTests(unittest.TestCase):
+    """Cover CLI PowerShell host policy parsing and resolution behavior."""
     def test_choose_powershell_reads_shared_policy_file_override(self):
         module = _load_cli_process_module()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -328,6 +333,7 @@ class CliProcessPowerShellPolicyTests(unittest.TestCase):
 
 
 class DelegatedLaneContractTests(unittest.TestCase):
+    """Assert delegated-lane contract and runtime policy wiring."""
     def test_plan_execute_uses_repo_root_first_working_directory_logic(self):
         script_text = SCRIPT_PATH.read_text(encoding="utf-8")
         self.assertIn("Resolve-VibeDelegatedLaneWorkingDirectory", script_text)
@@ -403,6 +409,7 @@ class DelegatedLaneContractTests(unittest.TestCase):
 
 
 class PowerShellBridgeDiagnosticTests(unittest.TestCase):
+    """Exercise bridge error classification for subprocess startup failures."""
     def test_delegated_lane_empty_stdout_is_classified(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             script_path = Path(temp_dir) / "empty.ps1"
@@ -436,6 +443,7 @@ class PowerShellBridgeDiagnosticTests(unittest.TestCase):
 
 
 class BridgeFailureLayeringTests(unittest.TestCase):
+    """Verify canonical entry failure modes preserve the right diagnostics."""
     def test_canonical_entry_reads_shared_policy_file_override(self):
         module = _load_canonical_entry_module()
         with tempfile.TemporaryDirectory() as temp_dir:
