@@ -1,0 +1,648 @@
+{
+  "version": 1,
+  "policy_id": "governed-evolution-artifact-policy-v4",
+  "updated_at": "2026-04-13",
+  "default_stop_stage": "phase_cleanup",
+  "steps": {
+    "observation": {
+      "failure-patterns.json": {
+        "desc": "Observed failure pattern records.",
+        "important_field": "pattern_id",
+        "units": {
+          "execution_failed": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "classification",
+              "severity",
+              "evidence_refs",
+              "details"
+            ]
+          },
+          "partial_completion": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "classification",
+              "severity",
+              "evidence_refs",
+              "details"
+            ]
+          },
+          "cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "classification",
+              "severity",
+              "evidence_refs",
+              "details"
+            ]
+          },
+          "delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "classification",
+              "severity",
+              "evidence_refs",
+              "details"
+            ]
+          },
+          "process_health_risk": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "classification",
+              "severity",
+              "evidence_refs",
+              "details"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "pitfall-events.json": {
+        "desc": "Observed pitfall event records.",
+        "important_field": "pitfall_type",
+        "units": {
+          "confirm_required_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "fallback_active_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "non_authoritative_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "cleanup_candidate_present": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "managed_stale_detected": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          },
+          "delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "pitfall_id",
+              "source_layer",
+              "source_artifact",
+              "confidence_level"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "atomic-skill-call-chain.json": {
+        "desc": "Observed atomic skill call events.",
+        "important_field": "event_type",
+        "units": {
+          "skill_candidate_surfaced": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          },
+          "skill_dispatch_approved": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          },
+          "skill_dispatch_blocked": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          },
+          "skill_dispatch_degraded": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          },
+          "skill_execution_finished": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          },
+          "skill_execution_degraded": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "event_id",
+              "skill_id",
+              "stage",
+              "source_artifact",
+              "confidence"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      }
+    },
+    "proposal": {
+      "warning-cards.json": {
+        "desc": "Aggregated warning card records.",
+        "important_field": "card_id",
+        "units": {
+          "warning-execution_failed": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-partial_completion": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-process_health_risk": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-confirm_required_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-fallback_active_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-non_authoritative_route": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-cleanup_candidate_present": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-managed_stale_detected": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-pitfall-delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          },
+          "warning-delivery-acceptance": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "severity",
+              "title",
+              "summary",
+              "evidence_refs"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "preflight-checklist.json": {
+        "desc": "Aggregated preflight checklist records.",
+        "important_field": "check_id",
+        "units": {
+          "check-execution_failed": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-partial_completion": {
+            "first_available_stage": "plan_execute",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-process_health_risk": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-confirm_required_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-fallback_active_route": {
+            "first_available_stage": "requirement_doc",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-non_authoritative_route": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-cleanup_candidate_present": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-managed_stale_detected": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-cleanup_degraded": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-pitfall-delivery_gate_failed": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          },
+          "check-phase-cleanup": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "label",
+              "why",
+              "source_signal"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "remediation-notes.json": {
+        "desc": "Aggregated remediation note records.",
+        "important_field": "note_id",
+        "units": {
+          "note_id": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "remediation_type",
+              "suggested_remediation",
+              "evidence_level"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "candidate-composite-skill-draft.json": {
+        "desc": "Observed composite skill draft records.",
+        "important_field": "draft_id",
+        "units": {
+          "draft_id": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "governor_skill",
+              "component_skills",
+              "promotion_readiness"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "threshold-policy-suggestion.json": {
+        "desc": "Threshold policy suggestion records.",
+        "important_field": "suggestion_id",
+        "units": {
+          "suggestion_id": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "policy_area",
+              "suggested_change",
+              "review_path"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "summary"
+        ]
+      },
+      "proposal-layer.json": {
+        "desc": "Proposal layer summary record.",
+        "important_field": "evidence_level",
+        "units": {
+          "evidence_level": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": [
+              "mode",
+              "review_status",
+              "artifacts",
+              "summary"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at"
+        ]
+      },
+      "proposal-layer.md": {
+        "desc": "Human-readable proposal layer markdown.",
+        "important_field": "markdown_body",
+        "units": {
+          "markdown_body": {
+            "first_available_stage": "xl_plan",
+            "dependent_fields": []
+          }
+        },
+        "artifact_dependent_fields": []
+      }
+    },
+    "readiness": {
+      "application-readiness-report.json": {
+        "desc": "Application readiness review records.",
+        "important_field": "candidate_group",
+        "units": {
+          "lane_a_candidates": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "summary",
+              "review_status",
+              "input_artifacts"
+            ]
+          },
+          "lane_b_candidates": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": [
+              "summary",
+              "review_status",
+              "input_artifacts"
+            ]
+          }
+        },
+        "artifact_dependent_fields": [
+          "run_id",
+          "generated_at",
+          "mode"
+        ]
+      },
+      "application-readiness-report.md": {
+        "desc": "Human-readable application readiness markdown.",
+        "important_field": "markdown_body",
+        "units": {
+          "markdown_body": {
+            "first_available_stage": "phase_cleanup",
+            "dependent_fields": []
+          }
+        },
+        "artifact_dependent_fields": []
+      }
+    }
+  },
+  "stop_stage_profiles": {
+    "requirement_doc": {
+      "steps": {
+        "observation": {
+          "enabled_artifacts": []
+        },
+        "proposal": {
+          "enabled_artifacts": []
+        },
+        "readiness": {
+          "enabled_artifacts": []
+        }
+      }
+    },
+    "xl_plan": {
+      "steps": {
+        "observation": {
+          "enabled_artifacts": [
+            "failure-patterns.json",
+            "pitfall-events.json",
+            "atomic-skill-call-chain.json"
+          ]
+        },
+        "proposal": {
+          "enabled_artifacts": [
+            "warning-cards.json",
+            "preflight-checklist.json",
+            "proposal-layer.json",
+            "proposal-layer.md"
+          ]
+        },
+        "readiness": {
+          "enabled_artifacts": []
+        }
+      }
+    },
+    "phase_cleanup": {
+      "steps": {
+        "observation": {
+          "enabled_artifacts": [
+            "failure-patterns.json",
+            "pitfall-events.json",
+            "atomic-skill-call-chain.json"
+          ]
+        },
+        "proposal": {
+          "enabled_artifacts": [
+            "warning-cards.json",
+            "preflight-checklist.json",
+            "remediation-notes.json",
+            "candidate-composite-skill-draft.json",
+            "threshold-policy-suggestion.json",
+            "proposal-layer.json",
+            "proposal-layer.md"
+          ]
+        },
+        "readiness": {
+          "enabled_artifacts": [
+            "application-readiness-report.json",
+            "application-readiness-report.md"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -19,6 +19,45 @@ function Read-JsonFile {
     return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
+function Read-GovernedEvolutionPolicy {
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+    $path = Join-Path $RepoRoot 'config\governed-evolution-artifact-policy.json'
+    return Read-JsonFile -Path $path
+}
+
+function Get-EnabledArtifactFiles {
+    param(
+        [Parameter(Mandatory = $true)]$Policy,
+        [Parameter(Mandatory = $true)][string]$StopStage
+    )
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    if ($null -eq $Policy -or -not $Policy.PSObject.Properties.Name.Contains('stop_stage_profiles')) {
+        return @()
+    }
+    $profiles = $Policy.stop_stage_profiles
+    if (-not $profiles.PSObject.Properties.Name.Contains($StopStage)) {
+        return @()
+    }
+    $profile = $profiles.$StopStage
+    if ($null -eq $profile -or -not $profile.PSObject.Properties.Name.Contains('steps')) {
+        return @()
+    }
+    foreach ($stepName in @($profile.steps.PSObject.Properties.Name)) {
+        $step = $profile.steps.$stepName
+        if ($null -eq $step -or -not $step.PSObject.Properties.Name.Contains('enabled_artifacts')) {
+            continue
+        }
+        foreach ($fileName in @($step.enabled_artifacts)) {
+            $name = [string]$fileName
+            if (-not [string]::IsNullOrWhiteSpace($name) -and -not $result.Contains($name)) {
+                $result.Add($name)
+            }
+        }
+    }
+    return @($result)
+}
+
 function Has-Property {
     param(
         [Parameter(Mandatory = $true)]$Object,
@@ -139,21 +178,12 @@ if ([string]::IsNullOrWhiteSpace($SessionRoot)) {
 
 $SessionRoot = (Resolve-Path $SessionRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$policy = Read-GovernedEvolutionPolicy -RepoRoot $RepoRoot
+$expectedFiles = @('runtime-summary.json') + @(Get-EnabledArtifactFiles -Policy $policy -StopStage 'phase_cleanup')
 
-$paths = [ordered]@{
-    runtime_summary = Join-Path $SessionRoot 'runtime-summary.json'
-    failure_patterns = Join-Path $SessionRoot 'failure-patterns.json'
-    pitfall_events = Join-Path $SessionRoot 'pitfall-events.json'
-    atomic_skill_call_chain = Join-Path $SessionRoot 'atomic-skill-call-chain.json'
-    proposal_layer = Join-Path $SessionRoot 'proposal-layer.json'
-    proposal_layer_markdown = Join-Path $SessionRoot 'proposal-layer.md'
-    warning_cards = Join-Path $SessionRoot 'warning-cards.json'
-    preflight_checklist = Join-Path $SessionRoot 'preflight-checklist.json'
-    remediation_notes = Join-Path $SessionRoot 'remediation-notes.json'
-    candidate_composite_skill_draft = Join-Path $SessionRoot 'candidate-composite-skill-draft.json'
-    threshold_policy_suggestion = Join-Path $SessionRoot 'threshold-policy-suggestion.json'
-    application_readiness_report = Join-Path $SessionRoot 'application-readiness-report.json'
-    application_readiness_markdown = Join-Path $SessionRoot 'application-readiness-report.md'
+$paths = [ordered]@{}
+foreach ($fileName in @($expectedFiles)) {
+    $paths[$fileName] = Join-Path $SessionRoot $fileName
 }
 
 foreach ($entry in $paths.GetEnumerator()) {
@@ -161,17 +191,17 @@ foreach ($entry in $paths.GetEnumerator()) {
 }
 
 if ($failures.Count -eq 0) {
-    $summary = Read-JsonFile $paths.runtime_summary
-    $failurePayload = Read-JsonFile $paths.failure_patterns
-    $pitfallPayload = Read-JsonFile $paths.pitfall_events
-    $atomicPayload = Read-JsonFile $paths.atomic_skill_call_chain
-    $proposalLayer = Read-JsonFile $paths.proposal_layer
-    $warningCards = Read-JsonFile $paths.warning_cards
-    $preflightChecklist = Read-JsonFile $paths.preflight_checklist
-    $remediationNotes = Read-JsonFile $paths.remediation_notes
-    $candidateDraft = Read-JsonFile $paths.candidate_composite_skill_draft
-    $policySuggestion = Read-JsonFile $paths.threshold_policy_suggestion
-    $readinessReport = Read-JsonFile $paths.application_readiness_report
+    $summary = Read-JsonFile $paths['runtime-summary.json']
+    $failurePayload = Read-JsonFile $paths['failure-patterns.json']
+    $pitfallPayload = Read-JsonFile $paths['pitfall-events.json']
+    $atomicPayload = Read-JsonFile $paths['atomic-skill-call-chain.json']
+    $proposalLayer = Read-JsonFile $paths['proposal-layer.json']
+    $warningCards = Read-JsonFile $paths['warning-cards.json']
+    $preflightChecklist = Read-JsonFile $paths['preflight-checklist.json']
+    $remediationNotes = Read-JsonFile $paths['remediation-notes.json']
+    $candidateDraft = Read-JsonFile $paths['candidate-composite-skill-draft.json']
+    $policySuggestion = Read-JsonFile $paths['threshold-policy-suggestion.json']
+    $readinessReport = Read-JsonFile $paths['application-readiness-report.json']
 
     $artifacts = Get-RequiredMemberValue -InputObject $summary -Name 'artifacts' -Failures $failures -Label 'runtime-summary.json'
     $expectedArtifactRefs = [ordered]@{

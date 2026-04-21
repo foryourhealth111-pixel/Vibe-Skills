@@ -396,6 +396,7 @@ function Get-VibeRuntimeContext {
         requirement_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\requirement-doc-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         plan_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\plan-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         execution_runtime_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\execution-runtime-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        governed_evolution_artifact_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\governed-evolution-artifact-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         cleanup_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\phase-cleanup-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         proof_class_registry = Get-Content -LiteralPath (Join-Path $repoRoot 'config\proof-class-registry.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         memory_governance = Get-Content -LiteralPath (Join-Path $repoRoot 'config\memory-governance.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -1788,6 +1789,141 @@ function Read-VibeJsonArtifactIfExists {
     } catch {
         throw "Failed to parse JSON artifact '$Path': $($_.Exception.Message)"
     }
+}
+
+function Test-VibeGovernedStageReached {
+    param(
+        [AllowEmptyString()] [string]$TerminalStage,
+        [AllowEmptyString()] [string]$TargetStage
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TerminalStage) -or [string]::IsNullOrWhiteSpace($TargetStage)) {
+        return $false
+    }
+
+    $stageOrder = @(Get-VibeGovernedRuntimeStageOrder)
+    $terminalIndex = [Array]::IndexOf($stageOrder, [string]$TerminalStage)
+    $targetIndex = [Array]::IndexOf($stageOrder, [string]$TargetStage)
+    if ($terminalIndex -lt 0 -or $targetIndex -lt 0) {
+        return $false
+    }
+
+    return ($terminalIndex -ge $targetIndex)
+}
+
+function Resolve-VibeGovernedEvolutionArtifactAllowList {
+    param(
+        [Parameter(Mandatory)] [object]$Runtime,
+        [AllowEmptyString()] [string]$RequestedStageStop = ''
+    )
+
+    $policy = Get-VibePropertySafe -InputObject $Runtime -PropertyName 'governed_evolution_artifact_policy'
+    if ($null -eq $policy) {
+        return @()
+    }
+
+    $stopStage = if ([string]::IsNullOrWhiteSpace($RequestedStageStop)) {
+        if ((Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'default_stop_stage') -and -not [string]::IsNullOrWhiteSpace([string]$policy.default_stop_stage)) {
+            [string]$policy.default_stop_stage
+        } else {
+            'phase_cleanup'
+        }
+    } else {
+        [string]$RequestedStageStop
+    }
+
+    $profiles = Get-VibePropertySafe -InputObject $policy -PropertyName 'stop_stage_profiles'
+    if ($null -eq $profiles -or $profiles.PSObject.Properties.Name -notcontains $stopStage) {
+        return @()
+    }
+
+    $profile = $profiles.$stopStage
+    $resolved = New-Object System.Collections.Generic.List[string]
+    $steps = Get-VibePropertySafe -InputObject $profile -PropertyName 'steps'
+    if ($null -eq $steps) {
+        return @()
+    }
+
+    foreach ($stepName in @($steps.PSObject.Properties.Name)) {
+        $stepProfile = $steps.$stepName
+        $enabledArtifacts = Get-VibePropertySafe -InputObject $stepProfile -PropertyName 'enabled_artifacts' -DefaultValue @()
+        foreach ($artifactName in @($enabledArtifacts)) {
+            $name = [string]$artifactName
+            if (-not [string]::IsNullOrWhiteSpace($name) -and -not $resolved.Contains($name)) {
+                [void]$resolved.Add($name)
+            }
+        }
+    }
+
+    return @($resolved)
+}
+
+function Test-VibeGovernedEvolutionArtifactAllowed {
+    param(
+        [string[]]$AllowedArtifacts = @(),
+        [Parameter(Mandatory)] [string]$ArtifactName
+    )
+
+    return (@($AllowedArtifacts) -contains [string]$ArtifactName)
+}
+
+function Get-VibeGovernedEvolutionArtifactPolicyDefinition {
+    param(
+        [Parameter(Mandatory)] [object]$Runtime,
+        [Parameter(Mandatory)] [string]$ArtifactName
+    )
+
+    $policy = Get-VibePropertySafe -InputObject $Runtime -PropertyName 'governed_evolution_artifact_policy'
+    $steps = Get-VibePropertySafe -InputObject $policy -PropertyName 'steps'
+    if ($null -eq $steps) {
+        return $null
+    }
+
+    foreach ($stepName in @($steps.PSObject.Properties.Name)) {
+        $stepDefinition = $steps.$stepName
+        if ($null -ne $stepDefinition -and $stepDefinition.PSObject.Properties.Name -contains $ArtifactName) {
+            return $stepDefinition.$ArtifactName
+        }
+    }
+
+    return $null
+}
+
+function Test-VibeGovernedEvolutionArtifactUnitAllowed {
+    param(
+        [Parameter(Mandatory)] [object]$Runtime,
+        [Parameter(Mandatory)] [string]$ArtifactFileName,
+        [Parameter(Mandatory)] [string]$UnitName,
+        [AllowEmptyString()] [string]$RequestedStageStop = ''
+    )
+
+    $artifactDefinition = Get-VibeGovernedEvolutionArtifactPolicyDefinition -Runtime $Runtime -ArtifactName $ArtifactFileName
+    if ($null -eq $artifactDefinition) {
+        return $false
+    }
+    $units = Get-VibePropertySafe -InputObject $artifactDefinition -PropertyName 'units'
+    if ($null -eq $units -or $units.PSObject.Properties.Name -notcontains $UnitName) {
+        return $false
+    }
+
+    $unitDefinition = $units.$UnitName
+    $firstAvailableStage = Get-VibePropertySafe -InputObject $unitDefinition -PropertyName 'first_available_stage' -DefaultValue ''
+    if ([string]::IsNullOrWhiteSpace([string]$firstAvailableStage)) {
+        return $false
+    }
+
+    $effectiveStopStage = if ([string]::IsNullOrWhiteSpace($RequestedStageStop)) {
+        $policy = Get-VibePropertySafe -InputObject $Runtime -PropertyName 'governed_evolution_artifact_policy'
+        if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'default_stop_stage')) {
+            [string]$policy.default_stop_stage
+        } else {
+            'phase_cleanup'
+        }
+    } else {
+        [string]$RequestedStageStop
+    }
+
+    return (Test-VibeGovernedStageReached -TerminalStage $effectiveStopStage -TargetStage ([string]$firstAvailableStage))
 }
 
 function Get-VibePropertyCount {
