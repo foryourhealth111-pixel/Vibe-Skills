@@ -179,6 +179,9 @@ function New-VibeExecutedSpecialistUnitSummary {
         prompt_path = if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_path' -and -not [string]::IsNullOrWhiteSpace([string]$UnitReceipt.prompt_path)) { [string]$UnitReceipt.prompt_path } else { $null }
         prompt_injection_complete = if ($UnitReceipt.PSObject.Properties.Name -contains 'prompt_injection_complete') { [bool]$UnitReceipt.prompt_injection_complete } else { $false }
         missing_prompt_injection_fields = if ($UnitReceipt.PSObject.Properties.Name -contains 'missing_prompt_injection_fields') { @($UnitReceipt.missing_prompt_injection_fields) } else { @() }
+    }
+}
+
 function Resolve-VibeDelegatedLaneWorkingDirectory {
     param(
         [Parameter(Mandatory)] [object]$LaneRuntime
