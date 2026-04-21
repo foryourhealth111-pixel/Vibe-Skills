@@ -261,7 +261,11 @@ function Invoke-VibeCapturedProcess {
         generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     }
     if (-not [string]::IsNullOrWhiteSpace($LaunchMetadataPath)) {
-        Write-VibeJsonArtifact -Path $LaunchMetadataPath -Value ([pscustomobject]$launchMetadata)
+        try {
+            Write-VibeJsonArtifact -Path $LaunchMetadataPath -Value ([pscustomobject]$launchMetadata)
+        } catch {
+            Write-Warning ("Failed to persist launch metadata to {0}: {1}" -f [string]$LaunchMetadataPath, $_.Exception.Message)
+        }
     }
 
     if ($null -ne $Preflight -and -not [bool]$Preflight.passed) {

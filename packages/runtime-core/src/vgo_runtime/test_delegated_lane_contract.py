@@ -315,6 +315,8 @@ class DelegatedLaneContractTests(unittest.TestCase):
         script_text = SCRIPT_PATH.read_text(encoding="utf-8")
         self.assertIn("Resolve-VibeDelegatedLanePayload", script_text)
         self.assertIn("source = 'lane_payload_artifact'", script_text)
+        self.assertIn("lane_payload_artifact:read_failed", script_text)
+        self.assertIn("empty_lane_receipt_path", script_text)
         self.assertIn("payload_source = [string]$payloadRecovery.source", script_text)
 
     def test_plan_execute_failure_message_is_actionable(self):
@@ -340,6 +342,7 @@ class DelegatedLaneContractTests(unittest.TestCase):
         self.assertIn("function New-VibeProcessPreflightResult", script_text)
         self.assertIn("command = [string]$Command", script_text)
         self.assertIn("Preflight.resolved_command", script_text)
+        self.assertIn("Failed to persist launch metadata to", script_text)
         self.assertIn("Process preflight failed:", script_text)
         self.assertIn("arguments_render_mode = if ($usedArgumentList) { 'ArgumentList' } else { 'RenderedString' }", script_text)
         self.assertIn("launch_metadata_path", script_text)
@@ -510,9 +513,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         self.assertNotIn("canonical bridge startup", payload_message)
 
     def test_bridge_succeeds_from_unicode_working_directory(self):
-        base_dir = Path(tempfile.gettempdir()) / "vibe-桥接-羽裳"
-        base_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=base_dir) as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="vibe-桥接-羽裳-") as temp_dir:
             cwd = Path(temp_dir)
             payload = {"status": "ok", "cwd": str(cwd)}
             command = [
@@ -526,9 +527,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         self.assertIn("桥接", result["cwd"])
 
     def test_bridge_failure_from_unicode_working_directory_preserves_context(self):
-        base_dir = Path(tempfile.gettempdir()) / "vibe-桥接-羽裳"
-        base_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=base_dir) as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="vibe-桥接-羽裳-") as temp_dir:
             cwd = Path(temp_dir)
             command = [
                 sys.executable,
@@ -550,13 +549,11 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         runtime_text = (REPO_ROOT / "scripts" / "runtime" / "VibeExecution.Common.ps1").read_text(encoding="utf-8")
         self.assertIn("Test-VgoWindowsRunnableCommandPath", helper_text)
         self.assertIn("powershell script path does not exist:", runtime_text)
-        self.assertNotIn("Process startup failed for C:\\Users\\羽裳\\bin\\python3", runtime_text)
+        self.assertIn("Process startup failed for {0}:", runtime_text)
 
     def test_canonical_entry_builds_command_for_unicode_repo_root(self):
         module = _load_canonical_entry_module()
-        base_dir = Path(tempfile.gettempdir()) / "vibe-规范入口-羽裳"
-        base_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=base_dir) as repo_dir:
+        with tempfile.TemporaryDirectory(prefix="vibe-规范入口-羽裳-") as repo_dir:
             repo_root = Path(repo_dir)
             bridge_dir = repo_root / "scripts" / "runtime"
             bridge_dir.mkdir(parents=True, exist_ok=True)
@@ -668,7 +665,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                         force_runtime_neutral=False,
                     )
         message = str(ctx.exception)
-        self.assertIn("PowerShell executable not available in PATH; candidates checked:", message)
+        self.assertIn("PowerShell executable not found; locations searched (PATH and well-known install paths):", message)
         self.assertIn("path-pwsh", message)
         self.assertIn("powershell.exe", message)
 

@@ -258,7 +258,8 @@ def invoke_vibe_runtime_entrypoint(
                 for entry in resolution.get("candidates_checked", [])
             ]
         raise RuntimeError(
-            "PowerShell executable not available in PATH; candidates checked: " + ", ".join(checked)
+            "PowerShell executable not found; locations searched (PATH and well-known install paths): "
+            + ", ".join(checked)
         )
     shell = str(resolution["host_path"])
 

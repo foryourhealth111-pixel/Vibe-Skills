@@ -174,6 +174,7 @@ function Resolve-VibeDelegatedLanePayload {
     )
 
     $payloadCandidates = @()
+    $parseFailures = @()
     $payloadText = ($StdoutText -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
     if (-not [string]::IsNullOrWhiteSpace($payloadText)) {
         $payloadCandidates += [pscustomobject]@{
@@ -183,13 +184,16 @@ function Resolve-VibeDelegatedLanePayload {
     }
 
     if (Test-Path -LiteralPath $PayloadPath) {
-        $payloadCandidates += [pscustomobject]@{
-            source = 'lane_payload_artifact'
-            content = Get-Content -LiteralPath $PayloadPath -Raw -Encoding UTF8
+        try {
+            $payloadCandidates += [pscustomobject]@{
+                source = 'lane_payload_artifact'
+                content = Get-Content -LiteralPath $PayloadPath -Raw -Encoding UTF8
+            }
+        } catch {
+            $parseFailures += 'lane_payload_artifact:read_failed'
         }
     }
 
-    $parseFailures = @()
     foreach ($candidate in @($payloadCandidates)) {
         if ([string]::IsNullOrWhiteSpace([string]$candidate.content)) {
             $parseFailures += ('{0}:empty' -f [string]$candidate.source)
@@ -205,6 +209,11 @@ function Resolve-VibeDelegatedLanePayload {
 
         if (-not ($payload.PSObject.Properties.Name -contains 'lane_receipt_path')) {
             $parseFailures += ('{0}:missing_lane_receipt_path' -f [string]$candidate.source)
+            continue
+        }
+        $laneReceiptPath = [string]$payload.lane_receipt_path
+        if ([string]::IsNullOrWhiteSpace($laneReceiptPath)) {
+            $parseFailures += ('{0}:empty_lane_receipt_path' -f [string]$candidate.source)
             continue
         }
 
