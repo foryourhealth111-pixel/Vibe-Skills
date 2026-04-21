@@ -119,6 +119,9 @@ If your AI supports skills, VibeSkills works. 340+ skills spanning coding, resea
 
 <br/>
 
+
+<img width="1376" height="768" alt="Generated Image April 21, 2026 - 3_12PM (3)" src="https://github.com/user-attachments/assets/701d4199-566a-4def-b29b-562cd59a8645" />
+
 ---
 
 
