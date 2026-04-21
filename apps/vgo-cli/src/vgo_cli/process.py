@@ -22,6 +22,7 @@ POWERSHELL_HOST_POLICY_DEFAULTS: dict[str, Any] = {
     "allow_windows_powershell_fallback": True,
     "record_host_resolution_artifacts": True,
 }
+SUPPORTED_POWERSHELL_HOSTS = frozenset({"pwsh", "windows-powershell"})
 
 
 def _powershell_host_policy() -> dict[str, Any]:
@@ -61,16 +62,32 @@ def _powershell_host_policy() -> dict[str, Any]:
         )
         return policy
 
-    preferred_host = str(payload.get("preferred_powershell_host", "")).strip()
-    if preferred_host:
+    preferred_host = str(payload.get("preferred_powershell_host", "")).strip().lower()
+    if preferred_host in SUPPORTED_POWERSHELL_HOSTS:
         policy["preferred_powershell_host"] = preferred_host
+    elif preferred_host:
+        warnings.warn(
+            (
+                f"Unsupported preferred_powershell_host in {POWERSHELL_HOST_POLICY_PATH}: "
+                f"{preferred_host!r}; using default"
+            ),
+            RuntimeWarning,
+            stacklevel=2,
+        )
     for key in (
         "require_pwsh_on_non_windows",
         "allow_windows_powershell_fallback",
         "record_host_resolution_artifacts",
     ):
         if key in payload:
-            policy[key] = bool(payload[key])
+            if isinstance(payload[key], bool):
+                policy[key] = payload[key]
+            else:
+                warnings.warn(
+                    f"PowerShell host policy field {key} must be boolean; using default",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
     return policy
 
 

@@ -20,6 +20,7 @@ POWERSHELL_HOST_POLICY_DEFAULTS: dict[str, Any] = {
     "allow_windows_powershell_fallback": True,
     "record_host_resolution_artifacts": True,
 }
+SUPPORTED_POWERSHELL_HOSTS = frozenset({"pwsh", "windows-powershell"})
 if str(CONTRACTS_SRC) not in sys.path:
     sys.path.insert(0, str(CONTRACTS_SRC))
 
@@ -105,22 +106,42 @@ def _powershell_host_policy() -> dict[str, Any]:
         )
         return policy
 
-    preferred_host = str(payload.get("preferred_powershell_host", "")).strip()
-    if preferred_host:
+    preferred_host = str(payload.get("preferred_powershell_host", "")).strip().lower()
+    if preferred_host in SUPPORTED_POWERSHELL_HOSTS:
         policy["preferred_powershell_host"] = preferred_host
+    elif preferred_host:
+        warnings.warn(
+            (
+                f"Unsupported preferred_powershell_host in {POWERSHELL_HOST_POLICY_PATH}: "
+                f"{preferred_host!r}; using default"
+            ),
+            RuntimeWarning,
+            stacklevel=2,
+        )
     for key in (
         "require_pwsh_on_non_windows",
         "allow_windows_powershell_fallback",
         "record_host_resolution_artifacts",
     ):
         if key in payload:
-            policy[key] = bool(payload[key])
+            if isinstance(payload[key], bool):
+                policy[key] = payload[key]
+            else:
+                warnings.warn(
+                    f"PowerShell host policy field {key} must be boolean; using default",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
     return policy
+
+
+def _is_windows_host() -> bool:
+    return os.name == "nt"
 
 
 def _resolve_powershell_host(*, return_diagnostics: bool = False) -> str | dict[str, Any] | None:
     policy = _powershell_host_policy()
-    is_windows = os.name == "nt"
+    is_windows = _is_windows_host()
     prefer_pwsh = str(policy["preferred_powershell_host"]).strip().lower() == "pwsh"
     pwsh_candidates: list[tuple[str, str | None, str]] = [
         ("path-pwsh", shutil.which("pwsh"), "pwsh"),

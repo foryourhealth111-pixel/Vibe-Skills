@@ -299,6 +299,33 @@ class CliProcessPowerShellPolicyTests(unittest.TestCase):
         self.assertEqual(1, len(caught))
         self.assertIn("Invalid JSON in PowerShell host policy", str(caught[0].message))
 
+    def test_choose_powershell_policy_rejects_invalid_field_types(self):
+        module = _load_cli_process_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            policy_path = Path(temp_dir) / "powershell-host-policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "preferred_powershell_host": "not-a-host",
+                        "require_pwsh_on_non_windows": "false",
+                        "allow_windows_powershell_fallback": "false",
+                        "record_host_resolution_artifacts": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(module, "POWERSHELL_HOST_POLICY_PATH", policy_path), warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                policy = module._powershell_host_policy()
+
+        self.assertEqual(policy, module.POWERSHELL_HOST_POLICY_DEFAULTS)
+        self.assertEqual(4, len(caught))
+        messages = [str(item.message) for item in caught]
+        self.assertTrue(any("Unsupported preferred_powershell_host" in message for message in messages))
+        self.assertTrue(any("require_pwsh_on_non_windows must be boolean" in message for message in messages))
+        self.assertTrue(any("allow_windows_powershell_fallback must be boolean" in message for message in messages))
+        self.assertTrue(any("record_host_resolution_artifacts must be boolean" in message for message in messages))
+
 
 class DelegatedLaneContractTests(unittest.TestCase):
     def test_plan_execute_uses_repo_root_first_working_directory_logic(self):
@@ -438,7 +465,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                 }
                 return mapping.get(name)
 
-            with patch.object(module, "POWERSHELL_HOST_POLICY_PATH", policy_path), patch.object(module.os, "name", "nt"), patch.object(module.shutil, "which", side_effect=fake_which):
+            with patch.object(module, "POWERSHELL_HOST_POLICY_PATH", policy_path), patch.object(module, "_is_windows_host", return_value=True), patch.object(module.shutil, "which", side_effect=fake_which):
                 resolution = module._resolve_powershell_host(return_diagnostics=True)
 
         self.assertIsInstance(resolution, dict)
@@ -458,13 +485,40 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         def fake_is_file(path_self: Path) -> bool:
             return False
 
-        with patch.object(module.os, "name", "posix"), patch.object(module.shutil, "which", side_effect=fake_which), patch.object(module.Path, "exists", fake_exists), patch.object(module.Path, "is_file", fake_is_file):
+        with patch.object(module, "_is_windows_host", return_value=False), patch.object(module.shutil, "which", side_effect=fake_which), patch.object(module.Path, "exists", fake_exists), patch.object(module.Path, "is_file", fake_is_file):
             resolution = module._resolve_powershell_host(return_diagnostics=True)
 
         self.assertIsInstance(resolution, dict)
         self.assertEqual(resolution.get("error"), "pwsh is required on non-Windows hosts")
         checked_names = [entry["candidate_name"] for entry in resolution["candidates_checked"]]
         self.assertEqual(["path-pwsh", "path-pwsh-exe"], checked_names)
+
+    def test_canonical_entry_policy_rejects_invalid_field_types(self):
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            policy_path = Path(temp_dir) / "powershell-host-policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "preferred_powershell_host": "bad-host",
+                        "require_pwsh_on_non_windows": "false",
+                        "allow_windows_powershell_fallback": "false",
+                        "record_host_resolution_artifacts": 1,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(module, "POWERSHELL_HOST_POLICY_PATH", policy_path), warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                policy = module._powershell_host_policy()
+
+        self.assertEqual(policy, module.POWERSHELL_HOST_POLICY_DEFAULTS)
+        self.assertEqual(4, len(caught))
+        messages = [str(item.message) for item in caught]
+        self.assertTrue(any("Unsupported preferred_powershell_host" in message for message in messages))
+        self.assertTrue(any("require_pwsh_on_non_windows must be boolean" in message for message in messages))
+        self.assertTrue(any("allow_windows_powershell_fallback must be boolean" in message for message in messages))
+        self.assertTrue(any("record_host_resolution_artifacts must be boolean" in message for message in messages))
 
     def test_canonical_entry_startup_failure_is_distinct_from_payload_handoff_failure(self):
         module = _load_canonical_entry_module()
