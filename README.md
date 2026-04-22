@@ -645,6 +645,8 @@ VibeSkills does not claim to replace or fully reproduce every upstream project l
 > `superpower` · `claude-scientific-skills` · `get-shit-done` · `aios-core` · `OpenSpec` · `ralph-claude-code` · `SuperClaude_Framework` · `spec-kit` · `Agent-S` · `mem0` · `scrapling` · `claude-flow` · `serena` · `everything-claude-code` · `DeepAgent` and more
 >
 > _We try to attribute upstream work carefully. If we missed a source or described a dependency inaccurately, please open an Issue and we will correct it._
+>
+> Contributor thanks: [xiaozhongyaonvli](https://github.com/xiaozhongyaonvli) for community contributions to this project.
 
 <br/>
 
