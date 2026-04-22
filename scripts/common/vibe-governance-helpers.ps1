@@ -1806,11 +1806,24 @@ function Get-VgoSkillContractCompleteness {
         [bool]$MustPreserveWorkflow = $true
     )
 
+    $resolvedSkillRoot = [string]$SkillRoot
+    if ([string]::IsNullOrWhiteSpace($resolvedSkillRoot) -and -not [string]::IsNullOrWhiteSpace($SkillMdPath)) {
+        try {
+            $resolvedSkillRoot = [string](Split-Path -LiteralPath $SkillMdPath -Parent)
+        } catch {
+            try {
+                $resolvedSkillRoot = [string](Split-Path -Path $SkillMdPath -Parent)
+            } catch {
+                $resolvedSkillRoot = ''
+            }
+        }
+    }
+
     $missingFields = @()
     if ([string]::IsNullOrWhiteSpace($SkillMdPath)) {
         $missingFields += 'native_skill_entrypoint'
     }
-    if ([string]::IsNullOrWhiteSpace($SkillRoot)) {
+    if ([string]::IsNullOrWhiteSpace($resolvedSkillRoot)) {
         $missingFields += 'skill_root'
     }
     if ([string]::IsNullOrWhiteSpace($Description)) {

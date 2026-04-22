@@ -42,7 +42,7 @@
       "task_type": "research",
       "prompt": "help me with this",
       "expected": {
-        "allowed_route_modes": ["legacy_fallback", "confirm_required"]
+        "allowed_route_modes": ["pack_overlay", "confirm_required"]
       }
     },
     {

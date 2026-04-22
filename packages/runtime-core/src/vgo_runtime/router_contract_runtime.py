@@ -177,6 +177,70 @@ def _build_deep_discovery_advice(repo: RepoContext, prompt_lower: str, grade: st
     }
 
 
+def _get_preferred_host_selection(pack_row: dict[str, object] | None) -> dict[str, object] | None:
+    if not pack_row:
+        return None
+
+    preferred: dict[str, dict[str, object]] = {}
+    ordinal = 0
+
+    def add_candidate(
+        candidate_row: dict[str, object] | None,
+        fallback_score: float,
+        fallback_skill: str,
+        is_selected_candidate: bool,
+    ) -> None:
+        nonlocal ordinal
+        skill = str((candidate_row or {}).get("skill") or fallback_skill or "").strip()
+        if not skill:
+            return
+        score = float((candidate_row or {}).get("score", fallback_score) or 0.0)
+        candidate = {
+            "skill": skill,
+            "score": score,
+            "reason": str(pack_row.get("candidate_selection_reason") or "host_selection_candidate")
+            if is_selected_candidate
+            else "host_selection_candidate",
+            "is_selected": is_selected_candidate,
+            "ordinal": ordinal,
+        }
+        ordinal += 1
+
+        existing = preferred.get(skill)
+        if existing is None:
+            preferred[skill] = candidate
+            return
+        if score > float(existing["score"]):
+            preferred[skill] = candidate
+            return
+        if score == float(existing["score"]) and is_selected_candidate and not bool(existing["is_selected"]):
+            preferred[skill] = candidate
+            return
+        if (
+            score == float(existing["score"])
+            and is_selected_candidate == bool(existing["is_selected"])
+            and int(candidate["ordinal"]) < int(existing["ordinal"])
+        ):
+            preferred[skill] = candidate
+
+    selected_skill = str(pack_row.get("selected_candidate") or "").strip()
+    add_candidate(None, float(pack_row.get("candidate_selection_score") or 0.0), selected_skill, True)
+    for row in pack_row.get("candidate_ranking", []) or []:
+        if isinstance(row, dict):
+            add_candidate(row, 0.0, "", str(row.get("skill") or "").strip() == selected_skill)
+    for row in pack_row.get("stage_assistant_candidates", []) or []:
+        if isinstance(row, dict):
+            add_candidate(row, 0.0, "", str(row.get("skill") or "").strip() == selected_skill)
+
+    if not preferred:
+        return None
+
+    return sorted(
+        preferred.values(),
+        key=lambda item: (-float(item["score"]), -int(bool(item["is_selected"])), int(item["ordinal"])),
+    )[0]
+
+
 def route_prompt(
     prompt: str,
     grade: str,
@@ -295,7 +359,8 @@ def route_prompt(
 
     ranked = sorted(pack_results, key=lambda row: (-row["score"], row["pack_id"]))
     authority_ranked = [row for row in ranked if bool(row.get("route_authority_eligible", True))]
-    top = authority_ranked[0] if authority_ranked else None
+    selection_pool = authority_ranked if authority_ranked else ranked
+    top = selection_pool[0] if selection_pool else None
     confidence = float(top["score"]) if top else 0.0
     top_gap = float(top["candidate_top1_top2_gap"]) if top else 0.0
     candidate_signal = float(top["candidate_signal"]) if top else 0.0
@@ -315,31 +380,40 @@ def route_prompt(
         route_mode = "legacy_fallback"
         route_reason = "no_eligible_pack"
     elif confidence < fallback_threshold:
+        route_mode = "pack_overlay"
         if can_auto_route:
-            route_mode = "pack_overlay"
             route_reason = "candidate_signal_auto_route"
             confidence = max(confidence, auto_route_threshold)
         elif can_override:
-            route_mode = "confirm_required"
-            route_reason = "candidate_signal_override"
-            confidence = max(confidence, confirm_required_threshold)
+            route_reason = "candidate_signal_host_selection"
         else:
-            route_mode = "legacy_fallback"
-            route_reason = "confidence_below_fallback"
+            route_reason = "host_selection_required"
     elif top_gap < min_top_gap:
-        route_mode = "confirm_required"
-        route_reason = "top_candidates_too_close"
+        route_mode = "pack_overlay"
+        route_reason = "top_candidates_host_selection"
     elif confidence < auto_route_threshold:
         if can_auto_route:
             route_mode = "pack_overlay"
             route_reason = "candidate_signal_auto_route"
             confidence = max(confidence, auto_route_threshold)
         else:
-            route_mode = "confirm_required"
-            route_reason = "confidence_requires_confirmation"
+            route_mode = "pack_overlay"
+            route_reason = "host_selection_required"
     else:
         route_mode = "pack_overlay"
         route_reason = "auto_route"
+
+    deep_discovery_advice = _build_deep_discovery_advice(repo, prompt_lower, grade, task_type)
+    if (
+        route_mode == "pack_overlay"
+        and deep_discovery_advice
+        and bool(deep_discovery_advice.get("confirm_required"))
+        and top
+        and not bool(top.get("route_authority_eligible", True))
+    ):
+        route_mode = "confirm_required"
+        route_reason = "deep_discovery_confirm_required"
+        confidence = max(confidence, confirm_required_threshold)
 
     legacy_fallback_guard_applied = False
     legacy_fallback_original_reason = None
@@ -349,6 +423,29 @@ def route_prompt(
         route_reason = "legacy_fallback_guard"
         confidence = max(confidence, confirm_required_threshold)
         legacy_fallback_guard_applied = True
+
+    preferred_selection = _get_preferred_host_selection(top) if top and not bool(top.get("route_authority_eligible", True)) else None
+    selected_skill = (
+        str(preferred_selection["skill"])
+        if preferred_selection
+        else str(top["selected_candidate"])
+        if top
+        else None
+    )
+    selection_reason = (
+        str(preferred_selection["reason"])
+        if preferred_selection
+        else str(top["candidate_selection_reason"])
+        if top
+        else None
+    )
+    selection_score = (
+        round(float(preferred_selection["score"]), 4)
+        if preferred_selection
+        else top["candidate_selection_score"]
+        if top
+        else None
+    )
 
     result = {
         "prompt": prompt,
@@ -379,9 +476,9 @@ def route_prompt(
         "selected": (
             {
                 "pack_id": top["pack_id"],
-                "skill": top["selected_candidate"],
-                "selection_reason": top["candidate_selection_reason"],
-                "selection_score": top["candidate_selection_score"],
+                "skill": selected_skill,
+                "selection_reason": selection_reason,
+                "selection_score": selection_score,
                 "top1_top2_gap": top["candidate_top1_top2_gap"],
                 "candidate_signal": top["candidate_signal"],
                 "filtered_out_by_task": top["candidate_filtered_out_by_task"],
@@ -405,7 +502,6 @@ def route_prompt(
             "admitted_candidates": custom_admission.get("admitted_candidates"),
         },
     }
-    deep_discovery_advice = _build_deep_discovery_advice(repo, prompt_lower, grade, task_type)
     if deep_discovery_advice:
         result["deep_discovery_advice"] = deep_discovery_advice
     result.update(build_fallback_truth(result, fallback_policy))

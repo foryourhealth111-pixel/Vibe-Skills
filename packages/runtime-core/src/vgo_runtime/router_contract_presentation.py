@@ -8,8 +8,9 @@ from .router_contract_support import RepoContext, read_skill_descriptor
 # UI string constants for confirm UI rendering
 CONFIRM_UI_BATCH_PROMPT = "请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里："  # noqa: RUF001
 CONFIRM_UI_ROUTE_PREFIX = "路由需要确认：当前命中候选包"  # noqa: RUF001
-CONFIRM_UI_COMBINED_INSTRUCTION = "你可以在同一条回复里同时回答上面的问题，并输入序号或 `$<skill>` 来指定技能。"  # noqa: RUF001
-CONFIRM_UI_SIMPLE_INSTRUCTION = "回复序号或 `$<skill>` 来明确选择。"
+CONFIRM_UI_ROUTE_OVERLAY_PREFIX = "路由已生成候选技能：当前主选包"  # noqa: RUF001
+CONFIRM_UI_COMBINED_INSTRUCTION = "你可以在同一条回复里同时回答上面的问题，并输入序号或 `$<skill>` 来指定技能。若不指定，宿主可采用当前主选。"  # noqa: RUF001
+CONFIRM_UI_SIMPLE_INSTRUCTION = "回复序号或 `$<skill>` 来明确选择。若不指定，宿主可采用当前主选。"
 
 # Deep discovery first question template (from deep-discovery-policy.json)
 DEEP_DISCOVERY_FIRST_QUESTION = "你希望这次任务最终交付什么形式"
@@ -37,7 +38,7 @@ def _collect_clarification_questions(route_result: dict[str, Any], max_items: in
 
 
 def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_root: str | None, host_id: str | None = None) -> dict[str, Any] | None:
-    if route_result["route_mode"] != "confirm_required" or not route_result.get("selected"):
+    if route_result.get("route_mode") not in {"confirm_required", "pack_overlay"} or not route_result.get("selected"):
         return None
 
     selected = route_result["selected"]
@@ -49,6 +50,18 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
             break
     if not ranking:
         ranking = [{"skill": selected["skill"], "score": selected["selection_score"]}]
+    elif selected["skill"] not in {str(item.get("skill") or "").strip() for item in ranking}:
+        selected_row = None
+        for row in route_result.get("ranked", []):
+            if row["pack_id"] != selected["pack_id"]:
+                continue
+            for candidate in row.get("stage_assistant_candidates", []):
+                if str(candidate.get("skill") or "").strip() == selected["skill"]:
+                    selected_row = candidate
+                    break
+            if selected_row:
+                break
+        ranking = [selected_row or {"skill": selected["skill"], "score": selected["selection_score"]}, *ranking]
 
     options = []
     for index, row in enumerate(ranking[:5], start=1):
@@ -79,7 +92,8 @@ def build_confirm_ui(repo: RepoContext, route_result: dict[str, Any], target_roo
         for index, question in enumerate(clarification_questions, start=1):
             rendered.append(f"Q{index}. {question}")
         rendered.append("")
-    rendered.append(f"{CONFIRM_UI_ROUTE_PREFIX} `{selected['pack_id']}`。")
+    route_prefix = CONFIRM_UI_ROUTE_PREFIX if route_result.get("route_mode") == "confirm_required" else CONFIRM_UI_ROUTE_OVERLAY_PREFIX
+    rendered.append(f"{route_prefix} `{selected['pack_id']}`。")
     for option in options:
         score = option["score"]
         score_text = f" (score={round(float(score), 4)})" if score is not None else ""

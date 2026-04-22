@@ -3,7 +3,8 @@
   "updated": "2026-03-03",
   "enabled": true,
   "emit_on_route_modes": [
-    "confirm_required"
+    "confirm_required",
+    "pack_overlay"
   ],
   "options": {
     "max_skill_options": 5,

@@ -671,12 +671,113 @@ foreach ($pack in $packsForScoring) {
     }
 }
 
+function Get-PreferredHostSelection {
+    param(
+        [AllowNull()] [object]$PackRow
+    )
+
+    if (-not $PackRow) { return $null }
+
+    $preferred = @{}
+    $ordinal = 0
+
+    function Add-PreferredHostSelectionCandidate {
+        param(
+            [hashtable]$PreferredMap,
+            [AllowNull()] [object]$CandidateRow,
+            [double]$FallbackScore,
+            [string]$FallbackSkill,
+            [bool]$IsSelectedCandidate,
+            [ref]$OrdinalRef
+        )
+
+        $skill = if ($CandidateRow -and $CandidateRow.PSObject.Properties.Name -contains 'skill') { [string]$CandidateRow.skill } else { [string]$FallbackSkill }
+        if ([string]::IsNullOrWhiteSpace($skill)) { return }
+
+        $score = $FallbackScore
+        if ($CandidateRow -and $CandidateRow.PSObject.Properties.Name -contains 'score' -and $null -ne $CandidateRow.score) {
+            $score = [double]$CandidateRow.score
+        }
+
+        $reason = if ($IsSelectedCandidate) { [string]$PackRow.candidate_selection_reason } else { 'host_selection_candidate' }
+        $candidateOrdinal = $OrdinalRef.Value
+        $OrdinalRef.Value++
+
+        $candidate = [pscustomobject]@{
+            skill = $skill
+            score = [double]$score
+            reason = [string]$reason
+            is_selected = [bool]$IsSelectedCandidate
+            ordinal = [int]$candidateOrdinal
+        }
+
+        if (-not $PreferredMap.ContainsKey($skill)) {
+            $PreferredMap[$skill] = $candidate
+            return
+        }
+
+        $existing = $PreferredMap[$skill]
+        $shouldReplace =
+            ([double]$candidate.score -gt [double]$existing.score) -or
+            (
+                [double]$candidate.score -eq [double]$existing.score -and
+                [bool]$candidate.is_selected -and -not [bool]$existing.is_selected
+            ) -or
+            (
+                [double]$candidate.score -eq [double]$existing.score -and
+                [bool]$candidate.is_selected -eq [bool]$existing.is_selected -and
+                [int]$candidate.ordinal -lt [int]$existing.ordinal
+            )
+
+        if ($shouldReplace) {
+            $PreferredMap[$skill] = $candidate
+        }
+    }
+
+    Add-PreferredHostSelectionCandidate `
+        -PreferredMap $preferred `
+        -CandidateRow $null `
+        -FallbackScore $(if ($PackRow.candidate_selection_score -ne $null) { [double]$PackRow.candidate_selection_score } else { 0.0 }) `
+        -FallbackSkill ([string]$PackRow.selected_candidate) `
+        -IsSelectedCandidate $true `
+        -OrdinalRef ([ref]$ordinal)
+
+    foreach ($candidate in @($PackRow.candidate_ranking)) {
+        Add-PreferredHostSelectionCandidate `
+            -PreferredMap $preferred `
+            -CandidateRow $candidate `
+            -FallbackScore 0.0 `
+            -FallbackSkill '' `
+            -IsSelectedCandidate ([string]$candidate.skill -eq [string]$PackRow.selected_candidate) `
+            -OrdinalRef ([ref]$ordinal)
+    }
+
+    foreach ($candidate in @($PackRow.stage_assistant_candidates)) {
+        Add-PreferredHostSelectionCandidate `
+            -PreferredMap $preferred `
+            -CandidateRow $candidate `
+            -FallbackScore 0.0 `
+            -FallbackSkill '' `
+            -IsSelectedCandidate ([string]$candidate.skill -eq [string]$PackRow.selected_candidate) `
+            -OrdinalRef ([ref]$ordinal)
+    }
+
+    if ($preferred.Count -eq 0) { return $null }
+
+    return @($preferred.Values | Sort-Object -Property @(
+        @{ Expression = "score"; Descending = $true },
+        @{ Expression = "is_selected"; Descending = $true },
+        @{ Expression = "ordinal"; Descending = $false }
+    ) | Select-Object -First 1)[0]
+}
+
 $ranked = $packResults | Sort-Object -Property @(
     @{ Expression = "score"; Descending = $true },
     @{ Expression = "pack_id"; Descending = $false }
 )
 $authorityRanked = @($ranked | Where-Object { $_.route_authority_eligible })
-$top = $authorityRanked | Select-Object -First 1
+$selectionPool = if ($authorityRanked.Count -gt 0) { @($authorityRanked) } else { @($ranked) }
+$top = $selectionPool | Select-Object -First 1
 $confidence = if ($top) { [double]$top.score } else { 0.0 }
 
 # Soft-migration behavior: explicit legacy/canonical skill request mapped to a pack
@@ -700,29 +801,26 @@ if (-not $top) {
     $routeMode = "legacy_fallback"
     $routeReason = "no_eligible_pack"
 } elseif ($confidence -lt [double]$th.fallback_to_legacy_below) {
+    $routeMode = "pack_overlay"
     if ($canAutoRouteFromCandidateSignal) {
-        $routeMode = "pack_overlay"
         $routeReason = "candidate_signal_auto_route"
         $confidence = [Math]::Max($confidence, [double]$th.auto_route)
     } elseif ($canOverrideLegacyFallback) {
-        $routeMode = "confirm_required"
-        $routeReason = "candidate_signal_override"
-        $confidence = [Math]::Max($confidence, [double]$th.confirm_required)
+        $routeReason = "candidate_signal_host_selection"
     } else {
-        $routeMode = "legacy_fallback"
-        $routeReason = "confidence_below_fallback"
+        $routeReason = "host_selection_required"
     }
 } elseif ($topGap -lt $minTopGap) {
-    $routeMode = "confirm_required"
-    $routeReason = "top_candidates_too_close"
+    $routeMode = "pack_overlay"
+    $routeReason = "top_candidates_host_selection"
 } elseif ($confidence -lt [double]$th.auto_route) {
     if ($canAutoRouteFromCandidateSignal) {
         $routeMode = "pack_overlay"
         $routeReason = "candidate_signal_auto_route"
         $confidence = [Math]::Max($confidence, [double]$th.auto_route)
     } else {
-        $routeMode = "confirm_required"
-        $routeReason = "confidence_requires_confirmation"
+        $routeMode = "pack_overlay"
+        $routeReason = "host_selection_required"
     }
 } else {
     $routeMode = "pack_overlay"
@@ -787,7 +885,7 @@ $aiRerankOverrideBlockReason = $null
 $effectiveTop = $top
 if ($aiRerankRouteOverrideRequested -and $aiRerankAdvice -and $aiRerankAdvice.override_target_pack) {
     $overridePackId = [string]$aiRerankAdvice.override_target_pack
-    $overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
+    $overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
     if ($overrideTop) {
         $aiRerankRouteOverride = $true
         $effectiveTop = $overrideTop
@@ -795,7 +893,7 @@ if ($aiRerankRouteOverrideRequested -and $aiRerankAdvice -and $aiRerankAdvice.ov
             $routeReason = "ai_rerank_override"
         }
     } else {
-        $aiRerankOverrideBlockReason = "override_target_not_authority_eligible"
+        $aiRerankOverrideBlockReason = "override_target_not_ranked"
     }
 } elseif ($aiRerankRouteOverrideRequested) {
     $aiRerankOverrideBlockReason = "missing_override_target_pack"
@@ -862,7 +960,7 @@ $llmAccelerationRouteOverride = $false
 $llmAccelerationOverrideBlockReason = $null
 if ($llmAccelerationRouteOverrideRequested -and $llmAccelerationAdvice -and $llmAccelerationAdvice.override_target_pack) {
     $overridePackId = [string]$llmAccelerationAdvice.override_target_pack
-    $overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
+    $overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
     if ($overrideTop) {
         $llmAccelerationRouteOverride = $true
         $effectiveTop = $overrideTop
@@ -870,7 +968,7 @@ if ($llmAccelerationRouteOverrideRequested -and $llmAccelerationAdvice -and $llm
             $routeReason = "llm_acceleration_override"
         }
     } else {
-        $llmAccelerationOverrideBlockReason = "override_target_not_authority_eligible"
+        $llmAccelerationOverrideBlockReason = "override_target_not_ranked"
     }
 } elseif ($llmAccelerationRouteOverrideRequested) {
     $llmAccelerationOverrideBlockReason = "missing_override_target_pack"
@@ -904,9 +1002,10 @@ $dataScaleAdvice = Get-DataScaleOverlayAdvice `
     -DataScaleOverlayPolicy $dataScaleOverlayPolicy
 
 $dataScaleRouteOverride = $false
-$effectiveSelectedSkill = if ($effectiveTop) { [string]$effectiveTop.selected_candidate } else { $null }
-$effectiveSelectionReason = if ($effectiveTop) { [string]$effectiveTop.candidate_selection_reason } else { $null }
-$effectiveSelectionScore = if ($effectiveTop) { [double]$effectiveTop.candidate_selection_score } else { 0.0 }
+$effectivePreferredSelection = if ($effectiveTop -and -not [bool]$effectiveTop.route_authority_eligible) { Get-PreferredHostSelection -PackRow $effectiveTop } else { $null }
+$effectiveSelectedSkill = if ($effectivePreferredSelection) { [string]$effectivePreferredSelection.skill } elseif ($effectiveTop) { [string]$effectiveTop.selected_candidate } else { $null }
+$effectiveSelectionReason = if ($effectivePreferredSelection) { [string]$effectivePreferredSelection.reason } elseif ($effectiveTop) { [string]$effectiveTop.candidate_selection_reason } else { $null }
+$effectiveSelectionScore = if ($effectivePreferredSelection) { [double]$effectivePreferredSelection.score } elseif ($effectiveTop) { [double]$effectiveTop.candidate_selection_score } else { 0.0 }
 
 if ($effectiveTop -and $dataScaleAdvice -and $dataScaleAdvice.scope_applicable -and $dataScaleAdvice.override_candidate_allowed -and $dataScaleAdvice.recommended_skill -and ($dataScaleAdvice.recommended_skill -ne $effectiveSelectedSkill)) {
     if ($dataScaleAdvice.auto_override) {

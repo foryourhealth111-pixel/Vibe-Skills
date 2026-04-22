@@ -255,7 +255,7 @@ class RouterBridgeTests(unittest.TestCase):
             requested_skill="vibe",
         )
 
-        self.assertEqual("confirm_required", result["route_mode"])
+        self.assertEqual("pack_overlay", result["route_mode"])
         self.assertEqual("code-quality", result["selected"]["pack_id"])
         self.assertEqual("systematic-debugging", result["selected"]["skill"])
         self.assertEqual("vibe", result["alias"]["requested_canonical"])

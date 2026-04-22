@@ -8,7 +8,7 @@ if (-not (Get-Command Resolve-VgoInstalledSkillsRoot -ErrorAction SilentlyContin
 function Get-ConfirmUiPolicyDefaults {
     return [pscustomobject]@{
         enabled = $true
-        emit_on_route_modes = @("confirm_required")
+        emit_on_route_modes = @("confirm_required", "pack_overlay")
         options = [pscustomobject]@{
             max_skill_options = 5
             include_descriptions = $true
@@ -371,6 +371,22 @@ function Build-ConfirmSkillOptions {
             }
         )
     }
+    if ($selectedSkill -and -not (@($ranking | ForEach-Object { [string]$_.skill }) -contains $selectedSkill)) {
+        $selectedRow = $null
+        if ($packRow -and $packRow.stage_assistant_candidates) {
+            $selectedRow = @($packRow.stage_assistant_candidates | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
+        }
+        if (-not $selectedRow -and $packRow -and $packRow.candidate_ranking) {
+            $selectedRow = @($packRow.candidate_ranking | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
+        }
+        if (-not $selectedRow) {
+            $selectedRow = [pscustomobject]@{
+                skill = $selectedSkill
+                score = if ($Result.selected.selection_score -ne $null) { [double]$Result.selected.selection_score } else { 0.0 }
+            }
+        }
+        $ranking = @($selectedRow) + @($ranking)
+    }
 
     $limit = [Math]::Max(1, [int]$policy.options.max_skill_options)
     $rows = @($ranking | Select-Object -First $limit)
@@ -501,7 +517,11 @@ function Build-ConfirmUiText {
         }
         $lines += ''
     }
-    $lines += ("路由需要确认：当前命中候选包 `{0}`。可选技能如下：" -f [string]$ConfirmSkillOptions.selected_pack)
+    if ($Result -and [string]$Result.route_mode -eq 'confirm_required') {
+        $lines += ("路由需要确认：当前命中候选包 `{0}`。可选技能如下：" -f [string]$ConfirmSkillOptions.selected_pack)
+    } else {
+        $lines += ("路由已生成候选技能：当前主选包 `{0}`。宿主可接受默认主选或改选其他技能：" -f [string]$ConfirmSkillOptions.selected_pack)
+    }
 
     foreach ($opt in @($ConfirmSkillOptions.options)) {
         $desc = if ($opt.description) { [string]$opt.description } else { "" }
@@ -514,9 +534,9 @@ function Build-ConfirmUiText {
     }
 
     if ($clarificationQuestions.Count -gt 0) {
-        $lines += "你可以在同一条回复里同时回答上面的问题，并输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）来指定技能。"
+        $lines += "你可以在同一条回复里同时回答上面的问题，并输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）来指定技能。若不指定，宿主可采用当前主选。"
     } else {
-        $lines += "回复任一项来选择：输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）。"
+        $lines += "回复任一项来选择：输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）。若不指定，宿主可采用当前主选。"
     }
     if ($UnattendedDecision -and [bool]$UnattendedDecision.unattended) {
         $lines += ("当前处于无人值守：将跳过选择，自动使用 `{0}`。" -f [string]$ConfirmSkillOptions.selected_skill)

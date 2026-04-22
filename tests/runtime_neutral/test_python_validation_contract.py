@@ -131,8 +131,9 @@ class PythonValidationContractTests(unittest.TestCase):
     def test_pack_route_overrides_stay_inside_authority_ranked_results(self) -> None:
         text = RESOLVE_PACK_ROUTE.read_text(encoding="utf-8-sig")
         normalized_text = re.sub(r"\s+", " ", text)
-        authority_lookup = (
-            "$overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | "
+        selection_pool = "$selectionPool = if ($authorityRanked.Count -gt 0) { @($authorityRanked) } else { @($ranked) }"
+        selection_lookup = (
+            "$overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | "
             "Select-Object -First 1"
         )
         ranked_lookup = (
@@ -140,7 +141,8 @@ class PythonValidationContractTests(unittest.TestCase):
             "Select-Object -First 1"
         )
 
-        self.assertEqual(2, normalized_text.count(authority_lookup))
+        self.assertIn(selection_pool, normalized_text)
+        self.assertEqual(2, normalized_text.count(selection_lookup))
         self.assertNotIn(ranked_lookup, normalized_text)
         self.assertIn("ai_rerank_override_block_reason", text)
         self.assertIn("llm_acceleration_override_block_reason", text)
