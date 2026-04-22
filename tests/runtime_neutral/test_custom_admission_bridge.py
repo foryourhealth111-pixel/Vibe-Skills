@@ -362,6 +362,10 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
                 f"Open the specialist {custom_recommendation['native_skill_entrypoint']} entrypoint first.",
                 list(custom_recommendation["progressive_load_policy"])[0],
             )
+            self.assertIn(
+                "do not replace it with Skill(genomics-qc-flow)",
+                list(custom_recommendation["progressive_load_policy"])[1],
+            )
 
     def test_full_runtime_carries_custom_specialist_into_execution_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

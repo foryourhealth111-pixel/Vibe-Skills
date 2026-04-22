@@ -854,8 +854,18 @@ function Resolve-VibeNativeSpecialistAdapter {
     if (-not [string]::IsNullOrWhiteSpace($modeOverride)) {
         $executionMode = [string]$modeOverride
     }
-    $allowedExecutionModes = @('direct_current_session_route', 'host_subprocess')
-    if ($executionMode -notin $allowedExecutionModes) {
+    $executionMode = $executionMode.Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($executionMode)) {
+        $executionMode = 'direct_current_session_route'
+    }
+
+    $legacyRemovedMode = $null
+    if ($executionMode -eq 'host_subprocess') {
+        $legacyRemovedMode = 'host_subprocess'
+        $executionMode = 'direct_current_session_route'
+    }
+
+    if ($executionMode -ne 'direct_current_session_route') {
         return [pscustomobject]@{
             enabled = $true
             live_execution_allowed = $false
@@ -867,183 +877,21 @@ function Resolve-VibeNativeSpecialistAdapter {
             effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
             command_path = $null
             invocation_arguments_prefix = @()
+            legacy_removed_mode = $null
         }
     }
-    if ($null -eq $policy -or -not [bool]$policy.enabled) {
-        return [pscustomobject]@{
-            enabled = $false
-            live_execution_allowed = $false
-            reason = 'native_specialist_execution_policy_disabled'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    if ($executionMode -eq 'direct_current_session_route') {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = 'direct_current_session_route'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $disableEnvName = if ($policy.PSObject.Properties.Name -contains 'disable_env') { [string]$policy.disable_env } else { '' }
-    if (-not [string]::IsNullOrWhiteSpace($disableEnvName)) {
-        $disableEnvValue = [Environment]::GetEnvironmentVariable($disableEnvName)
-        if (Test-VibeTruthyEnvironmentValue -Value $disableEnvValue) {
-            return [pscustomobject]@{
-                enabled = $true
-                live_execution_allowed = $false
-                reason = ("native_specialist_execution_disabled_via_env:{0}" -f $disableEnvName)
-                runtime = $runtime
-                policy = $policy
-                adapter = $null
-                requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-                effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-                command_path = $null
-                invocation_arguments_prefix = @()
-            }
-        }
-    }
-
-    $enableEnvName = if ($policy.PSObject.Properties.Name -contains 'enable_env') { [string]$policy.enable_env } else { '' }
-    $defaultEnabled = if ($policy.PSObject.Properties.Name -contains 'default_enabled') { [bool]$policy.default_enabled } else { $false }
-    $liveExecutionAllowed = $defaultEnabled
-    if (-not [string]::IsNullOrWhiteSpace($enableEnvName)) {
-        $enableEnvValue = [Environment]::GetEnvironmentVariable($enableEnvName)
-        if (Test-VibeTruthyEnvironmentValue -Value $enableEnvValue) {
-            $liveExecutionAllowed = $true
-        }
-    }
-
-    if (-not $liveExecutionAllowed) {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = 'native_specialist_execution_not_enabled'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $adapterId = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeHostAdapterIdentity.effective_host_id)) {
-        [string]$runtimeHostAdapterIdentity.effective_host_id
-    } elseif ($policy.PSObject.Properties.Name -contains 'default_adapter_id' -and -not [string]::IsNullOrWhiteSpace([string]$policy.default_adapter_id)) {
-        [string]$policy.default_adapter_id
-    } else {
-        'codex'
-    }
-    $adapter = $null
-    foreach ($candidate in @($policy.adapters)) {
-        if ([string]$candidate.id -eq $adapterId) {
-            $adapter = $candidate
-            break
-        }
-    }
-    if ($null -eq $adapter) {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = ("native_specialist_adapter_missing:{0}" -f $adapterId)
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $commandPath = $null
-    $invocationArgumentsPrefix = @()
-    $resolvedReason = $null
-    $invocationKind = if ($adapter.PSObject.Properties.Name -contains 'invocation_kind') { [string]$adapter.invocation_kind } else { 'direct' }
-
-    if ($invocationKind -eq 'python_runner') {
-        $bridgeResolution = Resolve-VibeBridgeExecutable -Adapter $adapter -Runtime $runtime
-        if ([string]::IsNullOrWhiteSpace([string]$bridgeResolution.command_path)) {
-            $resolvedReason = [string]$bridgeResolution.reason
-        } else {
-            $pythonInvocation = Resolve-VgoPythonCommandSpec -Command '${VGO_PYTHON}'
-            $runnerScriptPath = if ($adapter.PSObject.Properties.Name -contains 'runner_script_path' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.runner_script_path)) {
-                [System.IO.Path]::GetFullPath((Join-Path $runtime.repo_root ([string]$adapter.runner_script_path)))
-            } else {
-                $null
-            }
-            if ([string]::IsNullOrWhiteSpace($runnerScriptPath) -or -not (Test-Path -LiteralPath $runnerScriptPath)) {
-                $resolvedReason = ("native_specialist_runner_missing:{0}" -f [string]$adapter.id)
-            } else {
-                $commandPath = [string]$pythonInvocation.host_path
-                $invocationArgumentsPrefix = @($pythonInvocation.prefix_arguments)
-                $invocationArgumentsPrefix += @(
-                    $runnerScriptPath,
-                    '--host-adapter', ([string]$adapter.id),
-                    '--bridge-executable', ([string]$bridgeResolution.command_path)
-                )
-                if ($adapter.PSObject.Properties.Name -contains 'bridge_contract' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.bridge_contract)) {
-                    $invocationArgumentsPrefix += @('--bridge-contract', ([string]$adapter.bridge_contract))
-                }
-                foreach ($item in @($adapter.runner_arguments_prefix)) {
-                    $invocationArgumentsPrefix += [string]$item
-                }
-            }
-        }
-    } else {
-        if ($adapter.PSObject.Properties.Name -contains 'executable_env' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.executable_env)) {
-            $envCommand = [Environment]::GetEnvironmentVariable([string]$adapter.executable_env)
-            if (-not [string]::IsNullOrWhiteSpace($envCommand)) {
-                $candidate = Get-Command $envCommand -ErrorAction SilentlyContinue
-                if ($candidate) {
-                    $commandPath = [string]$candidate.Source
-                } elseif (Test-Path -LiteralPath $envCommand) {
-                    $commandPath = [System.IO.Path]::GetFullPath($envCommand)
-                }
-            }
-        }
-        if ([string]::IsNullOrWhiteSpace($commandPath)) {
-            $candidate = Get-Command ([string]$adapter.command) -ErrorAction SilentlyContinue
-            if ($candidate) {
-                $commandPath = [string]$candidate.Source
-            }
-        }
-        if ([string]::IsNullOrWhiteSpace($commandPath)) {
-            $resolvedReason = ("native_specialist_adapter_command_unavailable:{0}" -f [string]$adapter.command)
-        } else {
-            $invocationSpec = Resolve-VibeProcessInvocationSpec -CommandPath $commandPath -ArgumentList @()
-            $commandPath = [string]$invocationSpec.command_path
-            $invocationArgumentsPrefix = @($invocationSpec.arguments)
-        }
-    }
-
     return [pscustomobject]@{
         enabled = $true
-        live_execution_allowed = [bool](-not [string]::IsNullOrWhiteSpace($commandPath))
-        reason = if ($resolvedReason) { $resolvedReason } else { 'native_specialist_execution_ready' }
+        live_execution_allowed = $false
+        reason = 'direct_current_session_route'
         runtime = $runtime
         policy = $policy
-        adapter = $adapter
-        requested_host_adapter_id = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeHostAdapterIdentity.requested_host_id)) { [string]$runtimeHostAdapterIdentity.requested_host_id } else { [string]$adapterId }
-        effective_host_adapter_id = [string]$adapter.id
-        command_path = $commandPath
-        invocation_arguments_prefix = @($invocationArgumentsPrefix)
+        adapter = $null
+        requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
+        effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
+        command_path = $null
+        invocation_arguments_prefix = @()
+        legacy_removed_mode = $legacyRemovedMode
     }
 }
 
@@ -1529,6 +1377,7 @@ function New-VibeNativeSpecialistPrompt {
         '',
         'Rules:',
         '- Open the declared native_skill_entrypoint before doing bounded specialist work.',
+        '- If the routed specialist is disclosed by path, do not replace native_skill_entrypoint with a host Skill(specialist_skill_id) lookup unless that skill name is explicitly host-visible in the current session.',
         '- Treat the declared skill root as the only bounded specialist loading root.',
         '- Preserve the named specialist skill native workflow.',
         '- Remain bounded to the frozen requirement and execution plan.',

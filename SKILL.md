@@ -22,7 +22,7 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## How to Access Skills
 
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
+**In Claude Code:** Use the `Skill` tool for public discoverable skills that are explicitly exposed in the current Claude host registry. Exception: when governed `vibe` routes an internal specialist and declares a real `native_skill_entrypoint` path such as `.../SKILL.runtime-mirror.md`, do not rewrite that path into `Skill(<skill-id>)` unless that skill name is visibly registered in the current host session. In that case the disclosed `native_skill_entrypoint` path is the source of truth for same-session specialist loading, and reading that declared path is allowed.
 
 **In Copilot CLI:** Use the `skill` tool. Skills are auto-discovered from installed plugins. The `skill` tool works the same as Claude Code's `Skill` tool.
 

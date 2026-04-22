@@ -1495,6 +1495,10 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 "Vibe routed these Skills for direct current-session consultation during discussion",
                 host_user_briefing["rendered_text"],
             )
+            self.assertIn(
+                "Do not replace this path with Skill(systematic-debugging) unless that skill name is explicitly visible in the host registry.",
+                host_user_briefing["rendered_text"],
+            )
             self.assertIn("freeze gate: passed", host_user_briefing["rendered_text"])
             self.assertIn("Vibe approved these Skills for execution", host_user_briefing["rendered_text"])
             self.assertIn("systematic-debugging", host_user_briefing["rendered_text"])

@@ -3,11 +3,11 @@
   "updated_at": "2026-03-29",
   "enabled": true,
   "mode": "direct_current_session_route",
-  "default_adapter_id": "codex",
-  "enable_env": "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION",
-  "disable_env": "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION",
-  "default_enabled": true,
-  "default_timeout_seconds": 600,
+  "supported_modes": [
+    "direct_current_session_route"
+  ],
+  "path_source": "native_skill_entrypoint",
+  "legacy_hidden_subprocess_removed": true,
   "degrade_contract": {
     "status": "degraded_non_authoritative",
     "verification_passed": false,
@@ -28,74 +28,5 @@
       "bounded_output_notes"
     ]
   },
-  "adapters": [
-    {
-      "id": "codex",
-      "enabled": true,
-      "invocation_kind": "direct",
-      "executable_env": "VGO_CODEX_EXECUTABLE",
-      "command": "codex",
-      "arguments_prefix": [
-        "exec",
-        "--ephemeral",
-        "--full-auto"
-      ],
-      "execution_driver": "codex_exec_native_specialist"
-    },
-    {
-      "id": "claude-code",
-      "enabled": true,
-      "invocation_kind": "python_runner",
-      "runner_script_path": "scripts/runtime/native_specialist_runner.py",
-      "bridge_executable_env": "VGO_CLAUDE_CODE_SPECIALIST_WRAPPER",
-      "bridge_contract": "vco_specialist_wrapper_v1",
-      "arguments_prefix": [],
-      "runner_arguments_prefix": [],
-      "execution_driver": "host_neutral_exec_native_specialist"
-    },
-    {
-      "id": "cursor",
-      "enabled": true,
-      "invocation_kind": "python_runner",
-      "runner_script_path": "scripts/runtime/native_specialist_runner.py",
-      "bridge_executable_env": "VGO_CURSOR_SPECIALIST_WRAPPER",
-      "bridge_contract": "vco_specialist_wrapper_v1",
-      "arguments_prefix": [],
-      "runner_arguments_prefix": [],
-      "execution_driver": "host_neutral_exec_native_specialist"
-    },
-    {
-      "id": "windsurf",
-      "enabled": true,
-      "invocation_kind": "python_runner",
-      "runner_script_path": "scripts/runtime/native_specialist_runner.py",
-      "bridge_executable_env": "VGO_WINDSURF_SPECIALIST_WRAPPER",
-      "bridge_contract": "vco_specialist_wrapper_v1",
-      "arguments_prefix": [],
-      "runner_arguments_prefix": [],
-      "execution_driver": "host_neutral_exec_native_specialist"
-    },
-    {
-      "id": "openclaw",
-      "enabled": true,
-      "invocation_kind": "python_runner",
-      "runner_script_path": "scripts/runtime/native_specialist_runner.py",
-      "bridge_executable_env": "VGO_OPENCLAW_SPECIALIST_WRAPPER",
-      "bridge_contract": "vco_specialist_wrapper_v1",
-      "arguments_prefix": [],
-      "runner_arguments_prefix": [],
-      "execution_driver": "host_neutral_exec_native_specialist"
-    },
-    {
-      "id": "opencode",
-      "enabled": true,
-      "invocation_kind": "python_runner",
-      "runner_script_path": "scripts/runtime/native_specialist_runner.py",
-      "bridge_executable_env": "VGO_OPENCODE_SPECIALIST_WRAPPER",
-      "bridge_contract": "vco_specialist_wrapper_v1",
-      "arguments_prefix": [],
-      "runner_arguments_prefix": [],
-      "execution_driver": "host_neutral_exec_native_specialist"
-    }
-  ]
+  "adapters": []
 }

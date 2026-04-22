@@ -87,8 +87,13 @@ function Get-VibeSpecialistConsultationPolicy {
         $consultationMode = [string]$modeOverride
     }
     $consultationMode = $consultationMode.Trim().ToLowerInvariant()
-    $allowedConsultationModes = @('direct_current_session_route', 'host_subprocess')
-    if ($consultationMode -notin $allowedConsultationModes) {
+    if ([string]::IsNullOrWhiteSpace($consultationMode)) {
+        $consultationMode = 'direct_current_session_route'
+    }
+    if ($consultationMode -eq 'host_subprocess') {
+        $consultationMode = 'direct_current_session_route'
+    }
+    if ($consultationMode -ne 'direct_current_session_route') {
         throw ("Unsupported specialist consultation mode: {0}" -f $consultationMode)
     }
 
@@ -761,7 +766,7 @@ function New-VibeDirectRoutedSpecialistConsultationResult {
     }
 
     $summary = if (-not [string]::IsNullOrWhiteSpace($entrypoint)) {
-        ('Specialist was routed for direct current-session consultation. Load {0} in the current host session instead of launching a hidden host subprocess.' -f $entrypoint)
+        ('Specialist was routed for direct current-session consultation. Load {0} in the current host session instead of launching a hidden host subprocess. Do not replace this path with Skill({1}) unless that skill name is explicitly visible in the host registry.' -f $entrypoint, [string]$Consultation.skill_id)
     } else {
         'Specialist was routed for direct current-session consultation instead of launching a hidden host subprocess.'
     }
@@ -783,11 +788,13 @@ function New-VibeDirectRoutedSpecialistConsultationResult {
         summary = $summary
         consultation_notes = @(
             'No hidden host subprocess was launched for this specialist.',
-            'The current host session should load the specialist entrypoint directly and keep vibe as the only runtime authority.'
+            'The current host session should load the specialist entrypoint directly and keep vibe as the only runtime authority.',
+            ('Do not translate native_skill_entrypoint into Skill({0}) unless the host already exposes that skill name.' -f [string]$Consultation.skill_id)
         )
         adoption_notes = @(
             'Use the specialist path already frozen in native_skill_entrypoint for same-session loading.',
-            'Do not replace vibe governance; absorb specialist guidance back into the governed artifact flow.'
+            'Do not replace vibe governance; absorb specialist guidance back into the governed artifact flow.',
+            'When same-session loading is path-resolved, prefer the declared native_skill_entrypoint over a host skill-name lookup.'
         )
         verification_notes = @(
             'consultation_mode:direct_current_session_route',

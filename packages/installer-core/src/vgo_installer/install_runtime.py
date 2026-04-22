@@ -106,7 +106,7 @@ def build_closed_ready_failure_message(adapter: dict[str, object], closure: dict
         "Host closure for "
         f"'{adapter_id}' is not closed_ready "
         f"(got '{closure_state}'). "
-        "Configure the host specialist bridge command first, then retry install."
+        "Managed bridge surfaces were not materialized correctly; re-run install to refresh host settings and entry wrappers."
     )
 
 
@@ -621,7 +621,6 @@ def main(argv: list[str] | None = None):
         adapter,
         track_created_path=track_created_path,
         record_managed_json=record_managed_json,
-        record_bridge_launcher=record_bridge_launcher,
     )
     global_instruction_bootstrap = materialize_global_instruction_bootstrap(
         repo_root,
@@ -679,7 +678,8 @@ def main(argv: list[str] | None = None):
                 else None
             ),
             "legacy_opencode_config_cleanup": legacy_opencode_config_cleanup,
-            "specialist_wrapper_ready": bool(closure["specialist_wrapper"]["ready"]),
+            "specialist_wrapper_ready": bool((closure.get("specialist_wrapper") or {}).get("ready", False)),
+            "same_session_specialist_routing": True,
             "require_closed_ready_requested": bool(args.require_closed_ready),
             "require_closed_ready_effective": require_closed_ready_effective,
         }

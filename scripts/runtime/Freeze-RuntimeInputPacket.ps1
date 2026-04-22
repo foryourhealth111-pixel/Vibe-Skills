@@ -301,7 +301,10 @@ function New-VibeSpecialistRecommendation {
         $null
     }
     $progressiveLoadPolicy = if (-not [string]::IsNullOrWhiteSpace([string]$nativeSkillEntrypoint)) {
-        @("Open the specialist $nativeSkillEntrypoint entrypoint first.")
+        @(
+            "Open the specialist $nativeSkillEntrypoint entrypoint first.",
+            "If this specialist is disclosed only by native_skill_entrypoint, keep same-session loading path-based and do not replace it with Skill($SkillId) unless that skill name is explicitly host-visible in the current session."
+        )
     } else {
         @()
     }
