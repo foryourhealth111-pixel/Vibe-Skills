@@ -124,9 +124,11 @@ Hard rules:
 - Do not inspect the repo, protocol docs, or prior run outputs before canonical launch returns, except to resolve `skill_root` and current host id.
 - Do not use the Vibe installation root as the governed artifact root when the user asked you to work in another workspace or repository.
 - Do not manually create `outputs/runtime/vibe-sessions/<run-id>/`, `docs/requirements/`, or `docs/plans/` as a substitute for launch.
+- Do not search the current workspace, repository, or install root for canonical proof files before launch; those artifacts are emitted by canonical-entry after the run session is created.
+- Only validate canonical proof artifacts after canonical-entry returns a `session_root`, and only against that launched session root.
 - Do not simulate stages, claim canonical entry from reading this file or wrapper text, or silently continue if canonical launch fails -- report `blocked` with the concrete failure reason.
 
-Proof of canonical launch requires: `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json`.
+Proof of canonical launch is post-launch and requires: `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json` under the returned `session_root`.
 
 `vibe` is a host-syntax-neutral skill contract. `/vibe`, `$vibe`, and agent-invoked `vibe` all mean the same thing: enter the same governed runtime.
 

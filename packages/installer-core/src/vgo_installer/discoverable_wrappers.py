@@ -83,6 +83,8 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         f"Public grade flags allowed: {grade_line}",
         bounded_warning,
         "Dispatch through canonical-entry runtime bridge. Do not treat this file as ordinary SKILL.md prose.",
+        "Launch canonical-entry first. Do not preflight-scan the current workspace or repository for canonical proof files before launch.",
+        "If canonical-entry returns a session root, validate canonical proof artifacts only inside that launched session root.",
         "If canonical runtime cannot be launched, report blocked instead of silently falling back.",
         *([empty_request_line] if empty_request_line else []),
         "",

@@ -36,6 +36,8 @@ def test_build_wrapper_descriptors_renders_all_discoverable_entries_for_codex() 
     assert '"host_id": "codex"' in rendered['vibe-how'].content
     assert '"entry_id": "vibe-how"' in rendered['vibe-how'].content
     assert 'Dispatch through canonical-entry runtime bridge.' in rendered['vibe-how'].content
+    assert 'Do not preflight-scan the current workspace or repository for canonical proof files before launch.' in rendered['vibe-how'].content
+    assert 'validate canonical proof artifacts only inside that launched session root.' in rendered['vibe-how'].content
     assert 'report blocked instead of silently falling back' in rendered['vibe-how'].content
     assert 'Use the `vibe` skill' not in rendered['vibe-how'].content
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
@@ -64,6 +66,8 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert '"host_id": "claude-code"' in rendered['vibe-how'].content
     assert '"entry_id": "vibe-how"' in rendered['vibe-how'].content
     assert 'Dispatch through canonical-entry runtime bridge.' in rendered['vibe-how'].content
+    assert 'Do not preflight-scan the current workspace or repository for canonical proof files before launch.' in rendered['vibe-how'].content
+    assert 'validate canonical proof artifacts only inside that launched session root.' in rendered['vibe-how'].content
     assert 'Use the `vibe` skill' not in rendered['vibe-how'].content
     assert 'Default stop target: `xl_plan`' in rendered['vibe-how'].content
     assert '$ARGUMENTS' in rendered['vibe-how'].content
