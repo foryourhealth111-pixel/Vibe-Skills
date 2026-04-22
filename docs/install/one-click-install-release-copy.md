@@ -12,6 +12,17 @@
 3. 拿不准版本时先选 `全量版本 + 可自定义添加治理`
 4. 复制对应提示词，粘贴到你的 AI 客户端里执行
 
+## 运行时先决条件
+
+在使用文档中列出的安装、检查、升级或一次性执行命令之前，请确保满足以下条件：
+
+- Windows：安装 **PowerShell 7**，并确保 `pwsh` 命令已包含在系统的 `PATH` 环境变量中。
+- Linux：安装 **PowerShell 7**，并确保 `pwsh` 命令已包含在系统的 `PATH` 环境变量中。
+- macOS：安装 **PowerShell 7**，如果您计划使用 PowerShell 命令行界面，请确保 `pwsh` 命令已包含在系统的 `PATH` 环境变量中。
+- 所有平台：对于由包装脚本（wrapper）驱动的安装界面，`python3` 或 `python` 版本必须满足 **Python 3.10 或更高版本**的要求。
+- 在 Linux 和 macOS 上，Shell 入口点（entrypoints）依然可用；但若要使用完整的受控运行时环境及验证功能，则仍需依赖 PowerShell 7。
+
+
 ## 先选宿主、动作和版本
 
 1. 先确认宿主：`codex`、`claude-code`、`cursor`、`windsurf`、`openclaw`、`opencode`
