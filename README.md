@@ -646,7 +646,7 @@ VibeSkills does not claim to replace or fully reproduce every upstream project l
 >
 > _We try to attribute upstream work carefully. If we missed a source or described a dependency inaccurately, please open an Issue and we will correct it._
 >
-> Contributor thanks: [xiaozhongyaonvli](https://github.com/xiaozhongyaonvli) for community contributions to this project.
+> Contributor thanks: [xiaozhongyaonvli](https://github.com/xiaozhongyaonvli) [ruirui2345](https://github.com/ruirui2345)  for community contributions to this project. 
 
 <br/>
 

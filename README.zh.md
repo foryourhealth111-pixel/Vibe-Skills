@@ -647,7 +647,7 @@ VibeSkills 并不声称要替代、也不会完整复刻下面列出的每一个
 >
 > _我们会尽量认真处理上游来源的署名与说明。如果有遗漏，或某处表述不准确，欢迎在 Issue 中指出，我们会及时修正。_
 >
-> 贡献者鸣谢：[xiaozhongyaonvli](https://github.com/xiaozhongyaonvli)，感谢你对本项目的社区贡献。
+> 贡献者鸣谢：[xiaozhongyaonvli](https://github.com/xiaozhongyaonvli) [ruirui2345](https://github.com/ruirui2345) ，感谢你对本项目的社区贡献。
 
 <br/>
 
