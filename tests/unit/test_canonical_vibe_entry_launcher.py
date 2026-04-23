@@ -322,6 +322,78 @@ def test_resolve_effective_prompt_keeps_prompt_when_no_prior_continuation_contex
     assert prompt == "execute plan phase-cleanup"
 
 
+def test_resolve_effective_prompt_ignores_bounded_preferred_summary_without_explicit_allow(
+    tmp_path: Path,
+) -> None:
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="xl_plan",
+        allowed_followup_entry_ids=["vibe", "vibe-do"],
+        reentry_token="token-123",
+        task="plan runtime entry hardening",
+    )
+
+    prompt = canonical_entry._resolve_effective_prompt(
+        host_id="codex",
+        entry_id="vibe-do",
+        prompt="execute plan",
+        artifact_root=tmp_path,
+        run_id="current-run",
+        continuation_source_run_id="prior-bounded-run",
+    )
+
+    assert prompt == "execute plan"
+
+
+@pytest.mark.parametrize(
+    ("artifact_root_arg", "expected_relpath", "run_id"),
+    [
+        (None, Path(".vibeskills"), "pytest-canonical-entry-default-artifact-root"),
+        ("custom-artifacts", Path("custom-artifacts"), "pytest-canonical-entry-relative-artifact-root"),
+    ],
+)
+def test_canonical_entry_resolves_artifact_root_via_helper(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    artifact_root_arg: str | None,
+    expected_relpath: Path,
+    run_id: str,
+) -> None:
+    expected_artifact_root = (tmp_path / expected_relpath).resolve()
+    session_root = expected_artifact_root / "outputs" / "runtime" / "vibe-sessions" / run_id
+
+    monkeypatch.setattr(
+        canonical_entry,
+        "resolve_canonical_vibe_contract",
+        lambda repo_root, host_id: {"fallback_policy": "blocked", "allow_skill_doc_fallback": False},
+    )
+
+    def fake_invoke_runtime(**kwargs: object) -> dict[str, object]:
+        assert Path(str(kwargs["artifact_root"])).resolve() == expected_artifact_root
+        _write_valid_truth_artifacts(session_root)
+        return {
+            "run_id": run_id,
+            "session_root": str(session_root),
+            "summary_path": str(session_root / "runtime-summary.json"),
+            "summary": {"run_id": run_id},
+        }
+
+    monkeypatch.setattr(canonical_entry, "invoke_vibe_runtime_entrypoint", fake_invoke_runtime)
+
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=tmp_path,
+        host_id="codex",
+        entry_id="vibe",
+        prompt="x",
+        run_id=run_id,
+        artifact_root=artifact_root_arg,
+    )
+
+    receipt = json.loads(result.host_launch_receipt_path.read_text(encoding="utf-8"))
+    assert receipt["launch_status"] == "verified"
+
+
 def test_canonical_entry_rejects_bounded_wrapper_reentry_without_explicit_credentials(
     tmp_path: Path,
 ) -> None:

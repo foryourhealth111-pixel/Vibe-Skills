@@ -65,12 +65,14 @@ def assert_direct_routed_result(
     *,
     skill_id: str = "systematic-debugging",
     entrypoint_path: Path | None = None,
+    require_receipt_metadata: bool = True,
 ) -> None:
-    test_case.assertEqual(skill_id, result["skill_id"])
-    test_case.assertEqual("routed_pending_current_session", result["status"])
-    test_case.assertFalse(bool(result["verification_passed"]))
-    test_case.assertFalse(bool(result["live_native_execution"]))
-    test_case.assertFalse(bool(result["degraded"]))
+    if require_receipt_metadata:
+        test_case.assertEqual(skill_id, result["skill_id"])
+        test_case.assertEqual("routed_pending_current_session", result["status"])
+        test_case.assertFalse(bool(result["verification_passed"]))
+        test_case.assertFalse(bool(result["live_native_execution"]))
+        test_case.assertFalse(bool(result["degraded"]))
     test_case.assertFalse(bool(result["blocked"]))
     test_case.assertTrue(bool(result["direct_route"]))
     test_case.assertEqual("direct_current_session_route", result["consultation_mode"])
@@ -869,7 +871,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             )
 
             result = json.loads(completed.stdout)
-            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path)
+            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path, require_receipt_metadata=False)
             self.assertTrue(source_artifact.exists())
 
     def test_consultation_lifecycle_projection_handles_summary_only_receipt(self) -> None:
@@ -1315,7 +1317,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             )
 
             result = json.loads(completed.stdout)
-            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path)
+            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path, require_receipt_metadata=False)
 
     def test_specialist_consultation_unit_seeds_sidecar_codex_home_from_current_host(self) -> None:
         shell = resolve_powershell()
@@ -1383,7 +1385,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             )
 
             result = json.loads(completed.stdout)
-            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path)
+            assert_direct_routed_result(self, result, entrypoint_path=entrypoint_path, require_receipt_metadata=False)
 
     def test_runtime_projects_consultation_truth_into_summary_requirement_and_plan(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

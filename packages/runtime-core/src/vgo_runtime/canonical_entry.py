@@ -325,18 +325,21 @@ def _find_continuation_context(
     entry_id: str,
     run_id: str | None,
     preferred_run_id: str | None = None,
+    allow_bounded_preferred: bool = False,
 ) -> dict[str, Any] | None:
     required_artifact = "requirement_doc" if entry_id == "vibe-how" else "execution_plan"
     preferred = str(preferred_run_id or "").strip()
     if preferred:
         preferred_summary = _continuation_sessions_root(artifact_root) / preferred / "runtime-summary.json"
         if preferred_summary.is_file():
-            continuation = _load_continuation_context_from_summary(
-                preferred_summary,
-                required_artifact=required_artifact,
-            )
-            if continuation:
-                return continuation
+            preferred_summary_payload = _load_json_dict_if_exists(preferred_summary)
+            if not (preferred_summary_payload and _coerce_bounded_return_control(preferred_summary_payload) and not allow_bounded_preferred):
+                continuation = _load_continuation_context_from_summary(
+                    preferred_summary,
+                    required_artifact=required_artifact,
+                )
+                if continuation:
+                    return continuation
 
     for summary_path in _iter_runtime_summaries(artifact_root):
         if run_id and summary_path.parent.name == run_id:
@@ -402,6 +405,7 @@ def _resolve_effective_prompt(
     artifact_root: Path | None = None,
     run_id: str | None = None,
     continuation_source_run_id: str | None = None,
+    allow_bounded_preferred_source: bool = False,
 ) -> str:
     """Derive the runtime prompt, including upgrade fallback and continuation context."""
     prompt_text = str(prompt or "")
@@ -419,6 +423,7 @@ def _resolve_effective_prompt(
             entry_id=entry_id,
             run_id=run_id,
             preferred_run_id=continuation_source_run_id,
+            allow_bounded_preferred=allow_bounded_preferred_source,
         )
         if continuation:
             return _build_continuation_prompt(prompt_text=prompt_text, entry_id=entry_id, continuation=continuation)
@@ -830,7 +835,7 @@ def launch_canonical_vibe(
     """Launch canonical vibe, verify its artifacts, and return launch metadata."""
     repo_root_path = Path(repo_root).resolve()
     requested_entry_id = _normalize_requested_entry_id(entry_id)
-    resolved_artifact_root = Path(artifact_root).resolve() if artifact_root is not None else repo_root_path
+    resolved_artifact_root = _resolve_artifact_root(repo_root_path, artifact_root)
     validated_reentry = _validate_bounded_reentry(
         artifact_root=resolved_artifact_root,
         entry_id=requested_entry_id,
@@ -845,11 +850,8 @@ def launch_canonical_vibe(
         prompt=prompt,
         artifact_root=resolved_artifact_root,
         run_id=run_id,
-        continuation_source_run_id=(
-            str(validated_reentry["source_run_id"])
-            if validated_reentry
-            else str(continue_from_run_id or "").strip() or None
-        ),
+        continuation_source_run_id=(str(validated_reentry["source_run_id"]) if validated_reentry else None),
+        allow_bounded_preferred_source=bool(validated_reentry),
     )
     contract = resolve_canonical_vibe_contract(repo_root_path, host_id)
     if str(contract.get("fallback_policy") or "").strip() != "blocked":
