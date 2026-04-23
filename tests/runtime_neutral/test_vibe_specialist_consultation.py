@@ -1521,7 +1521,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             self.assertIn("systematic-debugging", requirement_doc)
             self.assertIn("systematic-debugging", execution_plan)
 
-    def test_live_consultation_with_empty_guidance_is_degraded_and_fails_freeze_gate(self) -> None:
+    def test_live_consultation_with_empty_guidance_routes_directly_and_keeps_freeze_gate_green(self) -> None:
         shell = resolve_powershell()
         if shell is None:
             self.skipTest("PowerShell executable not available in PATH")
@@ -1583,7 +1583,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             self.assertTrue(bool(receipt["freeze_gate"]["passed"]))
             self.assertEqual([], list(receipt["freeze_gate"]["errors"]))
 
-    def test_runtime_blocks_freeze_when_live_consultation_is_invalid(self) -> None:
+    def test_runtime_keeps_freeze_green_when_live_consultation_routes_directly(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
             fake_codex = create_incomplete_fake_codex_command(artifact_root)

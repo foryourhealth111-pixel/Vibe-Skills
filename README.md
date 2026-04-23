@@ -21,7 +21,7 @@
 If your AI supports skills, VibeSkills works. 340+ skills spanning coding, research, data science & creative work.
 
 &nbsp;
-*This is a new breed of "super skill" that essentially operates as a full-fledged Agent system.Vibe-Skills is an all-in-one AI skills package. It seamlessly integrates expert-level capabilities and context management into a general-purpose skills package， enabling any AI agent to instantly upgrade its functionality—eliminating the friction of fragmented tools and complex harnesses.*
+*This is a new breed of "super skill" that essentially operates as a full-fledged Agent system. Vibe-Skills is an all-in-one AI skills package that seamlessly integrates expert-level capabilities and context management, enabling any AI agent to instantly upgrade its functionality and eliminate the friction of fragmented tools and complex harnesses.*
 
 
 <br/>

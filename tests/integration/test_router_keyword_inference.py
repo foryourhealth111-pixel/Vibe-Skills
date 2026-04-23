@@ -13,13 +13,13 @@ ROUTE_SCRIPT = REPO_ROOT / "scripts" / "router" / "resolve-pack-route.ps1"
 
 
 def _resolve_powershell() -> str | None:
-    return shutil.which("pwsh") or shutil.which("powershell")
+    return shutil.which("pwsh")
 
 
 def _invoke_route(prompt: str) -> dict[str, object]:
     powershell = _resolve_powershell()
     if not powershell:
-        pytest.skip("PowerShell executable not available in PATH")
+        pytest.skip("PowerShell 7 (pwsh) not found in PATH")
 
     completed = subprocess.run(
         [
@@ -33,9 +33,11 @@ def _invoke_route(prompt: str) -> dict[str, object]:
             "-Prompt",
             prompt,
         ],
+        cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         encoding="utf-8-sig",
+        errors="replace",
         check=True,
     )
     return json.loads(completed.stdout)
@@ -63,6 +65,12 @@ def test_router_does_not_misclassify_plain_docs_cleanup_prompt() -> None:
     route = _invoke_route("suffix cleanup in docs")
 
     assert route["task_type"] == "planning"
+    assert route["grade"] == "M"
+
+
+def test_router_does_not_promote_xlsx_prompt_to_xl() -> None:
+    route = _invoke_route("edit xlsx workbook and preserve formulas")
+
     assert route["grade"] == "M"
 
 

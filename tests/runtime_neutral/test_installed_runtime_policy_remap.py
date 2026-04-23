@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-INSTALL_SCRIPT = REPO_ROOT / "install.sh"
+INSTALL_SCRIPT_PS1 = REPO_ROOT / "install.ps1"
 RUNTIME_TASK = "Debug installed runtime remap behavior before proposing fixes. $vibe"
 HOST_HOME_ENV = {
     "claude-code": "CLAUDE_HOME",
@@ -103,7 +103,7 @@ def install_claude_runtime(target_root: Path, env: dict[str, str]) -> Path:
             "-ExecutionPolicy",
             "Bypass",
             "-File",
-            str(REPO_ROOT / "install.ps1"),
+            str(INSTALL_SCRIPT_PS1),
             "-HostId",
             "claude-code",
             "-Profile",

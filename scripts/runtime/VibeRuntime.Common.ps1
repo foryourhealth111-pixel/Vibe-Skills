@@ -3086,7 +3086,7 @@ function Get-VibeInternalGrade {
     )
 
     foreach ($pattern in $xlPatterns) {
-        if ($taskLower -match $pattern) {
+        if (Test-VibeTaskSignalHit -TaskLower $taskLower -Pattern $pattern) {
             $grade = 'XL'
             break
         }

@@ -44,7 +44,7 @@ def run_bridge(prompt: str, grade: str, task_type: str, requested_skill: str | N
 def run_powershell_route(prompt: str, grade: str, task_type: str, requested_skill: str | None = None) -> dict:
     powershell = shutil.which("pwsh") or shutil.which("powershell")
     if not powershell:
-        raise unittest.SkipTest("PowerShell host not available")
+        raise unittest.SkipTest("PowerShell host not available in PATH (checked pwsh and powershell)")
 
     command = [
         powershell,
