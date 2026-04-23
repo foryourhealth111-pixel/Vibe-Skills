@@ -88,6 +88,17 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "When extracting keyword intent for the router, include the frozen goal, deliverable, constraints, and capability hints from the earlier governed artifacts instead of reducing the request to a bare `execute plan` summary.",
             "Do not reopen generic clarification questions unless the user changed scope or the prior governed artifacts are missing or stale.",
         ]
+    post_launch_lines = [
+        "After proof validation, read the returned session root's user-facing outputs before you answer. At minimum inspect `host-user-briefing.md`; if present, also inspect `delivery-acceptance-report.json` and `runtime-summary.json`.",
+        "Treat canonical proof artifacts as launch/authenticity evidence only; they are not by themselves proof that downstream execution or specialist work already finished.",
+    ]
+    if stop_stage == "phase_cleanup":
+        post_launch_lines.extend(
+            [
+                "If `delivery-acceptance-report.json` exists and reports `completion_language_allowed = false` or a non-`fully_ready` readiness state, do not describe the run as completed successfully; report the pending/manual-review state and the blocking truth layers instead.",
+                "If `host-user-briefing.md` reports `routed_pending_current_session`, or if the session artifacts show `execution_driver = direct_current_session_route` / `live_native_execution = false` for approved execution skills, continue by loading those disclosed skill entrypoints in the current host session instead of stopping at proof validation.",
+            ]
+        )
     return [
         "Canonical runtime trampoline contract (installer-managed wrapper):",
         "```json",
@@ -101,6 +112,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         "Dispatch through canonical-entry runtime bridge. Do not treat this file as ordinary SKILL.md prose.",
         "Launch canonical-entry first. Do not preflight-scan the current workspace or repository for canonical proof files before launch.",
         "If canonical-entry returns a session root, validate canonical proof artifacts only inside that launched session root.",
+        *post_launch_lines,
         "If canonical runtime cannot be launched, report blocked instead of silently falling back.",
         *continuation_lines,
         *([empty_request_line] if empty_request_line else []),

@@ -174,6 +174,13 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     if tdd_evidence_payload_notes:
         code_task_tdd_evidence_notes.append(tdd_evidence_payload_notes)
 
+    approved_dispatch = specialist_accounting.get("approved_dispatch") or specialist_dispatch.get("approved_dispatch") or []
+    approved_dispatch_skill_ids = _normalize_skill_id_list(approved_dispatch)
+    effective_specialist_execution_status = str(specialist_accounting.get("effective_execution_status") or "").strip()
+    specialist_host_continuation_pending = bool(
+        approved_dispatch_skill_ids and effective_specialist_execution_status == "direct_current_session_routed"
+    )
+
     workflow_truth_state = "passing"
     workflow_truth_notes: list[str] = []
     if str(cleanup_receipt.get("cleanup_mode") or "") == "cleanup_degraded":
@@ -185,6 +192,11 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     elif execution_status == "completed_with_failures":
         workflow_truth_state = "partial"
         workflow_truth_notes.append("Workflow closed with failed units still present.")
+    elif specialist_host_continuation_pending:
+        workflow_truth_state = "manual_review_required"
+        workflow_truth_notes.append(
+            "Approved execution remained routed to the current host session; host continuation is still required before the run can be reported as complete."
+        )
     elif execution_status != "completed":
         workflow_truth_state = "failing"
         workflow_truth_notes.append("Workflow did not reach a clean completed state.")
@@ -625,6 +637,8 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         residual_risks.append("Specialist decision truth is missing required fallback or dispatch detail.")
     if specialist_decision_state == "degraded":
         residual_risks.append("Specialist decision recorded a traceable but non-green specialist fallback path.")
+    if specialist_host_continuation_pending:
+        residual_risks.append("Approved execution is still waiting on direct current-session host continuation.")
 
     summary = {
         "gate_result": gate_result,
@@ -716,6 +730,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "approved_dispatch_skill_ids": approved_dispatch_skill_ids,
             "disclosed_specialist_skill_ids": disclosure_skill_ids,
             "specialist_effective_execution_status": effective_specialist_execution_status,
+            "specialist_host_continuation_pending": specialist_host_continuation_pending,
             "specialist_disclosure_state": _normalize_truth_state(specialist_disclosure_state),
         },
         "forbidden_completion_hits": forbidden_hits,

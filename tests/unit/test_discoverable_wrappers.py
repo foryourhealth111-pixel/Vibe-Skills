@@ -47,6 +47,10 @@ def test_build_wrapper_descriptors_renders_all_discoverable_entries_for_codex() 
     assert '--bounded-reentry-token' in rendered['vibe-how'].content
     assert 'bounded_return_control.explicit_user_reentry_required = true' in rendered['vibe-how'].content
     assert 'instead of reducing the request to a bare `execute plan` summary.' in rendered['vibe-how'].content
+    assert "read the returned session root's user-facing outputs before you answer." in rendered['vibe-do'].content
+    assert 'Treat canonical proof artifacts as launch/authenticity evidence only' in rendered['vibe-do'].content
+    assert 'do not describe the run as completed successfully' in rendered['vibe-do'].content
+    assert 'continue by loading those disclosed skill entrypoints in the current host session' in rendered['vibe-do'].content
     assert 'Default stop target: `requirement_doc`' in rendered['vibe-want'].content
     assert 'Public grade flags allowed: no' in rendered['vibe-upgrade'].content
     assert 'If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.' in rendered['vibe-upgrade'].content
@@ -82,6 +86,10 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert '--bounded-reentry-token' in rendered['vibe-how'].content
     assert 'bounded_return_control.explicit_user_reentry_required = true' in rendered['vibe-how'].content
     assert 'instead of reducing the request to a bare `execute plan` summary.' in rendered['vibe-how'].content
+    assert "read the returned session root's user-facing outputs before you answer." in rendered['vibe-do'].content
+    assert 'Treat canonical proof artifacts as launch/authenticity evidence only' in rendered['vibe-do'].content
+    assert 'do not describe the run as completed successfully' in rendered['vibe-do'].content
+    assert 'continue by loading those disclosed skill entrypoints in the current host session' in rendered['vibe-do'].content
     assert '$ARGUMENTS' in rendered['vibe-how'].content
     assert 'If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.' in rendered['vibe-upgrade'].content
 
