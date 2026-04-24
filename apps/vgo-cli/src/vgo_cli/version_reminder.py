@@ -29,11 +29,12 @@ def build_update_reminder(repo_root: Path, target_root: Path, host_id: str) -> s
     local_commit = str(status.get('installed_commit') or 'unknown')
     remote_version = str(status.get('remote_latest_version') or 'unknown')
     remote_commit = str(status.get('remote_latest_commit') or 'unknown')
+    normalized_host = str(host_id or 'unknown').strip() or 'unknown'
     return (
         '[INFO] Vibe-Skills update available: '
         f'local={local_version}@{local_commit} '
         f'latest={remote_version}@{remote_commit}. '
-        'Run vibe-upgrade.'
+        f'Run vibe-upgrade --host={normalized_host}.'
     )
 
 

@@ -47,7 +47,7 @@ def test_build_update_reminder_refreshes_stale_cache_and_emits_advisory(monkeypa
     assert 'update available' in message.lower()
     assert 'local=3.0.0@old' in message
     assert 'latest=3.0.1@new' in message
-    assert message.endswith('Run vibe-upgrade.')
+    assert message.endswith('Run vibe-upgrade --host=codex.')
 
 
 def test_build_update_reminder_uses_fresh_cache_without_refresh(monkeypatch) -> None:
@@ -72,7 +72,7 @@ def test_build_update_reminder_uses_fresh_cache_without_refresh(monkeypatch) -> 
     message = build_update_reminder(REPO_ROOT, REPO_ROOT / '.tmp-target', 'codex')
 
     assert 'latest=3.0.1@new' in message
-    assert message.endswith('Run vibe-upgrade.')
+    assert message.endswith('Run vibe-upgrade --host=codex.')
 
 
 def test_build_update_reminder_returns_none_when_no_update_is_available(monkeypatch) -> None:
