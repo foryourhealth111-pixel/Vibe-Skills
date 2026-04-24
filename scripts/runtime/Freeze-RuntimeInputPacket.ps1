@@ -450,6 +450,119 @@ function New-VibeSpecialistRecommendation {
     }
 }
 
+function Get-VibeStageAssistantHints {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$Task,
+        [Parameter(Mandatory)] [object]$RouteResult,
+        [Parameter(Mandatory)] [string]$RuntimeSelectedSkill,
+        [Parameter(Mandatory)] [string]$TaskType,
+        [Parameter(Mandatory)] [object]$Policy,
+        [AllowNull()] [object]$PromotionPolicy = $null,
+        [AllowEmptyString()] [string]$TargetRoot = '',
+        [AllowEmptyString()] [string]$HostId = ''
+    )
+
+    $limit = 4
+    if ($Policy.PSObject.Properties.Name -contains 'specialist_recommendation_limit' -and $Policy.specialist_recommendation_limit -ne $null) {
+        $limit = [int]$Policy.specialist_recommendation_limit
+    }
+    $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'specialist_dispatch_contract' -and $null -ne $Policy.specialist_dispatch_contract) {
+        $Policy.specialist_dispatch_contract
+    } else {
+        [pscustomobject]@{
+            bounded_role = 'specialist_assist'
+            native_usage_required = $true
+            must_preserve_workflow = $true
+            dispatch_phase = 'in_execution'
+            execution_priority = 50
+            lane_policy = 'inherit_grade'
+            parallelizable_in_root_xl = $true
+            write_scope_template = 'specialist:{skill_id}'
+            review_mode = 'native_contract'
+            required_inputs = @(
+                'bounded specialist subtask contract',
+                'frozen requirement context',
+                'relevant source files or domain artifacts'
+            )
+            expected_outputs = @(
+                'bounded specialist findings or code changes',
+                'verification notes aligned with the specialist skill'
+            )
+            verification_expectation = 'Preserve the specialist skill''s native workflow, boundaries, and validation style.'
+        }
+    }
+    $dispatchContractForHint = [pscustomobject]@{
+        bounded_role = [string]$dispatchContract.bounded_role
+        native_usage_required = [bool]$dispatchContract.native_usage_required
+        must_preserve_workflow = [bool]$dispatchContract.must_preserve_workflow
+        dispatch_phase = [string]$dispatchContract.dispatch_phase
+        execution_priority = [int]$dispatchContract.execution_priority
+        lane_policy = [string]$dispatchContract.lane_policy
+        parallelizable_in_root_xl = [bool]$dispatchContract.parallelizable_in_root_xl
+        write_scope_template = [string]$dispatchContract.write_scope_template
+        review_mode = [string]$dispatchContract.review_mode
+        required_inputs = @($dispatchContract.required_inputs)
+        expected_outputs = @($dispatchContract.expected_outputs)
+        verification_expectation = [string]$dispatchContract.verification_expectation
+        policy = $Policy
+    }
+
+    $customAdmissionIndex = Get-VibeCustomAdmissionIndex -RouteResult $RouteResult
+    $seen = @{}
+    $hints = @()
+    foreach ($ranked in @($RouteResult.ranked)) {
+        if (@($hints).Count -ge $limit) {
+            break
+        }
+        if (-not ($ranked.PSObject.Properties.Name -contains 'stage_assistant_candidates')) {
+            continue
+        }
+
+        foreach ($assistant in @($ranked.stage_assistant_candidates)) {
+            if (@($hints).Count -ge $limit) {
+                break
+            }
+
+            $skillId = if ($assistant.PSObject.Properties.Name -contains 'skill') { [string]$assistant.skill } else { $null }
+            if ([string]::IsNullOrWhiteSpace($skillId)) {
+                continue
+            }
+            if ([string]::Equals($skillId, $RuntimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+            if ($seen.ContainsKey($skillId)) {
+                continue
+            }
+
+            $customMetadata = if ($customAdmissionIndex.ContainsKey($skillId)) { $customAdmissionIndex[$skillId] } else { $null }
+            $reason = "pack stage assistant from '{0}'" -f ([string]$ranked.pack_id)
+            $assistantScore = if ($assistant.PSObject.Properties.Name -contains 'score') { [double]$assistant.score } else { 0.0 }
+            $hint = New-VibeSpecialistRecommendation `
+                -RepoRoot $RepoRoot `
+                -Task $Task `
+                -SkillId $skillId `
+                -Source 'route_stage_assistant' `
+                -TaskType $TaskType `
+                -Reason $reason `
+                -PackId ([string]$ranked.pack_id) `
+                -Confidence $assistantScore `
+                -Rank (@($hints).Count + 1) `
+                -DispatchContract $dispatchContractForHint `
+                -PromotionPolicy $PromotionPolicy `
+                -CustomMetadata $customMetadata `
+                -TargetRoot $TargetRoot `
+                -HostId $HostId
+            $hint | Add-Member -NotePropertyName hint_class -NotePropertyValue 'stage_assistant' -Force
+            $hint | Add-Member -NotePropertyName user_visible_specialist_surface -NotePropertyValue $false -Force
+            $hints += $hint
+            $seen[$skillId] = $true
+        }
+    }
+
+    return @($hints)
+}
+
 function Get-VibeSpecialistRecommendations {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
@@ -534,52 +647,6 @@ function Get-VibeSpecialistRecommendations {
             -TargetRoot $TargetRoot `
             -HostId $HostId)
         $seen[$skillId] = $true
-    }
-
-    foreach ($ranked in @($RouteResult.ranked)) {
-        if (@($recommendations).Count -ge $limit) {
-            break
-        }
-        if (-not ($ranked.PSObject.Properties.Name -contains 'stage_assistant_candidates')) {
-            continue
-        }
-
-        foreach ($assistant in @($ranked.stage_assistant_candidates)) {
-            if (@($recommendations).Count -ge $limit) {
-                break
-            }
-
-            $skillId = if ($assistant.PSObject.Properties.Name -contains 'skill') { [string]$assistant.skill } else { $null }
-            if ([string]::IsNullOrWhiteSpace($skillId)) {
-                continue
-            }
-            if ([string]::Equals($skillId, $RuntimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)) {
-                continue
-            }
-            if ($seen.ContainsKey($skillId)) {
-                continue
-            }
-
-            $customMetadata = if ($customAdmissionIndex.ContainsKey($skillId)) { $customAdmissionIndex[$skillId] } else { $null }
-            $reason = "pack stage assistant from '{0}'" -f ([string]$ranked.pack_id)
-            $assistantScore = if ($assistant.PSObject.Properties.Name -contains 'score') { [double]$assistant.score } else { 0.0 }
-            $recommendations += (New-VibeSpecialistRecommendation `
-                -RepoRoot $RepoRoot `
-                -Task $Task `
-                -SkillId $skillId `
-                -Source 'route_stage_assistant' `
-                -TaskType $TaskType `
-                -Reason $reason `
-                -PackId ([string]$ranked.pack_id) `
-                -Confidence $assistantScore `
-                -Rank (@($recommendations).Count + 1) `
-                -DispatchContract $dispatchContractForRecommendation `
-                -PromotionPolicy $PromotionPolicy `
-                -CustomMetadata $customMetadata `
-                -TargetRoot $TargetRoot `
-                -HostId $HostId)
-            $seen[$skillId] = $true
-        }
     }
 
     foreach ($overlayField in @($Policy.overlay_fields)) {
@@ -988,8 +1055,21 @@ $specialistRecommendations = @(Get-VibeSpecialistRecommendations `
     -PromotionPolicy $runtime.skill_promotion_policy `
     -TargetRoot $routerTargetRoot `
     -HostId $routerHostId)
+$stageAssistantHints = @(Get-VibeStageAssistantHints `
+    -RepoRoot $runtime.repo_root `
+    -Task $Task `
+    -RouteResult $routeResult `
+    -RuntimeSelectedSkill $runtimeSelectedSkill `
+    -TaskType $taskType `
+    -Policy $policy `
+    -PromotionPolicy $runtime.skill_promotion_policy `
+    -TargetRoot $routerTargetRoot `
+    -HostId $routerHostId)
 $specialistRecommendations = @(Add-VibeExecutionPhaseMetadataToRecords `
     -Records @($specialistRecommendations) `
+    -PhaseDecomposition $executionPhaseDecomposition)
+$stageAssistantHints = @(Add-VibeExecutionPhaseMetadataToRecords `
+    -Records @($stageAssistantHints) `
     -PhaseDecomposition $executionPhaseDecomposition)
 $hostSpecialistDispatchDecision = Resolve-VibeHostSpecialistDispatchDecision `
     -HostDecision $hostDecision `
@@ -1040,6 +1120,7 @@ $packet = New-VibeRuntimeInputPacketProjection `
     -HostSpecialistDispatchDecision $hostSpecialistDispatchDecision `
     -HostDecision $hostDecision `
     -SpecialistRecommendations @($specialistRecommendations) `
+    -StageAssistantHints @($stageAssistantHints) `
     -SpecialistDispatch $specialistDispatch `
     -OverlayDecisions @($overlayDecisions) `
     -Policy $policy

@@ -1655,6 +1655,7 @@ function New-VibeRuntimeInputPacketProjection {
         [AllowNull()] [object]$HostSpecialistDispatchDecision = $null,
         [AllowNull()] [object]$HostDecision = $null,
         [AllowNull()] [object[]]$SpecialistRecommendations = @(),
+        [AllowNull()] [object[]]$StageAssistantHints = @(),
         [Parameter(Mandatory)] [object]$SpecialistDispatch,
         [AllowNull()] [object[]]$OverlayDecisions = @(),
         [Parameter(Mandatory)] [object]$Policy
@@ -1740,6 +1741,7 @@ function New-VibeRuntimeInputPacketProjection {
         execution_phase_decomposition = $ExecutionPhaseDecomposition
         host_specialist_dispatch_decision = $HostSpecialistDispatchDecision
         specialist_recommendations = @($SpecialistRecommendations)
+        stage_assistant_hints = @($StageAssistantHints)
         specialist_dispatch = [pscustomobject]@{
             approved_dispatch = [object[]]@($SpecialistDispatch.approved_dispatch)
             local_specialist_suggestions = [object[]]@($SpecialistDispatch.local_specialist_suggestions)
