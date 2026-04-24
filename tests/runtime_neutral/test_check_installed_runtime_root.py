@@ -223,6 +223,34 @@ class CheckInstalledRuntimeRootTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}")
         self.assertNotIn("skills/vibe/skills/vibe", result.stdout)
 
+    def test_check_sh_fails_closed_when_projection_manifest_is_missing(self) -> None:
+        target_root, installed_root = self._fresh_installed_runtime()
+        for manifest_path in (
+            installed_root / "config" / "runtime-core-packaging.minimal.json",
+            installed_root / "config" / "runtime-core-packaging.json",
+        ):
+            if manifest_path.exists():
+                manifest_path.unlink()
+
+        result = subprocess.run(
+            [
+                "bash",
+                "check.sh",
+                "--host",
+                "codex",
+                "--profile",
+                "minimal",
+                "--skip-runtime-freshness-gate",
+                "--target-root",
+                _to_bash_path(installed_root),
+            ],
+            cwd=REPO_ROOT,
+            **_capture_text_kwargs(),
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Required packaging manifest missing or unreadable", result.stderr)
+
     def test_check_ps1_accepts_installed_runtime_root(self) -> None:
         powershell = resolve_powershell()
         if powershell is None:

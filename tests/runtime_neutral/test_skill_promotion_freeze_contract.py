@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FREEZE_SCRIPT = REPO_ROOT / "scripts" / "runtime" / "Freeze-RuntimeInputPacket.ps1"
 HELPER_SCRIPT = REPO_ROOT / "scripts" / "common" / "vibe-governance-helpers.ps1"
+RUNTIME_COMMON = REPO_ROOT / "scripts" / "runtime" / "VibeRuntime.Common.ps1"
 ML_PROMPT = (
     "Build a scikit-learn tabular classification baseline, "
     "run feature selection, and compare cross-validation metrics."
@@ -90,7 +91,7 @@ def run_powershell_json(script_body: str) -> dict[str, object]:
             "-NoLogo",
             "-NoProfile",
             "-Command",
-            script_body,
+            f"& {{ . '{RUNTIME_COMMON}'; {script_body} }}",
         ],
         cwd=REPO_ROOT,
         capture_output=True,
@@ -213,6 +214,43 @@ class SkillPromotionFreezeContractTests(unittest.TestCase):
         self.assertEqual([], as_list(payload["degraded"]))
         outcome = next(item for item in as_list(payload["promotion_outcomes"]) if item["skill_id"] == "demo-skill")
         self.assertEqual("approved_dispatch", outcome["promotion_state"])
+
+    def test_split_specialist_dispatch_accepts_partial_host_decision_without_optional_lists(self) -> None:
+        split_function = extract_split_specialist_dispatch_function()
+        payload = run_powershell_json(
+            (
+                "& { "
+                f". '{HELPER_SCRIPT}'; "
+                f"{split_function} "
+                "$policy = [pscustomobject]@{ "
+                "promotion_enabled = $true; "
+                "default_mode = 'recall_first'; "
+                "allow_auto_dispatch_when_non_destructive = $false; "
+                "require_contract_complete = $true; "
+                "destructive_prompt_patterns = [pscustomobject]@{}; "
+                "degraded_fallback_rules = [pscustomobject]@{ missing_contract = 'explicit_degraded' } "
+                "}; "
+                "$recommendation = Get-VgoSkillPromotionMetadata "
+                "-Prompt 'generic prompt' "
+                "-SkillMdPath '/tmp/skill.md' "
+                "-SkillRoot '/tmp' "
+                "-Description 'desc' "
+                "-RequiredInputs @('input') "
+                "-ExpectedOutputs @('output') "
+                "-VerificationExpectation 'verify' "
+                "-PromotionPolicy $policy; "
+                "$recommendation | Add-Member -NotePropertyName skill_id -NotePropertyValue 'demo-skill'; "
+                "$hostDecision = [pscustomobject]@{ selection_mode = 'curated_only' }; "
+                "$dispatch = Split-VibeSpecialistDispatch "
+                "-GovernanceScope 'root' "
+                "-Recommendations @($recommendation) "
+                "-HostSpecialistDispatchDecision $hostDecision; "
+                "$dispatch | ConvertTo-Json -Depth 20 }"
+            )
+        )
+
+        self.assertEqual([], as_list(payload["approved_dispatch"]))
+        self.assertEqual(["demo-skill"], [item["skill_id"] for item in as_list(payload["local_specialist_suggestions"])])
 
     def test_surface_only_recommendation_is_not_auto_approved_in_root_scope(self) -> None:
         split_function = extract_split_specialist_dispatch_function()

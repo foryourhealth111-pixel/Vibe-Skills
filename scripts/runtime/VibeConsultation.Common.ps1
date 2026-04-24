@@ -842,6 +842,14 @@ function Invoke-VibeSpecialistConsultationUnit {
     }
 
     $adapterResolution = Resolve-VibeNativeSpecialistAdapter -ScriptPath $PSCommandPath
+    if ([string]$adapterResolution.reason -eq 'direct_current_session_route') {
+        return New-VibeDirectRoutedSpecialistConsultationResult `
+            -UnitId $UnitId `
+            -Consultation $Consultation `
+            -SessionRoot $SessionRoot `
+            -WindowId $WindowId `
+            -Stage $Stage
+    }
     if (-not [bool]$adapterResolution.live_execution_allowed -or $null -eq $adapterResolution.adapter) {
         return New-VibeDegradedSpecialistConsultationResult `
             -UnitId $UnitId `

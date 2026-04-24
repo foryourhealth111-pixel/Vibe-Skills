@@ -531,11 +531,45 @@ profile_packaging_manifest_path() {
   printf '%s/config/runtime-core-packaging.%s.json\n' "${TARGET_ROOT}" "${PROFILE}"
 }
 
+resolve_packaging_manifest_path() {
+  local candidate_roots=("${TARGET_ROOT}")
+  if [[ -n "${runtime_skill_root:-}" && "${runtime_skill_root}" != "${TARGET_ROOT}" ]]; then
+    candidate_roots+=("${runtime_skill_root}")
+  fi
+
+  local candidate_root="" profile_manifest="" base_manifest=""
+  for candidate_root in "${candidate_roots[@]}"; do
+    profile_manifest="${candidate_root}/config/runtime-core-packaging.${PROFILE}.json"
+    base_manifest="${candidate_root}/config/runtime-core-packaging.json"
+
+    if [[ -r "${profile_manifest}" ]]; then
+      printf '%s\n' "${profile_manifest}"
+      return 0
+    fi
+    if [[ -r "${base_manifest}" ]]; then
+      printf '%s\n' "${base_manifest}"
+      return 0
+    fi
+  done
+
+  profile_manifest="${TARGET_ROOT}/config/runtime-core-packaging.${PROFILE}.json"
+  base_manifest="${TARGET_ROOT}/config/runtime-core-packaging.json"
+  if [[ -n "${runtime_skill_root:-}" && "${runtime_skill_root}" != "${TARGET_ROOT}" ]]; then
+    printf '[FAIL] Required packaging manifest missing or unreadable: %s (fallback checked: %s; installed-runtime fallback checked: %s and %s)\n' \
+      "${profile_manifest}" \
+      "${base_manifest}" \
+      "${runtime_skill_root}/config/runtime-core-packaging.${PROFILE}.json" \
+      "${runtime_skill_root}/config/runtime-core-packaging.json" >&2
+  else
+    printf '[FAIL] Required packaging manifest missing or unreadable: %s (fallback checked: %s)\n' "${profile_manifest}" "${base_manifest}" >&2
+  fi
+  return 1
+}
+
 projected_skill_names_for_check() {
   local projection_name="$1"
   local manifest_path=""
-  manifest_path="$(profile_packaging_manifest_path)"
-  [[ -f "${manifest_path}" ]] || return 0
+  manifest_path="$(resolve_packaging_manifest_path)" || return 1
 
   if [[ "${projection_name}" == "compatibility_skill_projections" ]]; then
     local allowlist=()
@@ -556,6 +590,16 @@ projected_skill_names_for_check() {
   fi
 
   json_query_lines_from_file "${manifest_path}" "${projection_name}.projected_skill_names" 2>/dev/null || true
+}
+
+load_projected_skill_names_for_check() {
+  local projection_name="$1"
+  local output=""
+  output="$(projected_skill_names_for_check "${projection_name}")" || return 1
+  mapfile -t PROJECTED_SKILL_NAMES <<<"${output}"
+  if [[ ${#PROJECTED_SKILL_NAMES[@]} -eq 1 && -z "${PROJECTED_SKILL_NAMES[0]}" ]]; then
+    PROJECTED_SKILL_NAMES=()
+  fi
 }
 
 pick_python() {
@@ -1001,13 +1045,17 @@ if [[ "${PROFILE}" == "full" ]]; then
   done
 fi
 if [[ "${HOST_ID}" == "codex" && "${ADAPTER_CHECK_MODE}" == "governed" && "${PROFILE}" == "full" ]]; then
-  mapfile -t projected_wrapper_skill_names < <(projected_skill_names_for_check "compatibility_skill_projections")
+  PROJECTED_SKILL_NAMES=()
+  load_projected_skill_names_for_check "compatibility_skill_projections"
+  projected_wrapper_skill_names=("${PROJECTED_SKILL_NAMES[@]}")
   for n in "${projected_wrapper_skill_names[@]}"; do
     check_path "skill/${n}" "$(resolve_skill_descriptor_path "${n}")"
   done
 fi
 if [[ "${HOST_ID}" == "codex" && "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
-  mapfile -t codex_command_names < <(projected_skill_names_for_check "public_skill_surface")
+  PROJECTED_SKILL_NAMES=()
+  load_projected_skill_names_for_check "public_skill_surface"
+  codex_command_names=("${PROJECTED_SKILL_NAMES[@]}")
   for n in "${codex_command_names[@]}"; do
     check_path "codex command/${n}" "${TARGET_ROOT}/commands/${n}.md" false
   done

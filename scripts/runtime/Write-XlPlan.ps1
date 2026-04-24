@@ -78,6 +78,21 @@ function Get-VibeDispatchPlanLines {
     return @($lines)
 }
 
+function Get-VibeRecommendationPhaseId {
+    param(
+        [AllowNull()] [object]$Recommendation = $null
+    )
+
+    if (
+        $null -eq $Recommendation -or
+        -not ($Recommendation.PSObject.Properties.Name -contains 'phase_id')
+    ) {
+        return ''
+    }
+
+    return [string]$Recommendation.phase_id
+}
+
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
 if ([string]::IsNullOrWhiteSpace($RunId)) {
     $RunId = New-VibeRunId
@@ -388,8 +403,10 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
         '- Specialist outputs remain subordinate to the frozen requirement and the governed plan.'
     )
     if ($executionPhaseDecomposition -and @($executionPhaseDecomposition.phases).Count -gt 0) {
+        $declaredPhaseIds = @($executionPhaseDecomposition.phases | ForEach-Object { [string]$_.phase_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         foreach ($phase in @($executionPhaseDecomposition.phases)) {
-            $phaseDispatches = @($approvedDispatch | Where-Object { [string]$_.phase_id -eq [string]$phase.phase_id })
+            $targetPhaseId = [string]$phase.phase_id
+            $phaseDispatches = @($approvedDispatch | Where-Object { (Get-VibeRecommendationPhaseId -Recommendation $_) -eq $targetPhaseId })
             if (@($phaseDispatches).Count -eq 0) {
                 continue
             }
@@ -401,7 +418,10 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
             $lines += @(Get-VibeDispatchPlanLines -Recommendations @($phaseDispatches))
         }
 
-        $ungroupedApprovedDispatch = @($approvedDispatch | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.phase_id) })
+        $ungroupedApprovedDispatch = @($approvedDispatch | Where-Object {
+            $phaseId = Get-VibeRecommendationPhaseId -Recommendation $_
+            [string]::IsNullOrWhiteSpace($phaseId) -or $declaredPhaseIds -notcontains $phaseId
+        })
         if (@($ungroupedApprovedDispatch).Count -gt 0) {
             $lines += @(
                 '',
@@ -419,8 +439,10 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
             '- These are residual suggestions only after same-round safe auto-promotion; anything still listed here requires explicit escalation.'
         )
         if ($executionPhaseDecomposition -and @($executionPhaseDecomposition.phases).Count -gt 0) {
+            $declaredPhaseIds = @($executionPhaseDecomposition.phases | ForEach-Object { [string]$_.phase_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
             foreach ($phase in @($executionPhaseDecomposition.phases)) {
-                $phaseSuggestions = @($localSuggestions | Where-Object { [string]$_.phase_id -eq [string]$phase.phase_id })
+                $targetPhaseId = [string]$phase.phase_id
+                $phaseSuggestions = @($localSuggestions | Where-Object { (Get-VibeRecommendationPhaseId -Recommendation $_) -eq $targetPhaseId })
                 if (@($phaseSuggestions).Count -eq 0) {
                     continue
                 }
@@ -432,7 +454,10 @@ if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
                 $lines += @(Get-VibeDispatchPlanLines -Recommendations @($phaseSuggestions) -SuggestionMode)
             }
 
-            $ungroupedSuggestions = @($localSuggestions | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.phase_id) })
+            $ungroupedSuggestions = @($localSuggestions | Where-Object {
+                $phaseId = Get-VibeRecommendationPhaseId -Recommendation $_
+                [string]::IsNullOrWhiteSpace($phaseId) -or $declaredPhaseIds -notcontains $phaseId
+            })
             if (@($ungroupedSuggestions).Count -gt 0) {
                 $lines += @(
                     '',

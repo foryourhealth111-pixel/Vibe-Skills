@@ -1048,6 +1048,63 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             "\n".join([completed.stdout, completed.stderr]),
         )
 
+    def test_consultation_unit_treats_direct_current_session_adapter_reason_as_direct_route(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            session_root = artifact_root / "session-root"
+            session_root.mkdir(parents=True, exist_ok=True)
+            entrypoint_path = REPO_ROOT / "bundled" / "skills" / "systematic-debugging" / "SKILL.md"
+            source_artifact_path = artifact_root / "source.md"
+            source_artifact_path.write_text("# source\n", encoding="utf-8")
+
+            result = run_runtime_common_json(
+                f"""
+                . {_ps_single_quote(str(EXECUTION_COMMON))}
+                . {_ps_single_quote(str(CONSULTATION_SCRIPT))}
+                function Get-VibeSpecialistConsultationPolicy {{
+                    param([object]$Policy)
+                    return [pscustomobject]@{{
+                        mode = 'native_bridge'
+                    }}
+                }}
+                function Resolve-VibeNativeSpecialistAdapter {{
+                    param([string]$ScriptPath)
+                    return [pscustomobject]@{{
+                        enabled = $true
+                        live_execution_allowed = $false
+                        reason = 'direct_current_session_route'
+                        policy = [pscustomobject]@{{}}
+                        adapter = $null
+                    }}
+                }}
+                $consultation = [pscustomobject]@{{
+                    skill_id = 'systematic-debugging'
+                    native_skill_entrypoint = {_ps_single_quote(str(entrypoint_path))}
+                    reason = 'Need same-session debugging guidance.'
+                    required_inputs = @('task')
+                    expected_outputs = @('guidance')
+                    verification_expectation = 'host should keep governance'
+                }}
+                $result = Invoke-VibeSpecialistConsultationUnit `
+                    -UnitId 'unit-1' `
+                    -Consultation $consultation `
+                    -SessionRoot {_ps_single_quote(str(session_root))} `
+                    -RepoRoot {_ps_single_quote(str(REPO_ROOT))} `
+                    -Task 'Need debugging guidance.' `
+                    -RunId 'pytest-consult-direct-route' `
+                    -WindowId 'discussion' `
+                    -Stage 'deep_interview' `
+                    -SourceArtifactPath {_ps_single_quote(str(source_artifact_path))} `
+                    -Policy ([pscustomobject]@{{}})
+                $result | ConvertTo-Json -Depth 20
+                """
+            )
+
+            assert isinstance(result, dict)
+            self.assertEqual("routed", result["category"])
+            self.assertTrue(Path(str(result["result_path"])).exists())
+            assert_direct_routed_result(self, result["result"], entrypoint_path=entrypoint_path)
+
     def test_host_user_briefing_segment_handles_missing_consultation_receipt(self) -> None:
         result = run_runtime_common_json(
             """

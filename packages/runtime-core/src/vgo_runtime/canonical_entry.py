@@ -641,6 +641,7 @@ def _resolve_progressive_requested_stage_stop(
             terminal_index = progressive_stage_stops.index(terminal_stage)
             if terminal_index + 1 < len(progressive_stage_stops):
                 return progressive_stage_stops[terminal_index + 1]
+            return terminal_stage
 
     return progressive_stage_stops[0]
 
@@ -1048,12 +1049,18 @@ def _validate_bounded_reentry(
         return None
     fallback_prompt_reentry = _looks_like_generic_reentry_prompt(prompt, entry_id=entry_id, bounded_return_control=prior_guard)
     if bool(prior_guard.get("malformed")):
-        if str(continue_from_run_id or "").strip() or fallback_prompt_reentry or host_decision is not None:
+        if explicit_reentry_credentials_supplied or fallback_prompt_reentry or host_decision is not None:
             raise RuntimeError(
                 "bounded wrapper continuation metadata is malformed; rerun the prior bounded wrapper stage before re-entering"
             )
         return None
     if entry_id not in set(prior_guard["allowed_followup_entry_ids"]):
+        if explicit_reentry_credentials_supplied:
+            allowed = sorted(str(item) for item in prior_guard["allowed_followup_entry_ids"])
+            raise RuntimeError(
+                f"bounded wrapper continuation entry_id {entry_id!r} is not allowed; "
+                f"expected one of {allowed}"
+            )
         return None
     structured_reentry = _structured_host_decision_allows_bounded_reentry(
         host_decision,
@@ -1064,11 +1071,16 @@ def _validate_bounded_reentry(
     else:
         looks_like_reentry = fallback_prompt_reentry
     if not looks_like_reentry:
-        if host_decision is not None and explicit_reentry_credentials_supplied:
+        if explicit_reentry_credentials_supplied:
             expected_stage = str(prior_guard.get("terminal_stage") or "pending_bounded_stop")
+            if host_decision is not None:
+                raise RuntimeError(
+                    "structured host decision does not authorize bounded re-entry for "
+                    f"{expected_stage}; send an explicit approval decision for the pending governed stop"
+                )
             raise RuntimeError(
-                "structured host decision does not authorize bounded re-entry for "
-                f"{expected_stage}; send an explicit approval decision for the pending governed stop"
+                "prompt does not look like a bounded-wrapper continuation for "
+                f"{expected_stage}; provide a continuation prompt or remove the explicit re-entry credentials"
             )
         return None
 

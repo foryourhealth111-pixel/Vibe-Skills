@@ -641,6 +641,71 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertIn("Requested stop stage: xl_plan", execution_plan)
             self.assertIn("Requested grade floor: XL", execution_plan)
 
+    def test_write_xl_plan_keeps_unknown_phase_dispatches_and_suggestions_in_ungrouped_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            initial_payload = run_runtime(
+                task=DEBUG_EXECUTION_TASK,
+                artifact_root=artifact_root,
+                governance_scope="root",
+            )
+            initial_summary = initial_payload["summary"]
+            requirement_doc_path = Path(initial_summary["artifacts"]["requirement_doc"])
+            runtime_input_packet_path = Path(initial_summary["artifacts"]["runtime_input_packet"])
+            runtime_input_packet = load_json(runtime_input_packet_path)
+
+            approved_dispatch = list((runtime_input_packet.get("specialist_dispatch") or {}).get("approved_dispatch") or [])
+            self.assertGreaterEqual(len(approved_dispatch), 1)
+            unknown_dispatch_skill_id = str(approved_dispatch[0]["skill_id"])
+            approved_dispatch[0]["phase_id"] = "missing-phase"
+            runtime_input_packet["execution_phase_decomposition"] = {
+                "phases": [
+                    {
+                        "phase_id": "phase-1",
+                        "stage_type": "implementation",
+                        "dispatch_phase": "in_execution",
+                        "stage_order": 1,
+                        "stage_label": "Implementation",
+                        "goal": "Exercise ungrouped specialist rendering.",
+                        "depends_on": [],
+                        "artifacts_in": [],
+                        "artifacts_out": [],
+                        "acceptance_checks": [],
+                    }
+                ]
+            }
+
+            specialist_dispatch = runtime_input_packet["specialist_dispatch"]
+            local_suggestions = list(specialist_dispatch.get("local_specialist_suggestions") or [])
+            local_suggestions.append(
+                {
+                    "skill_id": "pytest-ungrouped-suggestion",
+                    "phase_id": "missing-suggestion-phase",
+                    "dispatch_phase": "implementation",
+                    "lane_policy": "advisory",
+                    "write_scope": "pytest:none",
+                    "reason": "exercise ungrouped fallback rendering",
+                }
+            )
+            specialist_dispatch["local_specialist_suggestions"] = local_suggestions
+            runtime_input_packet_path.write_text(
+                json.dumps(runtime_input_packet, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+            plan_payload = run_write_xl_plan(
+                task=DEBUG_EXECUTION_TASK,
+                artifact_root=artifact_root,
+                requirement_doc_path=requirement_doc_path,
+                runtime_input_packet_path=runtime_input_packet_path,
+            )
+            execution_plan = Path(plan_payload["execution_plan_path"]).read_text(encoding="utf-8")
+
+            self.assertIn("### Phase `ungrouped`: fallback specialist dispatch", execution_plan)
+            self.assertIn(f"- Dispatch {unknown_dispatch_skill_id} as", execution_plan)
+            self.assertIn("### Phase `ungrouped`: fallback escalation suggestions", execution_plan)
+            self.assertIn("- Suggest pytest-ungrouped-suggestion.", execution_plan)
+
     def test_plan_execute_marks_legacy_dispatch_packets_incomplete_without_crashing(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)

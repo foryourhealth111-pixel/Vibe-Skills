@@ -721,17 +721,32 @@ function Split-VibeSpecialistDispatch {
         ''
     }
     if ($null -ne $HostSpecialistDispatchDecision) {
-        foreach ($skillId in @($HostSpecialistDispatchDecision.approved_skill_ids)) {
+        $approvedSkillIds = if ($HostSpecialistDispatchDecision.PSObject.Properties.Name -contains 'approved_skill_ids') {
+            @($HostSpecialistDispatchDecision.approved_skill_ids)
+        } else {
+            @()
+        }
+        foreach ($skillId in $approvedSkillIds) {
             if (-not [string]::IsNullOrWhiteSpace([string]$skillId)) {
                 $hostApprovedLookup[[string]$skillId] = $true
             }
         }
-        foreach ($skillId in @($HostSpecialistDispatchDecision.deferred_skill_ids)) {
+        $deferredSkillIds = if ($HostSpecialistDispatchDecision.PSObject.Properties.Name -contains 'deferred_skill_ids') {
+            @($HostSpecialistDispatchDecision.deferred_skill_ids)
+        } else {
+            @()
+        }
+        foreach ($skillId in $deferredSkillIds) {
             if (-not [string]::IsNullOrWhiteSpace([string]$skillId)) {
                 $hostDeferredLookup[[string]$skillId] = $true
             }
         }
-        foreach ($skillId in @($HostSpecialistDispatchDecision.rejected_skill_ids)) {
+        $rejectedSkillIds = if ($HostSpecialistDispatchDecision.PSObject.Properties.Name -contains 'rejected_skill_ids') {
+            @($HostSpecialistDispatchDecision.rejected_skill_ids)
+        } else {
+            @()
+        }
+        foreach ($skillId in $rejectedSkillIds) {
             if (-not [string]::IsNullOrWhiteSpace([string]$skillId)) {
                 $hostRejectedLookup[[string]$skillId] = $true
             }

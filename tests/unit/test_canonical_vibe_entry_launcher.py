@@ -894,6 +894,81 @@ def test_validate_bounded_reentry_requires_matching_prior_guard_for_explicit_cre
         )
 
 
+def test_validate_bounded_reentry_rejects_token_only_credentials_for_malformed_guard(tmp_path: Path) -> None:
+    summary_path = _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="xl_plan",
+        allowed_followup_entry_ids=["vibe", "vibe-do-it"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="plan runtime entry hardening",
+    )
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["bounded_return_control"].pop("allowed_followup_entry_ids")
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="bounded wrapper continuation metadata is malformed"):
+        canonical_entry._validate_bounded_reentry(
+            artifact_root=tmp_path,
+            entry_id="vibe-do-it",
+            prompt="execute plan",
+            run_id="current-run",
+            continue_from_run_id=None,
+            bounded_reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        )
+
+
+def test_validate_bounded_reentry_rejects_disallowed_followup_entry_for_explicit_credentials(tmp_path: Path) -> None:
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="xl_plan",
+        allowed_followup_entry_ids=["vibe"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="plan runtime entry hardening",
+    )
+
+    with pytest.raises(RuntimeError, match="is not allowed"):
+        canonical_entry._validate_bounded_reentry(
+            artifact_root=tmp_path,
+            entry_id="vibe-do-it",
+            prompt="execute plan",
+            run_id="current-run",
+            continue_from_run_id="prior-bounded-run",
+            bounded_reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        )
+
+
+def test_validate_bounded_reentry_rejects_non_continuation_prompt_when_credentials_are_explicit(tmp_path: Path) -> None:
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="xl_plan",
+        allowed_followup_entry_ids=["vibe", "vibe-do-it"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="plan runtime entry hardening",
+    )
+
+    with pytest.raises(RuntimeError, match="does not look like a bounded-wrapper continuation"):
+        canonical_entry._validate_bounded_reentry(
+            artifact_root=tmp_path,
+            entry_id="vibe-do-it",
+            prompt="hello world",
+            run_id="current-run",
+            continue_from_run_id="prior-bounded-run",
+            bounded_reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        )
+
+
+def test_resolve_progressive_requested_stage_stop_does_not_wrap_after_terminal_stage() -> None:
+    assert canonical_entry._resolve_progressive_requested_stage_stop(
+        repo_root=REPO_ROOT,
+        entry_id="vibe",
+        requested_stage_stop="phase_cleanup",
+        bounded_reentry={"terminal_stage": "phase_cleanup"},
+    ) == "phase_cleanup"
+
+
 def test_canonical_entry_marks_receipt_failed_when_runtime_invocation_raises(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
