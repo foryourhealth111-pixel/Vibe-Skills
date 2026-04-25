@@ -570,10 +570,12 @@ function Resolve-StructuredRouteDecision {
             ($decision.PSObject.Properties.Name -contains 'requested_changes' -and $null -ne $decision.requested_changes -and @($decision.requested_changes).Count -gt 0) -or
             ($decision.PSObject.Properties.Name -contains 'change_requests' -and $null -ne $decision.change_requests -and @($decision.change_requests).Count -gt 0)
         )
+        if ($revisionAction -and $hasRevisionDelta) {
+            return $null
+        }
         if (
             $approvalDecision -ne 'approve' -and
-            $decisionAction -notin @('approve', 'approve_requirement', 'approve_requirement_doc', 'approve_requirements', 'approve_plan', 'approve_execution_plan', 'request_execute') -and
-            -not ($revisionAction -and $hasRevisionDelta)
+            $decisionAction -notin @('approve', 'approve_requirement', 'approve_requirement_doc', 'approve_requirements', 'approve_plan', 'approve_execution_plan', 'request_execute')
         ) {
             return $null
         }
