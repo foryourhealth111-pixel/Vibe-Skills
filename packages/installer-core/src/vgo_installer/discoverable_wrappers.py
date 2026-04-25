@@ -60,6 +60,18 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "bypass_vibe_router": True,
         }
         upgrade_json = json.dumps(upgrade_payload, ensure_ascii=False, indent=2)
+        bash_upgrade_lines: list[str] = []
+        if normalized_host_id == "claude-code":
+            bash_upgrade_lines = [
+                "Bash execution shape (preferred when the host tool surface is Bash-like):",
+                "```bash",
+                "# Set this to the host root that contains skills/vibe-upgrade/SKILL.md.",
+                "TARGET_ROOT='<host-root>'",
+                'REPO_ROOT="$TARGET_ROOT/skills/vibe"',
+                'PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main upgrade --repo-root "$REPO_ROOT" --host claude-code --target-root "$TARGET_ROOT" --frontend powershell --profile full',
+                "```",
+                "",
+            ]
         return [
             "Installer-managed upgrade skill contract:",
             "```json",
@@ -75,6 +87,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "Run the shared upgrade backend for the current host installation, then verify and report the before/after install state.",
             "Use the installed runtime root as `--repo-root`; the backend will resolve or prepare the official default-branch source checkout when needed.",
             "",
+            *bash_upgrade_lines,
             "PowerShell execution shape:",
             "```powershell",
             "# Set this to the host root that contains skills\\vibe-upgrade\\SKILL.md.",
@@ -91,6 +104,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "$ARGUMENTS",
         ]
 
+    normalized_host_id = str(contract.get("host_id") or (host_id or "").strip().lower())
     grade_line = "yes" if entry.allow_grade_flags else "no"
     stop_stage = entry.requested_stage_stop
     progressive_stop_sequence = [stage for stage in entry.progressive_stage_stops if stage]
@@ -160,6 +174,54 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
                 "If `host-user-briefing.md` reports `routed_pending_current_session`, or if the session artifacts show `execution_driver = direct_current_session_route` / `live_native_execution = false` for approved execution skills, continue by loading those disclosed skill entrypoints in the current host session instead of stopping at proof validation.",
             ]
         )
+    claude_bash_lines: list[str] = []
+    if normalized_host_id == "claude-code" and entry.id == "vibe":
+        claude_bash_lines = [
+            "",
+            "Claude Code Bash-safe launch shape (prefer this over Bash-wrapped PowerShell):",
+            "```bash",
+            "# Set this to the installed Vibe runtime root.",
+            "REPO_ROOT='<host-root>/skills/vibe'",
+            "# Set this once to the governed workspace root; do not rely on later cwd changes.",
+            'WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"',
+            'PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main canonical-entry \\',
+            '  --repo-root "$REPO_ROOT" \\',
+            '  --artifact-root "$WORKSPACE_ROOT" \\',
+            "  --host-id claude-code \\",
+            "  --entry-id vibe \\",
+            '  --prompt "$VIBE_INTENT"',
+            "```",
+            "",
+            "Claude Code Bash-safe bounded re-entry shape:",
+            "```bash",
+            "REPO_ROOT='<host-root>/skills/vibe'",
+            "# Reuse the same governed workspace root from the original launch.",
+            'WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"',
+            'DECISION_JSON="$WORKSPACE_ROOT/.vibeskills/tmp/host-decision.json"',
+            'mkdir -p "$(dirname "$DECISION_JSON")"',
+            "cat > \"$DECISION_JSON\" <<'JSON'",
+            "{",
+            '  "decision_kind": "approval_response",',
+            '  "decision_action": "approve_requirement",',
+            '  "approval_decision": "approve"',
+            "}",
+            "JSON",
+            "",
+            'PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main canonical-entry \\',
+            '  --repo-root "$REPO_ROOT" \\',
+            '  --artifact-root "$WORKSPACE_ROOT" \\',
+            "  --host-id claude-code \\",
+            "  --entry-id vibe \\",
+            '  --prompt "continue approved governed requirement with prior task context" \\',
+            '  --continue-from-run-id "<source_run_id>" \\',
+            '  --bounded-reentry-token "<reentry_token>" \\',
+            '  --host-decision-json-file "$DECISION_JSON"',
+            "```",
+            "",
+            "For a host-inferred revision, keep the same re-entry command shape but write `decision_action` as `revise_requirement` or `revise_plan`, set `approval_decision` to `revise`, and include a non-empty `revision_delta`. Structured revision refreezes the same bounded stage; it does not advance like approval.",
+            "",
+            "Do not place JSON decisions inside a Bash-wrapped PowerShell command. Use `--host-decision-json-file` so quoting, Unicode paths, and re-entry tokens stay intact.",
+        ]
     return [
         "Canonical runtime trampoline contract (installer-managed wrapper):",
         "```json",
@@ -182,6 +244,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         *post_launch_lines,
         "If canonical runtime cannot be launched, report blocked instead of silently falling back.",
         *continuation_lines,
+        *claude_bash_lines,
         *([empty_request_line] if empty_request_line else []),
         "",
         "Request:",

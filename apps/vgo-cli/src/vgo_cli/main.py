@@ -71,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     canonical_entry_parser.add_argument('--continue-from-run-id')
     canonical_entry_parser.add_argument('--bounded-reentry-token')
     canonical_entry_parser.add_argument('--host-decision-json')
+    canonical_entry_parser.add_argument('--host-decision-json-file')
     canonical_entry_parser.add_argument('--force-runtime-neutral', action='store_true')
     canonical_entry_parser.add_argument('--allow-public-grade-flags', nargs='?', const='true', help=argparse.SUPPRESS)
     canonical_entry_parser.set_defaults(handler=canonical_entry_command)

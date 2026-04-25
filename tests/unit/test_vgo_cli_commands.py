@@ -116,6 +116,7 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         run_id='run-123',
         continue_from_run_id='prior-run',
         bounded_reentry_token='token-123',
+        host_decision_json_file=str(tmp_path / 'host-decision.json'),
         force_runtime_neutral=True,
     )
 
@@ -132,6 +133,7 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         '--artifact-root', str((tmp_path / 'artifacts')),
         '--continue-from-run-id', 'prior-run',
         '--bounded-reentry-token', 'token-123',
+        '--host-decision-json-file', str(tmp_path / 'host-decision.json'),
         '--force-runtime-neutral',
     ]
     assert recorded['printed_stdout'] == '{"run_id":"r1"}\n'
@@ -268,6 +270,24 @@ def test_build_parser_includes_canonical_entry_subcommand() -> None:
     assert args.handler is canonical_entry_command
     assert args.host_id == 'codex'
     assert args.entry_id == 'vibe'
+
+
+def test_build_parser_accepts_canonical_entry_host_decision_json_file() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'canonical-entry',
+            '--repo-root',
+            '/tmp/repo',
+            '--prompt',
+            'continue canonical vibe',
+            '--host-decision-json-file',
+            '/tmp/decision.json',
+        ]
+    )
+
+    assert args.command == 'canonical-entry'
+    assert args.host_decision_json_file == '/tmp/decision.json'
 
 
 def test_build_parser_accepts_legacy_wrapper_metadata_flag_for_canonical_entry() -> None:

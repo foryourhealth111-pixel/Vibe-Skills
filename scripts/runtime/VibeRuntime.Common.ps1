@@ -1862,6 +1862,32 @@ function New-VibeRuntimeInputPacketProjection {
         $null
     }
     $continuationContext = Get-VibeHostContinuationContext -HostDecision $HostDecision
+    $hostReentryAction = if (
+        $null -ne $continuationContext -and
+        (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'reentry_action') -and
+        -not [string]::IsNullOrWhiteSpace([string]$continuationContext.reentry_action)
+    ) {
+        [string]$continuationContext.reentry_action
+    } else {
+        $null
+    }
+    $hostRevisionTargetStage = if (
+        $null -ne $continuationContext -and
+        (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'revision_target_stage') -and
+        -not [string]::IsNullOrWhiteSpace([string]$continuationContext.revision_target_stage)
+    ) {
+        [string]$continuationContext.revision_target_stage
+    } else {
+        $null
+    }
+    $hostRevisionDelta = if (
+        $null -ne $continuationContext -and
+        (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'revision_delta')
+    ) {
+        @(Get-VibeNormalizedStringList -Values $continuationContext.revision_delta)
+    } else {
+        @()
+    }
 
     $packetSpecialistDecision = New-VibeSpecialistDecisionProjection `
         -ApprovedDispatch @($SpecialistDispatch.approved_dispatch) `
@@ -1917,6 +1943,9 @@ function New-VibeRuntimeInputPacketProjection {
         }
         custom_admission = $customAdmission
         continuation_context = if ($null -ne $continuationContext) { $continuationContext } else { $null }
+        host_reentry_action = $hostReentryAction
+        host_revision_target_stage = $hostRevisionTargetStage
+        host_revision_delta = [object[]]@($hostRevisionDelta)
         host_decision = if ($null -ne $HostDecision) { $HostDecision } else { $null }
         execution_phase_decomposition = $ExecutionPhaseDecomposition
         code_task_tdd_decision = $CodeTaskTddDecision

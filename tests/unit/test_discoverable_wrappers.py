@@ -77,10 +77,19 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert 'Dispatch through canonical-entry runtime bridge.' in rendered['vibe'].content
     assert 'Do not preflight-scan the current workspace or repository for canonical proof files before launch.' in rendered['vibe'].content
     assert 'validate canonical proof artifacts only inside that launched session root.' in rendered['vibe'].content
+    assert 'Claude Code Bash-safe launch shape' in rendered['vibe'].content
+    assert 'WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"' in rendered['vibe'].content
+    assert '--artifact-root "$WORKSPACE_ROOT"' in rendered['vibe'].content
+    assert 'DECISION_JSON="$WORKSPACE_ROOT/.vibeskills/tmp/host-decision.json"' in rendered['vibe'].content
+    assert '--artifact-root "$PWD"' not in rendered['vibe'].content
+    assert 'DECISION_JSON="$PWD/.vibeskills/tmp/host-decision.json"' not in rendered['vibe'].content
+    assert '--host-decision-json-file "$DECISION_JSON"' in rendered['vibe'].content
+    assert 'include a non-empty `revision_delta`' in rendered['vibe'].content
     assert '$ARGUMENTS' in rendered['vibe'].content
     assert 'name: vibe-upgrade' in rendered['vibe-upgrade'].content
     assert 'Wrapper entry: Vibe: Upgrade (`vibe-upgrade`)' in rendered['vibe-upgrade'].content
     assert 'Do not run the router for this entry.' in rendered['vibe-upgrade'].content
+    assert 'Bash execution shape' in rendered['vibe-upgrade'].content
     assert '--host claude-code' in rendered['vibe-upgrade'].content
 
 

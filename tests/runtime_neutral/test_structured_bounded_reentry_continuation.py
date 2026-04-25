@@ -13,6 +13,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FREEZE_SCRIPT = REPO_ROOT / "scripts" / "runtime" / "Freeze-RuntimeInputPacket.ps1"
 RUNTIME_SCRIPT = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+CONFIRM_UI_SCRIPT = REPO_ROOT / "scripts" / "router" / "modules" / "46-confirm-ui.ps1"
 
 
 def resolve_powershell() -> str | None:
@@ -47,6 +48,39 @@ def build_host_decision_json() -> str:
                 "prior_goal": "research ECG public datasets for diagnosis tasks",
                 "prior_deliverable": "Chinese report and dataset table",
                 "prior_constraints": ["public-only", "official-source-only"],
+                "control_only_prompt": True,
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
+def build_host_revision_decision_json() -> str:
+    return json.dumps(
+        {
+            "decision_kind": "approval_response",
+            "decision_action": "revise_requirement",
+            "approval_decision": "revise",
+            "revision_delta": [
+                "Add one public small/medium face dataset downloaded locally.",
+                "Require a polished LaTeX paper and compiled PDF.",
+            ],
+            "continuation_context": {
+                "structured_bounded_reentry": True,
+                "reentry_action": "revise",
+                "source_run_id": "prior-run",
+                "terminal_stage": "requirement_doc",
+                "next_stage": "xl_plan",
+                "revision_target_stage": "requirement_doc",
+                "revision_delta": [
+                    "Add one public small/medium face dataset downloaded locally.",
+                    "Require a polished LaTeX paper and compiled PDF.",
+                ],
+                "prior_task": "write a facial-recognition research paper",
+                "prior_task_type": "research",
+                "prior_goal": "write a facial-recognition research paper",
+                "prior_deliverable": "LaTeX paper and compiled PDF",
+                "prior_constraints": ["public-dataset", "local-download"],
                 "control_only_prompt": True,
             },
         },
@@ -159,7 +193,75 @@ def run_common_script(script: str) -> dict[str, object]:
     return json.loads(completed.stdout)
 
 
+def run_confirm_ui_script(script: str) -> dict[str, object]:
+    shell = resolve_powershell()
+    if shell is None:
+        raise unittest.SkipTest("PowerShell executable not available in PATH")
+
+    command = [
+        shell,
+        "-NoLogo",
+        "-NoProfile",
+        "-Command",
+        (
+            "& { "
+            f". {ps_quote(str(CONFIRM_UI_SCRIPT))}; "
+            f"{script} "
+            "}"
+        ),
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
 class StructuredBoundedReentryContinuationTests(unittest.TestCase):
+    def test_confirm_ui_does_not_treat_structured_revision_delta_as_route_confirmation(self) -> None:
+        payload = run_confirm_ui_script(
+            "$confirm = [pscustomobject]@{ "
+            "  selected_pack = 'orchestration-core'; "
+            "  selected_skill = 'vibe'; "
+            "  options = @([pscustomobject]@{ skill = 'vibe'; pack_id = 'orchestration-core'; score = 1.0 }) "
+            "}; "
+            "$decision = @{ "
+            "  decision_kind = 'approval_response'; "
+            "  decision_action = 'revise_requirement'; "
+            "  approval_decision = 'revise'; "
+            "  revision_delta = @('Add concrete dataset and PDF deliverables.') "
+            "} | ConvertTo-Json -Depth 8 -Compress; "
+            "$result = Resolve-StructuredRouteDecision -HostDecisionJson $decision -ConfirmSkillOptions $confirm; "
+            "[pscustomobject]@{ is_null = ($null -eq $result) } | ConvertTo-Json -Depth 8 -Compress"
+        )
+
+        self.assertTrue(payload["is_null"])
+
+    def test_confirm_ui_still_accepts_structured_approval_as_route_confirmation(self) -> None:
+        payload = run_confirm_ui_script(
+            "$confirm = [pscustomobject]@{ "
+            "  selected_pack = 'orchestration-core'; "
+            "  selected_skill = 'vibe'; "
+            "  options = @([pscustomobject]@{ skill = 'vibe'; pack_id = 'orchestration-core'; score = 1.0 }) "
+            "}; "
+            "$decision = @{ "
+            "  decision_kind = 'approval_response'; "
+            "  decision_action = 'approve_requirement'; "
+            "  approval_decision = 'approve' "
+            "} | ConvertTo-Json -Depth 8 -Compress; "
+            "$result = Resolve-StructuredRouteDecision -HostDecisionJson $decision -ConfirmSkillOptions $confirm; "
+            "[pscustomobject]@{ is_null = ($null -eq $result); action = $result.decision_action; skill = $result.selected_skill } | ConvertTo-Json -Depth 8 -Compress"
+        )
+
+        self.assertFalse(payload["is_null"])
+        self.assertEqual("accept_primary", payload["action"])
+        self.assertEqual("vibe", payload["skill"])
+
     def test_phase_decomposition_rejects_non_object_phase_records(self) -> None:
         shell = resolve_powershell()
         if shell is None:
@@ -324,6 +426,27 @@ class StructuredBoundedReentryContinuationTests(unittest.TestCase):
             self.assertTrue(packet["continuation_context"]["control_only_prompt"])
             self.assertEqual("approval_response", packet["host_decision"]["decision_kind"])
             self.assertEqual("approve_requirement", packet["host_decision"]["decision_action"])
+
+    def test_freeze_preserves_structured_revision_delta_for_same_stage_refreeze(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir) / "artifacts"
+            payload = run_freeze(
+                artifact_root=artifact_root,
+                host_decision_json=build_host_revision_decision_json(),
+            )
+            packet = payload["packet"]
+
+            self.assertEqual("research", packet["canonical_router"]["task_type"])
+            self.assertEqual("revise", packet["host_reentry_action"])
+            self.assertEqual("requirement_doc", packet["host_revision_target_stage"])
+            self.assertEqual(
+                [
+                    "Add one public small/medium face dataset downloaded locally.",
+                    "Require a polished LaTeX paper and compiled PDF.",
+                ],
+                packet["host_revision_delta"],
+            )
+            self.assertEqual("revise_requirement", packet["host_decision"]["decision_action"])
 
     def test_stale_host_specialist_dispatch_decision_is_safely_shrunk(self) -> None:
         shell = resolve_powershell()

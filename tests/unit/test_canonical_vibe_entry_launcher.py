@@ -537,6 +537,66 @@ def test_resolve_effective_prompt_uses_structured_bounded_reentry_context_for_ap
     )
 
 
+def test_resolve_effective_prompt_includes_structured_revision_delta(
+    tmp_path: Path,
+) -> None:
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="requirement_doc",
+        allowed_followup_entry_ids=["vibe"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="continue-vibe generic deliverable-governed-implementation-artifacts",
+        intent_goal="write a facial-recognition research paper",
+        prior_task_type="research",
+    )
+    host_decision = canonical_entry._attach_bounded_continuation_context_to_host_decision(
+        host_decision={
+            "decision_kind": "approval_response",
+            "decision_action": "revise_requirement",
+            "approval_decision": "revise",
+            "revision_delta": [
+                "Freeze one public small/medium face dataset downloaded locally.",
+                "Require a polished LaTeX paper and compiled PDF.",
+            ],
+        },
+        bounded_reentry={
+            "source_run_id": "prior-bounded-run",
+            "terminal_stage": "requirement_doc",
+            "allowed_followup_entry_ids": ["vibe"],
+            "reentry_token": "token-123",
+            "structured_reentry_action": "revise",
+            "revision_target_stage": "requirement_doc",
+            "revision_delta": [
+                "Freeze one public small/medium face dataset downloaded locally.",
+                "Require a polished LaTeX paper and compiled PDF.",
+            ],
+        },
+        prompt_text="修改需求",
+    )
+
+    prompt = canonical_entry._resolve_effective_prompt(
+        host_id="codex",
+        entry_id="vibe",
+        prompt="修改需求",
+        host_decision=host_decision,
+        artifact_root=tmp_path,
+        run_id="current-run",
+        bounded_reentry={
+            "source_run_id": "prior-bounded-run",
+            "terminal_stage": "requirement_doc",
+            "allowed_followup_entry_ids": ["vibe"],
+            "reentry_token": "token-123",
+        },
+        continuation_source_run_id="prior-bounded-run",
+        allow_bounded_preferred_source=True,
+    )
+
+    assert "write a facial-recognition research paper" in prompt
+    assert "Revision delta: Freeze one public small/medium face dataset downloaded locally." in prompt
+    assert "Require a polished LaTeX paper and compiled PDF." in prompt
+
+
 def test_resolve_effective_prompt_keeps_prompt_when_no_prior_continuation_context(
     tmp_path: Path,
 ) -> None:
@@ -549,6 +609,38 @@ def test_resolve_effective_prompt_keeps_prompt_when_no_prior_continuation_contex
     )
 
     assert prompt == "execute plan phase-cleanup"
+
+
+def test_parse_host_decision_json_reads_file_payload(tmp_path: Path) -> None:
+    decision_path = tmp_path / "host-decision.json"
+    decision_path.write_text(
+        '{"decision_kind":"approval_response","decision_action":"approve_requirement"}\n',
+        encoding="utf-8-sig",
+    )
+
+    assert canonical_entry._parse_host_decision_json(None, str(decision_path)) == {
+        "decision_kind": "approval_response",
+        "decision_action": "approve_requirement",
+    }
+
+
+def test_parse_host_decision_json_rejects_inline_and_file(tmp_path: Path) -> None:
+    decision_path = tmp_path / "host-decision.json"
+    decision_path.write_text('{"decision_kind":"approval_response"}\n', encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="either --host-decision-json or --host-decision-json-file"):
+        canonical_entry._parse_host_decision_json(
+            '{"decision_kind":"approval_response"}',
+            str(decision_path),
+        )
+
+
+def test_parse_host_decision_json_rejects_invalid_file_payload(tmp_path: Path) -> None:
+    decision_path = tmp_path / "host-decision.json"
+    decision_path.write_text("{not-json", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="invalid JSON in --host-decision-json-file"):
+        canonical_entry._parse_host_decision_json(None, str(decision_path))
 
 
 def test_resolve_effective_prompt_ignores_bounded_preferred_summary_without_explicit_allow(
@@ -921,6 +1013,71 @@ def test_canonical_entry_advances_public_vibe_to_plan_boundary_after_requirement
     assert receipt["launch_status"] == "verified"
 
 
+def test_canonical_entry_refreezes_requirement_boundary_after_requirement_revision(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    run_id = "pytest-canonical-entry-vibe-requirement-revision"
+    session_root = tmp_path / "outputs" / "runtime" / "vibe-sessions" / run_id
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="requirement_doc",
+        allowed_followup_entry_ids=["vibe"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="write paper from experiment results",
+        intent_goal="write a facial-recognition research paper",
+    )
+
+    monkeypatch.setattr(
+        canonical_entry,
+        "resolve_canonical_vibe_contract",
+        lambda repo_root, host_id: {"fallback_policy": "blocked", "allow_skill_doc_fallback": False},
+    )
+
+    def fake_invoke_runtime(**kwargs: object) -> dict[str, object]:
+        host_decision = kwargs["host_decision"]
+        assert isinstance(host_decision, dict)
+        assert kwargs["requested_stage_stop"] == "requirement_doc"
+        assert "Revision delta: Add a local public face dataset requirement." in str(kwargs["prompt"])
+        assert host_decision["continuation_context"]["reentry_action"] == "revise"
+        assert host_decision["continuation_context"]["revision_target_stage"] == "requirement_doc"
+        assert host_decision["continuation_context"]["revision_delta"] == [
+            "Add a local public face dataset requirement."
+        ]
+        _write_valid_truth_artifacts(session_root, requested_stage_stop="requirement_doc")
+        return {
+            "run_id": run_id,
+            "session_root": str(session_root),
+            "summary_path": str(session_root / "runtime-summary.json"),
+            "summary": {"run_id": run_id},
+        }
+
+    monkeypatch.setattr(canonical_entry, "invoke_vibe_runtime_entrypoint", fake_invoke_runtime)
+
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=tmp_path,
+        host_id="codex",
+        entry_id="vibe",
+        prompt="修改需求",
+        requested_stage_stop="phase_cleanup",
+        run_id=run_id,
+        artifact_root=tmp_path,
+        continue_from_run_id="prior-bounded-run",
+        bounded_reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        host_decision={
+            "decision_kind": "approval_response",
+            "decision_action": "revise_requirement",
+            "approval_decision": "revise",
+            "revision_delta": ["Add a local public face dataset requirement."],
+        },
+    )
+
+    receipt = json.loads(result.host_launch_receipt_path.read_text(encoding="utf-8"))
+    assert receipt["requested_stage_stop"] == "requirement_doc"
+    assert receipt["launch_status"] == "verified"
+
+
 def test_canonical_entry_rejects_malformed_bounded_wrapper_reentry_metadata(tmp_path: Path) -> None:
     summary_path = _write_bounded_return_summary(
         tmp_path,
@@ -1105,14 +1262,80 @@ def test_normalize_text_list_treats_string_as_single_item() -> None:
     assert canonical_entry._normalize_text_list("GPU only") == ["GPU only"]
 
 
-def test_structured_revise_decision_does_not_authorize_bounded_reentry() -> None:
+def test_structured_revise_decision_authorizes_bounded_reentry_action() -> None:
+    assert canonical_entry._structured_host_decision_allows_bounded_reentry(
+        {
+            "decision_kind": "approval_response",
+            "decision_action": "revise_requirement",
+            "approval_decision": "revise",
+            "revision_delta": ["Add concrete dataset acceptance criteria."],
+        },
+        bounded_return_control={"terminal_stage": "requirement_doc"},
+    )
+
+
+def test_structured_revise_decision_must_match_pending_stage() -> None:
     assert not canonical_entry._structured_host_decision_allows_bounded_reentry(
         {
             "decision_kind": "approval_response",
             "decision_action": "revise_requirement",
             "approval_decision": "revise",
+            "revision_delta": ["Add concrete dataset acceptance criteria."],
         },
-        bounded_return_control={"terminal_stage": "requirement_doc"},
+        bounded_return_control={"terminal_stage": "xl_plan"},
+    )
+
+
+def test_validate_bounded_reentry_rejects_revision_without_delta(tmp_path: Path) -> None:
+    _write_bounded_return_summary(
+        tmp_path,
+        run_id="prior-bounded-run",
+        terminal_stage="requirement_doc",
+        allowed_followup_entry_ids=["vibe"],
+        reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+        task="plan runtime entry hardening",
+    )
+
+    with pytest.raises(RuntimeError, match="requires non-empty revision_delta"):
+        canonical_entry._validate_bounded_reentry(
+            artifact_root=tmp_path,
+            entry_id="vibe",
+            prompt="修改需求",
+            run_id="current-run",
+            continue_from_run_id="prior-bounded-run",
+            bounded_reentry_token="token-123",  # noqa: S106 - non-secret fixture token
+            host_decision={
+                "decision_kind": "approval_response",
+                "decision_action": "revise_requirement",
+                "approval_decision": "revise",
+            },
+        )
+
+
+def test_progressive_requested_stage_stop_keeps_current_stage_for_revision(tmp_path: Path) -> None:
+    assert (
+        canonical_entry._resolve_progressive_requested_stage_stop(
+            repo_root=tmp_path,
+            entry_id="vibe",
+            requested_stage_stop="phase_cleanup",
+            bounded_reentry={
+                "terminal_stage": "requirement_doc",
+                "structured_reentry_action": "revise",
+            },
+        )
+        == "requirement_doc"
+    )
+    assert (
+        canonical_entry._resolve_progressive_requested_stage_stop(
+            repo_root=tmp_path,
+            entry_id="vibe",
+            requested_stage_stop="phase_cleanup",
+            bounded_reentry={
+                "terminal_stage": "xl_plan",
+                "structured_reentry_action": "revise",
+            },
+        )
+        == "xl_plan"
     )
 
 

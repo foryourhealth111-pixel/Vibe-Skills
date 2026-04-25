@@ -561,6 +561,18 @@ function Resolve-StructuredRouteDecision {
     } elseif ($decisionKind -eq 'approval_response') {
         $normalizedAction = 'accept_primary'
         $requestedSkill = $primarySkill
+        $revisionAction = (
+            $approvalDecision -in @('revise', 'request_changes', 'request_revise') -or
+            $decisionAction -in @('revise', 'request_changes', 'request_revise', 'revise_requirement', 'revise_requirement_doc', 'revise_requirements', 'revise_plan', 'revise_execution_plan', 'revise_xl_plan')
+        )
+        $hasRevisionDelta = (
+            ($decision.PSObject.Properties.Name -contains 'revision_delta' -and $null -ne $decision.revision_delta -and @($decision.revision_delta).Count -gt 0) -or
+            ($decision.PSObject.Properties.Name -contains 'requested_changes' -and $null -ne $decision.requested_changes -and @($decision.requested_changes).Count -gt 0) -or
+            ($decision.PSObject.Properties.Name -contains 'change_requests' -and $null -ne $decision.change_requests -and @($decision.change_requests).Count -gt 0)
+        )
+        if ($revisionAction -and $hasRevisionDelta) {
+            return $null
+        }
         if (
             $approvalDecision -ne 'approve' -and
             $decisionAction -notin @('approve', 'approve_requirement', 'approve_requirement_doc', 'approve_requirements', 'approve_plan', 'approve_execution_plan', 'request_execute')

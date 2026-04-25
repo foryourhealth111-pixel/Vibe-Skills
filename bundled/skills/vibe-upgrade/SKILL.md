@@ -12,6 +12,15 @@ Do not invoke TDD, specialist dispatch, or delivery-acceptance gates unless the 
 Run the shared upgrade backend for the current host installation, then verify and report the before/after install state.
 Use the installed runtime root as `--repo-root`; the backend will resolve or prepare the official default-branch source checkout when needed.
 
+Bash execution shape (preferred when the host tool surface is Bash-like):
+
+```bash
+# Set this to the host root that contains skills/vibe-upgrade/SKILL.md.
+TARGET_ROOT='<host-root>'
+REPO_ROOT="$TARGET_ROOT/skills/vibe"
+PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main upgrade --repo-root "$REPO_ROOT" --host <host-id> --target-root "$TARGET_ROOT" --frontend powershell --profile full
+```
+
 PowerShell execution shape:
 
 ```powershell

@@ -654,6 +654,58 @@ if ($runtimeInputPacket) {
         "- Confirm required: $([bool]$runtimeInputPacket.route_snapshot.confirm_required)"
     )
 
+    $hostReentryAction = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_reentry_action' -and
+        -not [string]::IsNullOrWhiteSpace([string]$runtimeInputPacket.host_reentry_action)
+    ) {
+        [string]$runtimeInputPacket.host_reentry_action
+    } elseif (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'continuation_context' -and
+        $null -ne $runtimeInputPacket.continuation_context -and
+        $runtimeInputPacket.continuation_context.PSObject.Properties.Name -contains 'reentry_action'
+    ) {
+        [string]$runtimeInputPacket.continuation_context.reentry_action
+    } else {
+        ''
+    }
+    $hostRevisionTargetStage = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_revision_target_stage' -and
+        -not [string]::IsNullOrWhiteSpace([string]$runtimeInputPacket.host_revision_target_stage)
+    ) {
+        [string]$runtimeInputPacket.host_revision_target_stage
+    } elseif (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'continuation_context' -and
+        $null -ne $runtimeInputPacket.continuation_context -and
+        $runtimeInputPacket.continuation_context.PSObject.Properties.Name -contains 'revision_target_stage'
+    ) {
+        [string]$runtimeInputPacket.continuation_context.revision_target_stage
+    } else {
+        ''
+    }
+    $hostRevisionDelta = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_revision_delta' -and
+        $null -ne $runtimeInputPacket.host_revision_delta
+    ) {
+        @(Get-VibeNormalizedStringList -Values $runtimeInputPacket.host_revision_delta)
+    } elseif (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'continuation_context' -and
+        $null -ne $runtimeInputPacket.continuation_context -and
+        $runtimeInputPacket.continuation_context.PSObject.Properties.Name -contains 'revision_delta'
+    ) {
+        @(Get-VibeNormalizedStringList -Values $runtimeInputPacket.continuation_context.revision_delta)
+    } else {
+        @()
+    }
+    if ([string]$hostReentryAction -eq 'revise' -and @($hostRevisionDelta).Count -gt 0) {
+        $lines += @(
+            '',
+            '## Host Revision Delta',
+            ('- Re-entry action: {0}' -f [string]$hostReentryAction),
+            ('- Revision target stage: {0}' -f $(if ([string]::IsNullOrWhiteSpace($hostRevisionTargetStage)) { 'requirement_doc' } else { [string]$hostRevisionTargetStage }))
+        )
+        $lines += @($hostRevisionDelta | ForEach-Object { "- $_" })
+    }
+
     $executionPhaseDecomposition = if (
         $runtimeInputPacket.PSObject.Properties.Name -contains 'execution_phase_decomposition' -and
         $null -ne $runtimeInputPacket.execution_phase_decomposition

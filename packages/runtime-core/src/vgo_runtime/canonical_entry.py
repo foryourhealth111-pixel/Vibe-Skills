@@ -66,6 +66,28 @@ STRUCTURED_REENTRY_APPROVAL_ACTIONS: dict[str, frozenset[str]] = {
         }
     ),
 }
+STRUCTURED_REENTRY_REVISION_ACTIONS: dict[str, frozenset[str]] = {
+    "requirement_doc": frozenset(
+        {
+            "revise",
+            "request_changes",
+            "request_revise",
+            "revise_requirement",
+            "revise_requirement_doc",
+            "revise_requirements",
+        }
+    ),
+    "xl_plan": frozenset(
+        {
+            "revise",
+            "request_changes",
+            "request_revise",
+            "revise_plan",
+            "revise_execution_plan",
+            "revise_xl_plan",
+        }
+    ),
+}
 STRUCTURED_REENTRY_CONTROL_TOKENS = frozenset(
     {
         "approve",
@@ -96,6 +118,15 @@ STRUCTURED_REENTRY_CONTROL_TOKENS = frozenset(
         "ok",
         "okay",
         "yes",
+        "revise",
+        "request changes",
+        "request revise",
+        "revise requirement",
+        "revise plan",
+        "修改",
+        "修订",
+        "修改需求",
+        "修改计划",
     }
 )
 
@@ -465,8 +496,24 @@ def _normalize_host_decision(host_decision: dict[str, Any] | None) -> dict[str, 
     return host_decision
 
 
-def _parse_host_decision_json(host_decision_json: str | None) -> dict[str, Any] | None:
+def _parse_host_decision_json(
+    host_decision_json: str | None,
+    host_decision_json_file: str | None = None,
+) -> dict[str, Any] | None:
     raw = str(host_decision_json or "").strip()
+    file_path_text = str(host_decision_json_file or "").strip()
+    if raw and file_path_text:
+        raise RuntimeError("use either --host-decision-json or --host-decision-json-file, not both")
+    if file_path_text:
+        try:
+            raw = Path(file_path_text).read_text(encoding="utf-8-sig").strip()
+        except OSError as exc:
+            raise RuntimeError("unable to read --host-decision-json-file") from exc
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("invalid JSON in --host-decision-json-file") from exc
+        return _normalize_host_decision(payload)
     if not raw:
         return None
     try:
@@ -531,6 +578,26 @@ def _normalize_text_list(values: Any) -> list[str]:
     return normalized
 
 
+def _host_decision_revision_delta(host_decision: dict[str, Any] | None) -> list[str]:
+    decision = _normalize_host_decision(host_decision)
+    if not decision:
+        return []
+
+    for field_name in (
+        "revision_delta",
+        "requested_changes",
+        "requested_change",
+        "changes",
+        "change_requests",
+        "revision_notes",
+    ):
+        if field_name in decision:
+            delta = _normalize_text_list(decision.get(field_name))
+            if delta:
+                return delta
+    return []
+
+
 def _is_control_only_structured_reentry_prompt(prompt_text: str) -> bool:
     normalized = _normalize_prompt_for_compare(prompt_text)
     if not normalized:
@@ -571,6 +638,10 @@ def _build_structured_continuation_prompt(
     if constraints:
         segments.append(f"Constraints: {'; '.join(constraints)}.")
 
+    revision_delta = _normalize_text_list(continuation.get("revision_delta"))
+    if revision_delta:
+        segments.append(f"Revision delta: {'; '.join(revision_delta)}.")
+
     delta = str(prompt_text or "").strip()
     if delta and not _is_control_only_structured_reentry_prompt(delta):
         segments.append(f"Update: {delta}")
@@ -607,12 +678,17 @@ def _attach_bounded_continuation_context_to_host_decision(
     ):
         return decision
 
+    reentry_action = str(bounded_reentry.get("structured_reentry_action") or "").strip() or None
+    revision_delta = _normalize_text_list(bounded_reentry.get("revision_delta"))
     enriched = copy.deepcopy(decision)
     enriched["continuation_context"] = {
         "structured_bounded_reentry": True,
+        "reentry_action": reentry_action,
         "source_run_id": str(bounded_reentry.get("source_run_id") or "").strip() or None,
         "terminal_stage": str(bounded_reentry.get("terminal_stage") or "").strip() or None,
         "next_stage": str(bounded_reentry.get("next_stage") or "").strip() or None,
+        "revision_target_stage": str(bounded_reentry.get("revision_target_stage") or "").strip() or None,
+        "revision_delta": revision_delta,
         "prior_task": str(bounded_reentry.get("task") or "").strip() or None,
         "prior_task_type": str(bounded_reentry.get("prior_task_type") or "").strip() or None,
         "prior_goal": str(bounded_reentry.get("intent_goal") or "").strip() or None,
@@ -668,6 +744,8 @@ def _resolve_progressive_requested_stage_stop(
     if bounded_reentry:
         terminal_stage = str(bounded_reentry.get("terminal_stage") or "").strip()
         if terminal_stage in progressive_stage_stops:
+            if str(bounded_reentry.get("structured_reentry_action") or "").strip().lower() == "revise":
+                return terminal_stage
             terminal_index = progressive_stage_stops.index(terminal_stage)
             if terminal_index + 1 < len(progressive_stage_stops):
                 return progressive_stage_stops[terminal_index + 1]
@@ -850,6 +928,9 @@ def _resolve_effective_prompt(
         if continuation:
             structured_context = _bounded_reentry_context_from_host_decision(host_decision)
             if structured_context:
+                continuation = dict(continuation)
+                continuation["reentry_action"] = structured_context.get("reentry_action")
+                continuation["revision_delta"] = _normalize_text_list(structured_context.get("revision_delta"))
                 return _build_structured_continuation_prompt(
                     prompt_text=prompt_text,
                     continuation=continuation,
@@ -1030,29 +1111,43 @@ def _structured_host_decision_allows_bounded_reentry(
     *,
     bounded_return_control: dict[str, Any],
 ) -> bool:
+    return _structured_host_decision_reentry_action(
+        host_decision,
+        bounded_return_control=bounded_return_control,
+    ) is not None
+
+
+def _structured_host_decision_reentry_action(
+    host_decision: dict[str, Any] | None,
+    *,
+    bounded_return_control: dict[str, Any],
+) -> str | None:
     decision = _normalize_host_decision(host_decision)
     if not decision:
-        return False
+        return None
 
     terminal_stage = str(bounded_return_control.get("terminal_stage") or "").strip()
     if not terminal_stage:
-        return False
+        return None
 
     allowed_actions = STRUCTURED_REENTRY_APPROVAL_ACTIONS.get(terminal_stage)
-    if not allowed_actions:
-        return False
+    revision_actions = STRUCTURED_REENTRY_REVISION_ACTIONS.get(terminal_stage)
+    if not allowed_actions and not revision_actions:
+        return None
 
     decision_kind = str(decision.get("decision_kind") or "").strip().lower()
     decision_action = str(decision.get("decision_action") or "").strip().lower()
     approval_decision = str(decision.get("approval_decision") or "").strip().lower()
 
-    if approval_decision == "approve":
-        return True
-    if decision_action in allowed_actions:
-        return True
+    if allowed_actions and decision_action in allowed_actions:
+        return "approve"
     if decision_kind == "approval_response" and decision_action == "approve":
-        return True
-    return False
+        return "approve"
+    if approval_decision == "approve":
+        return "approve"
+    if revision_actions and decision_action in revision_actions:
+        return "revise"
+    return None
 
 
 def _validate_bounded_reentry(
@@ -1103,10 +1198,11 @@ def _validate_bounded_reentry(
                 f"expected one of {allowed}"
             )
         return None
-    structured_reentry = _structured_host_decision_allows_bounded_reentry(
+    structured_reentry_action = _structured_host_decision_reentry_action(
         host_decision,
         bounded_return_control=prior_guard,
     )
+    structured_reentry = structured_reentry_action is not None
     if host_decision is not None:
         looks_like_reentry = structured_reentry
     else:
@@ -1117,13 +1213,20 @@ def _validate_bounded_reentry(
             if host_decision is not None:
                 raise RuntimeError(
                     "structured host decision does not authorize bounded re-entry for "
-                    f"{expected_stage}; send an explicit approval decision for the pending governed stop"
+                    f"{expected_stage}; send an explicit approval or revision decision for the pending governed stop"
                 )
             raise RuntimeError(
                 "prompt does not look like a bounded-wrapper continuation for "
                 f"{expected_stage}; provide a continuation prompt or remove the explicit re-entry credentials"
             )
         return None
+    revision_delta = _host_decision_revision_delta(host_decision)
+    if structured_reentry_action == "revise" and not revision_delta:
+        expected_stage = str(prior_guard.get("terminal_stage") or "pending_bounded_stop")
+        raise RuntimeError(
+            "structured revise decision for "
+            f"{expected_stage} requires non-empty revision_delta"
+        )
 
     if not provided_run_id or not provided_token:
         raise RuntimeError(
@@ -1137,7 +1240,13 @@ def _validate_bounded_reentry(
         )
     if provided_token != prior_guard["reentry_token"]:
         raise RuntimeError("bounded wrapper continuation token mismatch")
-    return prior_guard
+    result = dict(prior_guard)
+    if structured_reentry_action:
+        result["structured_reentry_action"] = structured_reentry_action
+        if structured_reentry_action == "revise":
+            result["revision_target_stage"] = str(prior_guard.get("terminal_stage") or "").strip() or None
+            result["revision_delta"] = revision_delta
+    return result
 
 
 def _new_run_id() -> str:
@@ -1546,9 +1655,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--continue-from-run-id")
     parser.add_argument("--bounded-reentry-token")
     parser.add_argument("--host-decision-json")
+    parser.add_argument("--host-decision-json-file")
     parser.add_argument("--force-runtime-neutral", action="store_true")
     args = parser.parse_args(argv)
-    host_decision = _parse_host_decision_json(args.host_decision_json)
+    host_decision = _parse_host_decision_json(args.host_decision_json, args.host_decision_json_file)
 
     result = launch_canonical_vibe(
         repo_root=args.repo_root,

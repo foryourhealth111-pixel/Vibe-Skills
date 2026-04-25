@@ -567,6 +567,57 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         self.assertEqual("run-req", result["source_run_id"])
         self.assertEqual("requirement_doc", result["terminal_stage"])
 
+    def test_bounded_reentry_accepts_structured_requirement_revision_with_delta(self):
+        """Allow hosts to refreeze a bounded requirement stage via structured revision delta."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact_root = Path(temp_dir)
+            session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-req"
+            session_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(session_root, "run-req")
+            intent_contract_path = session_root / "intent-contract.json"
+            intent_contract_path.write_text(json.dumps({"goal": "freeze requirement"}), encoding="utf-8")
+            (session_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-req",
+                        "artifacts": {
+                            "intent_contract": str(intent_contract_path),
+                        },
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-123",
+                            "source_run_id": "run-req",
+                            "terminal_stage": "requirement_doc",
+                            "allowed_followup_entry_ids": ["vibe"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = module._validate_bounded_reentry(
+                artifact_root=artifact_root,
+                entry_id="vibe",
+                prompt="修改需求",
+                run_id="run-next",
+                continue_from_run_id="run-req",
+                bounded_reentry_token="token-123",
+                host_decision={
+                    "decision_kind": "approval_response",
+                    "decision_action": "revise_requirement",
+                    "approval_decision": "revise",
+                    "revision_delta": ["Add concrete dataset and PDF deliverables."],
+                },
+            )
+
+        self.assertIsNotNone(result)
+        self.assertEqual("run-req", result["source_run_id"])
+        self.assertEqual("requirement_doc", result["terminal_stage"])
+        self.assertEqual("revise", result["structured_reentry_action"])
+        self.assertEqual("requirement_doc", result["revision_target_stage"])
+        self.assertEqual(["Add concrete dataset and PDF deliverables."], result["revision_delta"])
+
     def test_bounded_reentry_rejects_structured_approval_for_wrong_pending_stage(self):
         """Reject host decisions that do not match the bounded stage awaiting approval."""
         module = _load_canonical_entry_module()
