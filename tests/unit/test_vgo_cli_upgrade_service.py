@@ -403,6 +403,129 @@ def test_resolve_upgrade_repo_root_does_not_fall_back_to_unrelated_cwd_repo(
     assert upgrade_service.resolve_upgrade_repo_root(repo_root) is None
 
 
+def test_prepare_managed_upgrade_repo_root_clones_official_source_for_installed_runtime(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    upgrade_service = importlib.import_module("vgo_cli.upgrade_service")
+
+    installed_runtime = tmp_path / "target" / "skills" / "vibe"
+    (installed_runtime / "config").mkdir(parents=True)
+    (installed_runtime / "config" / "version-governance.json").write_text(
+        '{"source_of_truth":{"official_self_repo":{"repo_url":"https://example.test/Vibe-Skills.git","default_branch":"main"}}}\n',
+        encoding="utf-8",
+    )
+    target_root = tmp_path / "target"
+    commands: list[list[str]] = []
+
+    def fake_run_subprocess(command: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        if command[:2] == ["git", "clone"]:
+            checkout_root = Path(command[-1])
+            (checkout_root / ".git").mkdir(parents=True)
+            (checkout_root / "config").mkdir()
+            (checkout_root / "config" / "version-governance.json").write_text("{}\n", encoding="utf-8")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(upgrade_service, "run_subprocess", fake_run_subprocess)
+
+    resolved = upgrade_service.prepare_managed_upgrade_repo_root(installed_runtime, target_root)
+
+    assert resolved == (target_root / ".vibeskills" / "upgrade-source").resolve()
+    assert commands == [
+        [
+            "git",
+            "clone",
+            "--quiet",
+            "--branch",
+            "main",
+            "--single-branch",
+            "https://example.test/Vibe-Skills.git",
+            str(target_root / ".vibeskills" / "upgrade-source"),
+        ]
+    ]
+
+
+def test_upgrade_runtime_uses_managed_source_when_started_from_installed_runtime(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    upgrade_service = importlib.import_module("vgo_cli.upgrade_service")
+
+    installed_runtime = tmp_path / "target" / "skills" / "vibe"
+    installed_runtime.mkdir(parents=True)
+    target_root = tmp_path / "target"
+    managed_source = target_root / ".vibeskills" / "upgrade-source"
+    managed_source.mkdir(parents=True)
+    steps: list[str] = []
+    recorded: dict[str, object] = {}
+
+    monkeypatch.setattr(upgrade_service, "resolve_upgrade_repo_root", lambda path: None)
+    monkeypatch.setattr(
+        upgrade_service,
+        "prepare_managed_upgrade_repo_root",
+        lambda repo_root_arg, target_root_arg: managed_source,
+    )
+
+    def fake_load_recorded_install_status(repo_root_arg: Path, target_root_arg: Path, host_id: str) -> dict[str, object]:
+        recorded["repo_root"] = repo_root_arg
+        return {
+            "installed_version": "3.0.4",
+            "installed_commit": "old-install",
+            "repo_remote": "https://github.com/foryourhealth111-pixel/Vibe-Skills.git",
+            "repo_default_branch": "main",
+        }
+
+    monkeypatch.setattr(upgrade_service, "load_recorded_install_status", fake_load_recorded_install_status)
+    monkeypatch.setattr(upgrade_service, "has_recorded_install_truth", lambda status: True)
+    monkeypatch.setattr(
+        upgrade_service,
+        "refresh_upstream_status",
+        lambda repo_root_arg, target_root_arg, status, **kwargs: {
+            **status,
+            "remote_latest_version": "3.1.0",
+            "remote_latest_commit": "new-install",
+            "update_available": True,
+        },
+    )
+    monkeypatch.setattr(
+        upgrade_service,
+        "reset_repo_to_official_head",
+        lambda repo_root_arg, branch, target_commit=None: steps.append(f"reset:{repo_root_arg}:{target_commit}"),
+    )
+    monkeypatch.setattr(upgrade_service, "reinstall_runtime", lambda **kwargs: steps.append("reinstall"))
+    monkeypatch.setattr(
+        upgrade_service,
+        "run_upgrade_check",
+        lambda **kwargs: (steps.append("check") or subprocess.CompletedProcess(args=["check"], returncode=0, stdout="", stderr="")),
+    )
+    monkeypatch.setattr(
+        upgrade_service,
+        "refresh_installed_status",
+        lambda repo_root_arg, target_root_arg, host_id, **kwargs: {
+            "installed_version": "3.1.0",
+            "installed_commit": "new-install",
+        },
+    )
+
+    result = upgrade_service.upgrade_runtime(
+        repo_root=installed_runtime,
+        target_root=target_root,
+        host_id="claude-code",
+        profile="full",
+        frontend="powershell",
+        install_external=False,
+        strict_offline=False,
+        require_closed_ready=False,
+        allow_external_skill_fallback=False,
+        skip_runtime_freshness_gate=False,
+    )
+
+    assert recorded["repo_root"] == managed_source
+    assert steps == [f"reset:{managed_source}:new-install", "reinstall", "check"]
+    assert result["changed"] is True
+    assert result["after"]["installed_version"] == "3.1.0"
+
+
 def test_upgrade_runtime_raises_clear_error_when_no_canonical_git_repo_exists(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     upgrade_service = importlib.import_module("vgo_cli.upgrade_service")
 

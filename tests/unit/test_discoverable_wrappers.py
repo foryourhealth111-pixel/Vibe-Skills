@@ -44,7 +44,13 @@ def test_build_wrapper_descriptors_renders_all_discoverable_entries_for_codex() 
     assert 'Wrapper labels only select the bounded terminal stage.' in rendered['vibe'].content
     assert 'name: vibe-upgrade' in rendered['vibe-upgrade'].content
     assert 'Wrapper entry: Vibe: Upgrade (`vibe-upgrade`)' in rendered['vibe-upgrade'].content
+    assert '"schema": "vibe-upgrade-skill/v1"' in rendered['vibe-upgrade'].content
     assert '"entry_id": "vibe-upgrade"' in rendered['vibe-upgrade'].content
+    assert '"bypass_vibe_router": true' in rendered['vibe-upgrade'].content
+    assert 'Do not run the router for this entry.' in rendered['vibe-upgrade'].content
+    assert 'Do not relaunch this request as `entry_id = vibe`.' in rendered['vibe-upgrade'].content
+    assert 'Do not freeze a requirement document or execution plan for this entry.' in rendered['vibe-upgrade'].content
+    assert '--host codex' in rendered['vibe-upgrade'].content
     assert 'default to upgrading the current host installation' in rendered['vibe-upgrade'].content
 
 
@@ -74,6 +80,8 @@ def test_build_wrapper_descriptors_renders_skill_wrappers_for_skill_only_hosts()
     assert '$ARGUMENTS' in rendered['vibe'].content
     assert 'name: vibe-upgrade' in rendered['vibe-upgrade'].content
     assert 'Wrapper entry: Vibe: Upgrade (`vibe-upgrade`)' in rendered['vibe-upgrade'].content
+    assert 'Do not run the router for this entry.' in rendered['vibe-upgrade'].content
+    assert '--host claude-code' in rendered['vibe-upgrade'].content
 
 
 def test_build_wrapper_descriptors_renders_upgrade_as_skill_for_command_hosts() -> None:
@@ -88,6 +96,7 @@ def test_build_wrapper_descriptors_renders_upgrade_as_skill_for_command_hosts() 
     assert rendered['vibe-upgrade'].relpath.as_posix() == 'skills/vibe-upgrade/SKILL.md'
     assert 'name: vibe-upgrade' in rendered['vibe-upgrade'].content
     assert 'Wrapper entry: Vibe: Upgrade (`vibe-upgrade`)' in rendered['vibe-upgrade'].content
+    assert 'vgo_cli.main upgrade' in rendered['vibe-upgrade'].content
 
 
 def test_build_wrapper_descriptors_fails_closed_when_canonical_contract_is_unresolved(monkeypatch) -> None:

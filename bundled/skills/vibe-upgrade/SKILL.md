@@ -1,34 +1,29 @@
 ---
 name: vibe-upgrade
-description: Upgrade the local Vibe-Skills installation to the latest official default-branch state while keeping canonical vibe as the only governed runtime.
+description: Upgrade the local Vibe-Skills installation to the latest official default-branch state.
 ---
 
-Use canonical `vibe` as the only governed runtime authority for this request.
+This is an upgrade operation, not a normal staged `vibe` task.
 
-Entry bias:
+Do not run the router for this entry. Do not relaunch this request as `entry_id = vibe`.
+Do not freeze a requirement document or execution plan for this entry.
+Do not invoke TDD, specialist dispatch, or delivery-acceptance gates unless the upgrade backend itself reports a verification failure.
 
-- upgrade the local Vibe-Skills installation for a supported host
-- use the official repository default branch only
-- run reinstall and verification through shared product pathways
+Run the shared upgrade backend for the current host installation, then verify and report the before/after install state.
+Use the installed runtime root as `--repo-root`; the backend will resolve or prepare the official default-branch source checkout when needed.
 
-Execution rules:
+PowerShell execution shape:
 
-- delegate to canonical `vibe`
-- keep `vibe` as the only runtime authority
-- do not create a second requirement surface
-- do not create a second plan surface
-- do not create a parallel runtime
-- do not preflight-scan the current workspace or repository for canonical proof files before launch
-- Launch canonical-entry first; validate receipts only after it returns a session root
-- do not upgrade from arbitrary remotes, branches, or filesystem roots
+```powershell
+# Set this to the host root that contains skills\vibe-upgrade\SKILL.md.
+$targetRoot = '<host-root>'
+$repoRoot = Join-Path $targetRoot 'skills\vibe'
+$env:PYTHONPATH = Join-Path $repoRoot 'apps\vgo-cli\src'
+py -3 -m vgo_cli.main upgrade --repo-root $repoRoot --host <host-id> --target-root $targetRoot --frontend powershell --profile full
+```
 
-When this wrapper is chosen, bias canonical `vibe` toward:
-
-- shared `vgo-cli upgrade` execution
-- overwrite-style upgrade for the selected supported host
-- post-upgrade verification and concise before/after reporting
-
-If invoked with no arguments, default the request to upgrading the current host installation through shared `vgo-cli upgrade` and verifying the result.
+If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.
+If the backend fails, report the exact backend error and do not fall back to ordinary `vibe` routing.
 
 Request:
 $ARGUMENTS

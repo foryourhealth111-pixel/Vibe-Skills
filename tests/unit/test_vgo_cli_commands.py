@@ -270,6 +270,24 @@ def test_build_parser_includes_canonical_entry_subcommand() -> None:
     assert args.entry_id == 'vibe'
 
 
+def test_build_parser_accepts_legacy_wrapper_metadata_flag_for_canonical_entry() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'canonical-entry',
+            '--repo-root',
+            '/tmp/repo',
+            '--prompt',
+            'enter canonical vibe',
+            '--allow-public-grade-flags',
+            'false',
+        ]
+    )
+
+    assert args.command == 'canonical-entry'
+    assert args.allow_public_grade_flags == 'false'
+
+
 def test_install_command_skips_external_dependency_install_when_strict_offline(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

@@ -48,6 +48,49 @@ def _wrapper_contract(host_id: str) -> dict[str, object]:
 
 
 def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, object]) -> list[str]:
+    if entry.id == "vibe-upgrade":
+        normalized_host_id = str(contract.get("host_id") or (host_id or "").strip().lower())
+        upgrade_payload = {
+            "schema": "vibe-upgrade-skill/v1",
+            "entry_id": entry.id,
+            "operation": "upgrade_current_host_installation",
+            "host_id": normalized_host_id,
+            "backend": "vgo-cli upgrade",
+            "official_default_branch_only": True,
+            "bypass_vibe_router": True,
+        }
+        upgrade_json = json.dumps(upgrade_payload, ensure_ascii=False, indent=2)
+        return [
+            "Installer-managed upgrade skill contract:",
+            "```json",
+            upgrade_json,
+            "```",
+            "",
+            f"Wrapper entry: {entry.display_name} (`{entry.id}`)",
+            "This is an upgrade operation, not a normal staged `vibe` task.",
+            "Do not run the router for this entry.",
+            "Do not relaunch this request as `entry_id = vibe`.",
+            "Do not freeze a requirement document or execution plan for this entry.",
+            "Do not invoke TDD, specialist dispatch, or delivery-acceptance gates for this entry unless the upgrade backend itself reports a verification failure.",
+            "Run the shared upgrade backend for the current host installation, then verify and report the before/after install state.",
+            "Use the installed runtime root as `--repo-root`; the backend will resolve or prepare the official default-branch source checkout when needed.",
+            "",
+            "PowerShell execution shape:",
+            "```powershell",
+            "# Set this to the host root that contains skills\\vibe-upgrade\\SKILL.md.",
+            "$targetRoot = '<host-root>'",
+            "$repoRoot = Join-Path $targetRoot 'skills\\vibe'",
+            "$env:PYTHONPATH = Join-Path $repoRoot 'apps\\vgo-cli\\src'",
+            f"py -3 -m vgo_cli.main upgrade --repo-root $repoRoot --host {normalized_host_id} --target-root $targetRoot --frontend powershell --profile full",
+            "```",
+            "",
+            "If the request is empty, default to upgrading the current host installation through shared `vgo-cli upgrade` and verify the result.",
+            "If the backend fails, report the exact backend error and do not fall back to ordinary `vibe` routing.",
+            "",
+            "Request:",
+            "$ARGUMENTS",
+        ]
+
     grade_line = "yes" if entry.allow_grade_flags else "no"
     stop_stage = entry.requested_stage_stop
     progressive_stop_sequence = [stage for stage in entry.progressive_stage_stops if stage]

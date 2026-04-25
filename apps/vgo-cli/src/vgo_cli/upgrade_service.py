@@ -24,6 +24,43 @@ def resolve_upgrade_repo_root(repo_root: Path) -> Path | None:
     return resolve_canonical_repo_root(repo_root)
 
 
+def prepare_managed_upgrade_repo_root(repo_root: Path, target_root: Path) -> Path | None:
+    if not (repo_root / 'config' / 'version-governance.json').exists():
+        return None
+
+    official_repo = get_official_self_repo_metadata(repo_root)
+    repo_url = str(official_repo.get('repo_url') or '').strip()
+    branch = str(official_repo.get('default_branch') or '').strip() or 'main'
+    canonical_root = str(official_repo.get('canonical_root') or '.').strip() or '.'
+    if not repo_url:
+        raise CliError('Official self repository URL is not configured in version-governance.json.')
+
+    checkout_root = target_root / '.vibeskills' / 'upgrade-source'
+    checkout_root.parent.mkdir(parents=True, exist_ok=True)
+    if (checkout_root / '.git').exists():
+        fetch_result = run_subprocess(['git', 'fetch', '--quiet', repo_url, branch], cwd=checkout_root)
+        if fetch_result.returncode != 0:
+            raise CliError(fetch_result.stderr.strip() or 'Failed to refresh managed upgrade source checkout.')
+    elif checkout_root.exists() and any(checkout_root.iterdir()):
+        raise CliError(
+            'Managed upgrade source path exists but is not a git checkout: '
+            f'{checkout_root}. Remove or rename it before running vibe-upgrade.'
+        )
+    else:
+        clone_result = run_subprocess(
+            ['git', 'clone', '--quiet', '--branch', branch, '--single-branch', repo_url, str(checkout_root)],
+            cwd=target_root,
+        )
+        if clone_result.returncode != 0:
+            raise CliError(clone_result.stderr.strip() or 'Failed to clone managed upgrade source checkout.')
+
+    candidate_root = (checkout_root / canonical_root).resolve()
+    resolved = resolve_canonical_repo_root(candidate_root)
+    if resolved is None:
+        raise CliError('Managed upgrade source checkout is missing config/version-governance.json.')
+    return resolved
+
+
 def load_recorded_install_status(repo_root: Path, target_root: Path, host_id: str) -> dict[str, object]:
     existing = load_upgrade_status(target_root)
     repo_remote = str(existing.get('repo_remote') or '').strip()
@@ -231,6 +268,8 @@ def upgrade_runtime(
     skip_runtime_freshness_gate: bool,
 ) -> dict[str, object]:
     resolved_repo_root = resolve_upgrade_repo_root(repo_root)
+    if resolved_repo_root is None:
+        resolved_repo_root = prepare_managed_upgrade_repo_root(repo_root, target_root)
     if resolved_repo_root is None:
         raise CliError(
             'Upgrade requires a canonical git checkout with config/version-governance.json. '
