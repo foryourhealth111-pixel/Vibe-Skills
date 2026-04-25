@@ -88,6 +88,40 @@ def build_host_revision_decision_json() -> str:
     )
 
 
+def build_host_requirement_field_revision_decision_json() -> str:
+    revision_delta = [
+        "Replace the generic Deliverable field. The Deliverable must be: a router/runtime output field audit table; a compact host-facing route summary design; a field tiering rule that separates audit-only, runtime-required, and host-actionable fields; a migration compatibility strategy for existing consumers; and a minimal code-change plus targeted test plan.",
+        "Replace the generic Acceptance Criteria field. Acceptance Criteria must include: host AI can use the compact summary first for route, bounded re-entry, and specialist dispatch decisions; runtime-input-packet keeps the full audit payload; existing field consumers remain backward compatible; confirm_required, bounded re-entry, specialist dispatch, and delivery acceptance behavior do not regress.",
+        "Replace the generic Product Acceptance Criteria field. Product acceptance requires a concrete design and implementation plan that reduces host context burden without deleting audit evidence, without adding a second route authority, and without changing the canonical six-stage runtime.",
+        "Current-stage specialist decision must be advisory-only. Do not adopt or require tdd-guide, spreadsheet, ML, literature, or retrieval specialists at requirement freeze unless a later concrete code-change or evidence-lookup subtask explicitly needs them.",
+        "Code Task TDD Mode for this requirement/design stage must be not_applicable. TDD evidence becomes required only after execution enters actual code modification.",
+    ]
+    return json.dumps(
+        {
+            "decision_kind": "approval_response",
+            "decision_action": "revise_requirement",
+            "approval_decision": "revise",
+            "revision_delta": revision_delta,
+            "continuation_context": {
+                "structured_bounded_reentry": True,
+                "reentry_action": "revise",
+                "source_run_id": "prior-run",
+                "terminal_stage": "requirement_doc",
+                "next_stage": "xl_plan",
+                "revision_target_stage": "requirement_doc",
+                "revision_delta": revision_delta,
+                "prior_task": "router field simplification study compact host-facing summary minimal code-change test plan",
+                "prior_task_type": "planning",
+                "prior_goal": "router field simplification study compact host-facing summary",
+                "prior_deliverable": "Governed implementation artifacts, verification evidence, and cleanup receipts",
+                "prior_constraints": ["do not change runtime state machine"],
+                "control_only_prompt": True,
+            },
+        },
+        ensure_ascii=False,
+    )
+
+
 def run_freeze(*, artifact_root: Path, host_decision_json: str) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
@@ -447,6 +481,68 @@ class StructuredBoundedReentryContinuationTests(unittest.TestCase):
                 packet["host_revision_delta"],
             )
             self.assertEqual("revise_requirement", packet["host_decision"]["decision_action"])
+
+    def test_revision_delta_can_make_specialists_advisory_and_tdd_not_applicable(self) -> None:
+        payload = run_common_script(
+            "$hostDecision = [pscustomobject]@{ "
+            "  decision_kind = 'approval_response'; "
+            "  decision_action = 'revise_requirement'; "
+            "  revision_delta = @("
+            "    'Current-stage specialist decision must be advisory-only. Do not adopt or require tdd-guide or spreadsheet.', "
+            "    'Code Task TDD Mode for this requirement/design stage must be not_applicable.'"
+            "  ) "
+            "}; "
+            "$recommendations = @("
+            "  [pscustomobject]@{ skill_id = 'tdd-guide' }, "
+            "  [pscustomobject]@{ skill_id = 'spreadsheet' }"
+            "); "
+            "$dispatch = Resolve-VibeHostSpecialistDispatchDecision "
+            "-HostDecision $hostDecision "
+            "-Recommendations $recommendations "
+            "-GovernanceScope 'root' "
+            "-Policy $null; "
+            "$tdd = Resolve-VibeCodeTaskTddDecision "
+            "-HostDecision $hostDecision "
+            "-Task 'router runtime minimal code-change test plan' "
+            "-TaskType 'coding' "
+            "-HeuristicRequiresTdd $true "
+            "-DocumentArtifactBaseline $false; "
+            "[pscustomobject]@{ dispatch = $dispatch; tdd = $tdd } | ConvertTo-Json -Depth 20 -Compress"
+        )
+
+        self.assertEqual("curated_only", payload["dispatch"]["selection_mode"])
+        self.assertEqual([], payload["dispatch"]["approved_skill_ids"])
+        self.assertEqual(["tdd-guide", "spreadsheet"], payload["dispatch"]["deferred_skill_ids"])
+        self.assertEqual("not_applicable", payload["tdd"]["mode"])
+        self.assertEqual("host_revision_delta", payload["tdd"]["source"])
+
+    def test_requirement_revision_delta_is_promoted_to_frozen_requirement_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir) / "artifacts"
+            payload = run_runtime(
+                artifact_root=artifact_root,
+                host_decision_json=build_host_requirement_field_revision_decision_json(),
+                requested_stage_stop="requirement_doc",
+            )
+            relative_artifacts = payload["summary"].get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            runtime_input_packet_path = artifact_root / Path(relative_artifacts["runtime_input_packet"])
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
+
+            self.assertIn("## Deliverable", requirement_doc)
+            self.assertIn("router/runtime output field audit table", requirement_doc)
+            self.assertNotIn(
+                "## Deliverable\nGoverned implementation artifacts, verification evidence, and cleanup receipts",
+                requirement_doc,
+            )
+            self.assertIn("- host AI can use the compact summary first", requirement_doc)
+            self.assertIn("concrete design and implementation plan that reduces host context burden", requirement_doc)
+            self.assertIn("TDD mode: not_applicable", requirement_doc)
+            self.assertIn("Decision source: host_revision_delta", requirement_doc)
+            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertEqual("not_applicable", runtime_input_packet["code_task_tdd_decision"]["mode"])
+            self.assertEqual([], runtime_input_packet["specialist_dispatch"]["approved_dispatch"])
 
     def test_stale_host_specialist_dispatch_decision_is_safely_shrunk(self) -> None:
         shell = resolve_powershell()
