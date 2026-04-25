@@ -25,10 +25,6 @@ Install the Skills package, call `vibe`, and let the harness do the heavy liftin
 
 <br/>
 
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=19&pause=650&color=32CD32&center=true&vCenter=true&width=780&height=72&lines=%3E+vibe;%3E+freeze+intent;%3E+orchestrate+expert+Skills;%3E+verify+evidence;%3E+preserve+workspace+context" alt="Vibe runtime terminal animation" />
-</a>
-
 <table align="center">
 <tr>
 <td align="left">
@@ -53,12 +49,6 @@ Install the Skills package, call `vibe`, and let the harness do the heavy liftin
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/pulse">
   <img src="https://img.shields.io/github/last-commit/foryourhealth111-pixel/Vibe-Skills?style=for-the-badge&logo=git-lfs&color=32CD32&label=MOMENTUM" alt="last commit">
 </a>
-<a href="https://gitcgr.com/foryourhealth111-pixel/Vibe-Skills">
-  <img src="https://gitcgr.com/badge/foryourhealth111-pixel/Vibe-Skills.svg" alt="gitcgr" />
-</a>
-
-<br/><br/>
-
 <img src="https://komarev.com/ghpvc/?username=vibe-skills-foryourhealth&label=NODES+ACTIVE&color=0078d7&style=for-the-badge" alt="Visitors">
 &nbsp;
 <img src="https://img.shields.io/badge/Architecture-VCO_Runtime-orange?style=for-the-badge" alt="Arch">
