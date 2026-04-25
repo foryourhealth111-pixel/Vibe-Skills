@@ -16,12 +16,12 @@
 
 <br/><br/>
 
-### A plug-in harness for skills-capable AI agents
+### A simple plug-in harness for any skills-capable AI agent
 
-If your AI can load Skills, VibeSkills gives it a governed work harness: clear entrypoints, staged task orchestration, expert Skill dispatch, TDD-oriented delivery, verification evidence, and cross-session working memory.
+Install the Skills package, call `vibe`, and let the harness do the heavy lifting. VibeSkills reads the task, breaks it into stages, automatically brings in the right expert Skills, checks the work, and keeps useful context for the next session.
 
 &nbsp;
-*The value is not just "340+ Skills". The value is the harness that knows when to clarify, when to plan, which expert Skill to call, how to test, how to verify, and what context to preserve for the next session.*
+*You do not need to memorize a skill catalog or babysit every step. The point is simple: less control burden for you, more disciplined work from the agent.*
 
 
 <br/>
@@ -94,10 +94,10 @@ If your AI can load Skills, VibeSkills gives it a governed work harness: clear e
 
 | Term | Plain-English Meaning |
 |:---|:---|
-| **Harness** | The governed workflow layer around your AI agent. It clarifies, plans, executes, tests, verifies, and stores useful context. |
+| **Harness** | The workflow layer around your AI agent. It figures out the next stage, calls the right Skills, checks the work, and saves useful context. |
 | **Skill** | A focused expert capability, such as `tdd-guide`, `code-review`, data analysis, writing, or research support. |
 | **Vibe / VCO** | The canonical runtime that runs the harness. Public entrypoints are `vibe` and `vibe-upgrade`. |
-| **Stage orchestration** | Different Skills are called at different moments: requirements, planning, implementation, review, verification, and cleanup. |
+| **Automatic orchestration** | Different Skills are selected and used at different moments: requirements, planning, implementation, review, verification, and cleanup. |
 | **TDD / proof-first delivery** | Work should be backed by tests, checks, artifacts, or explicit manual-review notes before completion is claimed. |
 | **Workspace memory** | Structured project information, decisions, and evidence are stored so later sessions can continue without starting over. |
 
@@ -106,12 +106,12 @@ If your AI can load Skills, VibeSkills gives it a governed work harness: clear e
 > [!IMPORTANT]
 > ### 🎯 Core Vision
 >
-> VibeSkills turns a skills-capable AI agent into a more disciplined working system.
+> VibeSkills starts from a simple idea: Skills become much more useful when an intelligent harness knows how to orchestrate them.
 >
-> It packages a governed harness, expert Skills, TDD-oriented execution, verification rules, and workspace memory into one plug-in Skills bundle. The user should not have to manually remember every tool, prompt every phase, police every test, or rebuild context in every new session.
+> It packages a governed harness, expert Skills, TDD-oriented execution, verification rules, and workspace memory into one plug-in Skills bundle. You should not have to remember every tool, choose every Skill by hand, prompt every phase, police every test, or rebuild context in every new session.
 >
-> **Plug it in, invoke `vibe`, and the agent gains a structured way to work.**
-> The goal is not more buttons for the user. The goal is less control burden with better delivery discipline.
+> **Plug it in, invoke `vibe`, and the agent gets a clearer way to work.**
+> Because VibeSkills is delivered as a Skills package, it is easy to install, easy to move across hosts, and useful for many kinds of work out of the box.
 
 <br/>
 
@@ -125,20 +125,20 @@ If your AI can load Skills, VibeSkills gives it a governed work harness: clear e
 ## ✨ What makes it different?
 
 > Most skill repos answer: _"What tools can my AI use?"_
-> **VibeSkills answers the harder question: _"How should my AI organize the work, call the right experts, test the result, and carry context forward?"_**
+> **VibeSkills answers the more practical question: _"How can my AI use those Skills automatically, at the right time, without making me manage the whole process?"_**
 
-VibeSkills is built around a simple operating model:
+The operating model is intentionally simple:
 
 <div align="center">
 
 | Layer | What it does for the user |
 |:---|:---|
-| **Easy entry** | Start with `vibe`; use `vibe-upgrade` to keep the package current. No need to memorize dozens of workflow commands. |
-| **Governed harness** | The agent follows a structured path: clarify → plan → execute → test → verify → preserve context. |
-| **Stage-aware Skill orchestration** | Expert Skills are called where they add value, instead of competing all at once. |
-| **TDD and verification discipline** | Work is driven toward tests, checks, evidence, and explicit acceptance rather than unsupported completion claims. |
+| **Easy start** | Start with `vibe`; use `vibe-upgrade` to keep the package current. No long command menu to learn first. |
+| **Intelligent harness** | The agent follows a structured path: clarify → plan → execute → test → verify → preserve context. |
+| **Automatic Skill orchestration** | The harness picks expert Skills by task, phase, and constraints, then keeps them in bounded roles. |
+| **TDD and verification discipline** | Work is pushed toward tests, checks, evidence, and explicit acceptance instead of unsupported completion claims. |
 | **Structured context storage** | Requirements, plans, decisions, handoff notes, and evidence are stored in predictable places for future sessions. |
-| **Skills-package portability** | The core is a plug-in Skills bundle that can adapt to Codex, Claude Code, Cursor, OpenCode, Windsurf, OpenClaw, and other Skills-aware hosts. |
+| **Portable Skills package** | The core is a plug-in bundle, so any Skills-capable AI agent can get the same workflow upgrade across supported hosts. |
 
 </div>
 
@@ -148,11 +148,11 @@ VibeSkills is built around a simple operating model:
 
 | Without a harness | With VibeSkills |
 |:---|:---|
-| You manually decide the next prompt, tool, and quality check. | The harness drives stage boundaries and asks for confirmation where it matters. |
-| Skills are a long list the agent may forget. | Skills become expert workers dispatched by phase and task type. |
+| You keep deciding the next prompt, tool, and quality check. | The harness guides the workflow and asks for confirmation where it matters. |
+| Skills are a long list the agent may forget. | Skills become expert workers dispatched automatically by phase and task type. |
 | "Done" can mean the model stopped talking. | Delivery is tied to tests, checks, artifacts, or explicit manual-review state. |
 | Long projects lose context across sessions. | Requirements, plans, decisions, and evidence are stored for continuation. |
-| Every host needs a different workflow story. | The core stays a Skills package, with host adapters around it. |
+| Every host needs a different workflow story. | The core stays a general Skills package, with host adapters around it. |
 
 </div>
 
@@ -163,7 +163,7 @@ VibeSkills is built around a simple operating model:
 
 ## 👥 Who is it for?
 
-VibeSkills is for people who want AI agents to work with more structure and less hand-holding.
+VibeSkills is for people who want AI agents to be easy to start, useful across many kinds of work, and less exhausting to manage.
 
 <details>
 <summary>Is this for you? Click to expand</summary>
@@ -175,14 +175,14 @@ VibeSkills is for people who want AI agents to work with more structure and less
 | Audience | Description |
 |:---:|:---|
 | 🎯 **Users who need reliable delivery** | Want the agent to clarify, plan, test, and verify instead of rushing to an answer. |
-| ⚡ **Power users of AI agents** | Need one harness to coordinate many expert Skills across complex work. |
+| ⚡ **Power users of AI agents** | Need one harness to coordinate many expert Skills without micromanaging every step. |
 | 🏢 **Teams standardizing AI workflows** | Want repeatable requirements, plans, verification, and handoff artifacts. |
-| 🧩 **Skill builders and integrators** | Want a plug-in package model that can travel across multiple hosts. |
+| 🧩 **Skill builders and integrators** | Want a plug-in package model that is easy to install and portable across hosts. |
 | 😩 **Users tired of tool micromanagement** | Want the system to decide which Skill belongs in which stage. |
 
 </div>
 
-> _If you only need one isolated script, VibeSkills may be more structure than you need. If you want an AI agent that can carry real work across phases and sessions, this is the layer that makes Skills usable at scale._
+> _If you only need one isolated script, VibeSkills may be more structure than you need. If you want an AI agent that can handle real work across phases and sessions, this is the friendly layer that makes Skills usable at scale._
 
 </details>
 
@@ -195,13 +195,13 @@ VibeSkills is for people who want AI agents to work with more structure and less
 
 The core point is simple: the Skills are not the product by themselves. The harness is what turns them into a usable working system.
 
-`vibe` owns the workflow. It decides when the agent should clarify, when it should plan, when specialist Skills should help, when tests or checks should run, and when delivery can be claimed.
+`vibe` owns the workflow. It decides when the agent should clarify, when it should plan, which specialist Skills should help, when tests or checks should run, and when delivery can be claimed. The user gets one simple entry instead of a pile of decisions.
 
 <div align="center">
 
 | Common worry | What actually happens |
 |:---|:---|
-| "There are too many Skills." | You do not manually choose from the whole list. The harness routes by task, phase, and constraints. |
+| "There are too many Skills." | You do not manually choose from the whole list. The harness routes intelligently by task, phase, and constraints. |
 | "Similar Skills might conflict." | The router picks bounded roles, and specialist Skills stay scoped to the current phase or work unit. |
 | "Multi-agent work will get chaotic." | Larger work is split into bounded units, with explicit ownership, verification, and coordinator approval. |
 
@@ -211,7 +211,7 @@ The core point is simple: the Skills are not the product by themselves. The harn
 
 - **Start with one governed entry**: Most work enters through `vibe`, so the user does not have to choose a workflow tree manually.
 - **Freeze intent before execution**: Requirements and plans become stable artifacts instead of disappearing into chat history.
-- **Dispatch experts by stage**: Requirement, planning, implementation, testing, review, and cleanup can each use different Skills.
+- **Dispatch experts automatically by stage**: Requirement, planning, implementation, testing, review, and cleanup can each use different Skills.
 - **Drive toward evidence**: TDD, targeted checks, artifact review, and delivery acceptance keep completion claims grounded.
 - **Preserve context**: The runtime stores enough structure for another session or agent to continue.
 
