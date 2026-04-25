@@ -172,20 +172,19 @@ git checkout vX.Y.Z
 
 ## 安装后仍需你本地处理的内容
 
+命令安装只负责把 VibeSkills 安装到目标宿主根目录并运行检查。公开文档暂时不引导用户配置内置在线增强能力；不要在安装后步骤里要求用户补 provider、凭据、URL 或模型名。若这类能力没有通过公开路径配置好，最终报告只需要把 `online-ready` 单独标记为未就绪或未验证。
+
 ### Codex
 
 - hook 当前冻结；这不是安装失败
-- AI 治理 advice 的常见配置路径，优先使用：
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - 可选 `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-- 向量 diff（可选）：添加 `VCO_VECTOR_DIFF_API_KEY` / `VCO_VECTOR_DIFF_BASE_URL` / `VCO_VECTOR_DIFF_MODEL`
+- 如需修改宿主本地设置，继续维护真实 `~/.codex/settings.json`
+- 不要把 `$vibe` 可发现性说成 MCP 或在线增强能力已完成
 
 ### Claude Code
 
 - 会在保留真实 `~/.claude/settings.json` 的前提下，增量合并受约束的 `vibeskills` 设置面
 - 更广的 Claude 插件、MCP 注册、凭据和宿主行为仍由宿主侧管理
-- AI 治理 advice 使用 `VCO_INTENT_ADVICE_*`，可选再补 `VCO_VECTOR_DIFF_*`
+- 不要在安装报告里声称宿主侧 provider、插件或 MCP 已经自动全部就绪
 
 ### Cursor
 

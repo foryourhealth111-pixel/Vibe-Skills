@@ -2,11 +2,18 @@
 
 这个目录放安装、更新、卸载和自定义接入说明。
 
-普通用户的路径很短：
+普通用户有两条路径：
+
+- **提示词安装**：复制一段提示词给 AI 客户端，让它确认宿主、版本并执行安装。
+- **命令安装**：直接在终端运行 install/check，适合熟悉宿主根目录和命令行的人。
+
+如果你不确定选哪个，先走提示词安装：
 
 1. 打开 [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)。
 2. 选择宿主、动作和版本。
 3. 复制一段提示词到你要安装 VibeSkills 的 AI 客户端里。
+
+如果你要直接执行命令，打开 [`recommended-full-path.md`](./recommended-full-path.md)。
 
 ## 前置条件
 
@@ -21,12 +28,12 @@ Linux 和 macOS 仍然可以使用 `bash` 安装脚本。推荐安装 PowerShell
 | 需求 | 阅读 |
 |:---|:---|
 | 公开安装/更新入口 | [`one-click-install-release-copy.md`](./one-click-install-release-copy.md) |
-| 直接命令参考 | [`recommended-full-path.md`](./recommended-full-path.md) |
+| 命令安装参考 | [`recommended-full-path.md`](./recommended-full-path.md) |
 | 宿主根目录选择 | [`../cold-start-install-paths.md`](../cold-start-install-paths.md) |
 | 离线/手动安装 | [`manual-copy-install.md`](./manual-copy-install.md) |
 | OpenClaw 细节 | [`openclaw-path.md`](./openclaw-path.md) |
 | OpenCode 细节 | [`opencode-path.md`](./opencode-path.md) |
-| 安装后配置 | [`configuration-guide.md`](./configuration-guide.md) |
+| 安装后配置边界 | [`configuration-guide.md`](./configuration-guide.md) |
 | 自定义 Skill 接入 | [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md) |
 
 维护者/参考页：
@@ -79,6 +86,8 @@ Linux 和 macOS 仍然可以使用 `bash` 安装脚本。推荐安装 PowerShell
 - `online-ready`
 
 `$vibe` 或 `/vibe` 只证明 governed runtime 入口可用。它不等于 MCP 完成，也不能证明 provider、凭证、插件或宿主原生 MCP 面都已经配置好。
+
+公开安装流程暂时不引导用户配置内置在线增强能力。安装助手不应要求用户提供 provider、凭证、URL 或模型名；如果相关能力没有开放配置，只能在报告里把 `online-ready` 如实保持为未就绪或未验证。
 
 ## 卸载
 

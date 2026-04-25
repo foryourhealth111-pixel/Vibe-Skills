@@ -29,7 +29,7 @@
      - Linux / macOS：`bash ./install.sh --host opencode --profile full` 与 `bash ./check.sh --host opencode --profile full`
      - 只有我要求所有宿主都走同一个 wrapper 时，才改用 `scripts/bootstrap/one-shot-setup.* --host opencode --profile full`。
 5. 不要要求我把密钥、URL 或 model 粘贴到聊天里；只引导我在本地 settings 或环境变量里配置。
-6. 如果我后续要补 AI 治理在线能力，优先推荐真实键名：`VCO_INTENT_ADVICE_API_KEY`、可选 `VCO_INTENT_ADVICE_BASE_URL`、`VCO_INTENT_ADVICE_MODEL`，以及可选 vector diff 键 `VCO_VECTOR_DIFF_API_KEY`、`VCO_VECTOR_DIFF_BASE_URL`、`VCO_VECTOR_DIFF_MODEL`。旧 `OPENAI_*` 不再自动回填。
+6. 暂时不要向我推荐内置在线增强能力的 provider、凭据、URL 或模型配置；这部分不作为公开安装步骤，也不要把它缺失描述成基础安装失败。
 7. 安装过程中，在宿主支持时尝试这五个 MCP：`github`、`context7`、`serena`、`scrapling`、`claude-flow`。
 8. MCP 完成必须以宿主真实的宿主原生 MCP 配置面可见为准。`$vibe` 或 `/vibe` 不等于 MCP 完成；repo template、manifest、example、sidecar 或命令在 PATH 上也不能单独证明 MCP ready。
 9. 如果宿主原生 MCP 自动注册失败，或当前宿主没有稳定可自动化的接口，报告 `not host-visible`，不要软说成功。继续完成基础安装，最后汇总 MCP 缺口。

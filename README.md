@@ -677,9 +677,13 @@ The runtime core behind **VibeSkills** is **VCO**. This is not a single-point to
 
 ## ⚙️ Installation & Skills Management
 
-Install first, learn the internals later. Most users only need one page and one copied prompt.
+Install first, learn the internals later. The public install path now has two clear choices: **prompt-based install** and **command install**.
 
-### Fast path
+Use the prompt path if you want the assistant to handle host roots and checks. Use the command path if you already know the terminal flow and want to run the commands yourself. Both paths install the same public `vibe` / `vibe-upgrade` entries.
+
+### Option 1: Prompt-Based Install (Recommended)
+
+This is the shortest path. Choose three things, then copy one prompt into the AI app you use:
 
 1. Pick your host: `codex`, `claude-code`, `cursor`, `windsurf`, `openclaw`, or `opencode`.
 2. Pick your action: `install` for a first install, `update` if VibeSkills is already installed.
@@ -688,10 +692,37 @@ Install first, learn the internals later. Most users only need one page and one 
    [Prompt-based install (recommended)](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/one-click-install-release-copy.en.md)
 5. Copy the matching prompt into your AI app and let it run the install and check steps.
 
+The prompt asks the assistant to confirm host and public version first, then run the install and checks. It does not ask you to paste secrets, URLs, or model names into chat.
+
+### Option 2: Command Install
+
+If you prefer to run commands directly, open:
+
+[Multi-host command reference](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/recommended-full-path.en.md)
+
+Command install is useful when:
+
+- you already know the target host root, such as `~/.codex` for Codex
+- you want to control the `install` / `check` sequence yourself
+- you are validating install behavior in CI, a test machine, or an isolated target
+
+The common shape is:
+
+```bash
+bash ./install.sh --host <host> --profile full
+bash ./check.sh --host <host> --profile full
+```
+
+See the command reference for Windows / PowerShell variants.
+
 ### `full` or `minimal`?
 
 - Choose `full` if you want the normal VibeSkills experience.
 - Choose `minimal` only if you deliberately want the smaller governance framework first.
+
+### What install will not ask you to configure
+
+The public install flow currently focuses on local installation, `vibe` discoverability, MCP auto-provision attempts, and base checks. Built-in online enhancement features are treated as not publicly configurable for now, so install docs do not guide normal users through provider, credential, or model setup for that path.
 
 ### Open More Docs Only When Needed
 
@@ -810,11 +841,11 @@ _If VibeSkills is already installed, start with one invocation._
 
 **Open only if needed**
 
+- 🛠 [Command install reference](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/recommended-full-path.en.md)
 - 🧩 [Custom workflow onboarding](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/custom-workflow-onboarding.en.md)
 - 📄 [OpenClaw host notes](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/openclaw-path.en.md)
 - 📄 [OpenCode host notes](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/opencode-path.en.md)
 - 📁 [Manual copy install (offline)](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/manual-copy-install.en.md)
-- 🛠 [Advanced install command reference](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/install/recommended-full-path.en.md)
 - 🧊 [Cold start & other environments](https://github.com/foryourhealth111-pixel/Vibe-Skills/blob/main/docs/cold-start-install-paths.en.md)
 
 </details>

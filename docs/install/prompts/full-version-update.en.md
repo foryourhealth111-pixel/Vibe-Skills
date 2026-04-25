@@ -29,7 +29,7 @@ Update rules:
      - Windows: `pwsh -NoProfile -File .\install.ps1 -HostId opencode -Profile full` and `pwsh -NoProfile -File .\check.ps1 -HostId opencode -Profile full`
      - Linux / macOS: `bash ./install.sh --host opencode --profile full` and `bash ./check.sh --host opencode --profile full`
 6. Never ask me to paste secrets, URLs, or model names into chat.
-7. If I later want online AI governance, recommend `VCO_INTENT_ADVICE_API_KEY`, optional `VCO_INTENT_ADVICE_BASE_URL`, `VCO_INTENT_ADVICE_MODEL`, and optional vector diff keys `VCO_VECTOR_DIFF_API_KEY`, `VCO_VECTOR_DIFF_BASE_URL`, `VCO_VECTOR_DIFF_MODEL`. Legacy `OPENAI_*` names are not automatic fallbacks.
+7. Do not recommend built-in online enhancement provider, credential, URL, or model configuration for now; that path is not part of the public update steps, and missing values there are not a base update failure.
 8. During the update, attempt these MCP surfaces when the host can support them: `github`, `context7`, `serena`, `scrapling`, and `claude-flow`.
 9. MCP completion means visibility in the host's real native MCP surface. `$vibe` or `/vibe` is not MCP completion. Repo templates, manifests, examples, sidecars, or commands on PATH are not enough.
 10. If native MCP registration fails or is not stably automatable for the host, say `not host-visible`. Continue the base update and summarize the MCP gaps at the end.

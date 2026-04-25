@@ -16,6 +16,8 @@ You need:
 
 Linux and macOS can still use the `bash` install entrypoints. PowerShell 7 is recommended because the full governed check surface uses it.
 
+> Prefer to run commands yourself? Open [`recommended-full-path.en.md`](./recommended-full-path.en.md). This page is the prompt-based install path.
+
 ## Choose Three Things
 
 | Choice | Options | Default |
@@ -50,7 +52,8 @@ The prompt asks the assistant to:
 2. install into the real host root by default, for example `~/.codex` for Codex so `$vibe` is discoverable;
 3. run the matching install and check commands;
 4. keep secrets, URLs, and model names out of chat;
-5. report these states separately: `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, and `online-ready`.
+5. avoid guiding users through built-in online enhancement configuration that is not publicly open yet;
+6. report these states separately: `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, and `online-ready`.
 
 `$vibe` or `/vibe` means the governed runtime entry is available. It is not MCP completion and not proof that every MCP is host-visible.
 
@@ -62,7 +65,7 @@ The prompt asks the assistant to:
 - OpenCode details: [`opencode-path.en.md`](./opencode-path.en.md)
 - Offline/manual install: [`manual-copy-install.en.md`](./manual-copy-install.en.md)
 - Custom Skills after install: [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
-- Local configuration: [`configuration-guide.en.md`](./configuration-guide.en.md)
+- Post-install configuration boundaries: [`configuration-guide.en.md`](./configuration-guide.en.md)
 
 ## Uninstall
 

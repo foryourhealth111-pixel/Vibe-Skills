@@ -29,7 +29,7 @@
      - Windows：`pwsh -NoProfile -File .\install.ps1 -HostId opencode -Profile full` 与 `pwsh -NoProfile -File .\check.ps1 -HostId opencode -Profile full`
      - Linux / macOS：`bash ./install.sh --host opencode --profile full` 与 `bash ./check.sh --host opencode --profile full`
 6. 不要要求我把密钥、URL 或 model 粘贴到聊天里。
-7. 如果我后续要补 AI 治理在线能力，优先推荐 `VCO_INTENT_ADVICE_API_KEY`、可选 `VCO_INTENT_ADVICE_BASE_URL`、`VCO_INTENT_ADVICE_MODEL`，以及可选 vector diff 键 `VCO_VECTOR_DIFF_API_KEY`、`VCO_VECTOR_DIFF_BASE_URL`、`VCO_VECTOR_DIFF_MODEL`。旧 `OPENAI_*` 不再自动回填。
+7. 暂时不要向我推荐内置在线增强能力的 provider、凭据、URL 或模型配置；这部分不作为公开更新步骤，也不要把它缺失描述成基础更新失败。
 8. 更新过程中，在宿主支持时尝试这五个 MCP：`github`、`context7`、`serena`、`scrapling`、`claude-flow`。
 9. MCP 完成必须以宿主真实的宿主原生 MCP 配置面可见为准。`$vibe` 或 `/vibe` 不等于 MCP 完成；template、manifest、example、sidecar 或命令在 PATH 上都不能单独证明 MCP ready。
 10. 如果宿主原生 MCP 自动注册失败，或当前宿主没有稳定可自动化的接口，报告 `not host-visible`。继续基础更新，最后汇总 MCP 缺口。

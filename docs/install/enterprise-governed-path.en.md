@@ -69,7 +69,7 @@ According to `docs/universalization/host-capability-matrix.md` and `adapters/*/h
 
 - whether host-side plugins are enabled and version-controlled
 - whether MCP registration and authorization are complete, especially for plugin-backed MCP
-- provider-secret distribution, rotation, and permission policy for values such as `VCO_INTENT_ADVICE_API_KEY` (and optional `VCO_VECTOR_DIFF_API_KEY`)
+- provider-secret distribution, rotation, and permission policy
 - whether external CLIs such as `node`, `npm`, and `gh` are consistent across target machines or images
 
 If those items are incomplete, the final status should honestly remain `manual_actions_pending`. Do not describe it as "fully ready".

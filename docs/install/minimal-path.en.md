@@ -15,7 +15,7 @@ Relevant distribution surfaces: `dist/manifests/vibeskills-core.json` and, for C
 - no guarantee that host-side plugins are enabled
 - no guarantee that plugin-backed MCP has been registered or authorized
 - no guarantee that any MCP has been placed into the host's real **native MCP surface**
-- no guarantee that reputation-bound keys such as `VCO_INTENT_ADVICE_API_KEY` (and optional `VCO_VECTOR_DIFF_API_KEY`) are ready
+- no guarantee that currently non-public built-in online enhancement capabilities are ready
 - no claim that a runnable bash flow on Linux/macOS is equal to the full Windows path
 
 `$vibe` or `/vibe` only proves that the governed runtime entry is available. It is not MCP completion, and neither templates, manifests, sidecars, `*.json.example`, nor PATH-visible commands count as host-visible MCP readiness by themselves.

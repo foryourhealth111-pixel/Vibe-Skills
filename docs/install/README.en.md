@@ -2,11 +2,18 @@
 
 This folder contains the install, update, uninstall, and custom-integration docs.
 
-For normal users, the path is short:
+Normal users have two paths:
+
+- **Prompt-based install**: copy one prompt into the AI app and let it confirm host, version, install, and check.
+- **Command install**: run install/check directly in a terminal when you already know the host root and command flow.
+
+If you are unsure, start with prompt-based install:
 
 1. Open [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md).
 2. Choose host, action, and version.
 3. Copy one prompt into the AI app you want to install VibeSkills into.
+
+If you prefer direct commands, open [`recommended-full-path.en.md`](./recommended-full-path.en.md).
 
 ## Requirements
 
@@ -21,12 +28,12 @@ Linux and macOS can still use the `bash` install scripts. PowerShell 7 is recomm
 | Need | Read |
 |:---|:---|
 | Public install/update entry | [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md) |
-| Direct command reference | [`recommended-full-path.en.md`](./recommended-full-path.en.md) |
+| Command install reference | [`recommended-full-path.en.md`](./recommended-full-path.en.md) |
 | Host root decision help | [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md) |
 | Offline/manual install | [`manual-copy-install.en.md`](./manual-copy-install.en.md) |
 | OpenClaw details | [`openclaw-path.en.md`](./openclaw-path.en.md) |
 | OpenCode details | [`opencode-path.en.md`](./opencode-path.en.md) |
-| Configuration after install | [`configuration-guide.en.md`](./configuration-guide.en.md) |
+| Post-install configuration boundaries | [`configuration-guide.en.md`](./configuration-guide.en.md) |
 | Custom Skill onboarding | [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md) |
 
 Maintainer/reference pages:
@@ -79,6 +86,8 @@ Do not collapse install state into one vague success line. Report these separate
 - `online-ready`
 
 `$vibe` or `/vibe` proves the governed runtime entry only. It is not MCP completion and not proof that providers, credentials, plugins, or host-native MCP surfaces are fully configured.
+
+The public install flow does not currently guide users through built-in online enhancement configuration. Install assistants should not ask users for providers, credentials, URLs, or model names; when that path is not configured through public docs, keep `online-ready` separate and report it as not ready or not verified.
 
 ## Uninstall
 

@@ -16,6 +16,8 @@
 
 Linux 和 macOS 仍然可以使用 `bash` 安装入口。推荐安装 PowerShell 7，是因为完整验证面会用到它。
 
+> 想自己运行命令？直接看 [`recommended-full-path.md`](./recommended-full-path.md)。本页是提示词安装路径。
+
 ## 先选三件事
 
 | 选择 | 可选项 | 默认建议 |
@@ -50,7 +52,8 @@ Linux 和 macOS 仍然可以使用 `bash` 安装入口。推荐安装 PowerShell
 2. 默认安装到真实宿主根目录，比如 Codex 使用 `~/.codex`，这样安装后 `$vibe` 能直接发现；
 3. 执行对应的 install 和 check；
 4. 不要求你把密钥、URL 或 model 粘贴到聊天里；
-5. 分开报告这些状态：`installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness`、`online-ready`。
+5. 不引导配置暂未开放的内置在线增强能力；
+6. 分开报告这些状态：`installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness`、`online-ready`。
 
 `$vibe` 或 `/vibe` 只说明 governed runtime 入口可用，**不等于 MCP 完成**，也不能证明每个 MCP 已经进入宿主原生 MCP 配置面。
 
@@ -62,7 +65,7 @@ Linux 和 macOS 仍然可以使用 `bash` 安装入口。推荐安装 PowerShell
 - OpenCode 细节：[`opencode-path.md`](./opencode-path.md)
 - 离线/手动安装：[`manual-copy-install.md`](./manual-copy-install.md)
 - 安装后接自定义 Skills：[`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md)
-- 本地配置说明：[`configuration-guide.md`](./configuration-guide.md)
+- 安装后配置边界：[`configuration-guide.md`](./configuration-guide.md)
 
 ## 卸载
 
