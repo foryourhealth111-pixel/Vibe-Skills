@@ -1689,7 +1689,13 @@ function New-VibeSpecialistDecisionProjection {
         'degraded' { 'degraded' }
         'blocked' { 'blocked' }
         'local_suggestion_only' { 'local_suggestion_only' }
-        default { 'pending_resolution' }
+        default {
+            if ([int]$recommendationCountResolved -eq 0) {
+                'no_specialist_needed'
+            } else {
+                'pending_resolution'
+            }
+        }
     }
     $resolutionNotes = Get-VibeSpecialistDecisionDefaultNotes -DecisionState $decisionState -ResolutionMode $resolutionMode
 
@@ -1741,10 +1747,35 @@ function New-VibeSpecialistDecisionProjection {
         }
     }
 
+    $selectedSkillIds = @($approvedDispatchSkillIds)
+    $candidateSkillIdsReviewed = @(
+        @($matchedSkillIds) +
+        @($surfacedSkillIds) +
+        @($approvedDispatchSkillIds) +
+        @($localSuggestionSkillIds) +
+        @($blockedSkillIds) +
+        @($degradedSkillIds)
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
+    $rejectedCandidates = @()
+    if ($decisionState -eq 'no_specialist_recommendations') {
+        foreach ($candidateSkillId in @($candidateSkillIdsReviewed)) {
+            if (@($selectedSkillIds) -contains [string]$candidateSkillId) {
+                continue
+            }
+            $rejectedCandidates += [pscustomobject]@{
+                skill_id = [string]$candidateSkillId
+                reason = 'No bounded specialist dispatch was selected for this run; host-governed execution remains responsible for the task and verification evidence.'
+            }
+        }
+    }
+
     return [pscustomobject]@{
         decision_state = $decisionState
         resolution_mode = $resolutionMode
         recommendation_count = [int]$recommendationCountResolved
+        candidate_skill_ids_reviewed = @($candidateSkillIdsReviewed)
+        selected_skill_ids = @($selectedSkillIds)
+        rejected_candidates = @($rejectedCandidates)
         matched_skill_ids = @($matchedSkillIds)
         surfaced_skill_ids = @($surfacedSkillIds)
         approved_dispatch_skill_ids = @($approvedDispatchSkillIds)
@@ -1876,16 +1907,16 @@ function New-VibeRuntimeInputPacketProjection {
         specialist_dispatch = [pscustomobject]@{
             approved_dispatch = [object[]]@($SpecialistDispatch.approved_dispatch)
             local_specialist_suggestions = [object[]]@($SpecialistDispatch.local_specialist_suggestions)
-            blocked = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked' -and $null -ne $SpecialistDispatch.blocked) { [object[]]@($SpecialistDispatch.blocked) } else { @() }
-            degraded = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded' -and $null -ne $SpecialistDispatch.degraded) { [object[]]@($SpecialistDispatch.degraded) } else { @() }
+            blocked = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked' -and $null -ne $SpecialistDispatch.blocked) { $SpecialistDispatch.blocked } else { @() }))
+            degraded = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded' -and $null -ne $SpecialistDispatch.degraded) { $SpecialistDispatch.degraded } else { @() }))
             approved_skill_ids = @($SpecialistDispatch.approved_dispatch | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
             local_suggestion_skill_ids = @($SpecialistDispatch.local_specialist_suggestions | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
-            matched_skill_ids = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $SpecialistDispatch.matched_skill_ids) { [object[]]@($SpecialistDispatch.matched_skill_ids) } else { @() }
-            surfaced_skill_ids = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $SpecialistDispatch.surfaced_skill_ids) { [object[]]@($SpecialistDispatch.surfaced_skill_ids) } else { @() }
-            blocked_skill_ids = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked_skill_ids' -and $null -ne $SpecialistDispatch.blocked_skill_ids) { [object[]]@($SpecialistDispatch.blocked_skill_ids) } else { @() }
-            degraded_skill_ids = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded_skill_ids' -and $null -ne $SpecialistDispatch.degraded_skill_ids) { [object[]]@($SpecialistDispatch.degraded_skill_ids) } else { @() }
-            ghost_match_skill_ids = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'ghost_match_skill_ids' -and $null -ne $SpecialistDispatch.ghost_match_skill_ids) { [object[]]@($SpecialistDispatch.ghost_match_skill_ids) } else { @() }
-            promotion_outcomes = if ($SpecialistDispatch.PSObject.Properties.Name -contains 'promotion_outcomes' -and $null -ne $SpecialistDispatch.promotion_outcomes) { [object[]]@($SpecialistDispatch.promotion_outcomes) } else { @() }
+            matched_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $SpecialistDispatch.matched_skill_ids) { $SpecialistDispatch.matched_skill_ids } else { @() }))
+            surfaced_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $SpecialistDispatch.surfaced_skill_ids) { $SpecialistDispatch.surfaced_skill_ids } else { @() }))
+            blocked_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked_skill_ids' -and $null -ne $SpecialistDispatch.blocked_skill_ids) { $SpecialistDispatch.blocked_skill_ids } else { @() }))
+            degraded_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded_skill_ids' -and $null -ne $SpecialistDispatch.degraded_skill_ids) { $SpecialistDispatch.degraded_skill_ids } else { @() }))
+            ghost_match_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'ghost_match_skill_ids' -and $null -ne $SpecialistDispatch.ghost_match_skill_ids) { $SpecialistDispatch.ghost_match_skill_ids } else { @() }))
+            promotion_outcomes = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'promotion_outcomes' -and $null -ne $SpecialistDispatch.promotion_outcomes) { $SpecialistDispatch.promotion_outcomes } else { @() }))
             host_decision_applied = ($null -ne $HostSpecialistDispatchDecision)
             host_selection_mode = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'selection_mode')) { [string]$HostSpecialistDispatchDecision.selection_mode } else { $null }
             host_approved_skill_ids = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'approved_skill_ids')) { [object[]]@($HostSpecialistDispatchDecision.approved_skill_ids) } else { @() }

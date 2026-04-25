@@ -242,7 +242,10 @@
     "llm_acceleration_advice",
     "heartbeat_advice"
   ],
-  "required_specialist_recommendation_count": 1,
+  "required_specialist_recommendation_count": 0,
+  "require_specialist_decision_evidence": true,
+  "minimum_specialist_recommendation_confidence": 0.2,
+  "include_stage_assistant_recommendations": false,
   "specialist_recommendation_limit": 6,
   "fallback_specialists_by_task_type": {
     "planning": [

@@ -78,16 +78,25 @@ Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.provenanc
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.route_snapshot.selected_skill -eq 'vibe') -Message 'runtime input packet keeps vibe as the frozen route skill for governed entry'
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'runtime input packet keeps vibe as runtime authority'
 Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$runtimeInputPacket.divergence_shadow.skill_mismatch) -Message 'runtime input packet keeps router/runtime alignment for explicit governed vibe entry'
-Add-Assertion -Results ([ref]$results) -Condition (@($runtimeInputPacket.specialist_recommendations).Count -ge 1) -Message 'runtime input packet carries specialist recommendations'
-Add-Assertion -Results ([ref]$results) -Condition ((@($runtimeInputPacket.specialist_recommendations | ForEach-Object { [string]$_.skill_id }) -contains 'systematic-debugging')) -Message 'runtime input packet carries systematic-debugging as bounded specialist recommendation'
+$specialistDecision = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInputPacket.specialist_decision } else { $null }
+$noSpecialistNeeded = (
+    $null -ne $specialistDecision -and
+    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
+    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
+    [string]$specialistDecision.decision_state -eq 'no_specialist_recommendations' -and
+    [string]$specialistDecision.resolution_mode -eq 'no_specialist_needed'
+)
+$specialistRecommendationIds = @($runtimeInputPacket.specialist_recommendations | ForEach-Object { [string]$_.skill_id })
+Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds).Count -ge 1) -or $noSpecialistNeeded) -Message 'runtime input packet carries specialist recommendations or explicit no-specialist decision'
+Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds) -contains 'systematic-debugging') -or $noSpecialistNeeded) -Message 'runtime input packet carries systematic-debugging or explicit no-specialist decision'
 Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -ne 'execution-contract-prepared') -Message 'execute receipt is no longer receipt-only'
 Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'completed') -Message 'execution manifest status is completed' -Details $executionManifest.status
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.executed_unit_count -ge 2) -Message 'runtime execution runs at least two real units' -Details $executionManifest.executed_unit_count
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.failed_unit_count -eq 0) -Message 'runtime execution has zero failed units' -Details $executionManifest.failed_unit_count
 Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.proof_class -eq 'runtime') -Message 'execution manifest carries runtime proof class'
 Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$executeReceipt.plan_shadow_path)) -Message 'plan-derived shadow manifest exists' -Details ([string]$executeReceipt.plan_shadow_path)
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executeReceipt.specialist_recommendation_count -ge 1) -Message 'execute receipt carries specialist recommendation count'
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executeReceipt.specialist_dispatch_unit_count -ge 1) -Message 'execute receipt carries specialist dispatch unit count'
+Add-Assertion -Results ([ref]$results) -Condition (([int]$executeReceipt.specialist_recommendation_count -ge 1) -or $noSpecialistNeeded) -Message 'execute receipt carries specialist recommendation count or explicit no-specialist decision'
+Add-Assertion -Results ([ref]$results) -Condition (([int]$executeReceipt.specialist_dispatch_unit_count -ge 1) -or $noSpecialistNeeded) -Message 'execute receipt carries specialist dispatch unit count or explicit no-specialist decision'
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -Message 'execution manifest carries specialist accounting'
 Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.specialist_accounting.dispatch_unit_count -ge 1) -Message 'execution manifest carries specialist dispatch accounting'
 Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$executionManifest.route_runtime_alignment.skill_mismatch) -Message 'execution manifest preserves governed vibe alignment while still carrying specialist accounting'

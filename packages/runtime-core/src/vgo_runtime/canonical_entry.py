@@ -1259,6 +1259,18 @@ def _extract_terminal_stage(stage_lineage: dict[str, Any]) -> str | None:
     return stage_name or None
 
 
+def _runtime_packet_records_no_specialist_needed(runtime_packet: dict[str, Any]) -> bool:
+    specialist_decision = runtime_packet.get("specialist_decision")
+    if not isinstance(specialist_decision, dict):
+        return False
+    decision_state = str(specialist_decision.get("decision_state") or "").strip()
+    resolution_mode = str(specialist_decision.get("resolution_mode") or "").strip()
+    return (
+        decision_state == "no_specialist_recommendations"
+        and resolution_mode == "no_specialist_needed"
+    )
+
+
 def assert_minimum_truth_consistency(
     *,
     receipt: HostLaunchReceipt,
@@ -1317,8 +1329,10 @@ def assert_minimum_truth_consistency(
         raise RuntimeError("canonical truth packet missing route_snapshot selected_skill")
 
     specialist_recommendations = runtime_packet.get("specialist_recommendations")
-    if not isinstance(specialist_recommendations, list) or not specialist_recommendations:
-        raise RuntimeError("canonical truth packet must preserve specialist recommendation evidence")
+    if not isinstance(specialist_recommendations, list):
+        raise RuntimeError("canonical truth packet missing specialist recommendation evidence")
+    if not specialist_recommendations and not _runtime_packet_records_no_specialist_needed(runtime_packet):
+        raise RuntimeError("canonical truth packet must preserve specialist recommendation or no-specialist decision evidence")
 
     specialist_dispatch = runtime_packet.get("specialist_dispatch")
     if not isinstance(specialist_dispatch, dict):

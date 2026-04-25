@@ -581,6 +581,10 @@ function Get-VibeSpecialistRecommendations {
     if ($Policy.PSObject.Properties.Name -contains 'specialist_recommendation_limit' -and $Policy.specialist_recommendation_limit -ne $null) {
         $limit = [int]$Policy.specialist_recommendation_limit
     }
+    $minimumRecommendationConfidence = 0.0
+    if ($Policy.PSObject.Properties.Name -contains 'minimum_specialist_recommendation_confidence' -and $Policy.minimum_specialist_recommendation_confidence -ne $null) {
+        $minimumRecommendationConfidence = [double]$Policy.minimum_specialist_recommendation_confidence
+    }
     $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'specialist_dispatch_contract' -and $null -ne $Policy.specialist_dispatch_contract) {
         $Policy.specialist_dispatch_contract
     } else {
@@ -633,8 +637,14 @@ function Get-VibeSpecialistRecommendations {
             continue
         }
 
+        $rankedConfidence = if ($ranked.PSObject.Properties.Name -contains 'score' -and $ranked.score -ne $null) { [double]$ranked.score } else { 0.0 }
+        $candidateSelectionReason = if ($ranked.PSObject.Properties.Name -contains 'candidate_selection_reason') { [string]$ranked.candidate_selection_reason } else { '' }
+        if ($rankedConfidence -lt $minimumRecommendationConfidence -and $candidateSelectionReason -match 'fallback') {
+            continue
+        }
+
         $customMetadata = if ($customAdmissionIndex.ContainsKey($skillId)) { $customAdmissionIndex[$skillId] } else { $null }
-        $reason = "top ranked specialist candidate from pack '{0}' via {1}" -f ([string]$ranked.pack_id), ([string]$ranked.candidate_selection_reason)
+        $reason = "top ranked specialist candidate from pack '{0}' via {1}" -f ([string]$ranked.pack_id), $candidateSelectionReason
         $recommendations += (New-VibeSpecialistRecommendation `
             -RepoRoot $RepoRoot `
             -Task $Task `
@@ -643,7 +653,7 @@ function Get-VibeSpecialistRecommendations {
             -TaskType $TaskType `
             -Reason $reason `
             -PackId ([string]$ranked.pack_id) `
-            -Confidence ([double]$ranked.score) `
+            -Confidence $rankedConfidence `
             -Rank (@($recommendations).Count + 1) `
             -DispatchContract $dispatchContractForRecommendation `
             -PromotionPolicy $PromotionPolicy `
@@ -817,7 +827,7 @@ function Get-VibeSpecialistRecommendations {
 function Split-VibeSpecialistDispatch {
     param(
         [Parameter(Mandatory)] [string]$GovernanceScope,
-        [Parameter(Mandatory)] [object[]]$Recommendations,
+        [AllowEmptyCollection()] [object[]]$Recommendations = @(),
         [string[]]$MatchedSkillIds = @(),
         [string[]]$ApprovedSpecialistSkillIds = @(),
         [AllowNull()] [object]$HostSpecialistDispatchDecision = $null,

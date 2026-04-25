@@ -115,10 +115,13 @@ def extract_split_specialist_dispatch_function() -> str:
 
 
 class SkillPromotionFreezeContractTests(unittest.TestCase):
-    def test_runtime_input_policy_requires_recommendation_floor_and_fallback_specialists(self) -> None:
+    def test_runtime_input_policy_allows_no_specialist_decision_and_keeps_advisory_fallbacks(self) -> None:
         policy = load_json(REPO_ROOT / "config" / "runtime-input-packet-policy.json")
 
-        self.assertEqual(1, int(policy["required_specialist_recommendation_count"]))
+        self.assertEqual(0, int(policy["required_specialist_recommendation_count"]))
+        self.assertTrue(bool(policy["require_specialist_decision_evidence"]))
+        self.assertGreater(float(policy["minimum_specialist_recommendation_confidence"]), 0.0)
+        self.assertFalse(bool(policy["include_stage_assistant_recommendations"]))
         fallback_by_task_type = policy["fallback_specialists_by_task_type"]
         for task_type in ("planning", "debug", "research", "coding", "review", "default"):
             with self.subTest(task_type=task_type):

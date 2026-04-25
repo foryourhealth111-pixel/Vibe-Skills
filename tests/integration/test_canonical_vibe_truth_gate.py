@@ -49,6 +49,8 @@ def _write_valid_canonical_entry_artifacts(
     canonical_router_requested_skill: str | None = None,
     router_selected_skill: str = "systematic-debugging",
     requested_stage_stop: str = "phase_cleanup",
+    interactive_pause: dict[str, object] | None = None,
+    terminal_stage: str | None = None,
 ) -> None:
     _write_json(
         session_root / "host-launch-receipt.json",
@@ -70,6 +72,7 @@ def _write_valid_canonical_entry_artifacts(
         {
             "entry_intent_id": entry_intent_id,
             "requested_stage_stop": requested_stage_stop,
+            "interactive_pause": interactive_pause,
             "canonical_router": {
                 "host_id": "codex",
                 "prompt": "validate proof",
@@ -140,22 +143,22 @@ def _write_valid_canonical_entry_artifacts(
         session_root / "stage-lineage.json",
         {
             "run_id": "pytest-truth-gate",
-            "last_stage_name": requested_stage_stop,
+            "last_stage_name": requested_stage_stop if terminal_stage is None else terminal_stage,
             "stages": [
                 {"stage_name": "skeleton_check"},
                 {"stage_name": "deep_interview"},
-                {"stage_name": "requirement_doc"},
+                *([{"stage_name": "requirement_doc"}] if (terminal_stage in (None, "requirement_doc", "xl_plan", "plan_execute", "phase_cleanup")) else []),
                 *(
                     [{"stage_name": "xl_plan"}]
-                    if requested_stage_stop in {"xl_plan", "plan_execute", "phase_cleanup"}
+                    if (terminal_stage if terminal_stage is not None else requested_stage_stop) in {"xl_plan", "plan_execute", "phase_cleanup"}
                     else []
                 ),
                 *(
                     [{"stage_name": "plan_execute"}]
-                    if requested_stage_stop in {"plan_execute", "phase_cleanup"}
+                    if (terminal_stage if terminal_stage is not None else requested_stage_stop) in {"plan_execute", "phase_cleanup"}
                     else []
                 ),
-                *([{"stage_name": "phase_cleanup"}] if requested_stage_stop == "phase_cleanup" else []),
+                *([{"stage_name": "phase_cleanup"}] if (terminal_stage if terminal_stage is not None else requested_stage_stop) == "phase_cleanup" else []),
             ],
         },
     )
@@ -209,6 +212,27 @@ def test_truth_gate_reports_missing_route_snapshot_without_unbound_selected_skil
     assert "route_snapshot" in combined
     assert "cannot be retrieved because it has not been set" not in combined
     assert "selectedSkill" not in combined
+
+
+def test_truth_gate_accepts_explicit_no_specialist_decision(tmp_path: Path) -> None:
+    session_root = tmp_path / "session"
+    _write_valid_canonical_entry_artifacts(session_root)
+    runtime_packet_path = session_root / "runtime-input-packet.json"
+    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
+    runtime_packet["specialist_recommendations"] = []
+    runtime_packet["specialist_decision"] = {
+        "decision_state": "no_specialist_recommendations",
+        "resolution_mode": "no_specialist_needed",
+        "recommendation_count": 0,
+        "candidate_skill_ids_reviewed": [],
+        "selected_skill_ids": [],
+        "rejected_candidates": [],
+    }
+    _write_json(runtime_packet_path, runtime_packet)
+
+    result = _run_truth_gate(session_root)
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_truth_gate_accepts_verified_canonical_entry_session(tmp_path: Path) -> None:
