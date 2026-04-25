@@ -59,12 +59,14 @@ class GlobalInstructionBootstrapRuntimeTests(unittest.TestCase):
             self.assertIn("only after canonical-entry returns a session root may you validate proof artifacts inside that session root.", bootstrap_text)
             self.assertIn("host-launch-receipt.json", bootstrap_text)
 
-            wrapper_text = (target_root / "commands" / "vibe-how-do-we-do.md").read_text(encoding="utf-8")
+            wrapper_text = (target_root / "commands" / "vibe.md").read_text(encoding="utf-8")
             self.assertIn('"schema": "vibe-wrapper-trampoline/v1"', wrapper_text)
             self.assertIn('"launch_mode": "canonical-entry"', wrapper_text)
             self.assertIn('"host_id": "codex"', wrapper_text)
-            self.assertIn('"entry_id": "vibe-how-do-we-do"', wrapper_text)
+            self.assertIn('"entry_id": "vibe"', wrapper_text)
+            self.assertIn('"progressive_stage_stops"', wrapper_text)
             self.assertNotIn("Use the `vibe` skill", wrapper_text)
+            self.assertFalse((target_root / "commands" / "vibe-how-do-we-do.md").exists())
 
     def test_reinstall_keeps_single_block_and_reports_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -96,12 +98,11 @@ class GlobalInstructionBootstrapRuntimeTests(unittest.TestCase):
             self.assertIn("Do not preflight-scan the current workspace or repository for canonical proof files before launch.", merged)
             self.assertIn("only after canonical-entry returns a session root may you validate proof artifacts inside that session root.", merged)
             self.assertIn("host-launch-receipt.json", merged)
-            wrapper_text = (target_root / "skills" / "vibe-how-do-we-do" / "SKILL.md").read_text(encoding="utf-8")
-            self.assertIn('"schema": "vibe-wrapper-trampoline/v1"', wrapper_text)
-            self.assertIn('"launch_mode": "canonical-entry"', wrapper_text)
-            self.assertIn('"host_id": "claude-code"', wrapper_text)
-            self.assertIn('"entry_id": "vibe-how-do-we-do"', wrapper_text)
-            self.assertNotIn("Use the `vibe` skill", wrapper_text)
+            skill_text = (target_root / "skills" / "vibe" / "SKILL.md").read_text(encoding="utf-8")
+            self.assertIn("Vibe Governed Runtime Entry", skill_text)
+            self.assertIn("py -3 -m vgo_cli.main canonical-entry", skill_text)
+            self.assertTrue((target_root / "skills" / "vibe-upgrade" / "SKILL.md").exists())
+            self.assertFalse((target_root / "skills" / "vibe-how-do-we-do" / "SKILL.md").exists())
 
     def test_opencode_install_preserves_existing_agents_md_and_real_config(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -123,13 +124,14 @@ class GlobalInstructionBootstrapRuntimeTests(unittest.TestCase):
             self.assertIn("only after canonical-entry returns a session root may you validate proof artifacts inside that session root.", merged)
             self.assertIn("host-launch-receipt.json", merged)
             self.assertEqual(original, json.loads(real_config.read_text(encoding="utf-8")))
-            wrapper_text = (target_root / "commands" / "vibe-how-do-we-do.md").read_text(encoding="utf-8")
+            wrapper_text = (target_root / "commands" / "vibe.md").read_text(encoding="utf-8")
             self.assertIn('"schema": "vibe-wrapper-trampoline/v1"', wrapper_text)
             self.assertIn('"launch_mode": "canonical-entry"', wrapper_text)
             self.assertIn('"host_id": "opencode"', wrapper_text)
-            self.assertIn('"entry_id": "vibe-how-do-we-do"', wrapper_text)
+            self.assertIn('"entry_id": "vibe"', wrapper_text)
             self.assertIn("agent: vibe-plan", wrapper_text)
             self.assertNotIn("Use the `vibe` skill", wrapper_text)
+            self.assertFalse((target_root / "commands" / "vibe-how-do-we-do.md").exists())
 
     def test_bootstrap_receipts_are_scoped_per_host_surface_with_shared_target_root(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
