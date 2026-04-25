@@ -29,10 +29,10 @@ This document does **not** claim that all hosts and all platforms already have i
 
 As of the current repository baseline:
 
-- Windows is the clearest official runtime path because the repo's primary governance, doctor, freshness, and coherence gates are PowerShell-first.
+- Windows is the clearest official runtime path because the repo's primary governance, doctor, freshness, and coherence gates are PowerShell-first. The preferred PowerShell host is PowerShell 7 / `pwsh`; Windows PowerShell is only a Windows fallback path.
 - Linux is now a promoted official runtime path when `pwsh` is available, backed by a frozen fresh-machine proof bundle and synchronized replay/docs state.
 - Linux without `pwsh` is an honest degraded path, not a false "full support" path.
-- macOS is logically close to the Linux shell path, but it is not yet separately frozen as a formal proof lane.
+- macOS is logically close to the Linux shell path, but it is not yet separately frozen as a formal proof lane. macOS also needs `pwsh` before PowerShell-native governed verification can be treated as available.
 
 Linux promotion is governed by:
 
@@ -41,6 +41,16 @@ Linux promotion is governed by:
 - `docs/status/linux-pwsh-fresh-machine-evidence-ledger-2026-03-13.md`
 
 Those layers are now satisfied together for `codex/linux` when `pwsh` is present.
+
+## PowerShell 7 Boundary
+
+The platform contract now separates content installation from full governed-runtime verification:
+
+- shell entrypoints can still install shipped content where supported
+- runtime-neutral checks can still run where Python and shell prerequisites are present
+- PowerShell-native governance, doctor, freshness, and parity gates require PowerShell 7 / `pwsh`
+- Linux/macOS without `pwsh` must not be reported as full governed-runtime readiness
+- Windows may fall back to Windows PowerShell only when `pwsh` is unavailable, and that fallback must be visible in the closeout wording
 
 ## Platform Matrix
 

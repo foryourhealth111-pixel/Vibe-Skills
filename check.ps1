@@ -287,6 +287,32 @@ function Normalize-ComparablePath {
   return [System.IO.Path]::GetFullPath($Path).TrimEnd([char[]]@('\','/')).ToLowerInvariant()
 }
 
+function Resolve-LocalPathForCheck {
+  param([string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return $Path
+  }
+
+  if ([System.IO.Path]::DirectorySeparatorChar -ne '\') {
+    return $Path
+  }
+
+  if ($Path -match '^/mnt/([a-zA-Z])/(.*)$') {
+    $drive = $Matches[1].ToUpperInvariant()
+    $rest = ($Matches[2] -replace '/', '\')
+    return "${drive}:\\$rest"
+  }
+
+  if ($Path -match '^/([a-zA-Z])/(.*)$') {
+    $drive = $Matches[1].ToUpperInvariant()
+    $rest = ($Matches[2] -replace '/', '\')
+    return "${drive}:\\$rest"
+  }
+
+  return $Path
+}
+
 function ConvertTo-IntCheckValue {
   param(
     [object]$Value,
@@ -688,6 +714,53 @@ function Check-PathAbsent {
   }
 }
 
+function Get-ProfilePackagingManifestPath {
+  param(
+    [string]$TargetRoot,
+    [string]$Profile
+  )
+
+  return (Join-Path $TargetRoot ("config\runtime-core-packaging.{0}.json" -f $Profile))
+}
+
+function Get-ProjectedSkillNamesForCheck {
+  param(
+    [string]$TargetRoot,
+    [string]$Profile,
+    [string]$ProjectionName,
+    [string]$HostId
+  )
+
+  $manifestPath = Get-ProfilePackagingManifestPath -TargetRoot $TargetRoot -Profile $Profile
+  if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    return @()
+  }
+
+  $payload = Get-JsonObject -Path $manifestPath -Label ("runtime packaging manifest ({0})" -f $Profile)
+  if ($null -eq $payload -or -not $payload.PSObject.Properties.Name.Contains($ProjectionName)) {
+    return @()
+  }
+
+  $projection = $payload.$ProjectionName
+  if ($null -eq $projection) {
+    return @()
+  }
+
+  if ($ProjectionName -eq 'compatibility_skill_projections' -and $projection.PSObject.Properties.Name.Contains('host_allowlist')) {
+    $allowlist = @($projection.host_allowlist | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($allowlist.Count -gt 0 -and $allowlist -notcontains $HostId) {
+      return @()
+    }
+  }
+
+  return @(
+    @($projection.projected_skill_names) |
+      ForEach-Object { [string]$_ } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+      Select-Object -Unique
+  )
+}
+
 function Invoke-AdapterSpecificChecks {
   param(
     [psobject]$Adapter,
@@ -750,7 +823,7 @@ function Invoke-AdapterSpecificChecks {
     if ($null -ne $hostClosure -and $hostClosure.PSObject.Properties.Name -contains 'specialist_wrapper' -and $null -ne $hostClosure.specialist_wrapper) {
       $launcherPath = if ($hostClosure.specialist_wrapper.PSObject.Properties.Name -contains 'launcher_path') { [string]$hostClosure.specialist_wrapper.launcher_path } else { '' }
       if (-not [string]::IsNullOrWhiteSpace($launcherPath)) {
-        Check-Path -Label "specialist wrapper launcher" -Path $launcherPath
+        Check-Path -Label "specialist wrapper launcher" -Path (Resolve-LocalPathForCheck -Path $launcherPath)
       }
     }
   }
@@ -841,7 +914,7 @@ function Invoke-AdapterSpecificChecks {
   }
 
   if ([string]$Adapter.id -eq 'codex' -and [string]$Adapter.check_mode -eq 'governed' -and $Profile -eq 'full') {
-    foreach ($name in @('vibe-what-do-i-want', 'vibe-how-do-we-do', 'vibe-do-it')) {
+    foreach ($name in (Get-ProjectedSkillNamesForCheck -TargetRoot $TargetRoot -Profile $Profile -ProjectionName 'compatibility_skill_projections' -HostId $HostId)) {
       Check-Path -Label "skill/$name" -Path (Resolve-SkillDescriptorPath -SkillName $name)
     }
   }
@@ -859,7 +932,7 @@ function Invoke-AdapterSpecificChecks {
   }
 
   if ([string]$Adapter.id -eq 'codex' -and [string]$Adapter.check_mode -eq 'governed') {
-    $codexCommandNames = @('vibe', 'vibe-what-do-i-want', 'vibe-how-do-we-do', 'vibe-do-it')
+    $codexCommandNames = Get-ProjectedSkillNamesForCheck -TargetRoot $TargetRoot -Profile $Profile -ProjectionName 'public_skill_surface' -HostId $HostId
     foreach ($name in $codexCommandNames) {
       Check-Path -Label "codex command/$name" -Path (Join-Path (Join-Path $TargetRoot 'commands') "$name.md") -Required:$false
     }

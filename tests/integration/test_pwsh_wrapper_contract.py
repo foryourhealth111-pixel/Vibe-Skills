@@ -32,3 +32,10 @@ def test_powershell_install_and_check_wrappers_define_explicit_help_path() -> No
         assert "[Alias('?')]" in content
         assert 'Show-WrapperUsage' in content
         assert 'if ($Help)' in content
+
+
+def test_check_wrapper_only_rewrites_launcher_paths_on_windows_hosts() -> None:
+    check_content = (REPO_ROOT / 'check.ps1').read_text(encoding='utf-8')
+
+    assert 'function Resolve-LocalPathForCheck' in check_content
+    assert "[System.IO.Path]::DirectorySeparatorChar -ne '\\'" in check_content

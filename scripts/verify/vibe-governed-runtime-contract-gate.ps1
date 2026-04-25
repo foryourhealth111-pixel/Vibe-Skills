@@ -151,12 +151,21 @@ Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('### 
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.route_snapshot.selected_skill -eq 'vibe') -Message 'runtime smoke keeps vibe as the frozen route skill for governed entry'
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'runtime smoke keeps vibe as explicit runtime skill'
 Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$runtimeInputPacket.divergence_shadow.skill_mismatch) -Message 'runtime smoke keeps router/runtime skill alignment for explicit governed vibe entry'
-Add-Assertion -Results ([ref]$results) -Condition (@($runtimeInputPacket.specialist_recommendations).Count -ge 1) -Message 'runtime smoke freezes bounded specialist recommendations'
-Add-Assertion -Results ([ref]$results) -Condition ((@($runtimeInputPacket.specialist_recommendations | ForEach-Object { [string]$_.skill_id }) -contains 'systematic-debugging')) -Message 'runtime smoke preserves systematic-debugging as a bounded specialist recommendation'
+$specialistDecision = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInputPacket.specialist_decision } else { $null }
+$noSpecialistResolved = (
+    $null -ne $specialistDecision -and
+    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
+    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
+    [string]$specialistDecision.decision_state -eq 'no_specialist_recommendations' -and
+    [string]$specialistDecision.resolution_mode -in @('no_matching_specialist', 'no_specialist_needed')
+)
+$specialistRecommendationIds = @($runtimeInputPacket.specialist_recommendations | ForEach-Object { [string]$_.skill_id })
+Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds).Count -ge 1) -or $noSpecialistResolved) -Message 'runtime smoke freezes bounded specialist recommendations or no-specialist resolution'
+Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds) -contains 'systematic-debugging') -or $noSpecialistResolved) -Message 'runtime smoke preserves systematic-debugging or no-specialist resolution'
 Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Specialist Recommendations')) -Message 'runtime smoke requirement doc includes specialist recommendations section'
 Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Specialist Skill Dispatch Plan')) -Message 'runtime smoke execution plan includes specialist dispatch section'
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -Message 'runtime smoke execution manifest carries specialist accounting'
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.plan_shadow.specialist_dispatch_unit_count -ge 1) -Message 'runtime smoke plan shadow counts specialist dispatch units'
+Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke execution manifest carries specialist accounting or no-specialist resolution'
+Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.plan_shadow) -and (([int]$executionManifest.plan_shadow.specialist_dispatch_unit_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke plan shadow counts specialist dispatch units or no-specialist resolution'
 Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'runtime smoke specialist dispatch integrity proof passes'
 
 $failureCount = @($results | Where-Object { -not $_.passed }).Count

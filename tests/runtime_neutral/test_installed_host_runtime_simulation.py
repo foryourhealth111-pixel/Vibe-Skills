@@ -12,7 +12,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-INSTALL_SCRIPT = REPO_ROOT / "install.sh"
+INSTALL_SCRIPT_SH = REPO_ROOT / "install.sh"
+INSTALL_SCRIPT_PS1 = REPO_ROOT / "install.ps1"
+TEST_SANDBOX_ROOT = Path(tempfile.gettempdir()) / "vibe-skills-pytest-installed-host-sim"
 PLANNING_TASK = "Create a PRD and backlog for a small feature with quality gate requirements $vibe"
 DEBUG_TASK = "I have a failing test and a stack trace. Help me debug systematically before proposing fixes. $vibe"
 EXECUTION_TASK = "Implement a bounded runtime enhancement with verification and cleanup $vibe"
@@ -46,13 +48,15 @@ def resolve_powershell() -> str | None:
         shutil.which("pwsh.exe"),
         r"C:\Program Files\PowerShell\7\pwsh.exe",
         r"C:\Program Files\PowerShell\7-preview\pwsh.exe",
-        shutil.which("powershell"),
-        shutil.which("powershell.exe"),
     ]
     for candidate in candidates:
         if candidate and Path(candidate).exists():
             return str(Path(candidate))
     return None
+
+
+def ps_quote(value: object) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
 
 
 def load_json(path: str | Path) -> dict[str, object]:
@@ -193,23 +197,47 @@ def create_fake_codex_command(directory: Path) -> Path:
 
 
 def install_host(target_root: Path, host_id: str, *, env: dict[str, str]) -> None:
-    command = [
-        "bash",
-        str(INSTALL_SCRIPT),
-        "--host",
-        host_id,
-        "--profile",
-        "full",
-        "--target-root",
-        str(target_root),
-    ]
-    if host_id in HOST_BRIDGE_ENV:
-        command.append("--require-closed-ready")
+    if os.name == "nt":
+        shell = resolve_powershell()
+        if shell is None:
+            raise unittest.SkipTest("PowerShell executable not available in PATH")
+        command = [
+            shell,
+            "-NoLogo",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(INSTALL_SCRIPT_PS1),
+            "-HostId",
+            host_id,
+            "-Profile",
+            "full",
+            "-TargetRoot",
+            str(target_root),
+        ]
+        if host_id in HOST_BRIDGE_ENV:
+            command.append("-RequireClosedReady")
+    else:
+        command = [
+            "bash",
+            str(INSTALL_SCRIPT_SH),
+            "--host",
+            host_id,
+            "--profile",
+            "full",
+            "--target-root",
+            str(target_root),
+        ]
+        if host_id in HOST_BRIDGE_ENV:
+            command.append("--require-closed-ready")
     subprocess.run(
         command,
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
         env=env,
     )
@@ -232,14 +260,16 @@ def run_installed_runtime(
         shell,
         "-NoLogo",
         "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
         "-Command",
         (
             "& { "
-            f"$result = & '{installed_root / 'scripts' / 'runtime' / 'invoke-vibe-runtime.ps1'}' "
-            f"-Task '{task}' "
+            f"$result = & {ps_quote(installed_root / 'scripts' / 'runtime' / 'invoke-vibe-runtime.ps1')} "
+            f"-Task {ps_quote(task)} "
             "-Mode interactive_governed "
-            f"-RunId '{run_id}' "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-RunId {ps_quote(run_id)} "
+            f"-ArtifactRoot {ps_quote(artifact_root)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -249,6 +279,7 @@ def run_installed_runtime(
         capture_output=True,
         text=True,
         encoding="utf-8",
+        errors="replace",
         env=env,
         check=True,
     )
@@ -263,7 +294,8 @@ def run_installed_runtime(
 
 class InstalledHostRuntimeSimulationTests(unittest.TestCase):
     def _install_context(self, host_id: str) -> tuple[Path, Path, dict[str, str]]:
-        tempdir = tempfile.TemporaryDirectory()
+        TEST_SANDBOX_ROOT.mkdir(parents=True, exist_ok=True)
+        tempdir = tempfile.TemporaryDirectory(dir=str(TEST_SANDBOX_ROOT))
         self.addCleanup(tempdir.cleanup)
         root = Path(tempdir.name)
         target_root = root / "target"
@@ -380,6 +412,25 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                 self.assertGreaterEqual(
                     int(debug_state["execution_manifest"]["specialist_accounting"]["direct_routed_specialist_unit_count"]),
                     1,
+                    host_id,
+                )
+                host_user_briefing_path = Path(debug_state["artifacts"]["host_user_briefing"])
+                self.assertTrue(host_user_briefing_path.exists(), host_id)
+                host_user_briefing = host_user_briefing_path.read_text(encoding="utf-8")
+                self.assertEqual(
+                    "progressive_specialist_host_briefing",
+                    debug_state["summary"]["host_user_briefing"]["mode"],
+                    host_id,
+                )
+                self.assertIn("Execution handoff is still pending under governed vibe.", host_user_briefing, host_id)
+                self.assertIn(
+                    "next required action: load each disclosed `native_skill_entrypoint`",
+                    host_user_briefing,
+                    host_id,
+                )
+                self.assertIn(
+                    "approved specialist execution has not been performed inside the governed runtime yet.",
+                    host_user_briefing,
                     host_id,
                 )
 

@@ -1,92 +1,99 @@
-# Installation and Custom Integration Index
+# Install Docs Index
 
-This directory contains the public install, upgrade, and custom-integration docs.
+This folder contains the install, update, uninstall, and custom-integration docs.
 
-## Quick Navigation
+Normal users have two paths:
 
-### Public Install Entry
+- **Prompt-based install**: copy one prompt into the AI app and let it confirm host, version, install, and check.
+- **Command install**: run install/check directly in a terminal when you already know the host root and command flow.
 
-- [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md): the single public install entry; choose host, action, and version there, then copy the matching prompt
+If you are unsure, start with prompt-based install:
 
-### Public Uninstall Entry
+1. Open [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md).
+2. Choose host, action, and version.
+3. Copy one prompt into the AI app you want to install VibeSkills into.
 
-- [`../../uninstall.ps1`](../../uninstall.ps1) / [`../../uninstall.sh`](../../uninstall.sh): the symmetric uninstall entry after install; it mirrors `install.*` arguments and only removes Vibe-managed payloads recorded by the install ledger, host closure, or conservative legacy rules
-- [`../uninstall-governance.md`](../uninstall-governance.md): the owned-only uninstall contract; shared JSON cleanup is limited to Vibe-managed nodes and does not roll back host-managed login state, provider credentials, or plugin state by default
+If you prefer direct commands, open [`recommended-full-path.en.md`](./recommended-full-path.en.md).
 
-### Reference Docs
+## Requirements
 
-- [`recommended-full-path.en.md`](./recommended-full-path.en.md): multi-host install command reference
-- [`openclaw-path.en.md`](./openclaw-path.en.md): dedicated install-and-use guide for OpenClaw
-- [`opencode-path.en.md`](./opencode-path.en.md): dedicated install-and-use guide for OpenCode
-- [`manual-copy-install.en.md`](./manual-copy-install.en.md): manual copy path for offline or no-admin environments
-- [`framework-only-path.en.md`](./framework-only-path.en.md): compatibility note for the older framework-only entry name
-- [`full-featured-install-prompts.en.md`](./full-featured-install-prompts.en.md): compatibility note for the older Codex deep install prompt page
-- [`installation-rules.en.md`](./installation-rules.en.md): truth-first rules every install assistant must follow
-- [`configuration-guide.en.md`](./configuration-guide.en.md): local configuration guidance
+- Python 3.10+
+- PowerShell 7 (`pwsh`) for the full governed verification path
+- Git access to this repository
 
-## How to Read the Current Install Surface
+Linux and macOS can still use the `bash` install scripts. PowerShell 7 is recommended because several governed verification gates use the PowerShell command surface.
 
-The public install docs are now registry-driven:
+## Main Pages
 
-- `HostId` / `--host` decides host semantics
-- `install.*`, `check.*`, and `one-shot-setup.*` should follow [`../../config/adapter-registry.json`](../../config/adapter-registry.json)
-- the current public hosts resolve into three install modes: `governed`, `preview-guidance`, and `runtime-core`
-- `opencode` still keeps a thinner direct install/check path in the public docs, but that does not mean the registry-driven one-shot wrapper is unavailable
+| Need | Read |
+|:---|:---|
+| Public install/update entry | [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md) |
+| Command install reference | [`recommended-full-path.en.md`](./recommended-full-path.en.md) |
+| Host root decision help | [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md) |
+| Offline/manual install | [`manual-copy-install.en.md`](./manual-copy-install.en.md) |
+| OpenClaw details | [`openclaw-path.en.md`](./openclaw-path.en.md) |
+| OpenCode details | [`opencode-path.en.md`](./opencode-path.en.md) |
+| Post-install configuration boundaries | [`configuration-guide.en.md`](./configuration-guide.en.md) |
+| Custom Skill onboarding | [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md) |
 
-Notes:
+Maintainer/reference pages:
 
-- for normal users, the public install surface now keeps only [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md) as the primary entry
-- the four retained install prompt docs still exist underneath that entry: full install, framework install, full upgrade, and framework upgrade
-- other install-related pages now act only as compatibility notes, host-specific references, or command references instead of parallel public entrypoints
-- the generic install prompts still support `openclaw` and `opencode`
-- [`openclaw-path.en.md`](./openclaw-path.en.md) and [`opencode-path.en.md`](./opencode-path.en.md) are split out only to expand host-specific details, not because the generic install path cannot handle those hosts
-- provider / MCP / host settings follow-up should be treated as optional enhancement guidance when the base install already works
+- [`installation-rules.en.md`](./installation-rules.en.md): truth-first install assistant rules
+- [`host-plugin-policy.en.md`](./host-plugin-policy.en.md): host/plugin boundary notes
+- [`../one-shot-setup.md`](../one-shot-setup.md): one-shot setup behavior and MCP reporting contract
+
+## Prompt Library
+
+The public prompt set is intentionally small:
+
+- [`prompts/full-version-install.en.md`](./prompts/full-version-install.en.md)
+- [`prompts/framework-only-install.en.md`](./prompts/framework-only-install.en.md)
+- [`prompts/full-version-update.en.md`](./prompts/full-version-update.en.md)
+- [`prompts/framework-only-update.en.md`](./prompts/framework-only-update.en.md)
+
+Other pages in this folder are reference docs, compatibility notes, or host-specific supplements. They are not separate public landing pages.
 
 ## Public Versions
 
-The public install surface still exposes two user-facing versions:
+| Public wording | Runtime profile |
+|:---|:---|
+| `Full Version + Customizable Governance` | `full` |
+| `Framework Only + Customizable Governance` | `minimal` |
 
-- `Full Version + Customizable Governance`
-- `Framework Only + Customizable Governance`
+Use `full` for the normal VibeSkills experience. Use `minimal` only when you deliberately want the smaller framework foundation.
 
-Their actual script-level profile mapping is:
+## Public Hosts
 
-- `Full Version + Customizable Governance` -> `full`
-- `Framework Only + Customizable Governance` -> `minimal`
+Current public host ids:
 
-Keep the public wording user-friendly, then map to the real profile at execution time.
+- `codex`
+- `claude-code`
+- `cursor`
+- `windsurf`
+- `openclaw`
+- `opencode`
 
-## Publicly Supported Hosts
+The install modes are not identical across hosts. `codex` and `claude-code` are the clearest install-and-use paths; `cursor`, `windsurf`, `openclaw`, and `opencode` have host-specific or preview-oriented boundaries. Keep those boundaries visible in install reports.
 
-The public surface currently supports six hosts, but not under one identical mode:
+## Truth Model For Install Reports
 
-- `codex`: the strongest governed lane and the default recommended path
-- `claude-code`: a supported install-and-use path with bounded managed closure
-- `cursor`: a preview-guidance path
-- `windsurf`: a runtime-core path; the repo owns shared runtime payload plus `.vibeskills/*` sidecar state only
-- `openclaw`: a preview runtime-core adapter path; the host guide expands the attach / copy / bundle details
-- `opencode`: a preview-guidance adapter path; the public docs still keep direct install/check as the thinner default command surface
+Do not collapse install state into one vague success line. Report these separately:
 
-Other hosts should not currently be described as supported installation targets.
+- `installed locally`
+- `vibe host-ready`
+- `mcp native auto-provision attempted`
+- per-MCP `host-visible readiness`
+- `online-ready`
 
-## Recommended Reading Order
+`$vibe` or `/vibe` proves the governed runtime entry only. It is not MCP completion and not proof that providers, credentials, plugins, or host-native MCP surfaces are fully configured.
 
-If you are a regular user:
+The public install flow does not currently guide users through built-in online enhancement configuration. Install assistants should not ask users for providers, credentials, URLs, or model names; when that path is not configured through public docs, keep `online-ready` separate and report it as not ready or not verified.
 
-1. [`one-click-install-release-copy.en.md`](./one-click-install-release-copy.en.md)
-2. [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
-3. choose the matching prompt or command path only from those entrypoints
-4. [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
-5. [`custom-skill-governance-rules.en.md`](./custom-skill-governance-rules.en.md)
+## Uninstall
 
-If you are an advanced user:
+Use the repo-root uninstall entrypoint:
 
-1. [`recommended-full-path.en.md`](./recommended-full-path.en.md)
-2. [`manual-copy-install.en.md`](./manual-copy-install.en.md)
-3. [`host-plugin-policy.en.md`](./host-plugin-policy.en.md)
-4. [`configuration-guide.en.md`](./configuration-guide.en.md)
+- Windows: `uninstall.ps1 -HostId <host>`
+- Linux / macOS: `uninstall.sh --host <host>`
 
-## Custom Extension Docs
-
-- [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md): how to bring a new workflow into governance and routing
-- [`custom-skill-governance-rules.en.md`](./custom-skill-governance-rules.en.md): governance rules for custom skills and workflows
+See [`../uninstall-governance.md`](../uninstall-governance.md) for the owned-only cleanup contract.

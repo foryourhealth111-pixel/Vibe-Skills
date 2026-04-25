@@ -6,12 +6,6 @@
             },
     "env":  {
                 "VCO_PROFILE":  "full",
-                "VCO_CODEX_MODE":  "true",
-                "VCO_INTENT_ADVICE_API_KEY":  "\u003cREQUIRED\u003e",
-                "VCO_INTENT_ADVICE_BASE_URL":  "https://your-openai-compatible-endpoint/v1",
-                "VCO_INTENT_ADVICE_MODEL":  "your-intent-advice-model-id",
-                "VCO_VECTOR_DIFF_API_KEY":  "\u003cOPTIONAL_IF_VECTOR_DIFF_UNUSED\u003e",
-                "VCO_VECTOR_DIFF_BASE_URL":  "https://your-openai-compatible-endpoint/v1",
-                "VCO_VECTOR_DIFF_MODEL":  "your-vector-diff-model-id"
+                "VCO_CODEX_MODE":  "true"
             }
 }

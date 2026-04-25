@@ -7,8 +7,6 @@ HOST_ID_EXPLICIT="false"
 TARGET_ROOT=""
 SKIP_EXTERNAL_INSTALL="false"
 STRICT_OFFLINE="false"
-INTENT_ADVICE_BASE_URL="${VCO_INTENT_ADVICE_BASE_URL:-}"
-INTENT_ADVICE_API_KEY_INPUT=""
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=10
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +16,6 @@ PYTHON_HELPERS_SH="${REPO_ROOT}/scripts/common/python_helpers.sh"
 INSTALL_SH="${REPO_ROOT}/install.sh"
 CHECK_SH="${REPO_ROOT}/check.sh"
 MATERIALIZE_PS1="${REPO_ROOT}/scripts/setup/materialize-codex-mcp-profile.ps1"
-PERSIST_OPENAI_PS1="${REPO_ROOT}/scripts/setup/persist-codex-openai-env.ps1"
 CLAUDE_SCAFFOLD_SH="${REPO_ROOT}/scripts/bootstrap/scaffold-claude-preview.sh"
 
 while [[ $# -gt 0 ]]; do
@@ -28,10 +25,6 @@ while [[ $# -gt 0 ]]; do
     --target-root) TARGET_ROOT="$2"; shift 2 ;;
     --skip-external-install) SKIP_EXTERNAL_INSTALL="true"; shift ;;
     --strict-offline) STRICT_OFFLINE="true"; shift ;;
-    --intent-advice-base-url) INTENT_ADVICE_BASE_URL="$2"; shift 2 ;;
-    --intent-advice-api-key) INTENT_ADVICE_API_KEY_INPUT="$2"; shift 2 ;;
-    --openai-base-url) INTENT_ADVICE_BASE_URL="$2"; shift 2 ;;
-    --openai-api-key) INTENT_ADVICE_API_KEY_INPUT="$2"; shift 2 ;;
     *)
       echo "Unknown arg: $1" >&2
       exit 1
@@ -266,45 +259,6 @@ if [[ -z "${TARGET_ROOT}" ]]; then
 fi
 assert_target_root_matches_host_intent "${TARGET_ROOT}" "${HOST_ID}"
 
-read_existing_settings_env_value() {
-  local codex_root="$1"
-  local name="$2"
-  local python_bin
-
-  if ! python_bin="$(pick_python)"; then
-    return 1
-  fi
-
-  "${python_bin}" - "${codex_root}" "${name}" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-def emit(value):
-    if value is None:
-        raise SystemExit(1)
-    sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
-
-codex_root, name = sys.argv[1:3]
-settings_path = Path(codex_root) / "settings.json"
-if not settings_path.exists():
-    raise SystemExit(1)
-
-try:
-    with settings_path.open("r", encoding="utf-8-sig") as fh:
-        settings = json.load(fh)
-except Exception:
-    raise SystemExit(1)
-
-env = settings.get("env", {})
-value = env.get(name)
-if isinstance(value, str) and value.strip():
-    emit(value)
-    raise SystemExit(0)
-raise SystemExit(1)
-PY
-}
-
 print_mcp_auto_provision_summary() {
   local python_bin=""
   python_bin="$(pick_python || true)"
@@ -349,51 +303,6 @@ for item in payload.get("mcp_results") or []:
     if status != "ready":
         manual_follow_up.append(name)
 print(f"- manual_follow_up: {', '.join(manual_follow_up) if manual_follow_up else 'none'}")
-PY
-}
-
-seed_settings_env_with_python() {
-  local codex_root="$1"
-  local surface="$2"
-  local base_url="$3"
-  local api_key="$4"
-  local python_bin
-
-  if ! python_bin="$(pick_python)"; then
-    echo "[WARN] Python not found; skipping ${surface} settings seed." >&2
-    return 0
-  fi
-
-  "${python_bin}" - "${codex_root}" "${surface}" "${base_url}" "${api_key}" <<'PY'
-import json
-import os
-import sys
-from pathlib import Path
-
-codex_root, surface, base_url, api_key = sys.argv[1:5]
-settings_path = Path(codex_root) / "settings.json"
-if not settings_path.exists():
-    raise SystemExit(f"settings.json not found: {settings_path}")
-
-with settings_path.open("r", encoding="utf-8-sig") as fh:
-    settings = json.load(fh)
-
-env = settings.setdefault("env", {})
-
-if surface == "intent_advice":
-    if base_url:
-        env["VCO_INTENT_ADVICE_BASE_URL"] = base_url
-    if api_key:
-        env["VCO_INTENT_ADVICE_API_KEY"] = api_key
-else:
-    raise SystemExit(f"unsupported bootstrap settings seed: {surface}")
-
-env.setdefault("VCO_PROFILE", "full")
-env.setdefault("VCO_CODEX_MODE", "true")
-
-with settings_path.open("w", encoding="utf-8", newline="\n") as fh:
-    json.dump(settings, fh, ensure_ascii=False, indent=2)
-    fh.write("\n")
 PY
 }
 
@@ -505,27 +414,9 @@ echo "[1/5] Installing adapter payload..."
 VGO_SUPPRESS_INSTALL_COMPLETION_REPORT=1 bash "${INSTALL_SH}" "${install_args[@]}"
 
 if [[ "${ADAPTER_BOOTSTRAP_MODE}" == "governed" ]]; then
-  resolved_intent_advice_api_key="${INTENT_ADVICE_API_KEY_INPUT:-${VCO_INTENT_ADVICE_API_KEY:-}}"
-  existing_intent_advice_key=""
-  if existing_intent_advice_key="$(read_existing_settings_env_value "${TARGET_ROOT}" "VCO_INTENT_ADVICE_API_KEY" 2>/dev/null)"; then
-    :
-  else
-    existing_intent_advice_key=""
-  fi
-  if [[ -n "${resolved_intent_advice_api_key}" ]]; then
-    echo "[2/5] Seeding intent advice settings into target settings.json..."
-    if pick_powershell >/dev/null 2>&1; then
-      run_powershell_file "${PERSIST_OPENAI_PS1}" -CodexRoot "${TARGET_ROOT}" -BaseUrl "${INTENT_ADVICE_BASE_URL}" -ApiKey "${resolved_intent_advice_api_key}"
-    else
-      seed_settings_env_with_python "${TARGET_ROOT}" "intent_advice" "${INTENT_ADVICE_BASE_URL}" "${resolved_intent_advice_api_key}"
-    fi
-  elif [[ -n "${existing_intent_advice_key}" ]]; then
-    echo "[2/5] Intent advice settings already exist in target settings.json; keeping current value."
-  else
-    echo "[WARN] VCO_INTENT_ADVICE_API_KEY not provided and not present in the current environment. Built-in intent advice readiness will remain pending."
-  fi
+  echo "[2/5] Built-in online enhancement configuration is skipped in public install."
 
-  echo "[3/5] Built-in AI governance now uses separated functional keys: intent advice uses VCO_INTENT_ADVICE_* and vector diff embeddings use VCO_VECTOR_DIFF_*."
+  echo "[3/5] User environment sync skipped."
 
   echo "[4/5] Materializing MCP profile..."
   if pick_powershell >/dev/null 2>&1; then
@@ -544,12 +435,12 @@ elif [[ "${ADAPTER_BOOTSTRAP_MODE}" == "preview-guidance" ]]; then
     echo "[2/5] Host-specific scaffold is currently unavailable for '${HOST_ID}'."
   fi
   echo "[3/5] No hook files or extra preview settings were installed into the target root."
-  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Configure built-in intent advice with VCO_INTENT_ADVICE_API_KEY / VCO_INTENT_ADVICE_BASE_URL / VCO_INTENT_ADVICE_MODEL, and configure vector diff embeddings separately with VCO_VECTOR_DIFF_API_KEY / VCO_VECTOR_DIFF_BASE_URL / VCO_VECTOR_DIFF_MODEL. Do not paste API keys into chat."
+  echo "[4/5] Provider settings remain host-managed for '${HOST_ID}'. Built-in online enhancement configuration is not part of public install."
   echo "[5/5] Running supported-path health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep
 else
   echo "[2/5] Runtime-adapter path does not materialize host settings."
-  echo "[3/5] Runtime-adapter path does not seed provider settings. Configure built-in intent advice with VCO_INTENT_ADVICE_API_KEY / VCO_INTENT_ADVICE_BASE_URL / VCO_INTENT_ADVICE_MODEL, and configure vector diff embeddings separately with VCO_VECTOR_DIFF_API_KEY / VCO_VECTOR_DIFF_BASE_URL / VCO_VECTOR_DIFF_MODEL. Do not paste secrets into chat."
+  echo "[3/5] Runtime-adapter path does not seed provider settings; public install skips built-in online enhancement configuration."
   echo "[4/5] MCP materialization skipped for the runtime-adapter path."
   echo "[5/5] Running runtime-adapter health check..."
   bash "${CHECK_SH}" --profile "${PROFILE}" --host "${HOST_ID}" --target-root "${TARGET_ROOT}" --deep

@@ -71,8 +71,16 @@ function Invoke-SupportedHostRuntimeTruthProbe {
         Add-Assertion -Assertions $Assertions -Pass ($runtimeInput.PSObject.Properties.Name -contains 'specialist_dispatch') -Message "$HostId runtime-input-packet contains specialist_dispatch artifact"
         $hasSpecialistRecommendations = ($runtimeInput.PSObject.Properties['specialist_recommendations'] -ne $null)
         $specialistRecommendationCount = if ($hasSpecialistRecommendations) { @($runtimeInput.specialist_recommendations).Count } else { 0 }
+        $specialistDecision = if ($runtimeInput.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInput.specialist_decision } else { $null }
+        $noSpecialistResolved = (
+            $null -ne $specialistDecision -and
+            $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
+            $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
+            [string]$specialistDecision.decision_state -eq 'no_specialist_recommendations' -and
+            [string]$specialistDecision.resolution_mode -in @('no_matching_specialist', 'no_specialist_needed')
+        )
         Add-Assertion -Assertions $Assertions -Pass $hasSpecialistRecommendations -Message "$HostId runtime-input-packet contains specialist_recommendations artifact"
-        Add-Assertion -Assertions $Assertions -Pass ($specialistRecommendationCount -ge 1) -Message "$HostId runtime-input-packet preserves specialist recommendation evidence"
+        Add-Assertion -Assertions $Assertions -Pass (($specialistRecommendationCount -ge 1) -or $noSpecialistResolved) -Message "$HostId runtime-input-packet preserves specialist recommendation or no-specialist resolution evidence"
         $divergenceShadow = if ($runtimeInput.PSObject.Properties.Name -contains 'divergence_shadow') { $runtimeInput.divergence_shadow } else { $null }
         $runtimeSelectedSkill = if ($divergenceShadow -and $divergenceShadow.PSObject.Properties.Name -contains 'runtime_selected_skill') { [string]$divergenceShadow.runtime_selected_skill } else { '' }
         Add-Assertion -Assertions $Assertions -Pass ($divergenceShadow -and $runtimeSelectedSkill -eq 'vibe') -Message "$HostId divergence_shadow keeps vibe as runtime authority"

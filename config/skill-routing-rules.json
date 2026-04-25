@@ -15,8 +15,25 @@
                                                           "$vibe",
                                                           "orchestrate",
                                                           "route",
+                                                          "runtime router",
+                                                          "routing decision",
+                                                          "route confidence",
+                                                          "routing task type",
+                                                          "routing task classification",
+                                                          "routing grade selection",
+                                                          "routing candidate scoring",
+                                                          "route fallback",
+                                                          "routing fallback",
+                                                          "route threshold",
+                                                          "confidence threshold",
+                                                          "runtime routing",
                                                           "编排",
-                                                          "路由"
+                                                          "路由",
+                                                          "低置信度",
+                                                          "误路由",
+                                                          "任务分类",
+                                                          "等级选择",
+                                                          "候选打分"
                                                       ],
                                 "negative_keywords":  [
                                                           "xlsx",
@@ -1109,7 +1126,15 @@
                                                                           "训练流水线"
                                                                       ],
                                                 "negative_keywords":  [
-                                                                          "latex manuscript"
+                                                                          "latex manuscript",
+                                                                          "runtime router",
+                                                                          "routing decision",
+                                                                          "router pack",
+                                                                          "routing fallback",
+                                                                          "route confidence",
+                                                                          "routing task classification",
+                                                                          "routing grade selection",
+                                                                          "routing candidate scoring"
                                                                       ],
                                                 "equivalent_group":  null,
                                                 "canonical_for_task":  [
@@ -3691,7 +3716,14 @@
                                                                            ],
                                                      "negative_keywords":  [
                                                                                "smiles",
-                                                                               "docking"
+                                                                               "docking",
+                                                                               "router",
+                                                                               "routing",
+                                                                               "routing fallback",
+                                                                               "route confidence",
+                                                                               "task classification",
+                                                                               "routing grade selection",
+                                                                               "candidate scoring"
                                                                            ],
                                                      "equivalent_group":  "clinical-reporting",
                                                      "canonical_for_task":  [
@@ -3929,13 +3961,16 @@
                                                                    "research"
                                                                ],
                                                 "positive_keywords":  [
-                                                                          "latchbio",
-                                                                          "workflow",
-                                                                          "pipeline",
-                                                                          "bioinformatics platform",
-                                                                          "生信平台",
-                                                                          "数据管道"
-                                                                      ],
+                                                                             "latchbio",
+                                                                             "latch workflow",
+                                                                             "latchbio workflow",
+                                                                             "latch pipeline",
+                                                                             "latchbio pipeline",
+                                                                             "bioinformatics platform",
+                                                                             "latch sdk",
+                                                                             "生信平台",
+                                                                             "数据管道"
+                                                                         ],
                                                 "negative_keywords":  [
                                                                           "dicom",
                                                                           "sec"

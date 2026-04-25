@@ -178,10 +178,25 @@ def choose_powershell(*, return_diagnostics: bool = False) -> str | dict[str, An
 
 def print_process_output(result: subprocess.CompletedProcess[str]) -> None:
     """Forward captured subprocess output streams to the current process."""
-    if result.stdout:
-        sys.stdout.write(result.stdout)
-    if result.stderr:
-        sys.stderr.write(result.stderr)
+    def _write_text(stream: Any, text: str) -> None:
+        if not text:
+            return
+        try:
+            stream.write(text)
+        except UnicodeEncodeError:
+            encoding = getattr(stream, "encoding", None) or "utf-8"
+            safe_bytes = text.encode(encoding, errors="replace")
+            buffer = getattr(stream, "buffer", None)
+            if buffer is not None:
+                buffer.write(safe_bytes)
+                flush = getattr(buffer, "flush", None)
+                if callable(flush):
+                    flush()
+                return
+            stream.write(safe_bytes.decode(encoding, errors="replace"))
+
+    _write_text(sys.stdout, result.stdout or "")
+    _write_text(sys.stderr, result.stderr or "")
 
 
 def run_subprocess(command: Sequence[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:

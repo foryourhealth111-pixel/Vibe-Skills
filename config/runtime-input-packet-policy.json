@@ -100,6 +100,42 @@
     "include_description": true,
     "header": "Pre-dispatch specialist disclosure:"
   },
+  "host_phase_decomposition_contract": {
+    "enabled": true,
+    "max_phase_count": 6,
+    "default_stage_type": "implementation",
+    "stage_types": {
+      "discovery": {
+        "dispatch_phase": "pre_execution",
+        "default_stage_label": "Discovery",
+        "default_execution_priority": 10
+      },
+      "implementation": {
+        "dispatch_phase": "in_execution",
+        "default_stage_label": "Implementation",
+        "default_execution_priority": 50
+      },
+      "deliverable": {
+        "dispatch_phase": "post_execution",
+        "default_stage_label": "Deliverable",
+        "default_execution_priority": 70
+      },
+      "verification": {
+        "dispatch_phase": "verification",
+        "default_stage_label": "Verification",
+        "default_execution_priority": 90
+      }
+    }
+  },
+  "host_specialist_dispatch_contract": {
+    "enabled": true,
+    "scope": "root_only",
+    "selection_modes": [
+      "inherit_runtime_default",
+      "curated_only"
+    ],
+    "default_selection_mode": "inherit_runtime_default"
+  },
   "specialist_binding_profiles": {
     "planning": {
       "match_skill_patterns": [
@@ -138,6 +174,10 @@
     },
     "deliverable": {
       "match_skill_patterns": [
+        "latex",
+        "paper",
+        "submission",
+        "publication",
         "writing",
         "report",
         "publish",
@@ -201,7 +241,10 @@
     "llm_acceleration_advice",
     "heartbeat_advice"
   ],
-  "required_specialist_recommendation_count": 1,
+  "required_specialist_recommendation_count": 0,
+  "require_specialist_decision_evidence": true,
+  "minimum_specialist_recommendation_confidence": 0.2,
+  "include_stage_assistant_recommendations": false,
   "specialist_recommendation_limit": 6,
   "fallback_specialists_by_task_type": {
     "planning": [

@@ -69,8 +69,8 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
             self.assertTrue((target_root / "command" / "vibe.md").exists())
             self.assertTrue((target_root / "agents" / "vibe-plan.md").exists())
             self.assertTrue((target_root / "agent" / "vibe-plan.md").exists())
-            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how.md")
-            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how-do-we-do.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how-do-we-do.md")
             closure = json.loads(closure_path.read_text(encoding="utf-8"))
             self.assertEqual([str((target_root / ".vibeskills" / "host-settings.json").resolve())], closure["settings_materialized"])
             self.assertIsNone(payload["legacy_opencode_config_cleanup"])
@@ -166,8 +166,8 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
             self.assertEqual(original, json.loads(settings_path.read_text(encoding="utf-8")))
             self.assertTrue((target_root / "commands" / "vibe.md").exists())
             self.assertTrue((target_root / "agents" / "vibe-plan.md").exists())
-            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how.md")
-            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "commands" / "vibe-how-do-we-do.md")
+            self._assert_canonical_trampoline_wrapper(target_root / "command" / "vibe-how-do-we-do.md")
             self.assertTrue((target_root / ".vibeskills" / "host-settings.json").exists())
 
 

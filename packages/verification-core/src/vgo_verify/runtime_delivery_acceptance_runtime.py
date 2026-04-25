@@ -14,6 +14,7 @@ from .runtime_delivery_acceptance_support import (
     _read_text_if_exists,
     _requirement_optional_bullets,
     _resolve_artifact_review_payload,
+    _resolve_specialist_execution_payload,
     _resolve_specialist_decision_payload,
     _resolve_tdd_evidence_payload,
     _truth_completion_allowed,
@@ -21,6 +22,27 @@ from .runtime_delivery_acceptance_support import (
     load_json,
     utc_now,
 )
+
+
+def _normalize_entrypoint_path_for_compare(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    normalized = raw.replace("\\", "/").rstrip("/")
+    lower_normalized = normalized.lower()
+    is_drive_path = len(normalized) >= 3 and normalized[1:3] == ":/"
+    is_posix_drive_path = len(normalized) >= 3 and normalized[0] == "/" and normalized[1].isalpha() and normalized[2] == "/"
+    is_wsl_drive_path = (
+        len(normalized) >= 7
+        and lower_normalized.startswith("/mnt/")
+        and normalized[5].isalpha()
+        and normalized[6] == "/"
+    )
+    if is_drive_path or is_posix_drive_path or is_wsl_drive_path:
+        return normalized.casefold()
+    if "\\" in raw:
+        return normalized.casefold()
+    return normalized
 
 
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
@@ -68,7 +90,10 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     )
     artifact_review_payload = _resolve_artifact_review_payload(session_root, execute_receipt)
     specialist_decision_payload = _resolve_specialist_decision_payload(session_root, execute_receipt)
+    specialist_execution_payload = _resolve_specialist_execution_payload(session_root, execute_receipt)
     tdd_evidence_payload = _resolve_tdd_evidence_payload(session_root, execute_receipt)
+    specialist_user_disclosure = execute_receipt.get("specialist_user_disclosure") or {}
+    disclosure_routed_skills = specialist_user_disclosure.get("routed_skills") or []
 
     governance_truth_state = "passing"
     governance_truth_notes: list[str] = []
@@ -159,12 +184,12 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence did not record coverage for all frozen TDD requirements."
                 )
-            if not red_phase_evidence_paths:
+            if code_task_tdd_evidence_requirements and not red_phase_evidence_paths:
                 code_task_tdd_evidence_state = "manual_review_required"
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence did not record failing-first evidence paths."
                 )
-            if not green_phase_evidence_paths:
+            if code_task_tdd_evidence_requirements and not green_phase_evidence_paths:
                 code_task_tdd_evidence_state = "manual_review_required"
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence did not record green-phase verification evidence paths."
@@ -174,8 +199,265 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     if tdd_evidence_payload_notes:
         code_task_tdd_evidence_notes.append(tdd_evidence_payload_notes)
 
+    if "approved_dispatch" in specialist_accounting:
+        approved_dispatch = specialist_accounting.get("approved_dispatch") or []
+    else:
+        approved_dispatch = specialist_dispatch.get("approved_dispatch") or []
+    approved_dispatch_skill_ids = _normalize_skill_id_list(approved_dispatch)
+    runtime_specialist_execution_status = str(specialist_accounting.get("effective_execution_status") or "").strip()
+    effective_specialist_execution_status = runtime_specialist_execution_status
+
+    disclosure_entrypoint_by_skill_id: dict[str, str] = {}
+    for record in disclosure_routed_skills:
+        if not isinstance(record, dict):
+            continue
+        skill_id = str(record.get("skill_id") or record.get("id") or record.get("name") or "").strip()
+        native_skill_entrypoint = str(record.get("native_skill_entrypoint") or "").strip()
+        if skill_id and native_skill_entrypoint and skill_id not in disclosure_entrypoint_by_skill_id:
+            disclosure_entrypoint_by_skill_id[skill_id] = native_skill_entrypoint
+
+    raw_specialist_execution_units = specialist_execution_payload.get("units") or []
+    if not isinstance(raw_specialist_execution_units, list):
+        raw_specialist_execution_units = [raw_specialist_execution_units] if raw_specialist_execution_units else []
+
+    direct_routed_units_key_present = "direct_routed_specialist_units" in specialist_accounting
+    raw_direct_routed_specialist_units = specialist_accounting.get("direct_routed_specialist_units") or []
+    if not direct_routed_units_key_present and raw_specialist_execution_units:
+        raw_direct_routed_specialist_units = [
+            {
+                "unit_id": str(record.get("unit_id") or "").strip(),
+                "skill_id": str(record.get("skill_id") or record.get("specialist_skill_id") or "").strip(),
+                "result_path": str(record.get("result_path") or "").strip(),
+            }
+            for record in raw_specialist_execution_units
+            if isinstance(record, dict)
+        ]
+    if not isinstance(raw_direct_routed_specialist_units, list):
+        raw_direct_routed_specialist_units = [raw_direct_routed_specialist_units] if raw_direct_routed_specialist_units else []
+
+    direct_routed_specialist_units: list[dict[str, Any]] = []
+    direct_routed_unit_index: dict[str, dict[str, Any]] = {}
+    for item in raw_direct_routed_specialist_units:
+        if not isinstance(item, dict):
+            continue
+        unit_id = str(item.get("unit_id") or "").strip()
+        skill_id = str(item.get("skill_id") or item.get("specialist_skill_id") or "").strip()
+        result_path_raw = str(item.get("result_path") or "").strip()
+        result_path = ""
+        if result_path_raw:
+            candidate_path = Path(result_path_raw)
+            result_path = str((session_root / candidate_path).resolve() if not candidate_path.is_absolute() else candidate_path.resolve())
+        normalized_unit = {
+            "unit_id": unit_id,
+            "skill_id": skill_id,
+            "native_skill_entrypoint": disclosure_entrypoint_by_skill_id.get(skill_id, ""),
+            "result_path": result_path,
+        }
+        direct_routed_specialist_units.append(normalized_unit)
+        if unit_id and unit_id not in direct_routed_unit_index:
+            direct_routed_unit_index[unit_id] = normalized_unit
+
+    direct_routed_unit_ids = list(direct_routed_unit_index.keys())
+    direct_routed_skill_ids = _normalize_skill_id_list(direct_routed_specialist_units)
+
+    specialist_execution_source_path = str(specialist_execution_payload.get("source_path") or "").strip()
+    specialist_execution_resolution_mode = str(specialist_execution_payload.get("resolution_mode") or "").strip().lower()
+    specialist_execution_evidence = _normalize_string_list(specialist_execution_payload.get("evidence_paths"))
+    if specialist_execution_source_path:
+        specialist_execution_evidence = [specialist_execution_source_path, *specialist_execution_evidence]
+
+    if (
+        not runtime_specialist_execution_status
+        and approved_dispatch_skill_ids
+        and (
+            direct_routed_unit_ids
+            or raw_specialist_execution_units
+            or specialist_execution_resolution_mode == "current_session_host_execution"
+        )
+    ):
+        runtime_specialist_execution_status = "direct_current_session_routed"
+        effective_specialist_execution_status = runtime_specialist_execution_status
+
+    specialist_execution_notes: list[str] = []
+    specialist_execution_payload_invalid = str(
+        specialist_execution_payload.get("__vgo_payload_state") or ""
+    ).strip().lower() == "invalid"
+    specialist_execution_payload_valid = not specialist_execution_payload_invalid
+    if specialist_execution_payload_invalid:
+        invalid_reason = str(specialist_execution_payload.get("invalid_reason") or "").strip()
+        specialist_execution_notes.append(
+            "Specialist execution sidecar was present but invalid"
+            + (f": {invalid_reason}" if invalid_reason else ".")
+        )
+    specialist_host_resolution_state = "not_applicable"
+    specialist_host_executed_unit_count = 0
+    specialist_host_degraded_unit_count = 0
+    specialist_host_blocked_unit_count = 0
+    specialist_host_failed_unit_count = 0
+    specialist_host_resolved_units: list[dict[str, Any]] = []
+    seen_specialist_execution_unit_ids: set[str] = set()
+    specialist_execution_state_aliases = {
+        "executed": "executed",
+        "completed": "executed",
+        "passing": "executed",
+        "pass": "executed",
+        "degraded": "degraded",
+        "blocked": "blocked",
+        "failed": "failed",
+        "failing": "failed",
+    }
+
+    expected_source_run_id = str(execute_receipt.get("run_id") or execution_manifest.get("run_id") or "").strip()
+    recorded_source_run_id = str(specialist_execution_payload.get("source_run_id") or "").strip()
+    if recorded_source_run_id and expected_source_run_id and recorded_source_run_id != expected_source_run_id:
+        specialist_execution_payload_valid = False
+        specialist_execution_notes.append(
+            "Specialist execution sidecar source_run_id did not match the governed run being evaluated."
+        )
+
+    direct_routed_unit_id_set = set(direct_routed_unit_ids)
+    for record in raw_specialist_execution_units:
+        if not isinstance(record, dict):
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append("Specialist execution sidecar contained a non-object unit record.")
+            continue
+
+        unit_id = str(record.get("unit_id") or "").strip()
+        if not unit_id:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append("Specialist execution sidecar contained a unit record without unit_id.")
+            continue
+        if unit_id in seen_specialist_execution_unit_ids:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar duplicated unit_id `{unit_id}`."
+            )
+            continue
+        seen_specialist_execution_unit_ids.add(unit_id)
+
+        if unit_id not in direct_routed_unit_id_set:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar referenced unknown direct-routed unit_id `{unit_id}`."
+            )
+            continue
+
+        expected_unit = direct_routed_unit_index.get(unit_id) or {}
+        expected_skill_id = str(expected_unit.get("skill_id") or "").strip()
+        skill_id = str(record.get("skill_id") or expected_skill_id).strip()
+        if expected_skill_id and skill_id and skill_id != expected_skill_id:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar unit `{unit_id}` reported skill_id `{skill_id}` but expected `{expected_skill_id}`."
+            )
+            continue
+
+        resolution_state_raw = str(
+            record.get("resolution_state") or record.get("state") or record.get("status") or ""
+        ).strip().lower()
+        resolution_state = specialist_execution_state_aliases.get(resolution_state_raw, "")
+        if not resolution_state:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar unit `{unit_id}` used unsupported resolution state `{resolution_state_raw or 'missing'}`."
+            )
+            continue
+
+        evidence_paths = _normalize_string_list(record.get("evidence_paths"))
+        if not evidence_paths:
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar unit `{unit_id}` did not record evidence_paths."
+            )
+            continue
+
+        native_skill_entrypoint = str(record.get("native_skill_entrypoint") or "").strip()
+        expected_entrypoint = str(expected_unit.get("native_skill_entrypoint") or "").strip()
+        if (
+            native_skill_entrypoint
+            and expected_entrypoint
+            and _normalize_entrypoint_path_for_compare(native_skill_entrypoint)
+            != _normalize_entrypoint_path_for_compare(expected_entrypoint)
+        ):
+            specialist_execution_payload_valid = False
+            specialist_execution_notes.append(
+                f"Specialist execution sidecar unit `{unit_id}` changed native_skill_entrypoint away from the disclosed value."
+            )
+            continue
+
+        normalized_record = {
+            "unit_id": unit_id,
+            "skill_id": skill_id,
+            "resolution_state": resolution_state,
+            "native_skill_entrypoint": native_skill_entrypoint or expected_entrypoint,
+            "evidence_paths": evidence_paths,
+            "notes": str(record.get("notes") or "").strip(),
+        }
+        specialist_host_resolved_units.append(normalized_record)
+        if resolution_state == "executed":
+            specialist_host_executed_unit_count += 1
+        elif resolution_state == "degraded":
+            specialist_host_degraded_unit_count += 1
+        elif resolution_state == "blocked":
+            specialist_host_blocked_unit_count += 1
+        elif resolution_state == "failed":
+            specialist_host_failed_unit_count += 1
+
+    missing_direct_routed_unit_ids = [
+        unit_id for unit_id in direct_routed_unit_ids if unit_id not in seen_specialist_execution_unit_ids
+    ]
+
+    specialist_host_continuation_pending = False
+    if approved_dispatch_skill_ids and runtime_specialist_execution_status == "direct_current_session_routed":
+        if not direct_routed_unit_ids:
+            specialist_host_continuation_pending = True
+            specialist_host_resolution_state = "pending"
+            specialist_execution_notes.append(
+                "Approved execution stayed current-session routed but no direct-routed specialist units were recorded."
+            )
+        elif specialist_execution_payload_invalid:
+            specialist_host_resolution_state = "invalid"
+        elif not specialist_execution_payload:
+            specialist_host_continuation_pending = True
+            specialist_host_resolution_state = "pending"
+        elif not specialist_execution_payload_valid:
+            specialist_host_resolution_state = "invalid"
+        elif missing_direct_routed_unit_ids:
+            specialist_host_continuation_pending = True
+            specialist_host_resolution_state = "pending"
+            specialist_execution_notes.append(
+                "Specialist execution sidecar did not resolve all direct-routed specialist units."
+            )
+        elif specialist_host_failed_unit_count > 0 and (
+            specialist_host_executed_unit_count > 0
+            or specialist_host_degraded_unit_count > 0
+            or specialist_host_blocked_unit_count > 0
+        ):
+            specialist_host_resolution_state = "partial_failed"
+            effective_specialist_execution_status = "host_current_session_failed"
+        elif specialist_host_failed_unit_count > 0:
+            specialist_host_resolution_state = "failed"
+            effective_specialist_execution_status = "host_current_session_failed"
+        elif specialist_host_blocked_unit_count > 0 and (
+            specialist_host_executed_unit_count > 0 or specialist_host_degraded_unit_count > 0
+        ):
+            specialist_host_resolution_state = "partial_non_green"
+            effective_specialist_execution_status = "host_current_session_partial"
+        elif specialist_host_blocked_unit_count > 0:
+            specialist_host_resolution_state = "blocked"
+            effective_specialist_execution_status = "host_current_session_blocked"
+        elif specialist_host_degraded_unit_count > 0:
+            specialist_host_resolution_state = "degraded"
+            effective_specialist_execution_status = "host_current_session_degraded"
+        else:
+            specialist_host_resolution_state = "executed"
+            effective_specialist_execution_status = "host_current_session_executed"
+
     workflow_truth_state = "passing"
     workflow_truth_notes: list[str] = []
+    workflow_truth_evidence = [str(execute_receipt_path), str(cleanup_receipt_path)]
+    if specialist_execution_evidence:
+        workflow_truth_evidence.extend(specialist_execution_evidence)
     if str(cleanup_receipt.get("cleanup_mode") or "") == "cleanup_degraded":
         workflow_truth_state = "degraded"
         workflow_truth_notes.append("Cleanup degraded, so workflow closure is not fully authoritative.")
@@ -185,16 +467,53 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     elif execution_status == "completed_with_failures":
         workflow_truth_state = "partial"
         workflow_truth_notes.append("Workflow closed with failed units still present.")
+    elif specialist_host_continuation_pending:
+        workflow_truth_state = "manual_review_required"
+        workflow_truth_notes.append(
+            "Approved execution remained routed to the current host session; host continuation is still required before the run can be reported as complete."
+        )
+    elif specialist_host_resolution_state == "invalid":
+        workflow_truth_state = "manual_review_required"
+        workflow_truth_notes.append(
+            "Current-session specialist execution was reported, but the specialist execution sidecar did not validate cleanly."
+        )
+    elif specialist_host_resolution_state == "partial_non_green":
+        workflow_truth_state = "partial"
+        workflow_truth_notes.append(
+            "Current-session specialist execution resolved the handoff, but one or more approved specialists ended in a blocked non-green state."
+        )
+    elif specialist_host_resolution_state == "partial_failed":
+        workflow_truth_state = "partial"
+        workflow_truth_notes.append(
+            "Current-session specialist execution resolved the handoff, but one or more approved specialists failed."
+        )
+    elif specialist_host_resolution_state == "failed":
+        workflow_truth_state = "partial"
+        workflow_truth_notes.append(
+            "Current-session specialist execution resolved the handoff, but approved specialist execution failed."
+        )
+    elif specialist_host_resolution_state == "blocked":
+        workflow_truth_state = "partial"
+        workflow_truth_notes.append(
+            "Current-session specialist execution resolved the handoff, but approved specialist execution stayed blocked."
+        )
+    elif specialist_host_resolution_state == "degraded":
+        workflow_truth_state = "degraded"
+        workflow_truth_notes.append(
+            "Current-session specialist execution resolved the handoff, but approved specialist execution stayed degraded."
+        )
+    elif specialist_host_resolution_state == "executed" and execution_status == "completed":
+        workflow_truth_notes.append(
+            "Approved execution was completed through direct current-session host continuation and recorded in specialist-execution.json."
+        )
     elif execution_status != "completed":
         workflow_truth_state = "failing"
         workflow_truth_notes.append("Workflow did not reach a clean completed state.")
+    if specialist_execution_notes:
+        workflow_truth_notes.extend(specialist_execution_notes)
 
     specialist_disclosure_state = "not_applicable"
     specialist_disclosure_notes: list[str] = []
-    specialist_user_disclosure = execute_receipt.get("specialist_user_disclosure") or {}
-    approved_dispatch = specialist_accounting.get("approved_dispatch") or specialist_dispatch.get("approved_dispatch") or []
-    approved_dispatch_skill_ids = _normalize_skill_id_list(approved_dispatch)
-    disclosure_routed_skills = specialist_user_disclosure.get("routed_skills") or []
     disclosure_skill_ids = _normalize_skill_id_list(disclosure_routed_skills)
     disclosure_missing_entrypoint_skill_ids = _normalize_skill_id_list(
         [
@@ -219,7 +538,6 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             *specialist_blocked_skill_ids,
         ]
     )
-    effective_specialist_execution_status = str(specialist_accounting.get("effective_execution_status") or "").strip()
     specialist_disclosure_scope = str(specialist_user_disclosure.get("scope") or "").strip()
     specialist_disclosure_timing = str(specialist_user_disclosure.get("timing") or "").strip()
     specialist_disclosure_path_source = str(specialist_user_disclosure.get("path_source") or "").strip()
@@ -327,6 +645,11 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 specialist_decision_state = "manual_review_required"
                 specialist_decision_notes.append(
                     "No specialist recommendation was frozen and the no-match resolution remained pending."
+                )
+            elif resolution_mode == "no_matching_specialist":
+                specialist_decision_state = "passing"
+                specialist_decision_notes.append(
+                    "No bounded specialist matched the task; host-led execution remained responsible for decomposition and delivery."
                 )
             elif resolution_mode == "no_specialist_needed":
                 if repo_asset_used or repo_asset_paths or repo_asset_reason or repo_asset_legal_basis or repo_asset_traceability:
@@ -546,7 +869,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         },
         "workflow_completion_truth": {
             "state": _normalize_truth_state(workflow_truth_state),
-            "evidence": [str(execute_receipt_path), str(cleanup_receipt_path)],
+            "evidence": workflow_truth_evidence,
             "notes": " ".join(workflow_truth_notes).strip(),
         },
         "artifact_review_truth": {
@@ -625,6 +948,16 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         residual_risks.append("Specialist decision truth is missing required fallback or dispatch detail.")
     if specialist_decision_state == "degraded":
         residual_risks.append("Specialist decision recorded a traceable but non-green specialist fallback path.")
+    if specialist_host_continuation_pending:
+        residual_risks.append("Approved execution is still waiting on direct current-session host continuation.")
+    elif specialist_host_resolution_state == "invalid":
+        residual_risks.append("Current-session specialist execution evidence was recorded, but the specialist-execution sidecar did not validate cleanly.")
+    elif specialist_host_resolution_state == "degraded":
+        residual_risks.append("Approved execution finished current-session continuation with degraded specialist outcomes.")
+    elif specialist_host_resolution_state in {"failed", "partial_failed"}:
+        residual_risks.append("Approved execution finished current-session continuation with failed specialist outcomes.")
+    elif specialist_host_resolution_state in {"blocked", "partial_non_green"}:
+        residual_risks.append("Approved execution finished current-session continuation with blocked specialist outcomes.")
 
     summary = {
         "gate_result": gate_result,
@@ -700,6 +1033,8 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "research_augmentation_sources": research_augmentation_sources,
         },
         "execution_context": {
+            "run_id": str(execute_receipt.get("run_id") or execution_manifest.get("run_id") or ""),
+            "session_root": str(session_root),
             "governance_scope": str(execution_manifest.get("governance_scope") or ""),
             "completion_claim_allowed": bool(execute_receipt.get("completion_claim_allowed")),
             "cleanup_mode": str(cleanup_receipt.get("cleanup_mode") or ""),
@@ -713,10 +1048,25 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "artifact_review_source_path": artifact_review_source_path,
             "artifact_review_state": _normalize_truth_state(artifact_review_state),
             "specialist_decision_source_path": specialist_decision_source_path,
+            "specialist_execution_source_path": specialist_execution_source_path,
+            "specialist_execution_sidecar_path": str(session_root / "specialist-execution.json"),
             "approved_dispatch_skill_ids": approved_dispatch_skill_ids,
             "disclosed_specialist_skill_ids": disclosure_skill_ids,
+            "direct_routed_specialist_unit_ids": direct_routed_unit_ids,
+            "direct_routed_specialist_skill_ids": direct_routed_skill_ids,
+            "direct_routed_specialist_units": direct_routed_specialist_units,
+            "specialist_host_resolution_state": specialist_host_resolution_state,
+            "specialist_host_executed_unit_count": specialist_host_executed_unit_count,
+            "specialist_host_degraded_unit_count": specialist_host_degraded_unit_count,
+            "specialist_host_blocked_unit_count": specialist_host_blocked_unit_count,
+            "specialist_host_failed_unit_count": specialist_host_failed_unit_count,
+            "specialist_host_resolved_units": specialist_host_resolved_units,
+            "specialist_host_missing_unit_ids": missing_direct_routed_unit_ids,
+            "runtime_specialist_execution_status": runtime_specialist_execution_status,
             "specialist_effective_execution_status": effective_specialist_execution_status,
+            "specialist_host_continuation_pending": specialist_host_continuation_pending,
             "specialist_disclosure_state": _normalize_truth_state(specialist_disclosure_state),
+            "specialist_execution_notes": specialist_execution_notes,
         },
         "forbidden_completion_hits": forbidden_hits,
         "manual_spot_checks": manual_spot_checks,

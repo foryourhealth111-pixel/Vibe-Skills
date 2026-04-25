@@ -1,104 +1,99 @@
-# 安装与自定义接入索引
+# 安装文档索引
 
-本目录用于对外公开的安装、升级与自定义接入说明。
+这个目录放安装、更新、卸载和自定义接入说明。
 
-## 快速导航
+普通用户有两条路径：
 
-### 公开安装入口
+- **提示词安装**：复制一段提示词给 AI 客户端，让它确认宿主、版本并执行安装。
+- **命令安装**：直接在终端运行 install/check，适合熟悉宿主根目录和命令行的人。
 
-- [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)：唯一公开安装入口；先选宿主、动作和版本，再复制对应提示词
+如果你不确定选哪个，先走提示词安装：
 
-### 公开卸载入口
+1. 打开 [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)。
+2. 选择宿主、动作和版本。
+3. 复制一段提示词到你要安装 VibeSkills 的 AI 客户端里。
 
-- [`../../uninstall.ps1`](../../uninstall.ps1) / [`../../uninstall.sh`](../../uninstall.sh)：安装完成后的对称卸载入口；参数与 `install.*` 对齐，默认直接执行，但只会按 install ledger、host closure 和保守 legacy surface 删除 Vibe 自己管理的内容
-- [`../uninstall-governance.md`](../uninstall-governance.md)：卸载契约说明；明确 shared JSON 只删 `vibeskills` 受管节点，不回滚宿主登录态、provider 凭证或插件状态
+如果你要直接执行命令，打开 [`recommended-full-path.md`](./recommended-full-path.md)。
 
-### 参考说明
+## 前置条件
 
-- [`recommended-full-path.md`](./recommended-full-path.md)：多宿主安装命令参考
-- [`openclaw-path.md`](./openclaw-path.md)：OpenClaw 专用安装与使用说明
-- [`opencode-path.md`](./opencode-path.md)：OpenCode 专用安装与使用说明
-- [`manual-copy-install.md`](./manual-copy-install.md)：离线或无管理员权限时的手动复制路径
-- [`../one-shot-setup.md`](../one-shot-setup.md)：`install/check/one-shot-setup` 三条宿主模式如何对齐的说明页
-- [`../troubleshooting.md`](../troubleshooting.md)：集中式排障入口，避免把故障说明拆成平行安装入口
-- [`framework-only-path.md`](./framework-only-path.md)：旧入口名兼容说明
-- [`full-featured-install-prompts.md`](./full-featured-install-prompts.md)：Codex 深度路径兼容说明
+- Python 3.10+
+- PowerShell 7（`pwsh`），用于完整 governed verification
+- 能访问这个 GitHub 仓库
+
+Linux 和 macOS 仍然可以使用 `bash` 安装脚本。推荐安装 PowerShell 7，是因为部分 governed verification gate 会使用 PowerShell 命令面。
+
+## 主要页面
+
+| 需求 | 阅读 |
+|:---|:---|
+| 公开安装/更新入口 | [`one-click-install-release-copy.md`](./one-click-install-release-copy.md) |
+| 命令安装参考 | [`recommended-full-path.md`](./recommended-full-path.md) |
+| 宿主根目录选择 | [`../cold-start-install-paths.md`](../cold-start-install-paths.md) |
+| 离线/手动安装 | [`manual-copy-install.md`](./manual-copy-install.md) |
+| OpenClaw 细节 | [`openclaw-path.md`](./openclaw-path.md) |
+| OpenCode 细节 | [`opencode-path.md`](./opencode-path.md) |
+| 安装后配置边界 | [`configuration-guide.md`](./configuration-guide.md) |
+| 自定义 Skill 接入 | [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md) |
+
+维护者/参考页：
+
 - [`installation-rules.md`](./installation-rules.md)：安装助手必须遵守的 truth-first 规则
-- [`configuration-guide.md`](./configuration-guide.md)：本地配置说明
+- [`host-plugin-policy.md`](./host-plugin-policy.md)：宿主和插件边界说明
+- [`../one-shot-setup.md`](../one-shot-setup.md)：one-shot setup 行为与 MCP 报告契约
 
-## 文档角色收敛
+## 提示词库
 
-| 文档类 | 当前 canonical surface | 说明 |
-| --- | --- | --- |
-| 公开安装入口 | `one-click-install-release-copy.md` | 唯一对外公开的安装入口 |
-| 宿主补充页 | `openclaw-path.md`, `opencode-path.md` | 只补充宿主差异，不是平行公开入口 |
-| prompt library | `prompts/*.md`, `full-featured-install-prompts.md` | 作为提示词资产库保留，不额外升格为公开 landing page |
-| 兼容/运维参考 | `recommended-full-path.md`, `manual-copy-install.md`, `framework-only-path.md` | 面向高级用户和兼容场景，保留但不抢占公开入口 |
+公开提示词故意保持很少：
 
-## 当前安装口径怎么读
+- [`prompts/full-version-install.md`](./prompts/full-version-install.md)
+- [`prompts/framework-only-install.md`](./prompts/framework-only-install.md)
+- [`prompts/full-version-update.md`](./prompts/full-version-update.md)
+- [`prompts/framework-only-update.md`](./prompts/framework-only-update.md)
 
-当前安装说明已经改成 registry-driven：
-
-- `HostId` / `--host` 决定宿主语义
-- `install.*`、`check.*` 与 `one-shot-setup.*` 的宿主模式都应以 [`../../config/adapter-registry.json`](../../config/adapter-registry.json) 为准
-- 当前公开宿主会落到三类模式：`governed`、`preview-guidance`、`runtime-core`
-- `opencode` 仍保留更薄的 direct install/check 路径，但这不代表 registry-driven 的 one-shot wrapper 不可用
-
-说明：
-
-- 面向普通用户时，公开安装入口只保留 [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)
-- 真正保留的安装提示词文档仍是 4 份：全量安装、框架安装、全量更新、框架更新
-- 其他安装相关页面只作为兼容说明、宿主补充说明或命令参考，不再作为平行公开入口
-- 通用安装提示词同样支持 `openclaw` 和 `opencode`
-- 单独拆出 [`openclaw-path.md`](./openclaw-path.md) 与 [`opencode-path.md`](./opencode-path.md)，只是为了补充宿主特有细节，不是因为通用安装路径不能安装
-- provider / MCP / 宿主 settings 等补充配置，默认都按“增强建议”处理；基础安装完成后即可直接使用，需要更强集成时再按需补充
-- `framework-only-path.md`、`full-featured-install-prompts.md`、`minimal-path.md`、`enterprise-governed-path.md` 属于兼容/附录层，不应再被当作并列公开入口
+这个目录里的其他页面是参考说明、兼容说明或宿主补充说明，不再作为平行公开入口。
 
 ## 公开版本
 
-当前对外公开仍是两种用户版本：
+| 对外说法 | 运行时 profile |
+|:---|:---|
+| `全量版本 + 可自定义添加治理` | `full` |
+| `仅核心框架 + 可自定义添加治理` | `minimal` |
 
-- `全量版本 + 可自定义添加治理`
-- `仅核心框架 + 可自定义添加治理`
+普通用户用 `full`。只有你明确想先装较小的治理框架时，再用 `minimal`。
 
-它们在当前脚本里的真实 profile 映射是：
+## 公开宿主
 
-- `全量版本 + 可自定义添加治理` -> `full`
-- `仅核心框架 + 可自定义添加治理` -> `minimal`
+当前公开 host id：
 
-对外继续使用友好版本名，对内执行时再映射到真实 profile。
+- `codex`
+- `claude-code`
+- `cursor`
+- `windsurf`
+- `openclaw`
+- `opencode`
 
-## 当前公开支持宿主
+这些宿主的安装模式并不完全一样。`codex` 和 `claude-code` 是最清晰的安装与使用路径；`cursor`、`windsurf`、`openclaw`、`opencode` 仍带宿主差异或 preview 边界。安装报告里要如实写清楚。
 
-当前公开支持六个宿主，但模式并不相同：
+## 安装报告的 truth model
 
-- `codex`：最强 governed lane，也是默认推荐路径
-- `claude-code`：支持的安装与使用路径，带 bounded managed closure
-- `cursor`：preview-guidance 路径
-- `windsurf`：runtime-core 路径，repo 只负责 shared runtime payload 与 `.vibeskills/*` sidecar 状态
-- `openclaw`：preview runtime-core adapter 路径，宿主专页展开 attach / copy / bundle 细节
-- `opencode`：preview-guidance adapter 路径；public surface 仍保留更薄的 direct install/check 作为默认命令参考
+不要把安装状态压成一句模糊的“成功”。需要分开报告：
 
-其他宿主当前不应被描述成“已支持安装”。
+- `installed locally`
+- `vibe host-ready`
+- `mcp native auto-provision attempted`
+- 每个 MCP 的 `host-visible readiness`
+- `online-ready`
 
-## 推荐阅读顺序
+`$vibe` 或 `/vibe` 只证明 governed runtime 入口可用。它不等于 MCP 完成，也不能证明 provider、凭证、插件或宿主原生 MCP 面都已经配置好。
 
-如果你是普通用户：
+公开安装流程暂时不引导用户配置内置在线增强能力。安装助手不应要求用户提供 provider、凭证、URL 或模型名；如果相关能力没有开放配置，只能在报告里把 `online-ready` 如实保持为未就绪或未验证。
 
-1. [`one-click-install-release-copy.md`](./one-click-install-release-copy.md)
-2. [`cold-start-install-paths.md`](../cold-start-install-paths.md)
-3. 只在这些入口里选择对应提示词或命令路径
-4. [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md)
-5. [`custom-skill-governance-rules.md`](./custom-skill-governance-rules.md)
+## 卸载
 
-如果你是高级用户：
+使用仓库根目录下的卸载入口：
 
-1. [`recommended-full-path.md`](./recommended-full-path.md)
-2. [`manual-copy-install.md`](./manual-copy-install.md)
-3. [`host-plugin-policy.md`](./host-plugin-policy.md)
-4. [`configuration-guide.md`](./configuration-guide.md)
+- Windows：`uninstall.ps1 -HostId <host>`
+- Linux / macOS：`uninstall.sh --host <host>`
 
-## 自定义扩展
-
-- [`custom-workflow-onboarding.md`](./custom-workflow-onboarding.md)：如何把新 workflow 纳入治理与路由
-- [`custom-skill-governance-rules.md`](./custom-skill-governance-rules.md)：自定义 skill / workflow 的治理规则
+完整的“只清理 Vibe 自己管理内容”契约见 [`../uninstall-governance.md`](../uninstall-governance.md)。

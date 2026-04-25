@@ -56,6 +56,10 @@ UI_TASK = "Build a responsive dashboard UI with clear interaction feedback, mean
 DOC_TASK = "Reformat the project README headings and spacing without changing application code."
 DOC_CODE_TASK = "Implement the markdown export pipeline for the docs renderer and add targeted verification for the parser."
 DOC_DECK_TASK = "Build the release deck slides and refine presentation spacing without changing application code."
+RESEARCH_EXECUTION_TASK = (
+    "execute governed-plan facial-recognition dataset-download literature-review "
+    "few-shot-modeling baseline-training algorithm-enhancement experiment-run gpu-aware latex-paper"
+)
 
 
 def resolve_python_command_spec_via_powershell(command_spec: str, path_entries: list[Path]) -> dict[str, object]:
@@ -81,6 +85,8 @@ def resolve_python_command_spec_via_powershell(command_spec: str, path_entries: 
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     )
     return json.loads(completed.stdout)
@@ -245,6 +251,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
                 env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
             )
@@ -333,7 +341,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 self.assertIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
                 self.assertIn("## Task-Specific Acceptance Extensions", requirement_doc)
                 self.assertIn("## Research Augmentation Sources", requirement_doc)
-                self.assertIn("Eligible recommendations should auto-promote", requirement_doc)
+                self.assertIn("Only host-adopted or effective approved specialist dispatch is shown here", requirement_doc)
             self.assertEqual("requirements", requirement_doc_path.parent.name)
             self.assertEqual("plans", execution_plan_path.parent.name)
             execution_plan = execution_plan_path.read_text(encoding="utf-8")
@@ -510,6 +518,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
                 env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
             )
@@ -561,6 +571,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
                 env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
             )
@@ -627,6 +639,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
                 env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
             )
@@ -676,6 +690,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
                 env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
             )
@@ -696,6 +712,59 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
             self.assertIn("- Structure Integrity", requirement_doc)
             self.assertIn("- Output Fidelity", requirement_doc)
+
+    def test_invoke_vibe_runtime_keeps_research_execution_tasks_off_default_code_tdd_path(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-research"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task '{RESEARCH_EXECUTION_TASK}' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+            )
+
+            payload = json.loads(completed.stdout)
+            relative_artifacts = payload["summary"].get("artifacts_relative", {})
+            requirement_doc_path = artifact_root / Path(relative_artifacts["requirement_doc"])
+            runtime_input_packet_path = artifact_root / Path(relative_artifacts["runtime_input_packet"])
+            self.assertTrue(requirement_doc_path.exists())
+            self.assertTrue(runtime_input_packet_path.exists())
+
+            requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
+            runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
+
+            self.assertEqual("research", runtime_input_packet["canonical_router"]["task_type"])
+            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
+            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertNotIn(
+                "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
+                requirement_doc,
+            )
 
     def test_write_requirement_doc_preserves_explicit_document_artifact_review_requirements(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
@@ -756,6 +825,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
             )
 
@@ -781,6 +852,69 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             )
             self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
             self.assertIn("- Structure Integrity", requirement_doc)
+
+    def test_write_requirement_doc_does_not_require_tdd_for_review_only_bug_audit(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        cases = [
+            (
+                "pytest-requirement-doc-review-bug-audit",
+                "Review CodeRabbit PR bug comments and audit which findings are real bugs.",
+                False,
+            ),
+            (
+                "pytest-requirement-doc-fix-parser-bug",
+                "Fix bug in parser module and add targeted verification.",
+                True,
+            ),
+        ]
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            for run_id, task, should_require_tdd in cases:
+                command = [
+                    shell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-Command",
+                    (
+                        "& { "
+                        f"$result = & '{script_path}' "
+                        f"-Task {_ps_single_quote(task)} "
+                        "-Mode interactive_governed "
+                        f"-RunId '{run_id}' "
+                        f"-ArtifactRoot '{artifact_root}'; "
+                        "$result | ConvertTo-Json -Depth 20 }"
+                    ),
+                ]
+                completed = subprocess.run(
+                    command,
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    check=True,
+                )
+                payload = json.loads(completed.stdout)
+                requirement_doc = Path(payload["requirement_doc_path"]).read_text(encoding="utf-8")
+
+                if should_require_tdd:
+                    self.assertIn("TDD mode: required", requirement_doc)
+                    self.assertIn(
+                        "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
+                        requirement_doc,
+                    )
+                else:
+                    self.assertIn("TDD mode: not_applicable", requirement_doc)
+                    self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+                    self.assertNotIn(
+                        "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
+                        requirement_doc,
+                    )
 
     def test_resolve_vgo_python_command_spec_falls_back_to_python3(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

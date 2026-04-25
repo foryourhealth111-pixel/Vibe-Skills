@@ -36,6 +36,13 @@ $targetRoot = if ([System.IO.Path]::IsPathRooted($LocalPath)) {
 if (-not (Test-VgoPathWithin -ParentPath (Join-Path $repoRoot 'vendor') -ChildPath $targetRoot)) {
     throw "ORIGIN records must live under vendor/**. target=$targetRoot"
 }
+if ([System.String]::Equals(
+        $targetRoot.TrimEnd('\', '/'),
+        [System.IO.Path]::GetFullPath((Join-Path $repoRoot 'vendor')).TrimEnd('\', '/'),
+        [System.StringComparison]::OrdinalIgnoreCase
+    )) {
+    throw "ORIGIN records must live under vendor/**, not at vendor root. target=$targetRoot"
+}
 
 New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null
 $originPath = Join-Path $targetRoot 'ORIGIN.md'

@@ -64,8 +64,7 @@ class BootstrapDoctorTests(unittest.TestCase):
             json.dumps(
                 {
                     "allowed_secret_refs": [
-                        {"name": "VCO_INTENT_ADVICE_API_KEY", "scope": "env", "storage": ["env"]},
-                        {"name": "VCO_VECTOR_DIFF_API_KEY", "scope": "env", "storage": ["env"]},
+                        {"name": "ACTIVEPIECES_MCP_TOKEN", "scope": "env", "storage": ["env"]},
                         {"name": "COMPOSIO_SESSION_MCP_URL", "scope": "env", "storage": ["env"]},
                     ]
                 },
@@ -123,11 +122,11 @@ class BootstrapDoctorTests(unittest.TestCase):
         self.assertEqual("FAIL", artifact["gate_result"])
         self.assertEqual("core_install_incomplete", artifact["summary"]["readiness_state"])
 
-    def test_settings_present_without_online_secrets_is_manual_actions_pending(self) -> None:
+    def test_settings_present_with_pending_mcp_is_manual_actions_pending(self) -> None:
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -154,7 +153,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -195,7 +194,7 @@ class BootstrapDoctorTests(unittest.TestCase):
             encoding="utf-8",
         )
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -227,7 +226,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -270,7 +269,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -314,7 +313,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         bootstrap_path = self.target_root / "AGENTS.md"
@@ -383,7 +382,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         block = (
@@ -439,7 +438,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         bootstrap_path = self.target_root / "AGENTS.md"
@@ -489,7 +488,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         bootstrap_path = self.target_root / "AGENTS.md"
@@ -558,7 +557,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         bootstrap_path = self.target_root / "AGENTS.md"
@@ -602,7 +601,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -651,7 +650,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
 
@@ -731,7 +730,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         (self.target_root / "mcp").mkdir(parents=True, exist_ok=True)
         (self.target_root / "mcp" / "servers.active.json").write_text('{"profile":"full"}\n', encoding="utf-8")
         (self.target_root / "settings.json").write_text(
-            json.dumps({"vco": {"mcp_profile": "full"}, "env": {"VCO_INTENT_ADVICE_API_KEY": "<pending>"}}) + "\n",
+            json.dumps({"vco": {"mcp_profile": "full"}, "env": {}}) + "\n",
             encoding="utf-8",
         )
         (self.root / ".claude.json").write_text(

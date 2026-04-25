@@ -160,6 +160,26 @@ def _resolve_specialist_decision_payload(session_root: Path, execute_receipt: di
     )
 
 
+def _resolve_specialist_execution_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
+    return _resolve_optional_payload(
+        session_root,
+        execute_receipt,
+        inline_key="specialist_execution",
+        explicit_path_key="specialist_execution_path",
+        sidecar_filename="specialist-execution.json",
+        inline_presence_keys=("units", "source_run_id", "resolution_mode", "notes"),
+        report_invalid_payload=True,
+    )
+
+
+def _invalid_optional_payload(path: Path, reason: str) -> dict[str, Any]:
+    return {
+        "__vgo_payload_state": "invalid",
+        "source_path": str(path),
+        "invalid_reason": reason,
+    }
+
+
 def _resolve_optional_payload(
     session_root: Path,
     execute_receipt: dict[str, Any],
@@ -168,14 +188,21 @@ def _resolve_optional_payload(
     explicit_path_key: str,
     sidecar_filename: str,
     inline_presence_keys: tuple[str, ...],
+    report_invalid_payload: bool = False,
 ) -> dict[str, Any]:
-    inline_payload = execute_receipt.get(inline_key) or {}
+    raw_inline_payload = execute_receipt.get(inline_key)
+    inline_payload = raw_inline_payload or {}
     if isinstance(inline_payload, dict):
         has_inline_content = any(inline_payload.get(key) for key in inline_presence_keys)
         if has_inline_content:
             payload = dict(inline_payload)
             payload["source_path"] = str(session_root / "phase-execute.json")
             return payload
+    elif report_invalid_payload and inline_key in execute_receipt and raw_inline_payload is not None:
+        return _invalid_optional_payload(
+            session_root / "phase-execute.json",
+            f"{inline_key} payload was not a JSON object.",
+        )
 
     explicit_path_value = str(execute_receipt.get(explicit_path_key) or "").strip()
     if explicit_path_value:
@@ -193,19 +220,33 @@ def _resolve_optional_payload(
             path_in_session_scope = False
 
         if path_in_session_scope and explicit_path.exists():
-            payload = load_json(explicit_path)
+            try:
+                payload = load_json(explicit_path)
+            except Exception as exc:
+                if report_invalid_payload:
+                    return _invalid_optional_payload(explicit_path, f"Unable to parse JSON payload: {exc}")
+                raise
             if isinstance(payload, dict):
                 normalized_payload = dict(payload)
                 normalized_payload["source_path"] = str(explicit_path)
                 return normalized_payload
+            if report_invalid_payload:
+                return _invalid_optional_payload(explicit_path, "Payload was not a JSON object.")
 
     sidecar_path = session_root / sidecar_filename
     if sidecar_path.exists():
-        payload = load_json(sidecar_path)
+        try:
+            payload = load_json(sidecar_path)
+        except Exception as exc:
+            if report_invalid_payload:
+                return _invalid_optional_payload(sidecar_path, f"Unable to parse JSON payload: {exc}")
+            raise
         if isinstance(payload, dict):
             normalized_payload = dict(payload)
             normalized_payload["source_path"] = str(sidecar_path)
             return normalized_payload
+        if report_invalid_payload:
+            return _invalid_optional_payload(sidecar_path, "Payload was not a JSON object.")
 
     return {}
 

@@ -114,6 +114,8 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         requested_grade_floor='XL',
         artifact_root=str(tmp_path / 'artifacts'),
         run_id='run-123',
+        continue_from_run_id='prior-run',
+        bounded_reentry_token='token-123',
         force_runtime_neutral=True,
     )
 
@@ -128,6 +130,8 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         '--requested-grade-floor', 'XL',
         '--run-id', 'run-123',
         '--artifact-root', str((tmp_path / 'artifacts')),
+        '--continue-from-run-id', 'prior-run',
+        '--bounded-reentry-token', 'token-123',
         '--force-runtime-neutral',
     ]
     assert recorded['printed_stdout'] == '{"run_id":"r1"}\n'

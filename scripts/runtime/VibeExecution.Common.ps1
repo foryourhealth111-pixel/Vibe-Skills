@@ -854,8 +854,18 @@ function Resolve-VibeNativeSpecialistAdapter {
     if (-not [string]::IsNullOrWhiteSpace($modeOverride)) {
         $executionMode = [string]$modeOverride
     }
-    $allowedExecutionModes = @('direct_current_session_route', 'host_subprocess')
-    if ($executionMode -notin $allowedExecutionModes) {
+    $executionMode = $executionMode.Trim().ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($executionMode)) {
+        $executionMode = 'direct_current_session_route'
+    }
+
+    $legacyRemovedMode = $null
+    if ($executionMode -eq 'host_subprocess') {
+        $legacyRemovedMode = 'host_subprocess'
+        $executionMode = 'direct_current_session_route'
+    }
+
+    if ($executionMode -ne 'direct_current_session_route') {
         return [pscustomobject]@{
             enabled = $true
             live_execution_allowed = $false
@@ -867,183 +877,21 @@ function Resolve-VibeNativeSpecialistAdapter {
             effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
             command_path = $null
             invocation_arguments_prefix = @()
+            legacy_removed_mode = $null
         }
     }
-    if ($null -eq $policy -or -not [bool]$policy.enabled) {
-        return [pscustomobject]@{
-            enabled = $false
-            live_execution_allowed = $false
-            reason = 'native_specialist_execution_policy_disabled'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    if ($executionMode -eq 'direct_current_session_route') {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = 'direct_current_session_route'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $disableEnvName = if ($policy.PSObject.Properties.Name -contains 'disable_env') { [string]$policy.disable_env } else { '' }
-    if (-not [string]::IsNullOrWhiteSpace($disableEnvName)) {
-        $disableEnvValue = [Environment]::GetEnvironmentVariable($disableEnvName)
-        if (Test-VibeTruthyEnvironmentValue -Value $disableEnvValue) {
-            return [pscustomobject]@{
-                enabled = $true
-                live_execution_allowed = $false
-                reason = ("native_specialist_execution_disabled_via_env:{0}" -f $disableEnvName)
-                runtime = $runtime
-                policy = $policy
-                adapter = $null
-                requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-                effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-                command_path = $null
-                invocation_arguments_prefix = @()
-            }
-        }
-    }
-
-    $enableEnvName = if ($policy.PSObject.Properties.Name -contains 'enable_env') { [string]$policy.enable_env } else { '' }
-    $defaultEnabled = if ($policy.PSObject.Properties.Name -contains 'default_enabled') { [bool]$policy.default_enabled } else { $false }
-    $liveExecutionAllowed = $defaultEnabled
-    if (-not [string]::IsNullOrWhiteSpace($enableEnvName)) {
-        $enableEnvValue = [Environment]::GetEnvironmentVariable($enableEnvName)
-        if (Test-VibeTruthyEnvironmentValue -Value $enableEnvValue) {
-            $liveExecutionAllowed = $true
-        }
-    }
-
-    if (-not $liveExecutionAllowed) {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = 'native_specialist_execution_not_enabled'
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $adapterId = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeHostAdapterIdentity.effective_host_id)) {
-        [string]$runtimeHostAdapterIdentity.effective_host_id
-    } elseif ($policy.PSObject.Properties.Name -contains 'default_adapter_id' -and -not [string]::IsNullOrWhiteSpace([string]$policy.default_adapter_id)) {
-        [string]$policy.default_adapter_id
-    } else {
-        'codex'
-    }
-    $adapter = $null
-    foreach ($candidate in @($policy.adapters)) {
-        if ([string]$candidate.id -eq $adapterId) {
-            $adapter = $candidate
-            break
-        }
-    }
-    if ($null -eq $adapter) {
-        return [pscustomobject]@{
-            enabled = $true
-            live_execution_allowed = $false
-            reason = ("native_specialist_adapter_missing:{0}" -f $adapterId)
-            runtime = $runtime
-            policy = $policy
-            adapter = $null
-            requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
-            effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
-            command_path = $null
-            invocation_arguments_prefix = @()
-        }
-    }
-
-    $commandPath = $null
-    $invocationArgumentsPrefix = @()
-    $resolvedReason = $null
-    $invocationKind = if ($adapter.PSObject.Properties.Name -contains 'invocation_kind') { [string]$adapter.invocation_kind } else { 'direct' }
-
-    if ($invocationKind -eq 'python_runner') {
-        $bridgeResolution = Resolve-VibeBridgeExecutable -Adapter $adapter -Runtime $runtime
-        if ([string]::IsNullOrWhiteSpace([string]$bridgeResolution.command_path)) {
-            $resolvedReason = [string]$bridgeResolution.reason
-        } else {
-            $pythonInvocation = Resolve-VgoPythonCommandSpec -Command '${VGO_PYTHON}'
-            $runnerScriptPath = if ($adapter.PSObject.Properties.Name -contains 'runner_script_path' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.runner_script_path)) {
-                [System.IO.Path]::GetFullPath((Join-Path $runtime.repo_root ([string]$adapter.runner_script_path)))
-            } else {
-                $null
-            }
-            if ([string]::IsNullOrWhiteSpace($runnerScriptPath) -or -not (Test-Path -LiteralPath $runnerScriptPath)) {
-                $resolvedReason = ("native_specialist_runner_missing:{0}" -f [string]$adapter.id)
-            } else {
-                $commandPath = [string]$pythonInvocation.host_path
-                $invocationArgumentsPrefix = @($pythonInvocation.prefix_arguments)
-                $invocationArgumentsPrefix += @(
-                    $runnerScriptPath,
-                    '--host-adapter', ([string]$adapter.id),
-                    '--bridge-executable', ([string]$bridgeResolution.command_path)
-                )
-                if ($adapter.PSObject.Properties.Name -contains 'bridge_contract' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.bridge_contract)) {
-                    $invocationArgumentsPrefix += @('--bridge-contract', ([string]$adapter.bridge_contract))
-                }
-                foreach ($item in @($adapter.runner_arguments_prefix)) {
-                    $invocationArgumentsPrefix += [string]$item
-                }
-            }
-        }
-    } else {
-        if ($adapter.PSObject.Properties.Name -contains 'executable_env' -and -not [string]::IsNullOrWhiteSpace([string]$adapter.executable_env)) {
-            $envCommand = [Environment]::GetEnvironmentVariable([string]$adapter.executable_env)
-            if (-not [string]::IsNullOrWhiteSpace($envCommand)) {
-                $candidate = Get-Command $envCommand -ErrorAction SilentlyContinue
-                if ($candidate) {
-                    $commandPath = [string]$candidate.Source
-                } elseif (Test-Path -LiteralPath $envCommand) {
-                    $commandPath = [System.IO.Path]::GetFullPath($envCommand)
-                }
-            }
-        }
-        if ([string]::IsNullOrWhiteSpace($commandPath)) {
-            $candidate = Get-Command ([string]$adapter.command) -ErrorAction SilentlyContinue
-            if ($candidate) {
-                $commandPath = [string]$candidate.Source
-            }
-        }
-        if ([string]::IsNullOrWhiteSpace($commandPath)) {
-            $resolvedReason = ("native_specialist_adapter_command_unavailable:{0}" -f [string]$adapter.command)
-        } else {
-            $invocationSpec = Resolve-VibeProcessInvocationSpec -CommandPath $commandPath -ArgumentList @()
-            $commandPath = [string]$invocationSpec.command_path
-            $invocationArgumentsPrefix = @($invocationSpec.arguments)
-        }
-    }
-
     return [pscustomobject]@{
         enabled = $true
-        live_execution_allowed = [bool](-not [string]::IsNullOrWhiteSpace($commandPath))
-        reason = if ($resolvedReason) { $resolvedReason } else { 'native_specialist_execution_ready' }
+        live_execution_allowed = $false
+        reason = 'direct_current_session_route'
         runtime = $runtime
         policy = $policy
-        adapter = $adapter
-        requested_host_adapter_id = if (-not [string]::IsNullOrWhiteSpace([string]$runtimeHostAdapterIdentity.requested_host_id)) { [string]$runtimeHostAdapterIdentity.requested_host_id } else { [string]$adapterId }
-        effective_host_adapter_id = [string]$adapter.id
-        command_path = $commandPath
-        invocation_arguments_prefix = @($invocationArgumentsPrefix)
+        adapter = $null
+        requested_host_adapter_id = [string]$runtimeHostAdapterIdentity.requested_host_id
+        effective_host_adapter_id = [string]$runtimeHostAdapterIdentity.effective_host_id
+        command_path = $null
+        invocation_arguments_prefix = @()
+        legacy_removed_mode = $legacyRemovedMode
     }
 }
 
@@ -1529,6 +1377,7 @@ function New-VibeNativeSpecialistPrompt {
         '',
         'Rules:',
         '- Open the declared native_skill_entrypoint before doing bounded specialist work.',
+        '- If the routed specialist is disclosed by path, do not replace native_skill_entrypoint with a host Skill(specialist_skill_id) lookup unless that skill name is explicitly host-visible in the current session.',
         '- Treat the declared skill root as the only bounded specialist loading root.',
         '- Preserve the named specialist skill native workflow.',
         '- Remain bounded to the frozen requirement and execution plan.',
@@ -2189,19 +2038,28 @@ function New-VibeSpecialistLaneEntry {
     } else {
         "specialist:{0}" -f [string]$Dispatch.skill_id
     }
+    $dispatchPhase = if ($Dispatch.PSObject.Properties.Name -contains 'dispatch_phase' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.dispatch_phase)) { [string]$Dispatch.dispatch_phase } else { 'in_execution' }
+    $phaseId = if ($Dispatch.PSObject.Properties.Name -contains 'phase_id' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.phase_id)) { [string]$Dispatch.phase_id } else { 'ungrouped' }
+    $stageOrder = if ($Dispatch.PSObject.Properties.Name -contains 'stage_order' -and $null -ne $Dispatch.stage_order) { [int]$Dispatch.stage_order } else { 9999 }
+    $stageType = if ($Dispatch.PSObject.Properties.Name -contains 'stage_type' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.stage_type)) { [string]$Dispatch.stage_type } else { $null }
+    $stageLabel = if ($Dispatch.PSObject.Properties.Name -contains 'stage_label' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.stage_label)) { [string]$Dispatch.stage_label } else { $null }
 
     return [pscustomobject]@{
-        lane_id = "specialist-{0}-{1}" -f [string]$Dispatch.dispatch_phase, [string]$Dispatch.skill_id
+        lane_id = "specialist-{0}-{1}-{2}" -f $dispatchPhase, $phaseId, [string]$Dispatch.skill_id
         lane_kind = 'specialist_dispatch'
         source_unit_id = [string]$Dispatch.skill_id
         specialist_skill_id = [string]$Dispatch.skill_id
-        dispatch_phase = if ($Dispatch.PSObject.Properties.Name -contains 'dispatch_phase') { [string]$Dispatch.dispatch_phase } else { 'in_execution' }
+        dispatch_phase = $dispatchPhase
         binding_profile = if ($Dispatch.PSObject.Properties.Name -contains 'binding_profile') { [string]$Dispatch.binding_profile } else { 'default' }
         lane_policy = $lanePolicy
         execution_priority = if ($Dispatch.PSObject.Properties.Name -contains 'execution_priority') { [int]$Dispatch.execution_priority } else { 50 }
         parallelizable = [bool]$parallelizable
         write_scope = $writeScope
         review_mode = if ($Dispatch.PSObject.Properties.Name -contains 'review_mode' -and -not [string]::IsNullOrWhiteSpace([string]$Dispatch.review_mode)) { [string]$Dispatch.review_mode } else { 'native_contract' }
+        phase_id = $phaseId
+        stage_order = $stageOrder
+        stage_type = $stageType
+        stage_label = $stageLabel
         dispatch = $Dispatch
     }
 }
@@ -2221,6 +2079,8 @@ function New-VibeSpecialistPhaseSteps {
         $Dispatches |
             Sort-Object `
                 @{ Expression = { Get-VibeSpecialistDispatchPhaseSortOrder -DispatchPhase ([string]$_.dispatch_phase) } }, `
+                @{ Expression = { if ($_.PSObject.Properties.Name -contains 'stage_order' -and $null -ne $_.stage_order) { [int]$_.stage_order } else { 9999 } } }, `
+                @{ Expression = { if ($_.PSObject.Properties.Name -contains 'phase_id' -and -not [string]::IsNullOrWhiteSpace([string]$_.phase_id)) { [string]$_.phase_id } else { 'ungrouped' } } }, `
                 @{ Expression = { if ($_.PSObject.Properties.Name -contains 'execution_priority') { [int]$_.execution_priority } else { 50 } } }, `
                 @{ Expression = { [string]$_.skill_id } }
     )
@@ -2228,32 +2088,55 @@ function New-VibeSpecialistPhaseSteps {
         return @()
     }
 
-    $units = @()
+    $groupedUnits = [ordered]@{}
     foreach ($dispatch in @($orderedDispatches)) {
-        $units += New-VibeSpecialistLaneEntry -Dispatch $dispatch -Grade $Grade -GovernanceScope $GovernanceScope
-    }
-
-    $parallelUnits = @($units | Where-Object { $_.parallelizable })
-    $serialUnits = @($units | Where-Object { -not $_.parallelizable })
-    if (@($parallelUnits).Count -gt 0) {
-        $steps += [pscustomobject]@{
-            step_id = "{0}-specialist-{1}-parallel" -f $WaveId, $Phase
-            execution_mode = 'bounded_parallel'
-            review_mode = [string]$parallelUnits[0].review_mode
-            max_parallel_units = [int]$ProfileDef.max_parallel_units
-            units = @($parallelUnits)
+        $entry = New-VibeSpecialistLaneEntry -Dispatch $dispatch -Grade $Grade -GovernanceScope $GovernanceScope
+        $groupKey = '{0}:{1}' -f [int]$entry.stage_order, [string]$entry.phase_id
+        if (-not $groupedUnits.Contains($groupKey)) {
+            $groupedUnits[$groupKey] = [pscustomobject]@{
+                phase_id = [string]$entry.phase_id
+                stage_order = [int]$entry.stage_order
+                stage_type = [string]$entry.stage_type
+                stage_label = [string]$entry.stage_label
+                units = @()
+            }
         }
+        $groupedUnits[$groupKey].units += $entry
     }
 
-    $serialIndex = 0
-    foreach ($entry in @($serialUnits)) {
-        $serialIndex += 1
-        $steps += [pscustomobject]@{
-            step_id = "{0}-specialist-{1}-serial-{2}" -f $WaveId, $Phase, $serialIndex
-            execution_mode = 'sequential'
-            review_mode = [string]$entry.review_mode
-            max_parallel_units = 1
-            units = @($entry)
+    $groupIndex = 0
+    foreach ($group in @($groupedUnits.Values)) {
+        $groupIndex += 1
+        $parallelUnits = @($group.units | Where-Object { $_.parallelizable })
+        $serialUnits = @($group.units | Where-Object { -not $_.parallelizable })
+        if (@($parallelUnits).Count -gt 0) {
+            $steps += [pscustomobject]@{
+                step_id = "{0}-specialist-{1}-group-{2}-parallel" -f $WaveId, $Phase, $groupIndex
+                execution_mode = 'bounded_parallel'
+                review_mode = [string]$parallelUnits[0].review_mode
+                max_parallel_units = [int]$ProfileDef.max_parallel_units
+                phase_id = [string]$group.phase_id
+                stage_order = [int]$group.stage_order
+                stage_type = [string]$group.stage_type
+                stage_label = [string]$group.stage_label
+                units = @($parallelUnits)
+            }
+        }
+
+        $serialIndex = 0
+        foreach ($entry in @($serialUnits)) {
+            $serialIndex += 1
+            $steps += [pscustomobject]@{
+                step_id = "{0}-specialist-{1}-group-{2}-serial-{3}" -f $WaveId, $Phase, $groupIndex, $serialIndex
+                execution_mode = 'sequential'
+                review_mode = [string]$entry.review_mode
+                max_parallel_units = 1
+                phase_id = [string]$group.phase_id
+                stage_order = [int]$group.stage_order
+                stage_type = [string]$group.stage_type
+                stage_label = [string]$group.stage_label
+                units = @($entry)
+            }
         }
     }
 

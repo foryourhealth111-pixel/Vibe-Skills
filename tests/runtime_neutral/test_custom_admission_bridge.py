@@ -32,6 +32,10 @@ def resolve_powershell() -> str | None:
     return None
 
 
+def normalize_path_text(value: object) -> str:
+    return str(value).replace("\\", "/")
+
+
 def run_router(
     *,
     prompt: str,
@@ -162,6 +166,7 @@ def run_runtime_freeze(
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
         env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
@@ -209,6 +214,7 @@ def run_full_runtime(
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
         env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
     )
@@ -317,7 +323,11 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             self.assertTrue(bool(custom_recommendation["parallelizable_in_root_xl"]))
             self.assertTrue(bool(custom_recommendation["native_usage_required"]))
             self.assertTrue(bool(custom_recommendation["must_preserve_workflow"]))
-            self.assertTrue(str(custom_recommendation["native_skill_entrypoint"]).endswith("skills/custom/genomics-qc-flow/SKILL.md"))
+            self.assertTrue(
+                normalize_path_text(custom_recommendation["native_skill_entrypoint"]).endswith(
+                    "skills/custom/genomics-qc-flow/SKILL.md"
+                )
+            )
 
             approved_dispatch = packet["specialist_dispatch"]["approved_dispatch"]
             self.assertIn("genomics-qc-flow", [item["skill_id"] for item in approved_dispatch])
@@ -346,11 +356,15 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             )
 
             self.assertTrue(
-                str(custom_recommendation["native_skill_entrypoint"]).endswith("SKILL.runtime-mirror.md")
+                normalize_path_text(custom_recommendation["native_skill_entrypoint"]).endswith("SKILL.runtime-mirror.md")
             )
             self.assertEqual(
                 f"Open the specialist {custom_recommendation['native_skill_entrypoint']} entrypoint first.",
                 list(custom_recommendation["progressive_load_policy"])[0],
+            )
+            self.assertIn(
+                "do not replace it with Skill(genomics-qc-flow)",
+                list(custom_recommendation["progressive_load_policy"])[1],
             )
 
     def test_full_runtime_carries_custom_specialist_into_execution_manifest(self) -> None:

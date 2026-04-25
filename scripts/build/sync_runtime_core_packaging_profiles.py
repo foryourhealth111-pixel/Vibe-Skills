@@ -30,6 +30,7 @@ def sync_runtime_core_packaging_profiles(repo_root: Path | str) -> dict[str, str
         payload = resolve_runtime_core_packaging(root, profile)
         payload.pop('profiles', None)
         payload.pop('default_profile', None)
+        payload.pop('_repo_root', None)
         target_path = (root / str(rel)).resolve()
         write_json(target_path, payload)
         updated[profile] = str(target_path)

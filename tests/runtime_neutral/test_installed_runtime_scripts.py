@@ -28,22 +28,61 @@ MINIMAL_REQUIRED_SKILLS = set(
 )
 CODEX_COMPATIBILITY_COMMAND_FILES = {
     "vibe.md",
-    "vibe-what-do-i-want.md",
-    "vibe-how-do-we-do.md",
-    "vibe-do-it.md",
-    "vibe-upgrade.md",
 }
 CODEX_WRAPPER_SKILL_NAMES = {
     "vibe",
-    "vibe-what-do-i-want",
-    "vibe-how-do-we-do",
-    "vibe-do-it",
-    "vibe-upgrade",
 }
 CANONICAL_ENTRY_RUNTIME_SURFACES = (
     "scripts/runtime/Invoke-VibeCanonicalEntry.ps1",
     "scripts/verify/vibe-canonical-entry-truth-gate.ps1",
 )
+
+_RAW_SUBPROCESS_RUN = subprocess.run
+
+
+def _utf8_text_subprocess_run(*args, **kwargs):
+    if kwargs.get("text") or kwargs.get("universal_newlines"):
+        kwargs.setdefault("encoding", "utf-8")
+        kwargs.setdefault("errors", "replace")
+    return _RAW_SUBPROCESS_RUN(*args, **kwargs)
+
+
+# Normalize text-mode decoding across Windows shell tests so bash/pwsh output
+# is evaluated against the installed runtime contract rather than the host locale.
+subprocess.run = _utf8_text_subprocess_run
+
+
+def _native_shell_frontend_unavailable_reason() -> str | None:
+    if os.name != "nt":
+        return None
+    bash_path = shutil.which("bash") or shutil.which("bash.exe")
+    if not bash_path:
+        return "bash is not available for native shell frontend tests"
+    normalized = str(Path(bash_path)).lower().replace("/", "\\")
+    if normalized.endswith("\\windows\\system32\\bash.exe"):
+        return (
+            "native shell frontend tests require a POSIX shell surface; "
+            "system32\\\\bash.exe is WSL-backed and is covered separately from Windows PowerShell flows"
+        )
+    return None
+
+
+def _is_native_shell_frontend_test(method_name: str) -> bool:
+    if "powershell_" in method_name:
+        return False
+    markers = (
+        "shell_",
+        "check_sh",
+        "codex_check",
+        "bootstrap_supports_openclaw_without_self_deleting_source",
+    )
+    return any(marker in method_name for marker in markers)
+
+
+def test_native_shell_frontend_classifier_does_not_match_powershell_tests() -> None:
+    assert not _is_native_shell_frontend_test("test_powershell_install_succeeds_without_python_on_path")
+    assert _is_native_shell_frontend_test("test_shell_install_writes_install_ledger")
+
 
 def resolve_powershell() -> str | None:
     candidates = [
@@ -51,8 +90,6 @@ def resolve_powershell() -> str | None:
         shutil.which("pwsh.exe"),
         r"C:\Program Files\PowerShell\7\pwsh.exe",
         r"C:\Program Files\PowerShell\7-preview\pwsh.exe",
-        shutil.which("powershell"),
-        shutil.which("powershell.exe"),
     ]
     for candidate in candidates:
         if candidate and Path(candidate).exists():
@@ -62,6 +99,9 @@ def resolve_powershell() -> str | None:
 
 class InstalledRuntimeScriptsTests(unittest.TestCase):
     def setUp(self) -> None:
+        reason = _native_shell_frontend_unavailable_reason()
+        if reason and _is_native_shell_frontend_test(self._testMethodName):
+            self.skipTest(reason)
         self.tempdir = tempfile.TemporaryDirectory()
         self.root = Path(self.tempdir.name)
         self.target_root = self.root / "target-a"
@@ -338,10 +378,8 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         commands_root = self.target_root / "commands"
         self.assertTrue(commands_root.exists())
         installed_files = {path.name for path in commands_root.iterdir() if path.is_file()}
-        self.assertTrue(
-            CODEX_COMPATIBILITY_COMMAND_FILES.issubset(installed_files),
-            installed_files,
-        )
+        self.assertEqual({"vibe.md", "vibe-upgrade.md"}, installed_files)
+        self.assertTrue(CODEX_COMPATIBILITY_COMMAND_FILES.issubset(installed_files))
 
     def test_shell_install_materializes_codex_wrapper_skill_surface(self) -> None:
         self.install_shell_runtime("codex")
@@ -427,14 +465,19 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         self.assertTrue(payload["installed_commit"])
         self.assertFalse(payload["update_available"])
 
-    def test_installed_codex_check_accepts_hyphen_command_shim_surface(self) -> None:
+    def test_installed_codex_check_accepts_public_upgrade_skill_surface(self) -> None:
         self.install_shell_runtime("codex")
 
         commands_root = self.target_root / "commands"
-        for discoverable_name in ("vibe-want.md", "vibe-how.md", "vibe-do.md"):
-            discoverable_path = commands_root / discoverable_name
-            if discoverable_path.exists():
-                discoverable_path.unlink()
+        hidden_wrapper_commands = (
+            "vibe-what-do-i-want.md",
+            "vibe-how-do-we-do.md",
+            "vibe-do-it.md",
+        )
+        for discoverable_name in hidden_wrapper_commands:
+            self.assertFalse((commands_root / discoverable_name).exists(), discoverable_name)
+        self.assertFalse((commands_root / "vibe-upgrade.md").exists(), "vibe-upgrade.md")
+        self.assertTrue((self.target_root / "skills" / "vibe-upgrade" / "SKILL.md").exists(), "skills/vibe-upgrade/SKILL.md")
 
         installed_root = self.target_root / "skills" / "vibe"
         check_cmd = [

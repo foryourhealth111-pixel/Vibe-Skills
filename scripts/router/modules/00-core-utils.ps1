@@ -112,6 +112,70 @@ function Resolve-Alias {
     }
 }
 
+function Resolve-RequestedCanonicalForRouting {
+    param(
+        [AllowNull()] [object]$AliasResult,
+        [Parameter(Mandatory)] [string]$RepoRoot
+    )
+
+    $requestedCanonical = if (
+        $null -ne $AliasResult -and
+        $AliasResult.PSObject.Properties.Name -contains 'canonical' -and
+        -not [string]::IsNullOrWhiteSpace([string]$AliasResult.canonical)
+    ) {
+        Normalize-Key -InputText ([string]$AliasResult.canonical)
+    } else {
+        ''
+    }
+
+    if ([string]::IsNullOrWhiteSpace($requestedCanonical)) {
+        return $null
+    }
+
+    try {
+        $entrySurface = Read-VibeEntrySurfaceConfig -RepoRoot $RepoRoot
+    } catch {
+        return $requestedCanonical
+    }
+
+    if ($null -eq $entrySurface) {
+        return $requestedCanonical
+    }
+
+    $canonicalRuntimeSkill = if (
+        $entrySurface.PSObject.Properties.Name -contains 'canonical_runtime_skill' -and
+        -not [string]::IsNullOrWhiteSpace([string]$entrySurface.canonical_runtime_skill)
+    ) {
+        Normalize-Key -InputText ([string]$entrySurface.canonical_runtime_skill)
+    } else {
+        'vibe'
+    }
+
+    $entryIds = @()
+    foreach ($entry in @($entrySurface.entries)) {
+        if ($null -eq $entry) {
+            continue
+        }
+        $entryId = if (
+            $entry.PSObject.Properties.Name -contains 'id' -and
+            -not [string]::IsNullOrWhiteSpace([string]$entry.id)
+        ) {
+            Normalize-Key -InputText ([string]$entry.id)
+        } else {
+            ''
+        }
+        if (-not [string]::IsNullOrWhiteSpace($entryId)) {
+            $entryIds += $entryId
+        }
+    }
+
+    if ($entryIds -contains $requestedCanonical) {
+        return $canonicalRuntimeSkill
+    }
+
+    return $requestedCanonical
+}
+
 function Test-KeywordHit {
     param(
         [string]$PromptLower,
@@ -337,6 +401,5 @@ function Test-OverlayConfirmRequired {
     if ($Result.daily_dialectic_advice -and [bool]$Result.daily_dialectic_advice.confirm_required) { return $true }
     return $false
 }
-
 
 

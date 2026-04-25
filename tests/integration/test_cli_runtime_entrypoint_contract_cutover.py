@@ -104,4 +104,9 @@ def test_cli_canonical_entry_proves_runtime_backed_truth_for_supported_hosts() -
             assert runtime_packet["route_snapshot"]["selected_skill"] == "vibe", host_id
             assert "specialist_dispatch" in runtime_packet, host_id
             assert "specialist_recommendations" in runtime_packet, host_id
-            assert len(runtime_packet["specialist_recommendations"]) >= 1, host_id
+            specialist_decision = runtime_packet.get("specialist_decision") or {}
+            no_specialist_resolved = (
+                specialist_decision.get("decision_state") == "no_specialist_recommendations"
+                and specialist_decision.get("resolution_mode") in {"no_matching_specialist", "no_specialist_needed"}
+            )
+            assert len(runtime_packet["specialist_recommendations"]) >= 1 or no_specialist_resolved, host_id

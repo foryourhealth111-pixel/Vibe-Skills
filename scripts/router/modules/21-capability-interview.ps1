@@ -184,14 +184,14 @@ function Get-DeepDiscoveryInterviewAdvice {
     }
     if ($questionTemplates.Count -eq 0) {
         $questionTemplates = @(
-            "你希望这次任务最终交付什么形式（脚本、报告、文档、可运行流程）？",
-            "你最优先的两个能力域是什么：{capabilities}？",
-            "你希望我先做方案确认，再执行，还是直接按当前描述执行？"
+            "What final deliverable shape do you want for this task (script, report, document, page, or runnable workflow)?",
+            "What are the top two capability areas you want me to prioritize: {capabilities}?",
+            "Do you want me to confirm the plan first, or execute directly from the current description?"
         )
     }
 
     $capabilityNames = @($capabilityHits | ForEach-Object { [string]$_.display_name })
-    $capabilityNameText = if ($capabilityNames.Count -gt 0) { ($capabilityNames -join " / ") } else { "需求澄清与方案规划 / 工程实现与落地执行" }
+    $capabilityNameText = if ($capabilityNames.Count -gt 0) { ($capabilityNames -join " / ") } else { "Requirement clarification and planning / Implementation and execution" }
 
     $questions = @()
     foreach ($template in $questionTemplates) {
@@ -264,5 +264,4 @@ function Get-DeepDiscoveryInterviewAdvice {
         should_apply_hook = [bool]$interviewRequired
     }
 }
-
 

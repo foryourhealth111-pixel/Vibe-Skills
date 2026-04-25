@@ -316,7 +316,7 @@
       "keywords": ["labarchive", "eln", "lab notebook", "实验记录", "ELN"]
     },
     "latchbio-integration": {
-      "keywords": ["latchbio", "workflow", "bioinformatics platform", "pipeline", "生信平台", "数据管道"]
+      "keywords": ["latchbio", "latch workflow", "latchbio workflow", "bioinformatics platform", "latch pipeline", "latchbio pipeline", "latch sdk", "生信平台", "数据管道"]
     },
     "ginkgo-cloud-lab": {
       "keywords": ["ginkgo", "cloud lab", "lab services", "云实验室", "外包实验"]

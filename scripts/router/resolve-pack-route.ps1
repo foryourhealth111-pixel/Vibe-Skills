@@ -1,13 +1,15 @@
 ﻿param(
     [Parameter(Mandatory = $true)]
     [string]$Prompt,
-    [ValidateSet("M", "L", "XL")]
-    [string]$Grade = "M",
-    [ValidateSet("planning", "coding", "review", "debug", "research")]
-    [string]$TaskType = "planning",
+    [AllowEmptyString()]
+    [string]$Grade = "",
+    [AllowEmptyString()]
+    [string]$TaskType = "",
     [string]$RequestedSkill,
     [string]$HostId,
     [string]$TargetRoot,
+    [AllowEmptyString()]
+    [string]$HostDecisionJson = "",
     [switch]$Probe,
     [string]$ProbeLabel,
     [string]$ProbeOutputDir,
@@ -17,6 +19,16 @@
 )
 
 $ErrorActionPreference = "Stop"
+
+# Ensure consistent UTF-8 console output for Unicode prompts and confirm surfaces.
+if ($PSVersionTable.PSEdition -eq 'Desktop' -or $PSVersionTable.Platform -eq 'Win32NT') {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+} else {
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+}
+
+. (Join-Path $PSScriptRoot "..\runtime\VibeRuntime.Common.ps1")
 $routerModuleRoot = Join-Path $PSScriptRoot "modules"
 $routerModules = @(
     "00-core-utils.ps1",
@@ -58,6 +70,43 @@ foreach ($routerModule in $routerModules) {
     }
     . $routerModulePath
 }
+
+function Resolve-RouterGradeValue {
+    param(
+        [AllowEmptyString()] [string]$InputGrade,
+        [Parameter(Mandatory)] [string]$PromptText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputGrade)) {
+        return Get-VibeInternalGrade -Task $PromptText
+    }
+
+    $normalized = $InputGrade.Trim().ToUpperInvariant()
+    if ($normalized -notin @('M', 'L', 'XL')) {
+        throw ("unsupported router grade: {0}" -f $InputGrade)
+    }
+
+    return $normalized
+}
+
+function Resolve-RouterTaskTypeValue {
+    param(
+        [AllowEmptyString()] [string]$InputTaskType,
+        [Parameter(Mandatory)] [string]$PromptText
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputTaskType)) {
+        return Get-VibeInferredTaskType -Task $PromptText
+    }
+
+    $normalized = $InputTaskType.Trim().ToLowerInvariant()
+    if ($normalized -notin @('planning', 'coding', 'review', 'debug', 'research')) {
+        throw ("unsupported router task type: {0}" -f $InputTaskType)
+    }
+
+    return $normalized
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $configRoot = Join-Path $repoRoot "config"
 
@@ -352,6 +401,23 @@ $minTopGap = if ($th.min_top1_top2_gap -ne $null) { [double]$th.min_top1_top2_ga
 $minCandidateSignalForConfirmOverride = if ($th.min_candidate_signal_for_confirm_override -ne $null) { [double]$th.min_candidate_signal_for_confirm_override } else { 0.0 }
 $minCandidateSignalForAutoRoute = if ($th.min_candidate_signal_for_auto_route -ne $null) { [double]$th.min_candidate_signal_for_auto_route } else { [double]$th.auto_route }
 $enforceConfirmOnLegacyFallback = if ($rules.enforce_confirm_on_legacy_fallback -ne $null) { [bool]$rules.enforce_confirm_on_legacy_fallback } else { $false }
+$aliasResult = Resolve-Alias -Skill $RequestedSkill -AliasMap $aliasMap
+$requestedCanonical = Resolve-RequestedCanonicalForRouting -AliasResult $aliasResult -RepoRoot ([string]$repoRoot)
+if ($aliasResult -and $aliasResult.PSObject.Properties.Name -notcontains 'routing_canonical') {
+    $aliasResult | Add-Member -NotePropertyName routing_canonical -NotePropertyValue $requestedCanonical -Force
+}
+if ($aliasResult -and $aliasResult.PSObject.Properties.Name -notcontains 'wrapper_entry_folded') {
+    $wrapperEntryFolded = (
+        -not [string]::IsNullOrWhiteSpace([string]$requestedCanonical) -and
+        -not [string]::IsNullOrWhiteSpace([string]$aliasResult.canonical) -and
+        -not [string]::Equals([string]$requestedCanonical, [string]$aliasResult.canonical, [System.StringComparison]::OrdinalIgnoreCase)
+    )
+    $aliasResult | Add-Member -NotePropertyName wrapper_entry_folded -NotePropertyValue ([bool]$wrapperEntryFolded) -Force
+}
+$promptNormalization = Get-RoutingPromptNormalization -PromptText $Prompt
+$promptLower = [string]$promptNormalization.normalized_lower
+$Grade = Resolve-RouterGradeValue -InputGrade $Grade -PromptText $Prompt
+$TaskType = Resolve-RouterTaskTypeValue -InputTaskType $TaskType -PromptText $Prompt
 
 $probeContext = New-RouteProbeContext `
     -ProbeSwitch:$Probe `
@@ -413,10 +479,6 @@ Add-RouteProbeEvent -Context $probeContext -Stage "router.config" -Note "core ro
 }
 $null = Add-HeartbeatPulse -Context $heartbeatContext -Stage "router.config" -Phase "router.config" -Note "router config and policy load completed"
 
-$aliasResult = Resolve-Alias -Skill $RequestedSkill -AliasMap $aliasMap
-$requestedCanonical = [string]$aliasResult.canonical
-$promptNormalization = Get-RoutingPromptNormalization -PromptText $Prompt
-$promptLower = [string]$promptNormalization.normalized_lower
 $resolvedTargetRoot = Resolve-CustomAdmissionTargetRoot -TargetRoot $TargetRoot -HostId $HostId
 $customAdmission = Get-CustomAdmissionResult -RepoRoot ([string]$repoRoot) -TargetRoot $resolvedTargetRoot -HostId $HostId -RequestedCanonical $requestedCanonical
 $openSpecAdvice = Get-OpenSpecGovernanceAdvice -PromptLower $promptLower -Grade $Grade -TaskType $TaskType -RequestedCanonical $requestedCanonical -OpenSpecPolicy $openSpecPolicy
@@ -574,8 +636,16 @@ foreach ($pack in $packsForScoring) {
     $candidateSignal = [Math]::Round([Math]::Min(1.0, [Math]::Max(0.0, $candidateSignal)), 4)
     $customMetadata = if ($pack.PSObject.Properties.Name -contains 'custom_admission') { $pack.custom_admission } else { $null }
     $routeAuthorityEligible = if ($selection.PSObject.Properties.Name -contains 'route_authority_eligible') { [bool]$selection.route_authority_eligible } else { -not [string]::IsNullOrWhiteSpace([string]$selection.selected) }
+    $fallbackSelected = ([string]$selection.reason -like 'fallback_*')
+    $weakFallback = $fallbackSelected -and [string]::IsNullOrWhiteSpace($requestedCanonical) -and $trigger -lt 0.5 -and $selectionRelevanceScore -lt 0.15 -and $intent -lt 0.2 -and $workspace -lt 0.1
+    if ($fallbackSelected -and [string]::IsNullOrWhiteSpace($requestedCanonical)) {
+        $score = if ($weakFallback) { $score * 0.35 } else { $score * 0.65 }
+    }
     if ($null -ne $customMetadata -and $customMetadata.PSObject.Properties.Name -contains 'route_authority_eligible') {
         $routeAuthorityEligible = $routeAuthorityEligible -and [bool]$customMetadata.route_authority_eligible
+    }
+    if ($weakFallback) {
+        $routeAuthorityEligible = $false
     }
 
     $packResults += [pscustomobject]@{
@@ -603,12 +673,113 @@ foreach ($pack in $packsForScoring) {
     }
 }
 
+function Get-PreferredHostSelection {
+    param(
+        [AllowNull()] [object]$PackRow
+    )
+
+    if (-not $PackRow) { return $null }
+
+    $preferred = @{}
+    $ordinal = 0
+
+    function Add-PreferredHostSelectionCandidate {
+        param(
+            [hashtable]$PreferredMap,
+            [AllowNull()] [object]$CandidateRow,
+            [double]$FallbackScore,
+            [string]$FallbackSkill,
+            [bool]$IsSelectedCandidate,
+            [ref]$OrdinalRef
+        )
+
+        $skill = if ($CandidateRow -and $CandidateRow.PSObject.Properties.Name -contains 'skill') { [string]$CandidateRow.skill } else { [string]$FallbackSkill }
+        if ([string]::IsNullOrWhiteSpace($skill)) { return }
+
+        $score = $FallbackScore
+        if ($CandidateRow -and $CandidateRow.PSObject.Properties.Name -contains 'score' -and $null -ne $CandidateRow.score) {
+            $score = [double]$CandidateRow.score
+        }
+
+        $reason = if ($IsSelectedCandidate) { [string]$PackRow.candidate_selection_reason } else { 'host_selection_candidate' }
+        $candidateOrdinal = $OrdinalRef.Value
+        $OrdinalRef.Value++
+
+        $candidate = [pscustomobject]@{
+            skill = $skill
+            score = [double]$score
+            reason = [string]$reason
+            is_selected = [bool]$IsSelectedCandidate
+            ordinal = [int]$candidateOrdinal
+        }
+
+        if (-not $PreferredMap.ContainsKey($skill)) {
+            $PreferredMap[$skill] = $candidate
+            return
+        }
+
+        $existing = $PreferredMap[$skill]
+        $shouldReplace =
+            ([double]$candidate.score -gt [double]$existing.score) -or
+            (
+                [double]$candidate.score -eq [double]$existing.score -and
+                [bool]$candidate.is_selected -and -not [bool]$existing.is_selected
+            ) -or
+            (
+                [double]$candidate.score -eq [double]$existing.score -and
+                [bool]$candidate.is_selected -eq [bool]$existing.is_selected -and
+                [int]$candidate.ordinal -lt [int]$existing.ordinal
+            )
+
+        if ($shouldReplace) {
+            $PreferredMap[$skill] = $candidate
+        }
+    }
+
+    Add-PreferredHostSelectionCandidate `
+        -PreferredMap $preferred `
+        -CandidateRow $null `
+        -FallbackScore $(if ($PackRow.candidate_selection_score -ne $null) { [double]$PackRow.candidate_selection_score } else { 0.0 }) `
+        -FallbackSkill ([string]$PackRow.selected_candidate) `
+        -IsSelectedCandidate $true `
+        -OrdinalRef ([ref]$ordinal)
+
+    foreach ($candidate in @($PackRow.candidate_ranking)) {
+        Add-PreferredHostSelectionCandidate `
+            -PreferredMap $preferred `
+            -CandidateRow $candidate `
+            -FallbackScore 0.0 `
+            -FallbackSkill '' `
+            -IsSelectedCandidate ([string]$candidate.skill -eq [string]$PackRow.selected_candidate) `
+            -OrdinalRef ([ref]$ordinal)
+    }
+
+    foreach ($candidate in @($PackRow.stage_assistant_candidates)) {
+        Add-PreferredHostSelectionCandidate `
+            -PreferredMap $preferred `
+            -CandidateRow $candidate `
+            -FallbackScore 0.0 `
+            -FallbackSkill '' `
+            -IsSelectedCandidate ([string]$candidate.skill -eq [string]$PackRow.selected_candidate) `
+            -OrdinalRef ([ref]$ordinal)
+    }
+
+    if ($preferred.Count -eq 0) { return $null }
+
+    return @($preferred.Values | Sort-Object -Property @(
+        @{ Expression = "score"; Descending = $true },
+        @{ Expression = "is_selected"; Descending = $true },
+        @{ Expression = "ordinal"; Descending = $false }
+    ) | Select-Object -First 1)[0]
+}
+
 $ranked = $packResults | Sort-Object -Property @(
     @{ Expression = "score"; Descending = $true },
     @{ Expression = "pack_id"; Descending = $false }
 )
 $authorityRanked = @($ranked | Where-Object { $_.route_authority_eligible })
-$top = $authorityRanked | Select-Object -First 1
+$selectionPool = if ($authorityRanked.Count -gt 0) { @($authorityRanked) } else { @($ranked) }
+$top = $selectionPool | Select-Object -First 1
 $confidence = if ($top) { [double]$top.score } else { 0.0 }
 
 # Soft-migration behavior: explicit legacy/canonical skill request mapped to a pack
@@ -632,29 +803,26 @@ if (-not $top) {
     $routeMode = "legacy_fallback"
     $routeReason = "no_eligible_pack"
 } elseif ($confidence -lt [double]$th.fallback_to_legacy_below) {
+    $routeMode = "pack_overlay"
     if ($canAutoRouteFromCandidateSignal) {
-        $routeMode = "pack_overlay"
         $routeReason = "candidate_signal_auto_route"
         $confidence = [Math]::Max($confidence, [double]$th.auto_route)
     } elseif ($canOverrideLegacyFallback) {
-        $routeMode = "confirm_required"
-        $routeReason = "candidate_signal_override"
-        $confidence = [Math]::Max($confidence, [double]$th.confirm_required)
+        $routeReason = "candidate_signal_host_selection"
     } else {
-        $routeMode = "legacy_fallback"
-        $routeReason = "confidence_below_fallback"
+        $routeReason = "host_selection_required"
     }
 } elseif ($topGap -lt $minTopGap) {
-    $routeMode = "confirm_required"
-    $routeReason = "top_candidates_too_close"
+    $routeMode = "pack_overlay"
+    $routeReason = "top_candidates_host_selection"
 } elseif ($confidence -lt [double]$th.auto_route) {
     if ($canAutoRouteFromCandidateSignal) {
         $routeMode = "pack_overlay"
         $routeReason = "candidate_signal_auto_route"
         $confidence = [Math]::Max($confidence, [double]$th.auto_route)
     } else {
-        $routeMode = "confirm_required"
-        $routeReason = "confidence_requires_confirmation"
+        $routeMode = "pack_overlay"
+        $routeReason = "host_selection_required"
     }
 } else {
     $routeMode = "pack_overlay"
@@ -719,7 +887,7 @@ $aiRerankOverrideBlockReason = $null
 $effectiveTop = $top
 if ($aiRerankRouteOverrideRequested -and $aiRerankAdvice -and $aiRerankAdvice.override_target_pack) {
     $overridePackId = [string]$aiRerankAdvice.override_target_pack
-    $overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
+    $overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
     if ($overrideTop) {
         $aiRerankRouteOverride = $true
         $effectiveTop = $overrideTop
@@ -727,7 +895,7 @@ if ($aiRerankRouteOverrideRequested -and $aiRerankAdvice -and $aiRerankAdvice.ov
             $routeReason = "ai_rerank_override"
         }
     } else {
-        $aiRerankOverrideBlockReason = "override_target_not_authority_eligible"
+        $aiRerankOverrideBlockReason = "override_target_not_ranked"
     }
 } elseif ($aiRerankRouteOverrideRequested) {
     $aiRerankOverrideBlockReason = "missing_override_target_pack"
@@ -794,7 +962,7 @@ $llmAccelerationRouteOverride = $false
 $llmAccelerationOverrideBlockReason = $null
 if ($llmAccelerationRouteOverrideRequested -and $llmAccelerationAdvice -and $llmAccelerationAdvice.override_target_pack) {
     $overridePackId = [string]$llmAccelerationAdvice.override_target_pack
-    $overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
+    $overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | Select-Object -First 1
     if ($overrideTop) {
         $llmAccelerationRouteOverride = $true
         $effectiveTop = $overrideTop
@@ -802,7 +970,7 @@ if ($llmAccelerationRouteOverrideRequested -and $llmAccelerationAdvice -and $llm
             $routeReason = "llm_acceleration_override"
         }
     } else {
-        $llmAccelerationOverrideBlockReason = "override_target_not_authority_eligible"
+        $llmAccelerationOverrideBlockReason = "override_target_not_ranked"
     }
 } elseif ($llmAccelerationRouteOverrideRequested) {
     $llmAccelerationOverrideBlockReason = "missing_override_target_pack"
@@ -836,9 +1004,10 @@ $dataScaleAdvice = Get-DataScaleOverlayAdvice `
     -DataScaleOverlayPolicy $dataScaleOverlayPolicy
 
 $dataScaleRouteOverride = $false
-$effectiveSelectedSkill = if ($effectiveTop) { [string]$effectiveTop.selected_candidate } else { $null }
-$effectiveSelectionReason = if ($effectiveTop) { [string]$effectiveTop.candidate_selection_reason } else { $null }
-$effectiveSelectionScore = if ($effectiveTop) { [double]$effectiveTop.candidate_selection_score } else { 0.0 }
+$effectivePreferredSelection = if ($effectiveTop -and -not [bool]$effectiveTop.route_authority_eligible) { Get-PreferredHostSelection -PackRow $effectiveTop } else { $null }
+$effectiveSelectedSkill = if ($effectivePreferredSelection) { [string]$effectivePreferredSelection.skill } elseif ($effectiveTop) { [string]$effectiveTop.selected_candidate } else { $null }
+$effectiveSelectionReason = if ($effectivePreferredSelection) { [string]$effectivePreferredSelection.reason } elseif ($effectiveTop) { [string]$effectiveTop.candidate_selection_reason } else { $null }
+$effectiveSelectionScore = if ($effectivePreferredSelection) { [double]$effectivePreferredSelection.score } elseif ($effectiveTop) { [double]$effectiveTop.candidate_selection_score } else { 0.0 }
 
 if ($effectiveTop -and $dataScaleAdvice -and $dataScaleAdvice.scope_applicable -and $dataScaleAdvice.override_candidate_allowed -and $dataScaleAdvice.recommended_skill -and ($dataScaleAdvice.recommended_skill -ne $effectiveSelectedSkill)) {
     if ($dataScaleAdvice.auto_override) {
@@ -1227,8 +1396,8 @@ $hazardAlert = if ($hazardAlertRequired) {
         title = if ($fallbackGovernance -and $fallbackGovernance.hazard_alert_title) { [string]$fallbackGovernance.hazard_alert_title } else { 'FALLBACK HAZARD ALERT' }
         severity = if ($fallbackGovernance -and $fallbackGovernance.hazard_alert_severity) { [string]$fallbackGovernance.hazard_alert_severity } else { 'critical' }
         reason = $hazardReason
-        message = if ($fallbackGovernance -and $fallbackGovernance.hazard_summary) { [string]$fallbackGovernance.hazard_summary } else { '当前结果来自回退或退化路径，不等价于标准成功。继续使用可能在不自知的情况下承受功能退化、验证强度下降或可靠性下降。' }
-        recovery_action = if ($fallbackGovernance -and $fallbackGovernance.hazard_recovery_action) { [string]$fallbackGovernance.hazard_recovery_action } else { '如需 authoritative 结果，请先修复主路径能力或补齐依赖后重新执行。' }
+        message = if ($fallbackGovernance -and $fallbackGovernance.hazard_summary) { [string]$fallbackGovernance.hazard_summary } else { 'This result came from a fallback or degraded path and is not equivalent to standard success. Continuing may expose you to reduced functionality, weaker verification, or lower reliability without an obvious warning.' }
+        recovery_action = if ($fallbackGovernance -and $fallbackGovernance.hazard_recovery_action) { [string]$fallbackGovernance.hazard_recovery_action } else { 'If you need an authoritative result, restore the primary path capability or missing dependency first, then rerun.' }
         manual_review_required = if ($fallbackGovernance -and $fallbackGovernance.truth_contract -and $fallbackGovernance.truth_contract.manual_review_required -ne $null) { [bool]$fallbackGovernance.truth_contract.manual_review_required } else { $true }
     }
 } else {
@@ -1369,6 +1538,40 @@ $confirmSkillOptions = Build-ConfirmSkillOptions `
     -SkillPromotionPolicy $skillPromotionPolicy `
     -TargetRoot $resolvedTargetRoot `
     -HostId $HostId
+$structuredRouteDecision = Resolve-StructuredRouteDecision -HostDecisionJson $HostDecisionJson -ConfirmSkillOptions $confirmSkillOptions
+if ($structuredRouteDecision -and [bool]$structuredRouteDecision.applied) {
+    if ($result.selected) {
+        $result.selected.pack_id = [string]$structuredRouteDecision.selected_pack
+        $result.selected.skill = [string]$structuredRouteDecision.selected_skill
+        $result.selected.selection_reason = "structured_host_route_selection"
+        if (
+            $structuredRouteDecision.selected_option -and
+            $structuredRouteDecision.selected_option.PSObject.Properties.Name -contains 'score' -and
+            $null -ne $structuredRouteDecision.selected_option.score
+        ) {
+            $result.selected.selection_score = [double]$structuredRouteDecision.selected_option.score
+        }
+    }
+    if ([string]$result.route_mode -in @('confirm_required', 'pack_overlay')) {
+        $result.route_mode = 'pack_overlay'
+        $result.route_reason = 'structured_host_route_selection'
+    }
+    $result | Add-Member -NotePropertyName "structured_host_route_decision" -NotePropertyValue ([pscustomobject]@{
+        applied = $true
+        decision_kind = [string]$structuredRouteDecision.decision_kind
+        decision_action = [string]$structuredRouteDecision.decision_action
+        selected_pack = [string]$structuredRouteDecision.selected_pack
+        selected_skill = [string]$structuredRouteDecision.selected_skill
+    }) -Force
+    $confirmSkillOptions = Build-ConfirmSkillOptions `
+        -Result $result `
+        -ConfirmUiPolicy $confirmUiPolicyResolved `
+        -RepoRoot ([string]$repoRoot) `
+        -PromptText $Prompt `
+        -SkillPromotionPolicy $skillPromotionPolicy `
+        -TargetRoot $resolvedTargetRoot `
+        -HostId $HostId
+}
 if ($confirmSkillOptions) {
     $confirmText = Build-ConfirmUiText -ConfirmSkillOptions $confirmSkillOptions -UnattendedDecision $unattendedDecision -Result $result
     $confirmClarificationQuestions = @(Get-ConfirmUiClarificationQuestions -Result $result)
@@ -1377,6 +1580,7 @@ if ($confirmSkillOptions) {
         pack_id = [string]$confirmSkillOptions.selected_pack
         selected_skill = [string]$confirmSkillOptions.selected_skill
         options = @($confirmSkillOptions.options)
+        route_decision_contract = $confirmSkillOptions.route_decision_contract
         clarification_questions = @($confirmClarificationQuestions)
         rendered_text = $confirmText
         hazard_alert_required = [bool]$result.hazard_alert_required

@@ -13,14 +13,6 @@ BASE_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.json"
 MINIMAL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.minimal.json"
 FULL_MANIFEST = REPO_ROOT / "config" / "runtime-core-packaging.full.json"
 MODULE_PATH = REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'runtime_packaging.py'
-CODEX_VIBE_WRAPPER_SKILLS = [
-    'vibe-do-it',
-    'vibe-how-do-we-do',
-    'vibe-upgrade',
-    'vibe-what-do-i-want',
-]
-
-
 def _load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -81,9 +73,7 @@ def test_base_runtime_core_packaging_owns_shared_fields_and_profile_overlays() -
     assert set(grouped_copy_files) == {tuple(sorted(item.items())) for item in payload['copy_files']}
     assert roles['notes']['flat_projection_contract']
     assert payload['profiles']['minimal']['payload_roles']['delivery_model']['compatibility_skill_projections'] == []
-    assert sorted(
-        payload['profiles']['full']['payload_roles']['delivery_model']['compatibility_skill_projections']
-    ) == CODEX_VIBE_WRAPPER_SKILLS
+    assert payload['profiles']['full']['payload_roles']['delivery_model']['compatibility_skill_projections'] == []
 
 
 def test_profile_runtime_core_packaging_projections_match_base_overlay_resolution() -> None:
@@ -117,6 +107,11 @@ def test_profile_runtime_core_packaging_projections_match_base_overlay_resolutio
         assert full_projection == resolved_full
 
 
+def test_committed_profile_runtime_core_packaging_does_not_embed_repo_root() -> None:
+    assert "_repo_root" not in _load(MINIMAL_MANIFEST)
+    assert "_repo_root" not in _load(FULL_MANIFEST)
+
+
 def test_profile_runtime_core_packaging_roles_describe_delivery_model() -> None:
     minimal = _load(MINIMAL_MANIFEST)
     full = _load(FULL_MANIFEST)
@@ -138,13 +133,13 @@ def test_profile_runtime_core_packaging_roles_describe_delivery_model() -> None:
         assert minimal['internal_skill_corpus']['target_relpath'] == 'skills/vibe/bundled/skills'
         assert minimal['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
         assert minimal['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
-        assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do', 'vibe-upgrade']
+        assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-upgrade']
     if _supports_surface_split(full):
-        assert sorted(full['compatibility_skill_projections']['projected_skill_names']) == CODEX_VIBE_WRAPPER_SKILLS
+        assert full['compatibility_skill_projections']['projected_skill_names'] == []
         assert full['internal_skill_corpus']['entrypoint_filename'] == 'SKILL.runtime-mirror.md'
         assert full['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
         assert full['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
-        assert full['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do', 'vibe-upgrade']
+        assert full['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-upgrade']
 
 
 def test_profile_runtime_core_packaging_role_sources_match_copy_projection() -> None:

@@ -109,27 +109,51 @@ def normalize_keyword_list(values: list[Any] | None) -> list[str]:
     return normalized
 
 
+def keyword_hit(prompt_lower: str, keyword: str | None) -> bool:
+    needle = normalize_text(keyword)
+    if not prompt_lower or not needle:
+        return False
+
+    # CJK terms are better handled as raw substring matches.
+    if re.search(r"[\u4e00-\u9fff]", needle):
+        return needle in prompt_lower
+
+    # ASCII-ish tokens should respect word boundaries to avoid "implementation"
+    # accidentally matching "implement".
+    if re.search(r"[a-z0-9]", needle):
+        escaped = re.escape(needle)
+        return re.search(rf"(?<![a-z0-9]){escaped}(?![a-z0-9])", prompt_lower) is not None
+
+    return needle in prompt_lower
+
+
 def keyword_ratio(prompt_lower: str, keywords: list[Any] | None) -> float:
     rows = normalize_keyword_list(keywords)
     if not rows:
         return 0.0
-    hits = sum(1 for keyword in rows if keyword in prompt_lower)
-    denominator = min(3, len(rows))
-    return round(min(1.0, hits / denominator), 4)
+    hits = sum(1 for keyword in rows if keyword_hit(prompt_lower, keyword))
+    if hits <= 0:
+        return 0.0
+    denominator = min(4, len(rows))
+    if denominator <= 0:
+        return 0.0
+    return min(1.0, hits / denominator)
 
 
 def candidate_name_score(prompt_lower: str, candidate: str) -> float:
     candidate_lower = normalize_text(candidate)
     if not candidate_lower:
         return 0.0
-    if candidate_lower in prompt_lower:
-        return 1.0
-
-    pieces = [piece for piece in re.split(r"[-_/ ]+", candidate_lower) if piece]
-    if not pieces:
-        return 0.0
-    hits = sum(1 for piece in pieces if piece in prompt_lower)
-    return round(hits / len(pieces), 4)
+    variants = {
+        candidate_lower,
+        candidate_lower.replace("-", " "),
+        candidate_lower.replace("-", ""),
+        candidate_lower.replace("_", " "),
+    }
+    for variant in variants:
+        if variant and keyword_hit(prompt_lower, variant):
+            return 1.0
+    return 0.0
 
 
 def resolve_home_directory() -> Path:
@@ -178,7 +202,12 @@ def resolve_target_root(target_root: str | None = None, host_id: str | None = No
     return (resolve_home_directory() / default_rel).resolve()
 
 
-def resolve_requested_canonical(requested_skill: str | None, alias_map: dict[str, Any]) -> str | None:
+def resolve_requested_canonical(
+    requested_skill: str | None,
+    alias_map: dict[str, Any],
+    *,
+    repo_root: Path | None = None,
+) -> str | None:
     if not requested_skill:
         return None
     requested = normalize_text(str(requested_skill).lstrip("$"))
@@ -188,7 +217,22 @@ def resolve_requested_canonical(requested_skill: str | None, alias_map: dict[str
     aliases = alias_map.get("aliases") or {}
     for alias, canonical in aliases.items():
         if normalize_text(alias) == requested:
-            return normalize_text(str(canonical))
+            requested = normalize_text(str(canonical))
+            break
+
+    if repo_root is None:
+        return requested
+
+    try:
+        surface = load_discoverable_entry_surface(repo_root)
+    except RuntimeError:
+        return requested
+
+    entry_ids = {normalize_text(entry.id) for entry in surface.entries if normalize_text(entry.id)}
+    if requested in entry_ids:
+        canonical_runtime_skill = normalize_text(surface.canonical_runtime_skill)
+        if canonical_runtime_skill:
+            return canonical_runtime_skill
     return requested
 
 

@@ -11,8 +11,6 @@ from .bootstrap_doctor_support import (
     inspect_global_instruction_bootstrap,
     load_json,
     os_environ,
-    resolved_setting_state,
-    setting_state,
     utc_now,
 )
 
@@ -418,21 +416,10 @@ def build_summary(
         else:
             if effective_runtime_ready:
                 manual_actions.append(
-                    "Bridged host wrapper is available, but the local install surfaces are incomplete. Re-run installation to refresh host closure, commands, and managed settings."
+                    "Managed bridge surfaces are present, but the local install surfaces are incomplete. Re-run installation to refresh host closure, commands, and managed settings."
                 )
             else:
-                manual_actions.append("Host runtime is not fully ready; complete the specialist bridge setup and re-run check.")
-    intent_advice_api_key_state, intent_advice_api_key_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_API_KEY")
-    intent_advice_model_state, intent_advice_model_source = resolved_setting_state(settings, "VCO_INTENT_ADVICE_MODEL")
-    vector_diff_api_key_state, vector_diff_api_key_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_API_KEY")
-    vector_diff_model_state, vector_diff_model_source = resolved_setting_state(settings, "VCO_VECTOR_DIFF_MODEL")
-
-    if intent_advice_api_key_state != "configured":
-        manual_actions.append("VCO_INTENT_ADVICE_API_KEY must be configured for built-in intent advice readiness.")
-    if intent_advice_model_state != "configured":
-        manual_actions.append("VCO_INTENT_ADVICE_MODEL must be configured for built-in intent advice readiness.")
-    if vector_diff_api_key_state != "configured" or vector_diff_model_state != "configured":
-        warnings.append("Vector diff embeddings are not fully configured; large-diff retrieval will degrade gracefully.")
+                manual_actions.append("Host runtime is not fully ready; re-run installation to rebuild managed bridge surfaces and then run check again.")
     if not active_mcp_path.exists():
         manual_actions.append("MCP active profile has not been materialized yet (servers.active.json missing).")
     for plugin in plugins:
@@ -460,14 +447,6 @@ def build_summary(
         "blocking_issues": blocking_issues,
         "manual_actions": manual_actions,
         "warnings": warnings,
-        "intent_advice_api_key_state": intent_advice_api_key_state,
-        "intent_advice_api_key_source": intent_advice_api_key_source,
-        "intent_advice_model_state": intent_advice_model_state,
-        "intent_advice_model_source": intent_advice_model_source,
-        "vector_diff_api_key_state": vector_diff_api_key_state,
-        "vector_diff_api_key_source": vector_diff_api_key_source,
-        "vector_diff_model_state": vector_diff_model_state,
-        "vector_diff_model_source": vector_diff_model_source,
     }
 
 
@@ -530,16 +509,7 @@ def build_bootstrap_artifact(
         "settings": {
             "path": str(settings_path),
             "exists": settings_path.exists(),
-            "intent_advice_api_key_state": summary["intent_advice_api_key_state"],
-            "intent_advice_api_key_source": summary["intent_advice_api_key_source"],
-            "intent_advice_base_url_state": setting_state(settings, "VCO_INTENT_ADVICE_BASE_URL"),
-            "intent_advice_model_state": summary["intent_advice_model_state"],
-            "intent_advice_model_source": summary["intent_advice_model_source"],
-            "vector_diff_api_key_state": summary["vector_diff_api_key_state"],
-            "vector_diff_api_key_source": summary["vector_diff_api_key_source"],
-            "vector_diff_base_url_state": setting_state(settings, "VCO_VECTOR_DIFF_BASE_URL"),
-            "vector_diff_model_state": summary["vector_diff_model_state"],
-            "vector_diff_model_source": summary["vector_diff_model_source"],
+            "built_in_online_enhancement_config": "not_evaluated_public_install",
         },
         "host_runtime": host_runtime,
         "plugins": plugins,

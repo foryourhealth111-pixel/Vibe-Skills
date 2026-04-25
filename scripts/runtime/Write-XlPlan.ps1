@@ -41,6 +41,58 @@ function Get-VibeSelectedCapsuleList {
     return @($ContextPack.selected_capsules | Where-Object { $null -ne $_ })
 }
 
+function Get-VibeDispatchPlanLines {
+    param(
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]]$Recommendations,
+        [switch]$SuggestionMode
+    )
+
+    $lines = @()
+    foreach ($recommendation in @($Recommendations)) {
+        if ($SuggestionMode) {
+            $lines += @(
+                ('- Suggest {0}.' -f [string]$recommendation.skill_id),
+                ('  Proposed phase: {0}; lane policy: {1}; write scope: {2}' -f [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [string]$recommendation.write_scope),
+                ('  Reason: {0}' -f [string]$recommendation.reason),
+                '  Escalation required: true'
+            )
+        } else {
+            $lines += @(
+                ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
+                ('  Binding profile: {0}; dispatch phase: {1}; lane policy: {2}; parallel in XL: {3}' -f [string]$recommendation.binding_profile, [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [bool]$recommendation.parallelizable_in_root_xl),
+                ('  Write scope: {0}; review mode: {1}; execution priority: {2}' -f [string]$recommendation.write_scope, [string]$recommendation.review_mode, [int]$recommendation.execution_priority),
+                ('  Reason: {0}' -f [string]$recommendation.reason),
+                ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
+                ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
+                ('  Verification: {0}' -f [string]$recommendation.verification_expectation)
+            )
+        }
+        if (
+            $recommendation.PSObject.Properties.Name -contains 'host_selection_action' -and
+            -not [string]::IsNullOrWhiteSpace([string]$recommendation.host_selection_action)
+        ) {
+            $lines += ('  Host selection: {0} ({1})' -f [string]$recommendation.host_selection_action, [string]$recommendation.host_selection_mode)
+        }
+    }
+
+    return @($lines)
+}
+
+function Get-VibeRecommendationPhaseId {
+    param(
+        [AllowNull()] [object]$Recommendation = $null
+    )
+
+    if (
+        $null -eq $Recommendation -or
+        -not ($Recommendation.PSObject.Properties.Name -contains 'phase_id')
+    ) {
+        return ''
+    }
+
+    return [string]$Recommendation.phase_id
+}
+
 $runtime = Get-VibeRuntimeContext -ScriptPath $PSCommandPath
 if ([string]::IsNullOrWhiteSpace($RunId)) {
     $RunId = New-VibeRunId
@@ -107,12 +159,30 @@ $planPath = if ($isChildScope) {
 }
 $requirementPath = if (-not [string]::IsNullOrWhiteSpace($RequirementDocPath)) { $RequirementDocPath } else { Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot }
 $antiDriftDraft = Get-VgoAntiProxyGoalDriftPacketFromRequirementDoc -RequirementDocPath $requirementPath
+$requirementDocLines = if (Test-Path -LiteralPath $requirementPath) {
+    @(Get-Content -LiteralPath $requirementPath -Encoding UTF8)
+} else {
+    @()
+}
+$requirementSections = Get-VgoMarkdownSectionMap -Lines $requirementDocLines
+$frozenCodeTaskTddEvidenceRequirements = @(Get-VgoMarkdownSectionList -Sections $requirementSections -Heading 'Code Task TDD Evidence Requirements' | Where-Object { -not ([string]$_).StartsWith('No code-task TDD evidence requirements were frozen', [System.StringComparison]::OrdinalIgnoreCase) })
+$frozenCodeTaskTddExceptions = @(Get-VgoMarkdownSectionList -Sections $requirementSections -Heading 'Code Task TDD Exceptions' | Where-Object { -not ([string]$_).StartsWith('No code-task TDD exceptions were frozen', [System.StringComparison]::OrdinalIgnoreCase) })
+$hasFrozenCodeTaskTddObligations = (@($frozenCodeTaskTddEvidenceRequirements).Count -gt 0 -or @($frozenCodeTaskTddExceptions).Count -gt 0)
 $specialistDecision = if (
     $runtimeInputPacket -and
     $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision' -and
     $null -ne $runtimeInputPacket.specialist_decision
 ) {
     $runtimeInputPacket.specialist_decision
+} else {
+    $null
+}
+$hostSpecialistDispatchDecision = if (
+    $runtimeInputPacket -and
+    $runtimeInputPacket.PSObject.Properties.Name -contains 'host_specialist_dispatch_decision' -and
+    $null -ne $runtimeInputPacket.host_specialist_dispatch_decision
+) {
+    $runtimeInputPacket.host_specialist_dispatch_decision
 } else {
     $null
 }
@@ -165,6 +235,15 @@ $stageLifecycleDisclosure = New-VibeSpecialistLifecycleDisclosureProjection `
     -PlanningConsultationReceipt $planningConsultation
 $approvedDispatch = if ($runtimeInputPacket -and $runtimeInputPacket.specialist_dispatch) { @($runtimeInputPacket.specialist_dispatch.approved_dispatch) } else { @() }
 $localSuggestions = if ($runtimeInputPacket -and $runtimeInputPacket.specialist_dispatch) { @($runtimeInputPacket.specialist_dispatch.local_specialist_suggestions) } else { @() }
+$executionPhaseDecomposition = if (
+    $runtimeInputPacket -and
+    $runtimeInputPacket.PSObject.Properties.Name -contains 'execution_phase_decomposition' -and
+    $null -ne $runtimeInputPacket.execution_phase_decomposition
+) {
+    $runtimeInputPacket.execution_phase_decomposition
+} else {
+    $null
+}
 $executionTopology = New-VibeExecutionTopology `
     -RunId $RunId `
     -Grade $grade `
@@ -237,6 +316,14 @@ $lines += @(
     '## Wave Plan'
 )
 $lines += $waveLines
+$executionPhaseLines = @(Get-VibeExecutionPhaseMarkdownLines -PhaseDecomposition $executionPhaseDecomposition)
+if (@($executionPhaseLines).Count -gt 0) {
+    $lines += @(
+        '',
+        '## Execution Phase Plan'
+    )
+    $lines += @($executionPhaseLines)
+}
 $deliveryAcceptanceReportPath = Join-Path $sessionRoot 'delivery-acceptance-report.json'
 $lines += @(
     '',
@@ -254,11 +341,19 @@ $lines += @(
     '- Artifact review may be recorded inline in `phase-execute.json` or through a dedicated `artifact-review.json` sidecar, but one of those governed surfaces must exist when direct artifact review is required.',
     '- Product acceptance stays blocked when required artifact review remains missing, partial, degraded, or manual-review-only.',
     '',
-    '## Code Task TDD Evidence Plan',
-    '- Reuse the frozen `Code Task TDD Evidence Requirements` section from the requirement doc rather than inventing late closeout claims.',
-    '- Reuse the frozen `Code Task TDD Exceptions` section when strict failing-first sequencing is intentionally exempted.',
-    '- Map each frozen requirement or exception to an implementation step, a targeted verification command, and a proof artifact.',
-    '- If strict failing-first sequencing is blocked, execution must record the bounded reason and fallback evidence explicitly.',
+    '## Code Task TDD Evidence Plan'
+)
+if ($hasFrozenCodeTaskTddObligations) {
+    $lines += @(
+        '- Reuse the frozen `Code Task TDD Evidence Requirements` section from the requirement doc rather than inventing late closeout claims.',
+        '- Reuse the frozen `Code Task TDD Exceptions` section when strict failing-first sequencing is intentionally exempted.',
+        '- Map each frozen requirement or exception to an implementation step, a targeted verification command, and a proof artifact.',
+        '- If strict failing-first sequencing is blocked, execution must record the bounded reason and fallback evidence explicitly.'
+    )
+} else {
+    $lines += 'TDD mode is not_applicable for this plan; do not block execution on red/green evidence unless a later host/runtime decision explicitly freezes code-task TDD obligations.'
+}
+$lines += @(
     '',
     '## Baseline Document Quality Mapping',
     '- Use the frozen `Baseline Document Quality Dimensions` section in the requirement doc as the authoritative list of document-artifact quality dimensions that artifact review must cover before a document delivery can claim full completion.',
@@ -307,42 +402,60 @@ if ($specialistDecision) {
         $lines += ('- Repo-asset fallback assets: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.asset_paths)))
     }
 }
-if (@($approvedDispatch).Count -gt 0 -or @($localSuggestions).Count -gt 0) {
+if ($hostSpecialistDispatchDecision) {
+    $lines += @(
+        '',
+        '## Host Specialist Dispatch Decision'
+    )
+    $lines += @(Get-VibeHostSpecialistDispatchDecisionMarkdownLines -Decision $hostSpecialistDispatchDecision)
+}
+if (@($approvedDispatch).Count -gt 0) {
     $lines += @(
         '',
         '## Specialist Skill Dispatch Plan',
         '- Specialist routing is mandatory and bounded inside governed `vibe`; it does not transfer runtime authority away from vibe.',
-        '- Eligible specialist recommendations should auto-promote into `approved_dispatch` by default.',
+        '- This section lists only effective approved dispatch; non-adopted router candidates and local suggestions remain packet/audit data, not user-facing execution requirements.',
         '- Before specialist execution starts, governed `vibe` emits one unified disclosure for the effective `approved_dispatch` set using each skill''s real `native_skill_entrypoint`.',
         '- Each specialist must be invoked through its native workflow, input contract, and validation style.',
         '- Specialist outputs remain subordinate to the frozen requirement and the governed plan.'
     )
-        foreach ($recommendation in @($approvedDispatch)) {
+    if ($executionPhaseDecomposition -and @($executionPhaseDecomposition.phases).Count -gt 0) {
+        $declaredPhaseIds = @($executionPhaseDecomposition.phases | ForEach-Object { [string]$_.phase_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        foreach ($phase in @($executionPhaseDecomposition.phases)) {
+            $targetPhaseId = [string]$phase.phase_id
+            $phaseDispatches = @($approvedDispatch | Where-Object { (Get-VibeRecommendationPhaseId -Recommendation $_) -eq $targetPhaseId })
+            if (@($phaseDispatches).Count -eq 0) {
+                continue
+            }
+
             $lines += @(
-                ('- Dispatch {0} as {1}.' -f [string]$recommendation.skill_id, [string]$recommendation.bounded_role),
-                ('  Binding profile: {0}; dispatch phase: {1}; lane policy: {2}; parallel in XL: {3}' -f [string]$recommendation.binding_profile, [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [bool]$recommendation.parallelizable_in_root_xl),
-                ('  Write scope: {0}; review mode: {1}; execution priority: {2}' -f [string]$recommendation.write_scope, [string]$recommendation.review_mode, [int]$recommendation.execution_priority),
-                ('  Reason: {0}' -f [string]$recommendation.reason),
-                ('  Required inputs: {0}' -f [string]::Join(', ', @($recommendation.required_inputs))),
-                ('  Expected outputs: {0}' -f [string]::Join(', ', @($recommendation.expected_outputs))),
-                ('  Verification: {0}' -f [string]$recommendation.verification_expectation)
+                '',
+                ('### Phase `{0}` [{1} -> {2}] order `{3}`: {4}' -f [string]$phase.phase_id, [string]$phase.stage_type, [string]$phase.dispatch_phase, [int]$phase.stage_order, [string]$phase.stage_label)
             )
-    }
-    if (@($localSuggestions).Count -gt 0) {
-        $lines += @(
-            '',
-            '## Child Specialist Escalation Suggestions',
-            '- These are residual suggestions only after same-round safe auto-promotion; anything still listed here requires explicit escalation.'
-        )
-        foreach ($recommendation in @($localSuggestions)) {
-            $lines += @(
-                ('- Suggest {0}.' -f [string]$recommendation.skill_id),
-                ('  Proposed phase: {0}; lane policy: {1}; write scope: {2}' -f [string]$recommendation.dispatch_phase, [string]$recommendation.lane_policy, [string]$recommendation.write_scope),
-                ('  Reason: {0}' -f [string]$recommendation.reason),
-                '  Escalation required: true'
-            )
+            $lines += @(Get-VibeDispatchPlanLines -Recommendations @($phaseDispatches))
         }
+
+        $ungroupedApprovedDispatch = @($approvedDispatch | Where-Object {
+            $phaseId = Get-VibeRecommendationPhaseId -Recommendation $_
+            [string]::IsNullOrWhiteSpace($phaseId) -or $declaredPhaseIds -notcontains $phaseId
+        })
+        if (@($ungroupedApprovedDispatch).Count -gt 0) {
+            $lines += @(
+                '',
+                '### Phase `ungrouped`: fallback specialist dispatch'
+            )
+            $lines += @(Get-VibeDispatchPlanLines -Recommendations @($ungroupedApprovedDispatch))
+        }
+    } else {
+        $lines += @(Get-VibeDispatchPlanLines -Recommendations @($approvedDispatch))
     }
+}
+if (@($localSuggestions).Count -gt 0) {
+    $lines += @(
+        '',
+        '## Specialist Dispatch Audit',
+        ('Local specialist suggestion count: {0}. These suggestions remain audit-only until a host decision adopts them; do not ask the user to delete or manually prune them from the plan.' -f @($localSuggestions).Count)
+    )
 }
 if ($planningConsultation -and [bool]$planningConsultation.enabled) {
     $lines += @(

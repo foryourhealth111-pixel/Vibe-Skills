@@ -451,11 +451,18 @@ def emit(value):
     sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
 
 path, expr = sys.argv[1], sys.argv[2]
-with open(path, encoding='utf-8-sig') as fh:
-    data = json.load(fh)
+try:
+    with open(path, encoding='utf-8-sig') as fh:
+        data = json.load(fh)
+except Exception as exc:
+    sys.stderr.write(f"failed to parse JSON {path}: {exc}\n")
+    sys.exit(1)
 value = data
-for part in expr.split('.'):
-    value = value[part]
+try:
+    for part in expr.split('.'):
+        value = value[part]
+except (KeyError, TypeError):
+    sys.exit(2)
 if isinstance(value, list):
     for item in value:
         emit('true' if item is True else 'false' if item is False else item)
@@ -477,11 +484,18 @@ def emit(value):
     sys.stdout.buffer.write(f"{value}\n".encode("utf-8", errors="backslashreplace"))
 
 path, expr = sys.argv[1], sys.argv[2]
-with open(path, encoding='utf-8-sig') as fh:
-    data = json.load(fh)
+try:
+    with open(path, encoding='utf-8-sig') as fh:
+        data = json.load(fh)
+except Exception as exc:
+    sys.stderr.write(f"failed to parse JSON {path}: {exc}\n")
+    sys.exit(1)
 value = data
-for part in expr.split('.'):
-    value = value[part]
+try:
+    for part in expr.split('.'):
+        value = value[part]
+except (KeyError, TypeError):
+    sys.exit(2)
 if isinstance(value, list):
     for item in value:
         emit('true' if item is True else 'false' if item is False else item)
@@ -499,6 +513,9 @@ param([string]$Path,[string]$Expr)
 $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
 $value = $raw | ConvertFrom-Json
 foreach ($part in $Expr.Split(".")) {
+  if ($null -eq $value -or -not ($value.PSObject.Properties.Name -contains $part)) {
+    exit 2
+  }
   $value = $value.$part
 }
 if ($value -is [System.Collections.IEnumerable] -and -not ($value -is [string])) {
@@ -525,6 +542,100 @@ json_query_scalar_from_file() {
   local json_path="$1"
   local expr="$2"
   json_query_lines_from_file "$json_path" "$expr" | head -n 1
+}
+
+profile_packaging_manifest_path() {
+  printf '%s/config/runtime-core-packaging.%s.json\n' "${TARGET_ROOT}" "${PROFILE}"
+}
+
+resolve_packaging_manifest_path() {
+  local candidate_roots=("${TARGET_ROOT}")
+  if [[ -n "${runtime_skill_root:-}" && "${runtime_skill_root}" != "${TARGET_ROOT}" ]]; then
+    candidate_roots+=("${runtime_skill_root}")
+  fi
+
+  local candidate_root="" profile_manifest="" base_manifest=""
+  for candidate_root in "${candidate_roots[@]}"; do
+    profile_manifest="${candidate_root}/config/runtime-core-packaging.${PROFILE}.json"
+    base_manifest="${candidate_root}/config/runtime-core-packaging.json"
+
+    if [[ -r "${profile_manifest}" ]]; then
+      printf '%s\n' "${profile_manifest}"
+      return 0
+    fi
+    if [[ -r "${base_manifest}" ]]; then
+      printf '%s\n' "${base_manifest}"
+      return 0
+    fi
+  done
+
+  profile_manifest="${TARGET_ROOT}/config/runtime-core-packaging.${PROFILE}.json"
+  base_manifest="${TARGET_ROOT}/config/runtime-core-packaging.json"
+  if [[ -n "${runtime_skill_root:-}" && "${runtime_skill_root}" != "${TARGET_ROOT}" ]]; then
+    printf '[FAIL] Required packaging manifest missing or unreadable: %s (fallback checked: %s; installed-runtime fallback checked: %s and %s)\n' \
+      "${profile_manifest}" \
+      "${base_manifest}" \
+      "${runtime_skill_root}/config/runtime-core-packaging.${PROFILE}.json" \
+      "${runtime_skill_root}/config/runtime-core-packaging.json" >&2
+  else
+    printf '[FAIL] Required packaging manifest missing or unreadable: %s (fallback checked: %s)\n' "${profile_manifest}" "${base_manifest}" >&2
+  fi
+  return 1
+}
+
+projected_skill_names_for_check() {
+  local projection_name="$1"
+  local manifest_path=""
+  manifest_path="$(resolve_packaging_manifest_path)" || return 1
+
+  if [[ "${projection_name}" == "compatibility_skill_projections" ]]; then
+    local allowlist=()
+    local allowlist_output=""
+    local allowlist_status=0
+    allowlist_output="$(json_query_lines_from_file "${manifest_path}" "${projection_name}.host_allowlist" 2>/dev/null)" || allowlist_status=$?
+    if [[ ${allowlist_status} -eq 1 ]]; then
+      echo "[FAIL] Unable to parse ${manifest_path} while reading ${projection_name}.host_allowlist" >&2
+      return 1
+    elif [[ ${allowlist_status} -gt 2 ]]; then
+      echo "[FAIL] Unable to read ${projection_name}.host_allowlist from ${manifest_path}" >&2
+      return 1
+    fi
+    if [[ -n "${allowlist_output}" ]]; then
+      mapfile -t allowlist <<<"${allowlist_output}"
+    fi
+    if [[ ${#allowlist[@]} -gt 0 ]]; then
+      local allowed="false"
+      local lowered_host=""
+      lowered_host="$(printf '%s' "${HOST_ID}" | tr '[:upper:]' '[:lower:]')"
+      local candidate=""
+      for candidate in "${allowlist[@]}"; do
+        if [[ "$(printf '%s' "${candidate}" | tr '[:upper:]' '[:lower:]')" == "${lowered_host}" ]]; then
+          allowed="true"
+          break
+        fi
+      done
+      [[ "${allowed}" == "true" ]] || return 0
+    fi
+  fi
+
+  local projected_output=""
+  local projected_status=0
+  projected_output="$(json_query_lines_from_file "${manifest_path}" "${projection_name}.projected_skill_names" 2>/dev/null)" || projected_status=$?
+  if [[ ${projected_status} -ne 0 ]]; then
+    echo "[FAIL] Unable to read ${projection_name}.projected_skill_names from ${manifest_path}" >&2
+    return 1
+  fi
+  printf '%s\n' "${projected_output}"
+}
+
+load_projected_skill_names_for_check() {
+  local projection_name="$1"
+  local output=""
+  output="$(projected_skill_names_for_check "${projection_name}")" || return 1
+  mapfile -t PROJECTED_SKILL_NAMES <<<"${output}"
+  if [[ ${#PROJECTED_SKILL_NAMES[@]} -eq 1 && -z "${PROJECTED_SKILL_NAMES[0]}" ]]; then
+    PROJECTED_SKILL_NAMES=()
+  fi
 }
 
 pick_python() {
@@ -970,14 +1081,23 @@ if [[ "${PROFILE}" == "full" ]]; then
   done
 fi
 if [[ "${HOST_ID}" == "codex" && "${ADAPTER_CHECK_MODE}" == "governed" && "${PROFILE}" == "full" ]]; then
-  for n in vibe-what-do-i-want vibe-how-do-we-do vibe-do-it; do
+  PROJECTED_SKILL_NAMES=()
+  load_projected_skill_names_for_check "compatibility_skill_projections"
+  projected_wrapper_skill_names=("${PROJECTED_SKILL_NAMES[@]}")
+  for n in "${projected_wrapper_skill_names[@]}"; do
     check_path "skill/${n}" "$(resolve_skill_descriptor_path "${n}")"
   done
 fi
 if [[ "${HOST_ID}" == "codex" && "${ADAPTER_CHECK_MODE}" == "governed" ]]; then
-  codex_command_names=(vibe vibe-what-do-i-want vibe-how-do-we-do vibe-do-it)
+  PROJECTED_SKILL_NAMES=()
+  load_projected_skill_names_for_check "public_skill_surface"
+  codex_command_names=("${PROJECTED_SKILL_NAMES[@]}")
   for n in "${codex_command_names[@]}"; do
-    check_path "codex command/${n}" "${TARGET_ROOT}/commands/${n}.md" false
+    if [[ "${n}" == "vibe-upgrade" ]]; then
+      check_path "skill/${n}" "${TARGET_ROOT}/skills/${n}/SKILL.md"
+    else
+      check_path "codex command/${n}" "${TARGET_ROOT}/commands/${n}.md" false
+    fi
   done
 fi
 if [[ "${HOST_ID}" == "opencode" ]]; then

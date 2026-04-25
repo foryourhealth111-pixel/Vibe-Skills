@@ -27,8 +27,8 @@ def _require_powershell() -> None:
 @pytest.mark.parametrize(
     ("entry_id", "requested_stage_stop", "requested_grade_floor"),
     [
-        ("vibe-want", "requirement_doc", None),
-        ("vibe-how", "xl_plan", "XL"),
+        ("vibe-what-do-i-want", "requirement_doc", None),
+        ("vibe-how-do-we-do", "xl_plan", "XL"),
     ],
 )
 def test_real_canonical_entry_honors_wrapper_bounded_stop(

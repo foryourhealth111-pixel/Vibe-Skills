@@ -212,9 +212,6 @@
 
 ## Online 配置提醒（不要伪装完成）
 
-如果你要启用治理 AI online layer，用户必须本地补齐：
+公开安装流程暂时不开放内置在线增强能力的配置说明。自定义 workflow 接入时，不要要求用户补 provider、凭据、URL 或模型，也不要把这部分作为 workflow 接入完成的前置条件。
 
-- intent advice 主路径：`VCO_INTENT_ADVICE_API_KEY` + 可选 `VCO_INTENT_ADVICE_BASE_URL` + `VCO_INTENT_ADVICE_MODEL`
-- vector diff embeddings（可选）：`VCO_VECTOR_DIFF_API_KEY` + 可选 `VCO_VECTOR_DIFF_BASE_URL` + `VCO_VECTOR_DIFF_MODEL`
-
-告知旧 `OPENAI_*` 不再自动回填；未配置上述 VCO_* 时只能说“本地安装完成，但治理 AI online 能力未就绪，根据 `VCO_*` 补齐”。
+如果这类能力未通过公开路径配置好，只能说“本地安装完成，但相关在线能力未就绪或未验证”，不要给出具体配置项。

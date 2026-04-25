@@ -18,6 +18,8 @@ Execution rules:
 - do not create a second requirement surface
 - do not create a second plan surface
 - do not create a parallel runtime
+- do not preflight-scan the current workspace or repository for canonical proof files before launch
+- Launch canonical-entry first; validate receipts only after it returns a session root
 - do not upgrade from arbitrary remotes, branches, or filesystem roots
 
 When this wrapper is chosen, bias canonical `vibe` toward:

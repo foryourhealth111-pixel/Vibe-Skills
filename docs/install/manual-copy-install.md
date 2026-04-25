@@ -50,19 +50,14 @@
 ### Codex
 
 - 维护 `~/.codex/settings.json`
-- 如需 AI 治理 advice 的常见配置路径，优先配置：
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - 可选 `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-- 向量 diff（可选）：`VCO_VECTOR_DIFF_API_KEY` + 可选 `VCO_VECTOR_DIFF_BASE_URL` + `VCO_VECTOR_DIFF_MODEL`
+- 手动复制不会自动完成宿主 provider、插件或 MCP 授权
+- 公开手动安装暂时不引导配置内置在线增强能力
 
 ### Claude Code
 
 - 维护 `~/.claude/settings.json`
-- 如需 AI 治理 advice 的常见配置路径，优先补：
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - 可选 `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
+- 手动复制不会自动完成 Claude 宿主侧 provider、插件或 MCP 授权
+- 公开手动安装暂时不引导配置内置在线增强能力
 
 ### Cursor
 

@@ -146,9 +146,20 @@ if ($mismatchCases.Count -gt 0) {
     }
 }
 
+$goldenFixtureRelative = try {
+    [System.IO.Path]::GetRelativePath([string]$repoRoot, [string]$goldenFixture)
+} catch {
+    $repoRootPrefix = ([string]$repoRoot).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    if ([string]$goldenFixture -like "$repoRootPrefix*") {
+        [string]$goldenFixture.Substring($repoRootPrefix.Length)
+    } else {
+        [string]$goldenFixture
+    }
+}
+
 $report = [pscustomobject]@{
     generated_at = (Get-Date).ToString("s")
-    golden_fixture = [System.IO.Path]::GetRelativePath([string]$repoRoot, [string]$goldenFixture)
+    golden_fixture = $goldenFixtureRelative
     float_tolerance = $FloatTolerance
     metrics = [pscustomobject]@{
         total_cases = $total

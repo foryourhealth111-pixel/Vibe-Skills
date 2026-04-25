@@ -57,6 +57,27 @@ function Get-VibeTaskSignalText {
     return ('{0} {1}' -f $Task, $Deliverable).ToLowerInvariant()
 }
 
+function Get-VibeDefaultGovernedDeliverableText {
+    return 'Governed implementation artifacts, verification evidence, and cleanup receipts'
+}
+
+function Get-VibeCodeTaskSignalText {
+    param(
+        [Parameter(Mandatory)] [string]$Task,
+        [AllowEmptyString()] [string]$Deliverable = ''
+    )
+
+    $parts = @([string]$Task)
+    if (
+        -not [string]::IsNullOrWhiteSpace($Deliverable) -and
+        [string]$Deliverable -ne (Get-VibeDefaultGovernedDeliverableText)
+    ) {
+        $parts += [string]$Deliverable
+    }
+
+    return (@($parts) -join ' ').ToLowerInvariant()
+}
+
 function Test-VibeTaskHasExplicitNonUiSignals {
     param(
         [Parameter(Mandatory)] [string]$Task,
@@ -134,13 +155,31 @@ function Test-VibeTaskNeedsCodeTaskTddEvidence {
         [AllowEmptyString()] [string]$Deliverable = ''
     )
 
-    $text = ('{0} {1}' -f $Task, $Deliverable).ToLowerInvariant()
+    $text = Get-VibeCodeTaskSignalText -Task $Task -Deliverable $Deliverable
+    $testFirstSignals = '\btdd\b|red green refactor|test[- ]first|failing[- ]first'
+    $defectCorrectionSignals = 'failing test|stack trace|\bdebug\b|\bbug\b|\bfix\b|\brepair\b|\bpatch\b|regression|compile|syntax error|exception'
+    $implementationSignals = '\bimplement\b|\bbuild\b|\bwire\b|\bintegrate\b|\bpatch\b|\bmodify\b|\bchange\b|\badd\b|\brefactor\b'
+    $implementationTargetSignals = 'script|function|class|endpoint|api|component|module|frontend|backend|dashboard|page|screen|parser|exporter|renderer|service|library|cli|runtime|router|wrapper|installer|plugin'
+    $reviewOnlySignals = '\breview\b|code review|pull request|\bpr\b|audit|assess'
+    $hasImplementationActionAndTarget = ($text -match $implementationSignals) -and ($text -match $implementationTargetSignals)
 
     if ((Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable $Deliverable) -or ($text -match 'image|logo|illustration|diagram')) {
         return $false
     }
 
-    return $text -match 'failing test|stack trace|debug|bug|fix|refactor|implement|build|feature|code|script|function|class|endpoint|api|component|module|frontend|backend|dashboard|page|screen|unit test|integration test'
+    if ($text -match $testFirstSignals) {
+        return $true
+    }
+
+    if (($text -match $reviewOnlySignals) -and -not $hasImplementationActionAndTarget) {
+        return $false
+    }
+
+    if ($text -match $defectCorrectionSignals) {
+        return $true
+    }
+
+    return $hasImplementationActionAndTarget
 }
 
 function Get-VibeDefaultCodeTaskTddEvidenceRequirements {
@@ -312,18 +351,6 @@ $taskSpecificAcceptanceExtensions = Get-VibeOptionalFrozenItems -IntentContract 
 $researchAugmentationSources = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('research_augmentation_sources', 'researchAugmentationSources')
 $baselineDocumentQualityDimensions = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('baseline_document_quality_dimensions', 'baselineDocumentQualityDimensions')
 $baselineUiQualityDimensions = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('baseline_ui_quality_dimensions', 'baselineUiQualityDimensions')
-if (@($codeTaskTddEvidenceRequirements).Count -eq 0 -and (Test-VibeTaskNeedsCodeTaskTddEvidence -Task $Task -Deliverable ([string]$intentContract.deliverable))) {
-    $codeTaskTddEvidenceRequirements = Get-VibeDefaultCodeTaskTddEvidenceRequirements
-}
-if (@($baselineDocumentQualityDimensions).Count -eq 0 -and (Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable ([string]$intentContract.deliverable))) {
-    $baselineDocumentQualityDimensions = Get-VibeDefaultBaselineDocumentQualityDimensions
-}
-if (@($artifactReviewRequirements).Count -eq 0 -and @($baselineDocumentQualityDimensions).Count -gt 0) {
-    $artifactReviewRequirements = Get-VibeDefaultDocumentArtifactReviewRequirements
-}
-if (@($baselineUiQualityDimensions).Count -eq 0 -and (Test-VibeTaskNeedsBaselineUiQualityDimensions -Task $Task -Deliverable ([string]$intentContract.deliverable))) {
-    $baselineUiQualityDimensions = Get-VibeDefaultBaselineUiQualityDimensions
-}
 $runtimeInputPath = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath)) {
     $RuntimeInputPacketPath
 } else {
@@ -333,6 +360,95 @@ $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($runtimeInputPath) -
     Get-Content -LiteralPath $runtimeInputPath -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
     $null
+}
+$runtimeTaskType = if (
+    $runtimeInputPacket -and
+    $runtimeInputPacket.PSObject.Properties.Name -contains 'canonical_router' -and
+    $runtimeInputPacket.canonical_router -and
+    $runtimeInputPacket.canonical_router.PSObject.Properties.Name -contains 'task_type' -and
+    -not [string]::IsNullOrWhiteSpace([string]$runtimeInputPacket.canonical_router.task_type)
+) {
+    ([string]$runtimeInputPacket.canonical_router.task_type).Trim().ToLowerInvariant()
+} else {
+    ''
+}
+$needsDocumentArtifactBaseline = Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable ([string]$intentContract.deliverable)
+$heuristicRequiresCodeTaskTddEvidence = Test-VibeTaskNeedsCodeTaskTddEvidence -Task $Task -Deliverable ([string]$intentContract.deliverable)
+$packetCodeTaskTddDecision = if (
+    $runtimeInputPacket -and
+    $runtimeInputPacket.PSObject.Properties.Name -contains 'code_task_tdd_decision' -and
+    $null -ne $runtimeInputPacket.code_task_tdd_decision
+) {
+    $runtimeInputPacket.code_task_tdd_decision
+} else {
+    $null
+}
+$codeTaskTddDecision = if ($packetCodeTaskTddDecision) {
+    $packetMode = Normalize-VibeCodeTaskTddMode -Value $(if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'mode') { $packetCodeTaskTddDecision.mode } else { '' })
+    $packetSource = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'source') { [string]$packetCodeTaskTddDecision.source } else { 'runtime_inference' }
+    if ($needsDocumentArtifactBaseline -and [string]$packetSource -ne 'host_decision') {
+        Resolve-VibeCodeTaskTddDecision `
+            -Task $Task `
+            -Deliverable ([string]$intentContract.deliverable) `
+            -TaskType $runtimeTaskType `
+            -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
+            -DocumentArtifactBaseline $true
+    } else {
+        [pscustomobject]@{
+            mode = if ([string]::IsNullOrWhiteSpace($packetMode)) { 'not_applicable' } else { [string]$packetMode }
+            source = $packetSource
+            reason = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'reason') { [string]$packetCodeTaskTddDecision.reason } else { 'Runtime packet supplied the code-task TDD decision.' }
+            exception = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'exception') { $packetCodeTaskTddDecision.exception } else { $null }
+        }
+    }
+} else {
+    Resolve-VibeCodeTaskTddDecision `
+        -Task $Task `
+        -Deliverable ([string]$intentContract.deliverable) `
+        -TaskType $runtimeTaskType `
+        -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
+        -DocumentArtifactBaseline $needsDocumentArtifactBaseline
+}
+$hostExplicitTddNotApplicable = (
+    $codeTaskTddDecision -and
+    [string]$codeTaskTddDecision.source -eq 'host_decision' -and
+    [string]$codeTaskTddDecision.mode -eq 'not_applicable'
+)
+if (@($codeTaskTddEvidenceRequirements).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
+    $codeTaskTddDecision.mode = 'required'
+    $codeTaskTddDecision.source = 'intent_contract'
+    $codeTaskTddDecision.reason = 'Explicit code-task TDD evidence requirements were supplied by the intent contract.'
+} elseif (@($codeTaskTddExceptions).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
+    $codeTaskTddDecision.mode = 'exception_approved'
+    $codeTaskTddDecision.source = 'intent_contract'
+    $codeTaskTddDecision.reason = 'Explicit code-task TDD exception requirements were supplied by the intent contract.'
+}
+if ([string]$codeTaskTddDecision.mode -eq 'required' -and @($codeTaskTddEvidenceRequirements).Count -eq 0) {
+    $codeTaskTddEvidenceRequirements = Get-VibeDefaultCodeTaskTddEvidenceRequirements
+} elseif ([string]$codeTaskTddDecision.mode -eq 'exception_approved') {
+    $codeTaskTddEvidenceRequirements = @()
+    if (@($codeTaskTddExceptions).Count -eq 0) {
+        $exceptionReason = if ($codeTaskTddDecision -and -not [string]::IsNullOrWhiteSpace([string]$codeTaskTddDecision.exception)) {
+            [string]$codeTaskTddDecision.exception
+        } else {
+            'Host approved a bounded code-task TDD exception; execution must record fallback verification evidence instead of strict red/green sequencing.'
+        }
+        $codeTaskTddExceptions = @($exceptionReason)
+    }
+} elseif ([string]$codeTaskTddDecision.mode -eq 'not_applicable') {
+    $codeTaskTddEvidenceRequirements = @()
+    if ($hostExplicitTddNotApplicable) {
+        $codeTaskTddExceptions = @()
+    }
+}
+if (@($baselineDocumentQualityDimensions).Count -eq 0 -and $needsDocumentArtifactBaseline) {
+    $baselineDocumentQualityDimensions = Get-VibeDefaultBaselineDocumentQualityDimensions
+}
+if (@($artifactReviewRequirements).Count -eq 0 -and @($baselineDocumentQualityDimensions).Count -gt 0) {
+    $artifactReviewRequirements = Get-VibeDefaultDocumentArtifactReviewRequirements
+}
+if (@($baselineUiQualityDimensions).Count -eq 0 -and (Test-VibeTaskNeedsBaselineUiQualityDimensions -Task $Task -Deliverable ([string]$intentContract.deliverable))) {
+    $baselineUiQualityDimensions = Get-VibeDefaultBaselineUiQualityDimensions
 }
 $memoryContextPack = if (-not [string]::IsNullOrWhiteSpace($MemoryContextPath) -and (Test-Path -LiteralPath $MemoryContextPath)) {
     Get-Content -LiteralPath $MemoryContextPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -411,6 +527,11 @@ if (@($artifactReviewRequirements).Count -gt 0) {
     $lines += 'No additional artifact review requirements were frozen for this run.'
 }
 $lines += @(
+    '',
+    '## Code Task TDD Mode',
+    ('TDD mode: {0}' -f [string]$codeTaskTddDecision.mode),
+    ('Decision source: {0}' -f [string]$codeTaskTddDecision.source),
+    ('Reason: {0}' -f [string]$codeTaskTddDecision.reason),
     '',
     '## Code Task TDD Evidence Requirements'
 )
@@ -533,6 +654,23 @@ if ($runtimeInputPacket) {
         "- Confirm required: $([bool]$runtimeInputPacket.route_snapshot.confirm_required)"
     )
 
+    $executionPhaseDecomposition = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'execution_phase_decomposition' -and
+        $null -ne $runtimeInputPacket.execution_phase_decomposition
+    ) {
+        $runtimeInputPacket.execution_phase_decomposition
+    } else {
+        $null
+    }
+    $executionPhaseLines = @(Get-VibeExecutionPhaseMarkdownLines -PhaseDecomposition $executionPhaseDecomposition)
+    if (@($executionPhaseLines).Count -gt 0) {
+        $lines += @(
+            '',
+            '## Execution Phase Decomposition'
+        )
+        $lines += @($executionPhaseLines)
+    }
+
     $specialistDecision = if (
         $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision' -and
         $null -ne $runtimeInputPacket.specialist_decision
@@ -563,18 +701,45 @@ if ($runtimeInputPacket) {
         }
     }
 
-    $specialistRecommendations = @($runtimeInputPacket.specialist_recommendations)
-    if ($specialistRecommendations.Count -gt 0) {
+    $hostSpecialistDispatchDecision = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_specialist_dispatch_decision' -and
+        $null -ne $runtimeInputPacket.host_specialist_dispatch_decision
+    ) {
+        $runtimeInputPacket.host_specialist_dispatch_decision
+    } else {
+        $null
+    }
+    $hostSpecialistDispatchLines = @(Get-VibeHostSpecialistDispatchDecisionMarkdownLines -Decision $hostSpecialistDispatchDecision)
+    if (@($hostSpecialistDispatchLines).Count -gt 0) {
+        $lines += @(
+            '',
+            '## Host Specialist Dispatch Decision'
+        )
+        $lines += @($hostSpecialistDispatchLines)
+    }
+
+    $approvedSpecialistDispatch = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_dispatch' -and
+        $null -ne $runtimeInputPacket.specialist_dispatch -and
+        $runtimeInputPacket.specialist_dispatch.PSObject.Properties.Name -contains 'approved_dispatch'
+    ) {
+        @($runtimeInputPacket.specialist_dispatch.approved_dispatch)
+    } else {
+        @()
+    }
+    if (($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_recommendations' -and @($runtimeInputPacket.specialist_recommendations).Count -gt 0) -or @($approvedSpecialistDispatch).Count -gt 0) {
         $lines += @(
             '',
             '## Specialist Recommendations',
-            'These are mandatory bounded native specialist recommendations carried inside the governed `vibe` runtime. Eligible recommendations should auto-promote into bounded dispatch while `vibe` remains the only runtime authority.',
-            'If execution reaches non-empty effective `approved_dispatch`, governed `vibe` must emit one unified pre-execution disclosure that lists only actually executing Skills and each real `native_skill_entrypoint`.'
+            'Raw router candidates remain in `runtime-input-packet.json` for audit and are not frozen as user-facing requirements.',
+            'Only host-adopted or effective approved specialist dispatch is shown here; non-adopted candidates and stage assistants stay out of the requirement surface.'
         )
-        foreach ($recommendation in $specialistRecommendations) {
+        if (@($approvedSpecialistDispatch).Count -eq 0) {
+            $lines += 'No specialist dispatch was adopted for user-facing execution in this run.'
+        }
+        foreach ($recommendation in $approvedSpecialistDispatch) {
             $lines += @(
-                "- Skill: $([string]$recommendation.skill_id)",
-                "  Source: $([string]$recommendation.source); pack: $([string]$recommendation.pack_id); rank: $([string]$recommendation.rank); confidence: $([string]$recommendation.confidence)",
+                "- Adopted Skill: $([string]$recommendation.skill_id)",
                 "  Role: $([string]$recommendation.bounded_role); native usage required: $([bool]$recommendation.native_usage_required); preserve workflow: $([bool]$recommendation.must_preserve_workflow)",
                 "  Binding: profile=$([string]$recommendation.binding_profile); phase=$([string]$recommendation.dispatch_phase); lane policy=$([string]$recommendation.lane_policy); parallel in XL=$([bool]$recommendation.parallelizable_in_root_xl)",
                 "  Write scope: $([string]$recommendation.write_scope); review mode: $([string]$recommendation.review_mode); execution priority: $([int]$recommendation.execution_priority)",
@@ -696,6 +861,7 @@ $receipt = [pscustomobject]@{
     canonical_write_allowed = -not $isChildScope
     inherited_requirement_doc_path = if ($isChildScope) { $docPath } else { $null }
     runtime_input_packet_path = $runtimeInputPath
+    code_task_tdd_decision = $codeTaskTddDecision
     discussion_consultation_path = if ($discussionConsultation) { $DiscussionConsultationPath } else { $null }
     discussion_consultation_count = if ($discussionConsultation) { @($discussionConsultation.consulted_units).Count } else { 0 }
     discussion_consultation_user_disclosure_count = if ($discussionConsultation) { @($discussionConsultation.user_disclosures).Count } else { 0 }

@@ -28,6 +28,8 @@ Representative moved leaves:
 - [`absorption-admission-matrix.md`](absorption-admission-matrix.md)
 - [`distribution-governance.md`](distribution-governance.md)
 - [`ecosystem-absorption-dedup-governance.md`](ecosystem-absorption-dedup-governance.md)
+- [`specialist-dispatch-governance.md`](specialist-dispatch-governance.md)
+- [`vibe-governed-project-delivery-acceptance-governance.md`](vibe-governed-project-delivery-acceptance-governance.md)
 - [`skill-admission-hardening.md`](skill-admission-hardening.md)
 
 ## Rules

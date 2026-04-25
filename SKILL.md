@@ -22,7 +22,7 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 ## How to Access Skills
 
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
+**In Claude Code:** Use the `Skill` tool for public discoverable skills that are explicitly exposed in the current Claude host registry. Exception: when governed `vibe` routes an internal specialist and declares a real `native_skill_entrypoint` path such as `.../SKILL.runtime-mirror.md`, do not rewrite that path into `Skill(<skill-id>)` unless that skill name is visibly registered in the current host session. In that case the disclosed `native_skill_entrypoint` path is the source of truth for same-session specialist loading, and reading that declared path is allowed.
 
 **In Copilot CLI:** Use the `skill` tool. Skills are auto-discovered from installed plugins. The `skill` tool works the same as Claude Code's `Skill` tool.
 
@@ -93,6 +93,24 @@ The fact that the router may internally enter "auto_route" mode does NOT mean th
 router was skipped. The router was called and made that decision. AI must invoke
 it explicitly every time.
 
+### Continuation-Aware Router Input
+
+When continuing a prior run that records a legacy compatibility entry ID such as
+`vibe-what-do-i-want`, `vibe-how-do-we-do`, or `vibe-do-it`, do not pretend this is a brand-new task if the same thread
+already has a verified governed requirement or plan. These IDs are retained as non-public compatibility metadata, not as host-visible public entries.
+
+Continuation rules:
+1. Reuse the latest verified frozen requirement/plan from the same thread or workspace as continuation context when it exists.
+2. Build the router keyword text from the frozen goal, deliverable, constraints, and capability hints plus the current delta, not from a bare summary such as `execute plan`.
+3. Treat previously frozen requirement/plan facts as authoritative context for deliverable, constraints, and capability coverage.
+4. Reopen generic clarification only when the user changed scope, the frozen artifacts are missing, or the prior artifacts are clearly stale or mismatched.
+
+Bad continuation example:
+`execute plan facial-recognition phase-cleanup`
+
+Better continuation example:
+`execute governed-plan facial-recognition dataset-download literature-review few-shot-modeling training evaluation latex-paper gpu-aware constraints-public-dataset deliverable-report-and-paper`
+
 ## Canonical Bootstrap
 
 Bootstrap sequence (run canonical launch before reading repo files, protocol docs, or writing any artifact):
@@ -115,18 +133,22 @@ py -3 -m vgo_cli.main canonical-entry `
 
 If `py -3` is unavailable, try `python` instead.
 
-Discoverable wrapper ids still enter canonical `vibe`; only the bounded stop changes:
-- `vibe-want` -> `--requested-stage-stop requirement_doc`
-- `vibe-how` -> `--requested-stage-stop xl_plan --requested-grade-floor XL`
-- `vibe` and `vibe-do-it` -> `--requested-stage-stop phase_cleanup`
+If you must invoke PowerShell through a Bash-like tool surface, do not place `$env:PYTHONPATH=...` inside a double-quoted `-Command` string. The outer shell can expand `$env` first and corrupt it to `:PYTHONPATH`, leaving `PYTHONPATH` unset and causing `ModuleNotFoundError: No module named 'vgo_cli'`. In that situation, either set `PYTHONPATH=...` in the outer shell before invoking `py -3 -m ...`, or single-quote / escape the PowerShell payload so `$env:` reaches PowerShell literally.
+
+Public discoverable entries still enter canonical `vibe`; only the bounded stop contract changes:
+- `vibe` uses progressive governed stops: first `requirement_doc`, then `xl_plan`, then `phase_cleanup` after explicit re-entry approval at each boundary
+- `vibe-upgrade` is the public governed upgrade entry.
+- compatibility stage IDs are non-public and must not be materialized as host-visible command or skill wrappers: `vibe-what-do-i-want` -> `requirement_doc`, `vibe-how-do-we-do` -> `xl_plan --requested-grade-floor XL`, `vibe-do-it` -> `phase_cleanup`
 
 Hard rules:
 - Do not inspect the repo, protocol docs, or prior run outputs before canonical launch returns, except to resolve `skill_root` and current host id.
 - Do not use the Vibe installation root as the governed artifact root when the user asked you to work in another workspace or repository.
 - Do not manually create `outputs/runtime/vibe-sessions/<run-id>/`, `docs/requirements/`, or `docs/plans/` as a substitute for launch.
+- Do not search the current workspace, repository, or install root for canonical proof files before launch; those artifacts are emitted by canonical-entry after the run session is created.
+- Only validate canonical proof artifacts after canonical-entry returns a `session_root`, and only against that launched session root.
 - Do not simulate stages, claim canonical entry from reading this file or wrapper text, or silently continue if canonical launch fails -- report `blocked` with the concrete failure reason.
 
-Proof of canonical launch requires: `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json`.
+Proof of canonical launch is post-launch and requires: `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json` under the returned `session_root`.
 
 `vibe` is a host-syntax-neutral skill contract. `/vibe`, `$vibe`, and agent-invoked `vibe` all mean the same thing: enter the same governed runtime.
 
@@ -145,10 +167,23 @@ These stages are mandatory. They may become lighter for simple work, but they ar
 
 Runtime mode: only `interactive_governed` is supported. The system asks high-value questions, confirms frozen requirements, and pauses at plan approval boundaries.
 
-Discoverable wrapper labels may request an earlier terminal stage (that changes where the run stops, not which runtime owns authority):
-- `Vibe: What Do I Want?` -> `requirement_doc`
-- `Vibe: How Do We Do It?` -> `xl_plan`
-- `Vibe` and `Vibe: Do It` -> `phase_cleanup`
+If a canonical run returns `bounded_return_control.explicit_user_reentry_required = true`, stop in the current assistant turn and hand control back to the user. Do not consume the returned re-entry credentials until a later user message explicitly approves or revises the frozen requirement/plan boundary.
+
+Structured host decision SOP:
+- Do not ask the user to repeat magic words such as `approve`, `continue`, `1`, or `enter unattended mode` just to satisfy routing or bounded re-entry.
+- For complex or obviously multi-part work, the host should decompose the task into execution phases before launch. Keep that decomposition inside `--host-decision-json -> phase_decomposition` so canonical `vibe` can freeze it under the single requirement/plan surface. Do not create a second runtime, second requirement doc, or second plan.
+- If the surfaced specialist set needs curation, keep it inside `--host-decision-json -> specialist_dispatch_decision`. Host curation stays bounded to the surfaced recommendation ids from the current governed run; do not invent unsurfaced specialists or bypass runtime validation.
+- For routing confirmation, inspect the returned machine-readable route contract under `runtime-summary.json -> host_user_briefing.route_decision_contract` when present. Convert the user's natural-language reply into a structured route decision and relaunch canonical `vibe` with `--host-decision-json`.
+- For bounded stage re-entry, inspect `runtime-summary.json -> bounded_return_control.host_decision_contract` when present. Convert the user's natural-language approval or revision into a structured decision and relaunch canonical `vibe` with `--host-decision-json`, `--continue-from-run-id`, and `--bounded-reentry-token`.
+- Route decisions must stay inside the surfaced confirm options. Bounded stage approvals must stay inside the surfaced approval action contract. Specialist curation must stay inside the surfaced specialist recommendation ids. Runtime validation remains authoritative.
+- Keep the task context stable across re-entry. Do not reduce the next canonical launch prompt to the user's short approval text alone when the governed task context is already known.
+
+Public wrapper entries remain limited to `vibe` and `vibe-upgrade`.
+Non-public compatibility stage metadata may request an earlier terminal stage (that changes where a legacy run stops, not which runtime owns authority):
+- `vibe-what-do-i-want` -> `requirement_doc`
+- `vibe-how-do-we-do` -> `xl_plan`
+- `vibe` progresses through `requirement_doc -> xl_plan -> phase_cleanup`
+- `vibe-do-it` -> `phase_cleanup`
 
 Official governed entry records lineage:
 - root or child entry writes `governance-capsule.json`
@@ -165,7 +200,8 @@ That means:
 - governed `vibe` runs must surface bounded specialist recommendations and treat router-selected specialist skills as route truth or executable recommendation candidates
 - direct specialist handling should stay in the current host session by default; do not create hidden specialist sub-sessions unless policy explicitly opts back into that bridge path
 - runtime-selected skill remains `vibe` for governed entry
-- eligible specialist help MUST be promoted (elevated) into bounded native-mode dispatch as a default governance policy -- this is a required action, not a passive auto-behavior
+- eligible specialist help MUST be promoted (elevated) into bounded native-mode dispatch as the default governance policy unless a valid structured host specialist dispatch decision curates the surfaced set
+- host orchestration power is bounded: it may approve, defer, or reject only surfaced specialist recommendation ids, and runtime validation still decides blocked/degraded outcomes
 - specialist help must preserve the specialist skill's own workflow, inputs, outputs, and validation style
 - specialist help must not create a second requirement doc, second plan surface, or second runtime authority
 

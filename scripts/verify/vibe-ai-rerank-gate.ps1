@@ -81,7 +81,7 @@ function Set-AiRerankStage {
     $policy.trigger.confusion_groups = @(
         [pscustomobject]@{
             id = "gate-review"
-            preferred_pack = "aios-core"
+            preferred_pack = "science-peer-review"
             keywords = @("code review", "代码评审", "quality checks")
         }
     )
@@ -124,7 +124,7 @@ try {
     $results += Assert-True -Condition ($routeShadow.ai_rerank_advice.mode -eq "shadow") -Message "[shadow] mode is shadow"
     $results += Assert-True -Condition ($routeShadow.ai_rerank_advice.scope_applicable -eq $true) -Message "[shadow] scope applicable"
     $results += Assert-True -Condition ($routeShadow.ai_rerank_advice.trigger.active -eq $true) -Message "[shadow] trigger active"
-    $results += Assert-True -Condition ($routeShadow.ai_rerank_advice.provider.suggested_pack -eq "aios-core") -Message "[shadow] heuristic suggestion prefers configured pack"
+    $results += Assert-True -Condition ($routeShadow.ai_rerank_advice.provider.suggested_pack -eq "science-peer-review") -Message "[shadow] heuristic suggestion prefers configured pack"
     $results += Assert-True -Condition ($routeShadow.ai_rerank_route_override -eq $false) -Message "[shadow] route override disabled"
     $results += Assert-True -Condition ($routeShadow.selected.pack_id -eq $routeOffBaseline.selected.pack_id) -Message "[shadow] selected pack unchanged"
 
@@ -138,7 +138,7 @@ try {
     Set-AiRerankStage -ConfigPath $policyPath -Stage "soft" -PreserveRoutingAssignment $false
     $routeSoftApply = Invoke-Route -Prompt $prompt -Grade "M" -TaskType "review" -RequestedSkill $null
     $results += Assert-True -Condition ($routeSoftApply.ai_rerank_route_override -eq $true) -Message "[soft/apply] override applied"
-    $results += Assert-True -Condition ($routeSoftApply.selected.pack_id -eq "aios-core") -Message "[soft/apply] selected pack switched to rerank target"
+    $results += Assert-True -Condition ($routeSoftApply.selected.pack_id -eq "science-peer-review") -Message "[soft/apply] selected pack switched to rerank target"
     $results += Assert-True -Condition ($routeSoftApply.selected.pack_id -eq $routeSoftApply.ai_rerank_advice.override_target_pack) -Message "[soft/apply] selected pack matches override target"
 
     Set-AiRerankStage -ConfigPath $policyPath -Stage "off" -PreserveRoutingAssignment $true

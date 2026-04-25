@@ -13,7 +13,9 @@ class DiscoverableEntry:
     id: str
     display_name: str
     requested_stage_stop: str
+    progressive_stage_stops: tuple[str, ...]
     allow_grade_flags: bool
+    publicly_exposed: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,8 +31,12 @@ class DiscoverableEntrySurface:
         return {entry.id: entry for entry in self.entries}
 
     @property
+    def public_entries(self) -> tuple[DiscoverableEntry, ...]:
+        return tuple(entry for entry in self.entries if entry.publicly_exposed)
+
+    @property
     def projected_skill_names(self) -> list[str]:
-        return [entry.id for entry in self.entries]
+        return [entry.id for entry in self.public_entries]
 
 
 def resolve_discoverable_entry_surface_path(start_path: str | Path) -> Path:
@@ -56,7 +62,13 @@ def load_discoverable_entry_surface(start_path: str | Path) -> DiscoverableEntry
             id=str(entry['id']).strip(),
             display_name=str(entry['display_name']).strip(),
             requested_stage_stop=str(entry['requested_stage_stop']).strip(),
+            progressive_stage_stops=tuple(
+                str(stage).strip()
+                for stage in entry.get('progressive_stage_stops') or []
+                if str(stage).strip()
+            ),
             allow_grade_flags=bool(entry['allow_grade_flags']),
+            publicly_exposed=bool(entry.get('publicly_exposed', True)),
         )
         for entry in payload.get('entries') or []
     )

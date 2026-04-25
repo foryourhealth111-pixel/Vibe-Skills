@@ -5,11 +5,7 @@ param(
     [string]$TargetRoot = '',
     [switch]$SkipExternalInstall,
     [switch]$StrictOffline,
-    [switch]$SyncUserEnv,
-    [Alias('OpenAIBaseUrl')]
-    [string]$IntentAdviceBaseUrl = '',
-    [Alias('OpenAIApiKey')]
-    [string]$IntentAdviceApiKey = ''
+    [switch]$SyncUserEnv
 )
 
 Set-StrictMode -Version Latest
@@ -74,37 +70,6 @@ Assert-VgoTargetRootMatchesHostIntent -TargetRoot $TargetRoot -HostId $HostId
 $repoRoot = Resolve-VgoRepoRoot -StartPath $PSCommandPath
 $Adapter = Resolve-VgoAdapterEntry -StartPath $repoRoot -HostId $HostId
 
-function Get-ExistingSettingEnvValue {
-    param(
-        [Parameter(Mandatory)] [string]$CodexRoot,
-        [Parameter(Mandatory)] [string]$Name
-    )
-
-    $settingsPath = Join-Path $CodexRoot 'settings.json'
-    if (-not (Test-Path -LiteralPath $settingsPath)) {
-        return $null
-    }
-
-    try {
-        $settings = Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    } catch {
-        return $null
-    }
-
-    if ($null -eq $settings -or -not ($settings.PSObject.Properties.Name -contains 'env') -or $null -eq $settings.env) {
-        return $null
-    }
-
-    if ($settings.env.PSObject.Properties.Name -contains $Name) {
-        $value = [string]$settings.env.$Name
-        if (Test-NonEmptyString -Value $value) {
-            return $value
-        }
-    }
-
-    return $null
-}
-
 function Write-McpAutoProvisionSummary {
     param(
         [Parameter(Mandatory)] [string]$TargetRoot
@@ -159,8 +124,6 @@ function Write-McpAutoProvisionSummary {
 $installPath = Join-Path $repoRoot 'install.ps1'
 $checkPath = Join-Path $repoRoot 'check.ps1'
 $materializePath = Join-Path $repoRoot 'scripts\setup\materialize-codex-mcp-profile.ps1'
-$persistOpenAiPath = Join-Path $repoRoot 'scripts\setup\persist-codex-openai-env.ps1'
-$syncEnvPath = Join-Path $repoRoot 'scripts\setup\sync-codex-settings-to-user-env.ps1'
 $claudeScaffoldPath = Join-Path $repoRoot 'scripts\bootstrap\scaffold-claude-preview.ps1'
 
 Write-Host '=== VCO One-Shot Setup ===' -ForegroundColor Cyan
@@ -205,31 +168,17 @@ try {
 
 switch ([string]$Adapter.bootstrap_mode) {
     'governed' {
-        $existingIntentAdviceKey = Get-ExistingSettingEnvValue -CodexRoot $TargetRoot -Name 'VCO_INTENT_ADVICE_API_KEY'
-        $hasIntentAdviceSeed = (Test-NonEmptyString -Value $IntentAdviceApiKey) -or (Test-NonEmptyString -Value $env:VCO_INTENT_ADVICE_API_KEY)
-        if ($hasIntentAdviceSeed) {
-            Write-Host '[2/5] Seeding intent advice settings into target settings.json...' -ForegroundColor Yellow
-            $intentAdviceArgs = @{ CodexRoot = $TargetRoot }
-            if (Test-NonEmptyString -Value $IntentAdviceBaseUrl) { $intentAdviceArgs.BaseUrl = $IntentAdviceBaseUrl }
-            if (Test-NonEmptyString -Value $IntentAdviceApiKey) { $intentAdviceArgs.ApiKey = $IntentAdviceApiKey }
-            & $persistOpenAiPath @intentAdviceArgs
-        } elseif (Test-NonEmptyString -Value $existingIntentAdviceKey) {
-            Write-Host '[2/5] Intent advice settings already exist in target settings.json; keeping current value.' -ForegroundColor DarkGray
-        } else {
-            Write-Warning 'VCO_INTENT_ADVICE_API_KEY not provided and not present in the current environment. Built-in intent advice readiness will remain pending.'
-        }
-
-        Write-Host '[3/5] Built-in AI governance now uses separated functional keys: intent advice uses VCO_INTENT_ADVICE_* and vector diff embeddings use VCO_VECTOR_DIFF_*.' -ForegroundColor DarkGray
+        Write-Host '[2/5] Built-in online enhancement configuration is skipped in public install.' -ForegroundColor DarkGray
 
         if ($SyncUserEnv) {
-            Write-Host '[4/5] Syncing configured settings.json env values into the user environment...' -ForegroundColor Yellow
-            & $syncEnvPath -CodexRoot $TargetRoot -Target All -Scope User
+            Write-Host '[3/5] User environment sync skipped; public install does not export provider settings.' -ForegroundColor DarkGray
         } else {
-            Write-Host '[4/5] User environment sync skipped (pass -SyncUserEnv if you want registry env sync).' -ForegroundColor DarkGray
+            Write-Host '[3/5] User environment sync skipped.' -ForegroundColor DarkGray
         }
 
-        Write-Host '[5/5] Materializing MCP profile and running deep health check...' -ForegroundColor Yellow
+        Write-Host '[4/5] Materializing MCP profile...' -ForegroundColor Yellow
         & $materializePath -TargetRoot $TargetRoot -Force | Out-Null
+        Write-Host '[5/5] Running deep health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'preview-guidance' {
@@ -240,13 +189,13 @@ switch ([string]$Adapter.bootstrap_mode) {
             Write-Host ("[2/5] Host-specific scaffold is currently unavailable for '{0}'." -f $HostId) -ForegroundColor Yellow
         }
         Write-Host '[3/5] No hook files or extra preview settings were installed into the target root.' -ForegroundColor DarkGray
-        Write-Host ("[4/5] Provider settings remain host-managed for '{0}'. Configure built-in intent advice with VCO_INTENT_ADVICE_API_KEY / VCO_INTENT_ADVICE_BASE_URL / VCO_INTENT_ADVICE_MODEL, and configure vector diff embeddings separately with VCO_VECTOR_DIFF_API_KEY / VCO_VECTOR_DIFF_BASE_URL / VCO_VECTOR_DIFF_MODEL. Do not paste API keys into chat." -f $HostId) -ForegroundColor DarkGray
+        Write-Host ("[4/5] Provider settings remain host-managed for '{0}'. Built-in online enhancement configuration is not part of public install." -f $HostId) -ForegroundColor DarkGray
         Write-Host '[5/5] Running supported-path health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep
     }
     'runtime-core' {
         Write-Host '[2/5] Runtime-adapter path does not materialize host settings.' -ForegroundColor DarkGray
-        Write-Host '[3/5] Runtime-adapter path does not seed provider settings. Configure built-in intent advice with VCO_INTENT_ADVICE_API_KEY / VCO_INTENT_ADVICE_BASE_URL / VCO_INTENT_ADVICE_MODEL, and configure vector diff embeddings separately with VCO_VECTOR_DIFF_API_KEY / VCO_VECTOR_DIFF_BASE_URL / VCO_VECTOR_DIFF_MODEL. Do not paste secrets into chat.' -ForegroundColor DarkGray
+        Write-Host '[3/5] Runtime-adapter path does not seed provider settings; public install skips built-in online enhancement configuration.' -ForegroundColor DarkGray
         Write-Host '[4/5] User environment sync skipped for the runtime-adapter path.' -ForegroundColor DarkGray
         Write-Host '[5/5] Running runtime-adapter health check...' -ForegroundColor Yellow
         & $checkPath -Profile $Profile -HostId $HostId -TargetRoot $TargetRoot -Deep

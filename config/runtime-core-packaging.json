@@ -24,6 +24,11 @@
       "optional": false
     },
     {
+      "source": "config/powershell-host-policy.json",
+      "target": "config/powershell-host-policy.json",
+      "optional": false
+    },
+    {
       "source": "config/skills-lock.json",
       "target": "config/skills-lock.json",
       "optional": true
@@ -67,6 +72,11 @@
           "source": "config/adapter-registry.json",
           "target": "config/adapter-registry.json",
           "optional": false
+        },
+        {
+          "source": "config/powershell-host-policy.json",
+          "target": "config/powershell-host-policy.json",
+          "optional": false
         }
       ]
     },
@@ -86,7 +96,7 @@
     "minimal": {
       "package_id": "runtime-core-minimal",
       "profile": "minimal",
-      "summary": "Governed runtime foundation payload with only the canonical vibe runtime publicly exposed and the required workflow support skills hidden inside the vibe internal corpus.",
+      "summary": "Governed runtime foundation payload with the canonical vibe runtime and host upgrade entry publicly exposed while the required workflow support skills stay hidden inside the vibe internal corpus.",
       "copy_directories": [
         {
           "source": "commands",
@@ -114,9 +124,6 @@
         "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
         "projected_skill_names": [
           "vibe",
-          "vibe-want",
-          "vibe-how",
-          "vibe-do",
           "vibe-upgrade"
         ]
       },
@@ -203,7 +210,7 @@
     "full": {
       "package_id": "runtime-core-full",
       "profile": "full",
-      "summary": "Governed runtime payload with only the canonical vibe skill publicly exposed while the full bundled corpus is internalized under the canonical vibe root.",
+      "summary": "Governed runtime payload with canonical vibe and the host upgrade entry publicly exposed while the full bundled corpus is internalized under the canonical vibe root.",
       "copy_directories": [
         {
           "source": "commands",
@@ -212,18 +219,15 @@
       ],
       "copy_bundled_skills": true,
       "skills_allowlist": [],
-      "public_skill_surface": {
-        "mode": "discoverable_wrapper_projection",
-        "canonical_vibe_target_relpath": "skills/vibe",
-        "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
-        "projected_skill_names": [
-          "vibe",
-          "vibe-want",
-          "vibe-how",
-          "vibe-do",
-          "vibe-upgrade"
-        ]
-      },
+        "public_skill_surface": {
+          "mode": "discoverable_wrapper_projection",
+          "canonical_vibe_target_relpath": "skills/vibe",
+          "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
+          "projected_skill_names": [
+            "vibe",
+            "vibe-upgrade"
+          ]
+        },
       "internal_skill_corpus": {
         "enabled": true,
         "source": "bundled/skills",
@@ -237,12 +241,7 @@
       "compatibility_skill_projections": {
         "mode": "explicit_projection_only",
         "target_root": "skills",
-        "projected_skill_names": [
-          "vibe-what-do-i-want",
-          "vibe-how-do-we-do",
-          "vibe-do-it",
-          "vibe-upgrade"
-        ],
+        "projected_skill_names": [],
         "host_allowlist": [
           "codex"
         ],
@@ -269,12 +268,7 @@
           "public_surface_mode": "discoverable_wrapper_projection",
           "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
           "internal_corpus_target_relpath": "skills/vibe/bundled/skills",
-          "compatibility_skill_projections": [
-            "vibe-what-do-i-want",
-            "vibe-how-do-we-do",
-            "vibe-do-it",
-            "vibe-upgrade"
-          ]
+          "compatibility_skill_projections": []
         },
         "surface_contracts": {
           "public_skill_surface_mode": "discoverable_wrapper_projection",

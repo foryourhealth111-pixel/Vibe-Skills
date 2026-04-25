@@ -82,7 +82,12 @@ def _load_canonical_entry_module() -> types.ModuleType:
             path.write_text(json.dumps(receipt.model_dump()), encoding="utf-8")
             return path
 
+        def read_host_launch_receipt(path):
+            """Load a host-launch receipt stub from disk."""
+            return HostLaunchReceipt(**json.loads(Path(path).read_text(encoding="utf-8")))
+
         host_receipt_module.HostLaunchReceipt = HostLaunchReceipt
+        host_receipt_module.read_host_launch_receipt = read_host_launch_receipt
         host_receipt_module.write_host_launch_receipt = write_host_launch_receipt
         sys.modules[host_receipt_module.__name__] = host_receipt_module
 
@@ -98,6 +103,19 @@ def _load_canonical_entry_module() -> types.ModuleType:
         return module
     finally:
         _restore_modules(originals)
+
+
+def _write_verified_host_receipt(session_root: Path, run_id: str) -> None:
+    """Write the minimum verified host receipt required by continuation lookup."""
+    (session_root / "host-launch-receipt.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "launch_status": "verified",
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _load_cli_process_module() -> types.ModuleType:
@@ -503,6 +521,313 @@ class PowerShellBridgeDiagnosticTests(unittest.TestCase):
 
 class BridgeFailureLayeringTests(unittest.TestCase):
     """Verify canonical entry failure modes preserve the right diagnostics."""
+    def test_bounded_reentry_accepts_structured_requirement_approval_without_prompt_keyword(self):
+        """Allow hosts to drive bounded re-entry via structured approval instead of prompt keywords."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact_root = Path(temp_dir)
+            session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-req"
+            session_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(session_root, "run-req")
+            intent_contract_path = session_root / "intent-contract.json"
+            intent_contract_path.write_text(json.dumps({"goal": "freeze requirement"}), encoding="utf-8")
+            (session_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-req",
+                        "artifacts": {
+                            "intent_contract": str(intent_contract_path),
+                        },
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-123",
+                            "source_run_id": "run-req",
+                            "terminal_stage": "requirement_doc",
+                            "allowed_followup_entry_ids": ["vibe"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = module._validate_bounded_reentry(
+                artifact_root=artifact_root,
+                entry_id="vibe",
+                prompt="批准",
+                run_id="run-next",
+                continue_from_run_id="run-req",
+                bounded_reentry_token="token-123",
+                host_decision={
+                    "decision_kind": "approval_response",
+                    "decision_action": "approve_requirement",
+                },
+            )
+
+        self.assertIsNotNone(result)
+        self.assertEqual("run-req", result["source_run_id"])
+        self.assertEqual("requirement_doc", result["terminal_stage"])
+
+    def test_bounded_reentry_rejects_structured_approval_for_wrong_pending_stage(self):
+        """Reject host decisions that do not match the bounded stage awaiting approval."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact_root = Path(temp_dir)
+            session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-req"
+            session_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(session_root, "run-req")
+            intent_contract_path = session_root / "intent-contract.json"
+            intent_contract_path.write_text(json.dumps({"goal": "freeze requirement"}), encoding="utf-8")
+            (session_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-req",
+                        "artifacts": {
+                            "intent_contract": str(intent_contract_path),
+                        },
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-123",
+                            "source_run_id": "run-req",
+                            "terminal_stage": "requirement_doc",
+                            "allowed_followup_entry_ids": ["vibe"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(RuntimeError) as ctx:
+                module._validate_bounded_reentry(
+                    artifact_root=artifact_root,
+                    entry_id="vibe",
+                    prompt="批准",
+                    run_id="run-next",
+                    continue_from_run_id="run-req",
+                    bounded_reentry_token="token-123",
+                    host_decision={
+                        "decision_kind": "approval_response",
+                        "decision_action": "approve_plan",
+                    },
+                )
+
+        self.assertIn("structured host decision does not authorize bounded re-entry", str(ctx.exception))
+
+    def test_bounded_reentry_keeps_prompt_fallback_when_host_decision_is_absent(self):
+        """Preserve legacy prompt-based continuation matching for hosts that have not upgraded yet."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact_root = Path(temp_dir)
+            session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-plan"
+            session_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(session_root, "run-plan")
+            intent_contract_path = session_root / "intent-contract.json"
+            intent_contract_path.write_text(json.dumps({"goal": "continue planning"}), encoding="utf-8")
+            (session_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-plan",
+                        "artifacts": {
+                            "intent_contract": str(intent_contract_path),
+                        },
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-456",
+                            "source_run_id": "run-plan",
+                            "terminal_stage": "xl_plan",
+                            "allowed_followup_entry_ids": ["vibe"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = module._validate_bounded_reentry(
+                artifact_root=artifact_root,
+                entry_id="vibe",
+                prompt="continue",
+                run_id="run-next",
+                continue_from_run_id="run-plan",
+                bounded_reentry_token="token-456",
+                host_decision=None,
+            )
+
+        self.assertIsNotNone(result)
+        self.assertEqual("xl_plan", result["terminal_stage"])
+
+    def test_bounded_preferred_continuation_does_not_fallback_to_other_runs(self):
+        """Keep explicit bounded continuation scoped to the selected source run."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            artifact_root = Path(temp_dir)
+            sessions_root = artifact_root / "outputs" / "runtime" / "vibe-sessions"
+            preferred_root = sessions_root / "run-preferred"
+            fallback_root = sessions_root / "run-other"
+            preferred_root.mkdir(parents=True, exist_ok=True)
+            fallback_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(preferred_root, "run-preferred")
+            _write_verified_host_receipt(fallback_root, "run-other")
+            fallback_intent_path = fallback_root / "intent-contract.json"
+            fallback_intent_path.write_text(json.dumps({"goal": "wrong run"}), encoding="utf-8")
+            (preferred_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-preferred",
+                        "artifacts": {},
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-preferred",
+                            "source_run_id": "run-preferred",
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (fallback_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-other",
+                        "artifacts": {
+                            "intent_contract": str(fallback_intent_path),
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = module._find_continuation_context(
+                artifact_root=artifact_root,
+                required_artifact="intent_contract",
+                run_id="run-next",
+                preferred_run_id="run-preferred",
+                allow_bounded_preferred=True,
+            )
+
+        self.assertIsNone(result)
+
+    def test_launch_canonical_vibe_inherits_frozen_host_decision_fields_for_bounded_reentry(self):
+        """Carry frozen host decision fields into approval-only bounded continuation launches."""
+        module = _load_canonical_entry_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            artifact_root = repo_root / ".vibeskills"
+            prior_session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-req"
+            prior_session_root.mkdir(parents=True, exist_ok=True)
+            _write_verified_host_receipt(prior_session_root, "run-req")
+            intent_contract_path = prior_session_root / "intent-contract.json"
+            intent_contract_path.write_text(json.dumps({"goal": "freeze requirement"}), encoding="utf-8")
+            runtime_packet_path = prior_session_root / "runtime-input-packet.json"
+            runtime_packet_path.write_text(
+                json.dumps(
+                    {
+                        "governance_scope": "root",
+                        "execution_phase_decomposition": {
+                            "phases": [
+                                {
+                                    "phase_id": "phase-1",
+                                    "stage_order": 10,
+                                    "stage_type": "discovery",
+                                    "stage_label": "Discovery",
+                                    "goal": "Collect sources",
+                                }
+                            ]
+                        },
+                        "host_specialist_dispatch_decision": {
+                            "protocol_version": "v1",
+                            "derived_by": "host",
+                            "selection_mode": "curated_only",
+                            "approved_skill_ids": ["scientific-writing"],
+                            "deferred_skill_ids": ["scikit-learn"],
+                            "rejected_skill_ids": [],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (prior_session_root / "runtime-summary.json").write_text(
+                json.dumps(
+                    {
+                        "run_id": "run-req",
+                        "artifacts": {
+                            "intent_contract": str(intent_contract_path),
+                            "runtime_input_packet": str(runtime_packet_path),
+                        },
+                        "bounded_return_control": {
+                            "explicit_user_reentry_required": True,
+                            "reentry_token": "token-123",
+                            "source_run_id": "run-req",
+                            "terminal_stage": "requirement_doc",
+                            "allowed_followup_entry_ids": ["vibe"],
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            captured: dict[str, object] = {}
+
+            def fake_invoke(**kwargs):
+                """Capture the effective host decision without launching PowerShell."""
+                captured["host_decision"] = kwargs.get("host_decision")
+                next_session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / "run-next"
+                next_session_root.mkdir(parents=True, exist_ok=True)
+                summary_path = next_session_root / "runtime-summary.json"
+                summary_path.write_text(json.dumps({"run_id": "run-next"}), encoding="utf-8")
+                return {
+                    "run_id": "run-next",
+                    "session_root": str(next_session_root),
+                    "summary_path": str(summary_path),
+                    "summary": {"run_id": "run-next"},
+                }
+
+            with patch.object(module, "invoke_vibe_runtime_entrypoint", side_effect=fake_invoke), patch.object(
+                module,
+                "assert_minimum_truth_artifacts",
+                return_value={
+                    "runtime_input_packet": str(runtime_packet_path),
+                    "governance_capsule": str(prior_session_root / "governance-capsule.json"),
+                    "stage_lineage": str(prior_session_root / "stage-lineage.json"),
+                },
+            ), patch.object(module, "assert_minimum_truth_consistency", return_value=None):
+                module.launch_canonical_vibe(
+                    repo_root=repo_root,
+                    host_id="codex",
+                    entry_id="vibe",
+                    prompt="批准",
+                    artifact_root=artifact_root,
+                    run_id="run-next",
+                    continue_from_run_id="run-req",
+                    bounded_reentry_token="token-123",
+                    host_decision={
+                        "decision_kind": "approval_response",
+                        "decision_action": "approve_requirement",
+                    },
+                )
+
+        self.assertIsInstance(captured.get("host_decision"), dict)
+        self.assertEqual("approval_response", captured["host_decision"]["decision_kind"])
+        self.assertEqual("approve_requirement", captured["host_decision"]["decision_action"])
+        self.assertIn("continuation_context", captured["host_decision"])
+        self.assertTrue(captured["host_decision"]["continuation_context"]["structured_bounded_reentry"])
+        self.assertEqual("run-req", captured["host_decision"]["continuation_context"]["source_run_id"])
+        self.assertEqual("requirement_doc", captured["host_decision"]["continuation_context"]["terminal_stage"])
+        self.assertTrue(captured["host_decision"]["continuation_context"]["control_only_prompt"])
+        self.assertIn("phase_decomposition", captured["host_decision"])
+        self.assertEqual(
+            "phase-1",
+            captured["host_decision"]["phase_decomposition"]["phases"][0]["phase_id"],
+        )
+        self.assertEqual(
+            {
+                "protocol_version": "v1",
+                "derived_by": "host",
+                "selection_mode": "curated_only",
+                "approved_skill_ids": ["scientific-writing"],
+                "deferred_skill_ids": ["scikit-learn"],
+                "rejected_skill_ids": [],
+            },
+            captured["host_decision"]["specialist_dispatch_decision"],
+        )
+
     def test_canonical_entry_reads_shared_policy_file_override(self):
         """Report Windows PowerShell as preferred, not fallback, when policy requests it."""
         module = _load_canonical_entry_module()

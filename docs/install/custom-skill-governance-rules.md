@@ -120,12 +120,9 @@
 
 基础在线 provider 可用，不等于治理 AI online layer 已完成。
 
-要启用治理 AI advice 的常见在线路径，用户需本地配置：
+公开安装暂时不开放内置在线增强能力配置。自定义 Skill 治理规则里不要向用户列出 provider、凭据、URL 或模型配置项，也不要把这部分缺失描述成自定义 Skill 接入失败。
 
-- intent advice：`VCO_INTENT_ADVICE_API_KEY` + 可选 `VCO_INTENT_ADVICE_BASE_URL` + `VCO_INTENT_ADVICE_MODEL`
-- vector diff embeddings（可选）：`VCO_VECTOR_DIFF_API_KEY` + 可选 `VCO_VECTOR_DIFF_BASE_URL` + `VCO_VECTOR_DIFF_MODEL`
-
-未配置上述 `VCO_*` 时只能宣称“基础在线可用”或“本地安装完成”，不能宣称“治理 AI online readiness 已完成”；旧 `OPENAI_*` 不再自动回填。
+如果相关在线能力未通过公开路径配置好，只能宣称“基础安装完成”或“相关在线能力未就绪/未验证”，不能宣称在线增强能力已完成。
 
 ## 最小验收清单
 

@@ -1,91 +1,111 @@
 # Quick Start
 
-If this is your first time in the repository, you do not need to read everything.
+[中文](./quick-start.md)
 
-Pick the entry that matches what you want right now.
+If this is your first time in the repository, you do not need to read every document first.
 
-## I just want to understand what this is
+Think of VibeSkills as a **Super Skill Harness** for AI agents:
 
-Start with:
+> You bring the goal. `vibe` manages the work rhythm: clarify the requirement, split the work into stages, call the right expert Skills, push toward testing and verification, and preserve the useful context.
 
-- [`../README.en.md`](../README.en.md)
+It is not a long tool menu that leaves the user to choose every step. It is a plug-in workflow package that helps Skills-capable agents start faster, stay more disciplined, and handle work across phases.
 
-That page explains what the project is, what problem it is trying to solve, and why it is not just another skill repository.
+## 1. What problem does it solve?
 
-## I want to start using it right away
+VibeSkills focuses on five practical problems:
 
-Go straight to:
+| Problem | What VibeSkills does |
+|:---|:---|
+| Too many Skills, unclear which one to call | The harness orchestrates expert Skills by task and phase |
+| Agents skip requirements, planning, or testing | `vibe` moves work through governed stages |
+| Users keep saying "plan first" or "verify it" | You provide the goal; the harness absorbs more of the control burden |
+| Long work loses context across sessions | Requirements, plans, decisions, and evidence are stored in structured places |
+| New domain Skills are hard to integrate | The Skills bundle is the core package, so future domain Skills can plug into the same workflow |
+
+If you remember one line:
+
+> **VibeSkills packages expert Skills, automatic orchestration, verification, and cross-session memory into one portable Super Skill that is easy to install and easy to start using.**
+
+## 2. Start fast
+
+Open the install entry:
 
 - [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)
 
-The main entry there is not a wall of commands. It is a prompt you can copy into your AI assistant.
+Choose three things on that page:
 
-The current public host-visible wrapper set is fixed to these four entries:
+1. Host: `codex`, `claude-code`, `cursor`, `windsurf`, `openclaw`, or `opencode`
+2. Action: choose `install` for a first install, or `update` if VibeSkills is already installed
+3. Version: use `full` for the normal experience, or `minimal` only if you want the smaller framework foundation
+
+Then copy the matching prompt into the AI app where you want VibeSkills installed, and let it run the install and checks.
+
+After install, invoke it through your host's Skills entry:
+
+| Host | Common invocation |
+|:---|:---|
+| Codex | Append `$vibe` to your request |
+| Claude Code | Append `/vibe` to your request |
+| OpenCode | Use `/vibe` or the host-supported Skills invocation |
+| Cursor / Windsurf / OpenClaw | Follow the host's Skills entry documentation |
+
+For updates, keep:
+
+- `vibe-upgrade`
+
+## 3. Current public entries
+
+The current public, host-visible entries are only:
 
 - `vibe`
-- `vibe-want`
-- `vibe-how`
-- `vibe-do`
+- `vibe-upgrade`
 
-If your host supports menu-style rendering, it will usually display them as:
+`vibe` is the main entry. It stops at requirement, plan, and execution boundaries, then continues only after explicit confirmation.
 
-- `Vibe`
-- `Vibe: What Do I Want?`
-- `Vibe: How Do We Do It?`
-- `Vibe: Do It`
+`vibe-upgrade` is the governed upgrade entry for the current host installation.
 
-They still resolve to the same governed `vibe` runtime. The difference is the default stop target:
+Older stage-specific and legacy CLI entries are retired from the public host-visible surface and should not be advertised or installed.
 
-- `vibe` / `Vibe`: run the full governed flow
-- `vibe-want` / `Vibe: What Do I Want?`: clarify goals, boundaries, and acceptance criteria, then stop after freezing the requirement
-- `vibe-how` / `Vibe: How Do We Do It?`: freeze the requirement and plan, then stop
-- `vibe-do` / `Vibe: Do It`: execute the full governed flow without skipping requirement or plan
-
-If you want a heavier execution lane, use only:
+If you want a stronger execution lane, use only the public lightweight overrides:
 
 - `--l`
 - `--xl`
 
-Do not rely on aliases like `vibe-l` or `vibe-xl`. Those combinations are intentionally unsupported.
+Older stage IDs may still exist in runtime metadata for compatibility and continuity, but they are not commands or skills that users should invoke.
 
-If your target host is OpenCode, you can also go straight to:
+## 4. What to read next
 
-- [`install/opencode-path.en.md`](./install/opencode-path.en.md)
+Pick by intent:
 
-## I want to understand why this project exists
+| Goal | Read |
+|:---|:---|
+| Full project introduction | [`../README.md`](../README.md) |
+| Install or update | [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md) |
+| Direct command reference | [`install/recommended-full-path.en.md`](./install/recommended-full-path.en.md) |
+| Unsure about host roots | [`cold-start-install-paths.en.md`](./cold-start-install-paths.en.md) |
+| Using OpenCode | [`install/opencode-path.en.md`](./install/opencode-path.en.md) |
+| Using OpenClaw | [`install/openclaw-path.en.md`](./install/openclaw-path.en.md) |
+| Manual/offline install | [`install/manual-copy-install.en.md`](./install/manual-copy-install.en.md) |
+| Custom Skills onboarding | [`install/custom-workflow-onboarding.en.md`](./install/custom-workflow-onboarding.en.md) |
+| Why the project exists | [`manifesto.en.md`](./manifesto.en.md) |
 
-Read:
+## 5. Common confusion
 
-- [`manifesto.en.md`](./manifesto.en.md)
+- `$vibe` or `/vibe` only enters the governed runtime. It is not proof that MCP is fully configured.
+- Install reports should separate `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, and `online-ready`.
+- VibeSkills is a Skills-format runtime, not a standalone CLI you run directly in a terminal.
+- `full` is the recommended default for normal users; `minimal` is for users who deliberately want the smaller governance framework.
 
-That page is no longer a giant declaration. It is a shorter explanation of how the project grew out of real friction and what principles it tries to protect.
+## Recommended reading order
 
-## I am already a heavy user and want the fuller install story
+For the shortest path:
 
-Read these:
-
-- [`install/recommended-full-path.en.md`](./install/recommended-full-path.en.md)
-- [`cold-start-install-paths.en.md`](./cold-start-install-paths.en.md)
-- [`install/opencode-path.en.md`](./install/opencode-path.en.md)
-
-They are more complete and more operator-oriented than the public entry pages.
-
-## How should I think about `VibeSkills` and `VCO`
-
-The simplest explanation is:
-
-- `VibeSkills` is the public project name
-- `VCO` is the core governed runtime behind it
-
-The first is the system you are using.
-The second is the execution skeleton that helps the system stay disciplined.
-
-## Recommended Reading Order
-
-If you want the shortest sensible path, go in this order:
-
-1. [`../README.en.md`](../README.en.md)
+1. [`../README.md`](../README.md)
 2. [`install/one-click-install-release-copy.en.md`](./install/one-click-install-release-copy.en.md)
-3. [`manifesto.en.md`](./manifesto.en.md)
+3. Try `vibe` on a small task
 
-That is usually enough to understand what it is, how to start, and why it was built this way.
+Start with something simple, for example:
+
+> Clarify this requirement and turn it into a plan `$vibe`
+
+The difference becomes clear quickly: the user does not have to act as the dispatcher, and the agent gets a steadier way to move work through the harness.

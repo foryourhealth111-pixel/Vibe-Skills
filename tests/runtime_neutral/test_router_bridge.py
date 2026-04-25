@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -13,7 +14,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "runti
 from vgo_runtime.router_contract_presentation import (
     CONFIRM_UI_BATCH_PROMPT,
     DEEP_DISCOVERY_FIRST_QUESTION,
+    build_confirm_ui,
 )
+from vgo_runtime.router_contract_runtime import route_prompt
+from vgo_runtime.router_contract_support import RepoContext
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +26,13 @@ ROUTE_FIXTURE = REPO_ROOT / "tests" / "replay" / "route" / "recovery-wave-curate
 PLATFORM_FIXTURE = REPO_ROOT / "tests" / "replay" / "platform" / "linux-without-pwsh.json"
 
 
-def run_bridge(prompt: str, grade: str, task_type: str, requested_skill: str | None = None) -> dict:
+def run_bridge(
+    prompt: str,
+    grade: str,
+    task_type: str,
+    requested_skill: str | None = None,
+    entry_intent_id: str | None = None,
+) -> dict:
     command = [
         sys.executable,
         str(BRIDGE_SCRIPT),
@@ -36,11 +46,92 @@ def run_bridge(prompt: str, grade: str, task_type: str, requested_skill: str | N
     ]
     if requested_skill:
         command.extend(["--requested-skill", requested_skill])
-    completed = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+    if entry_intent_id:
+        command.extend(["--entry-intent-id", entry_intent_id])
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def run_powershell_route(prompt: str, grade: str, task_type: str, requested_skill: str | None = None) -> dict:
+    powershell = shutil.which("pwsh")
+    if not powershell:
+        raise unittest.SkipTest("PowerShell 7 (pwsh) not found in PATH")
+
+    command = [
+        powershell,
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(REPO_ROOT / "scripts" / "router" / "resolve-pack-route.ps1"),
+        "-Prompt",
+        prompt,
+        "-Grade",
+        grade,
+        "-TaskType",
+        task_type,
+    ]
+    if requested_skill:
+        command.extend(["-RequestedSkill", requested_skill])
+
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8-sig",
+        errors="replace",
+        check=True,
+    )
     return json.loads(completed.stdout)
 
 
 class RouterBridgeTests(unittest.TestCase):
+    def test_build_confirm_ui_keeps_selected_skill_visible_when_ranking_is_truncated(self) -> None:
+        repo = RepoContext(
+            repo_root=REPO_ROOT,
+            config_root=REPO_ROOT / "config",
+            bundled_skills_root=REPO_ROOT / "bundled" / "skills",
+        )
+        route_result = {
+            "route_mode": "confirm_required",
+            "selected": {
+                "pack_id": "synthetic-pack",
+                "skill": "selected-skill",
+                "selection_score": 0.42,
+            },
+            "ranked": [
+                {
+                    "pack_id": "synthetic-pack",
+                    "candidate_ranking": [
+                        {"skill": "skill-a", "score": 0.91},
+                        {"skill": "skill-b", "score": 0.81},
+                        {"skill": "skill-c", "score": 0.71},
+                        {"skill": "skill-d", "score": 0.61},
+                        {"skill": "skill-e", "score": 0.51},
+                        {"skill": "selected-skill", "score": 0.42},
+                    ],
+                    "stage_assistant_candidates": [],
+                }
+            ],
+        }
+
+        confirm_ui = build_confirm_ui(repo, route_result, None)
+
+        self.assertIsNotNone(confirm_ui)
+        self.assertEqual("selected-skill", confirm_ui["options"][0]["skill"])
+        self.assertTrue(confirm_ui["options"][0]["is_primary"])
+        self.assertIn("selected-skill", confirm_ui["route_decision_contract"]["allowed_skill_ids"])
+
     def test_linux_without_pwsh_fixture_points_to_bridge_contract(self) -> None:
         platform = json.loads(PLATFORM_FIXTURE.read_text(encoding="utf-8"))
         self.assertEqual("linux_without_pwsh", platform["lane"])
@@ -86,6 +177,35 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertIn(CONFIRM_UI_BATCH_PROMPT, result["confirm_ui"]["rendered_text"])
         self.assertIn(DEEP_DISCOVERY_FIRST_QUESTION, result["confirm_ui"]["rendered_text"])
 
+    def test_host_selection_confirm_ui_does_not_reopen_generic_clarifiers(self) -> None:
+        result = run_bridge(
+            "create implementation plan and task breakdown",
+            "L",
+            "planning",
+        )
+
+        self.assertEqual("pack_overlay", result["route_mode"])
+        self.assertEqual("host_selection_required", result["route_reason"])
+        self.assertIn("confirm_ui", result)
+        self.assertEqual([], result["confirm_ui"]["clarification_questions"])
+        self.assertNotIn(CONFIRM_UI_BATCH_PROMPT, result["confirm_ui"]["rendered_text"])
+        self.assertNotIn(DEEP_DISCOVERY_FIRST_QUESTION, result["confirm_ui"]["rendered_text"])
+        self.assertFalse(result["deep_discovery_advice"]["should_apply_hook"])
+
+    def test_powershell_host_selection_confirm_ui_does_not_reopen_generic_clarifiers(self) -> None:
+        result = run_powershell_route(
+            "create implementation plan and task breakdown",
+            "L",
+            "planning",
+        )
+
+        self.assertEqual("pack_overlay", result["route_mode"])
+        self.assertEqual("host_selection_required", result["route_reason"])
+        self.assertIn("confirm_ui", result)
+        self.assertEqual([], result["confirm_ui"]["clarification_questions"])
+        self.assertNotIn(CONFIRM_UI_BATCH_PROMPT, result["confirm_ui"]["rendered_text"])
+        self.assertNotIn(DEEP_DISCOVERY_FIRST_QUESTION, result["confirm_ui"]["rendered_text"])
+
     def test_ml_critical_discussion_routes_to_lqf_ml_expert(self) -> None:
         result = run_bridge(
             "请你作为机器学习专家和我进行三轮批判式讨论：这个分类方案有没有数据泄漏、基线是否充分、是否该先用简单模型",
@@ -96,6 +216,16 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("pack_overlay", result["route_mode"])
         self.assertEqual("data-ml", result["selected"]["pack_id"])
         self.assertEqual("LQF_Machine_Learning_Expert_Guide", result["selected"]["skill"])
+
+    def test_ml_threshold_question_does_not_false_positive_to_vibe(self) -> None:
+        result = run_bridge(
+            "Please help me choose a confidence threshold and fallback threshold for a scikit-learn binary classifier using ROC and precision-recall tradeoffs.",
+            "L",
+            "research",
+        )
+
+        self.assertNotEqual("vibe", result["selected"]["skill"])
+        self.assertEqual("data-ml", result["selected"]["pack_id"])
 
     def test_requested_mixed_case_skill_routes_authoritatively_in_runtime_neutral_lane(self) -> None:
         result = run_bridge(
@@ -108,6 +238,31 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("pack_overlay", result["route_mode"])
         self.assertEqual("data-ml", result["selected"]["pack_id"])
         self.assertEqual("LQF_Machine_Learning_Expert_Guide", result["selected"]["skill"])
+
+    def test_wrapper_entry_intent_does_not_override_runtime_neutral_router_selection(self) -> None:
+        prompt = (
+            "Please use scikit-learn to prototype a tabular classification baseline, "
+            "run feature selection, and compare cross-validation metrics."
+        )
+        baseline = route_prompt(
+            prompt=prompt,
+            grade="L",
+            task_type="coding",
+            repo_root=REPO_ROOT,
+        )
+        wrapped = route_prompt(
+            prompt=prompt,
+            grade="L",
+            task_type="coding",
+            entry_intent_id="vibe-what-do-i-want",
+            repo_root=REPO_ROOT,
+        )
+
+        self.assertEqual(baseline["route_mode"], wrapped["route_mode"])
+        self.assertEqual(baseline["selected"]["pack_id"], wrapped["selected"]["pack_id"])
+        self.assertEqual(baseline["selected"]["skill"], wrapped["selected"]["skill"])
+        self.assertEqual("vibe-what-do-i-want", wrapped["alias"]["entry_intent_id"])
+        self.assertIsNone(wrapped["alias"]["requested_input"])
 
     def test_vibe_keeps_route_authority_while_plan_helpers_move_to_stage_assistants(self) -> None:
         result = run_bridge(
@@ -255,13 +410,27 @@ class RouterBridgeTests(unittest.TestCase):
             requested_skill="vibe",
         )
 
-        self.assertEqual("confirm_required", result["route_mode"])
-        self.assertEqual("code-quality", result["selected"]["pack_id"])
-        self.assertEqual("systematic-debugging", result["selected"]["skill"])
+        self.assertEqual("pack_overlay", result["route_mode"])
+        self.assertEqual("orchestration-core", result["selected"]["pack_id"])
+        self.assertEqual("vibe", result["selected"]["skill"])
         self.assertEqual("vibe", result["alias"]["requested_canonical"])
-        self.assertEqual("vibe", result["ranked"][1]["selected_candidate"])
+        self.assertEqual("vibe", result["ranked"][0]["selected_candidate"])
         self.assertIn("confirm_ui", result)
         self.assertTrue(result["confirm_ui"]["enabled"])
+
+    def test_vibe_do_it_wrapper_keywords_fold_back_to_canonical_vibe_before_prelaunch_routing(self) -> None:
+        result = run_bridge(
+            "execute plan phase-cleanup facial-recognition few-shot dataset download training baseline enhancements experiments latex-paper",
+            "L",
+            "research",
+            requested_skill="vibe-do-it",
+        )
+
+        self.assertEqual("pack_overlay", result["route_mode"])
+        self.assertEqual("candidate_signal_auto_route", result["route_reason"])
+        self.assertEqual("orchestration-core", result["selected"]["pack_id"])
+        self.assertEqual("vibe", result["selected"]["skill"])
+        self.assertEqual("vibe", result["alias"]["requested_canonical"])
 
 
 if __name__ == "__main__":

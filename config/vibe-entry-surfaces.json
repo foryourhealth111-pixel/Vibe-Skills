@@ -6,31 +6,41 @@
       "id": "vibe",
       "display_name": "Vibe",
       "requested_stage_stop": "phase_cleanup",
-      "allow_grade_flags": true
+      "progressive_stage_stops": [
+        "requirement_doc",
+        "xl_plan",
+        "phase_cleanup"
+      ],
+      "allow_grade_flags": true,
+      "publicly_exposed": true
     },
     {
-      "id": "vibe-want",
+      "id": "vibe-what-do-i-want",
       "display_name": "Vibe: What Do I Want?",
       "requested_stage_stop": "requirement_doc",
-      "allow_grade_flags": false
+      "allow_grade_flags": false,
+      "publicly_exposed": false
     },
     {
-      "id": "vibe-how",
+      "id": "vibe-how-do-we-do",
       "display_name": "Vibe: How Do We Do It?",
       "requested_stage_stop": "xl_plan",
-      "allow_grade_flags": true
+      "allow_grade_flags": true,
+      "publicly_exposed": false
     },
     {
-      "id": "vibe-do",
+      "id": "vibe-do-it",
       "display_name": "Vibe: Do It",
       "requested_stage_stop": "phase_cleanup",
-      "allow_grade_flags": true
+      "allow_grade_flags": true,
+      "publicly_exposed": false
     },
     {
       "id": "vibe-upgrade",
       "display_name": "Vibe: Upgrade",
       "requested_stage_stop": "phase_cleanup",
-      "allow_grade_flags": false
+      "allow_grade_flags": false,
+      "publicly_exposed": true
     }
   ],
   "grade_flags": [

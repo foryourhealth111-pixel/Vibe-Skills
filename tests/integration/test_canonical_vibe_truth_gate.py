@@ -46,8 +46,11 @@ def _write_valid_canonical_entry_artifacts(
     session_root: Path,
     *,
     entry_intent_id: str = "vibe",
+    canonical_router_requested_skill: str | None = None,
     router_selected_skill: str = "systematic-debugging",
     requested_stage_stop: str = "phase_cleanup",
+    interactive_pause: dict[str, object] | None = None,
+    terminal_stage: str | None = None,
 ) -> None:
     _write_json(
         session_root / "host-launch-receipt.json",
@@ -69,10 +72,11 @@ def _write_valid_canonical_entry_artifacts(
         {
             "entry_intent_id": entry_intent_id,
             "requested_stage_stop": requested_stage_stop,
+            "interactive_pause": interactive_pause,
             "canonical_router": {
                 "host_id": "codex",
                 "prompt": "validate proof",
-                "requested_skill": entry_intent_id,
+                "requested_skill": canonical_router_requested_skill,
                 "route_script_path": "scripts/router/resolve-pack-route.ps1",
                 "target_root": "/tmp/target",
                 "task_type": "debug",
@@ -139,22 +143,22 @@ def _write_valid_canonical_entry_artifacts(
         session_root / "stage-lineage.json",
         {
             "run_id": "pytest-truth-gate",
-            "last_stage_name": requested_stage_stop,
+            "last_stage_name": requested_stage_stop if terminal_stage is None else terminal_stage,
             "stages": [
                 {"stage_name": "skeleton_check"},
                 {"stage_name": "deep_interview"},
-                {"stage_name": "requirement_doc"},
+                *([{"stage_name": "requirement_doc"}] if (terminal_stage in (None, "requirement_doc", "xl_plan", "plan_execute", "phase_cleanup")) else []),
                 *(
                     [{"stage_name": "xl_plan"}]
-                    if requested_stage_stop in {"xl_plan", "plan_execute", "phase_cleanup"}
+                    if (terminal_stage if terminal_stage is not None else requested_stage_stop) in {"xl_plan", "plan_execute", "phase_cleanup"}
                     else []
                 ),
                 *(
                     [{"stage_name": "plan_execute"}]
-                    if requested_stage_stop in {"plan_execute", "phase_cleanup"}
+                    if (terminal_stage if terminal_stage is not None else requested_stage_stop) in {"plan_execute", "phase_cleanup"}
                     else []
                 ),
-                *([{"stage_name": "phase_cleanup"}] if requested_stage_stop == "phase_cleanup" else []),
+                *([{"stage_name": "phase_cleanup"}] if (terminal_stage if terminal_stage is not None else requested_stage_stop) == "phase_cleanup" else []),
             ],
         },
     )
@@ -210,6 +214,61 @@ def test_truth_gate_reports_missing_route_snapshot_without_unbound_selected_skil
     assert "selectedSkill" not in combined
 
 
+def test_truth_gate_rejects_missing_entry_intent_id(tmp_path: Path) -> None:
+    session_root = tmp_path / "session"
+    _write_valid_canonical_entry_artifacts(session_root)
+    runtime_packet_path = session_root / "runtime-input-packet.json"
+    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
+    runtime_packet.pop("entry_intent_id")
+    _write_json(runtime_packet_path, runtime_packet)
+
+    result = _run_truth_gate(session_root)
+
+    combined = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "runtime packet preserves entry_intent_id independently from router authority" in combined
+
+
+def test_truth_gate_enforces_confirm_required_skeleton_stop_without_requested_stage_stop(tmp_path: Path) -> None:
+    session_root = tmp_path / "session"
+    _write_valid_canonical_entry_artifacts(
+        session_root,
+        requested_stage_stop="",
+        terminal_stage="phase_cleanup",
+    )
+    runtime_packet_path = session_root / "runtime-input-packet.json"
+    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
+    runtime_packet["route_snapshot"]["confirm_required"] = True
+    _write_json(runtime_packet_path, runtime_packet)
+
+    result = _run_truth_gate(session_root)
+
+    combined = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "confirm-required routing stops before governed stage progression" in combined
+
+
+def test_truth_gate_accepts_explicit_no_specialist_decision(tmp_path: Path) -> None:
+    session_root = tmp_path / "session"
+    _write_valid_canonical_entry_artifacts(session_root)
+    runtime_packet_path = session_root / "runtime-input-packet.json"
+    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
+    runtime_packet["specialist_recommendations"] = []
+    runtime_packet["specialist_decision"] = {
+        "decision_state": "no_specialist_recommendations",
+        "resolution_mode": "no_specialist_needed",
+        "recommendation_count": 0,
+        "candidate_skill_ids_reviewed": [],
+        "selected_skill_ids": [],
+        "rejected_candidates": [],
+    }
+    _write_json(runtime_packet_path, runtime_packet)
+
+    result = _run_truth_gate(session_root)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_truth_gate_accepts_verified_canonical_entry_session(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(session_root)
@@ -225,12 +284,13 @@ def test_truth_gate_accepts_presentational_entry_intent_with_canonical_authority
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(
         session_root,
-        entry_intent_id="vibe-how",
+        entry_intent_id="vibe-how-do-we-do",
         requested_stage_stop="xl_plan",
     )
 
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet entry_intent_id matches canonical_router requested skill" in result.stdout
+    assert "[PASS] runtime packet canonical_router keeps routing authority on canonical vibe" in result.stdout
+    assert "[PASS] runtime packet preserves entry_intent_id independently from router authority" in result.stdout
     assert "[PASS] runtime packet route_snapshot records routed specialist truth" in result.stdout

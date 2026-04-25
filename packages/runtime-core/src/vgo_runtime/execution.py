@@ -35,6 +35,7 @@ def execute_runtime_packet(
     route = route_runtime_task(packet.goal, requested_skill=effective_requested_skill)
     plan = build_execution_plan(
         route.task_type,
+        task=packet.goal,
         stage_machine=machine,
         stages=executed_stages,
         requested_grade_floor=packet.requested_grade_floor,

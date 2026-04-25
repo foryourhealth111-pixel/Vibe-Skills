@@ -8,7 +8,7 @@ if (-not (Get-Command Resolve-VgoInstalledSkillsRoot -ErrorAction SilentlyContin
 function Get-ConfirmUiPolicyDefaults {
     return [pscustomobject]@{
         enabled = $true
-        emit_on_route_modes = @("confirm_required")
+        emit_on_route_modes = @("confirm_required", "pack_overlay")
         options = [pscustomobject]@{
             max_skill_options = 5
             include_descriptions = $true
@@ -27,8 +27,11 @@ function Get-ConfirmUiPolicyDefaults {
                     "进入无人值守",
                     "开启无人值守",
                     "无人值守模式",
+                    "enter\s+unattended\s+mode",
+                    "enable\s+unattended",
                     "unattended\s*(on|true|1)",
                     "auto\s*-?\s*route",
+                    "skip\s+confirmation",
                     "自动路由",
                     "跳过确认",
                     "无需确认"
@@ -37,6 +40,8 @@ function Get-ConfirmUiPolicyDefaults {
                     "退出无人值守",
                     "关闭无人值守",
                     "取消无人值守",
+                    "exit\s+unattended\s+mode",
+                    "disable\s+unattended",
                     "unattended\s*(off|false|0)"
                 )
             }
@@ -371,6 +376,41 @@ function Build-ConfirmSkillOptions {
             }
         )
     }
+    $selectedRow = $null
+    if ($selectedSkill) {
+        $selectedRow = @($ranking | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
+        if (-not $selectedRow -and $packRow -and $packRow.stage_assistant_candidates) {
+            $selectedRow = @($packRow.stage_assistant_candidates | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
+        }
+        if (-not $selectedRow -and $packRow -and $packRow.candidate_ranking) {
+            $selectedRow = @($packRow.candidate_ranking | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
+        }
+        if (-not $selectedRow) {
+            $selectedRow = [pscustomobject]@{
+                skill = $selectedSkill
+                score = if ($Result.selected.selection_score -ne $null) { [double]$Result.selected.selection_score } else { 0.0 }
+            }
+        }
+    }
+
+    $orderedRanking = @()
+    $seenSkills = @{}
+    if ($selectedRow) {
+        $selectedRowSkill = [string]$selectedRow.skill
+        if (-not [string]::IsNullOrWhiteSpace($selectedRowSkill)) {
+            $orderedRanking += $selectedRow
+            $seenSkills[$selectedRowSkill] = $true
+        }
+    }
+    foreach ($row in @($ranking)) {
+        $skillId = [string]$row.skill
+        if ([string]::IsNullOrWhiteSpace($skillId) -or $seenSkills.ContainsKey($skillId)) {
+            continue
+        }
+        $orderedRanking += $row
+        $seenSkills[$skillId] = $true
+    }
+    $ranking = @($orderedRanking)
 
     $limit = [Math]::Max(1, [int]$policy.options.max_skill_options)
     $rows = @($ranking | Select-Object -First $limit)
@@ -398,6 +438,7 @@ function Build-ConfirmSkillOptions {
             option_id = $idx
             skill = $skillId
             pack_id = if ($packRow) { [string]$packRow.pack_id } else { $selectedPack }
+            is_primary = [bool]([string]::Equals($skillId, $selectedSkill, [System.StringComparison]::OrdinalIgnoreCase))
             score = if ($row.score -ne $null) { [double]$row.score } else { $null }
             keyword_score = if ($row.keyword_score -ne $null) { [double]$row.keyword_score } else { $null }
             name_score = if ($row.name_score -ne $null) { [double]$row.name_score } else { $null }
@@ -416,10 +457,143 @@ function Build-ConfirmSkillOptions {
         }
     }
 
+    $routeDecisionContract = [pscustomobject]@{
+        protocol_version = 'v1'
+        decision_kind = 'route_selection'
+        decision_context = 'routing_confirmation'
+        selected_pack = $selectedPack
+        primary_skill = $selectedSkill
+        allowed_decision_actions = @('accept_primary', 'select_skill')
+        allowed_skill_ids = @($options | ForEach-Object { [string]$_.skill } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+        options = @($options | ForEach-Object {
+            [pscustomobject]@{
+                option_id = if ($_.PSObject.Properties.Name -contains 'option_id') { [int]$_.option_id } else { $null }
+                skill = if ($_.PSObject.Properties.Name -contains 'skill') { [string]$_.skill } else { $null }
+                pack_id = if ($_.PSObject.Properties.Name -contains 'pack_id') { [string]$_.pack_id } else { $selectedPack }
+                is_primary = if ($_.PSObject.Properties.Name -contains 'is_primary') { [bool]$_.is_primary } else { $false }
+            }
+        })
+        preferred_payload = [pscustomobject]@{
+            decision_kind = 'route_selection'
+            decision_action = 'accept_primary'
+            selected_pack = $selectedPack
+            selected_skill = $selectedSkill
+        }
+        selection_payload_template = [pscustomobject]@{
+            decision_kind = 'route_selection'
+            decision_action = 'select_skill'
+            selected_pack = $selectedPack
+            selected_skill = '<allowed-skill>'
+        }
+    }
+
     return [pscustomobject]@{
         selected_pack = $selectedPack
         selected_skill = $selectedSkill
         options = @($options)
+        route_decision_contract = $routeDecisionContract
+    }
+}
+
+function Resolve-StructuredRouteDecision {
+    param(
+        [AllowEmptyString()] [string]$HostDecisionJson = '',
+        [AllowNull()] [object]$ConfirmSkillOptions = $null
+    )
+
+    if ([string]::IsNullOrWhiteSpace($HostDecisionJson) -or -not $ConfirmSkillOptions) { return $null }
+
+    try {
+        $decision = $HostDecisionJson | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "invalid JSON in -HostDecisionJson"
+    }
+    if (-not $decision -or -not $decision.PSObject) {
+        throw "structured host decision must be a JSON object"
+    }
+
+    $decisionKind = ''
+    if ($decision.PSObject.Properties.Name -contains 'decision_kind') {
+        $decisionKind = [string]$decision.decision_kind
+    }
+    if ([string]::IsNullOrWhiteSpace($decisionKind)) { return $null }
+    $decisionKind = $decisionKind.Trim().ToLowerInvariant()
+
+    $decisionAction = ''
+    if ($decision.PSObject.Properties.Name -contains 'decision_action') {
+        $decisionAction = [string]$decision.decision_action
+    }
+    $decisionAction = $decisionAction.Trim().ToLowerInvariant()
+    $approvalDecision = ''
+    if ($decision.PSObject.Properties.Name -contains 'approval_decision') {
+        $approvalDecision = [string]$decision.approval_decision
+    }
+    $approvalDecision = $approvalDecision.Trim().ToLowerInvariant()
+    $selectedPack = ''
+    if ($decision.PSObject.Properties.Name -contains 'selected_pack') {
+        $selectedPack = [string]$decision.selected_pack
+    }
+    $requestedSkill = ''
+    if ($decision.PSObject.Properties.Name -contains 'selected_skill') {
+        $requestedSkill = [string]$decision.selected_skill
+    }
+    $requestedSkill = $requestedSkill.Trim()
+    $primarySkill = [string]$ConfirmSkillOptions.selected_skill
+    $currentPack = [string]$ConfirmSkillOptions.selected_pack
+    $allowedSkills = @($ConfirmSkillOptions.options | ForEach-Object { [string]$_.skill } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+
+    if (-not [string]::IsNullOrWhiteSpace($selectedPack) -and -not [string]::Equals($selectedPack, $currentPack, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw ('structured host route decision selected_pack `{0}` is outside the current confirm surface `{1}`' -f $selectedPack, $currentPack)
+    }
+
+    $normalizedAction = $null
+    if ($decisionKind -in @('route_selection', 'routing_selection', 'routing_decision')) {
+        if ($decisionAction -in @('accept_primary', 'accept_primary_route', 'accept_route', 'approve_route')) {
+            $normalizedAction = 'accept_primary'
+            $requestedSkill = $primarySkill
+        } elseif ($decisionAction -in @('select_skill', 'select_route_skill', 'choose_skill', 'switch_skill')) {
+            $normalizedAction = 'select_skill'
+        } elseif (-not [string]::IsNullOrWhiteSpace($requestedSkill)) {
+            $normalizedAction = 'select_skill'
+        } else {
+            return $null
+        }
+    } elseif ($decisionKind -eq 'approval_response') {
+        $normalizedAction = 'accept_primary'
+        $requestedSkill = $primarySkill
+        if (
+            $approvalDecision -ne 'approve' -and
+            $decisionAction -notin @('approve', 'approve_requirement', 'approve_requirement_doc', 'approve_requirements', 'approve_plan', 'approve_execution_plan', 'request_execute')
+        ) {
+            return $null
+        }
+    } else {
+        return $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($requestedSkill)) {
+        throw "structured host route decision must include selected_skill"
+    }
+
+    $selectedOption = $ConfirmSkillOptions.options |
+        Where-Object { [string]::Equals([string]$_.skill, $requestedSkill, [System.StringComparison]::OrdinalIgnoreCase) } |
+        Select-Object -First 1
+    if (-not $selectedOption) {
+        throw ('structured host route decision selected_skill `{0}` is outside the current confirm surface' -f $requestedSkill)
+    }
+
+    if ([string]::Equals($requestedSkill, $primarySkill, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $normalizedAction = 'accept_primary'
+    }
+
+    return [pscustomobject]@{
+        applied = $true
+        decision_kind = 'route_selection'
+        decision_action = $normalizedAction
+        selected_pack = if ($selectedOption.PSObject.Properties.Name -contains 'pack_id') { [string]$selectedOption.pack_id } else { $currentPack }
+        selected_skill = [string]$selectedOption.skill
+        selected_option = $selectedOption
+        allowed_skill_ids = @($allowedSkills)
     }
 }
 
@@ -430,6 +604,29 @@ function Get-ConfirmUiClarificationQuestions {
     )
 
     if (-not $Result) { return @() }
+    $clarificationRequired = $false
+
+    try {
+        if ($Result.deep_discovery_advice -and [bool]$Result.deep_discovery_advice.confirm_required) {
+            $clarificationRequired = $true
+        }
+    } catch { }
+
+    try {
+        if ($Result.llm_acceleration_advice -and [bool]$Result.llm_acceleration_advice.confirm_required) {
+            $clarificationRequired = $true
+        }
+    } catch { }
+
+    try {
+        if ($Result.prompt_asset_boost_advice -and [bool]$Result.prompt_asset_boost_advice.confirm_required) {
+            $clarificationRequired = $true
+        }
+    } catch { }
+
+    if (-not $clarificationRequired) {
+        return @()
+    }
 
     $limit = [Math]::Max(1, [int]$MaxQuestions)
     $sources = @()
@@ -485,7 +682,7 @@ function Build-ConfirmUiText {
         $lines += [string]$Result.hazard_alert.title
         $lines += [string]$Result.hazard_alert.message
         if ($Result.hazard_alert.reason) {
-            $lines += ("触发原因：`{0}`。" -f [string]$Result.hazard_alert.reason)
+            $lines += ("Trigger reason: `{0}`." -f [string]$Result.hazard_alert.reason)
         }
         if ($Result.hazard_alert.recovery_action) {
             $lines += [string]$Result.hazard_alert.recovery_action
@@ -493,7 +690,7 @@ function Build-ConfirmUiText {
         $lines += ''
     }
     if ($clarificationQuestions.Count -gt 0) {
-        $lines += "请尽量一次性回答下面问题；能合并回答的内容可以放在同一条消息里："
+        $lines += "Please answer the following questions in one reply when possible:"
         $questionIndex = 0
         foreach ($question in @($clarificationQuestions)) {
             $questionIndex++
@@ -501,27 +698,32 @@ function Build-ConfirmUiText {
         }
         $lines += ''
     }
-    $lines += ("路由需要确认：当前命中候选包 `{0}`。可选技能如下：" -f [string]$ConfirmSkillOptions.selected_pack)
+    if ($Result -and [string]$Result.route_mode -eq 'confirm_required') {
+        $lines += ('Routing confirmation required: current candidate pack `{0}`. Available skills:' -f [string]$ConfirmSkillOptions.selected_pack)
+    } else {
+        $lines += ('Routing suggested candidate skills: current primary pack `{0}`. The host may keep the default primary choice or switch to another skill:' -f [string]$ConfirmSkillOptions.selected_pack)
+    }
 
     foreach ($opt in @($ConfirmSkillOptions.options)) {
         $desc = if ($opt.description) { [string]$opt.description } else { "" }
         $score = if ($opt.score -ne $null) { (" (score={0})" -f ([Math]::Round([double]$opt.score, 4))) } else { "" }
         if ($desc) {
-            $lines += ("{0}. `{1}`{2} — {3}" -f $opt.option_id, $opt.skill, $score, $desc)
+            $lines += ('{0}. `{1}`{2} - {3}' -f $opt.option_id, $opt.skill, $score, $desc)
         } else {
-            $lines += ("{0}. `{1}`{2}" -f $opt.option_id, $opt.skill, $score)
+            $lines += ('{0}. `{1}`{2}' -f $opt.option_id, $opt.skill, $score)
         }
     }
 
     if ($clarificationQuestions.Count -gt 0) {
-        $lines += "你可以在同一条回复里同时回答上面的问题，并输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）来指定技能。"
+        $lines += 'You can answer the questions above and select a skill in the same reply by entering an option number (for example `1`) or `$<skill>` (for example `$tdd-guide`). If you do not specify one, the host may use the current primary choice.'
     } else {
-        $lines += "回复任一项来选择：输入序号（如 `1`）或直接输入 `$<skill>`（如 `$tdd-guide`）。"
+        $lines += 'Reply with an option number (for example `1`) or `$<skill>` (for example `$tdd-guide`) to choose. If you do not specify one, the host may use the current primary choice.'
     }
+    $lines += "The host may translate your natural-language reply into a structured route decision. Fixed keywords are not required."
     if ($UnattendedDecision -and [bool]$UnattendedDecision.unattended) {
-        $lines += ("当前处于无人值守：将跳过选择，自动使用 `{0}`。" -f [string]$ConfirmSkillOptions.selected_skill)
+        $lines += ('Unattended mode is active: selection will be skipped and `{0}` will be used automatically.' -f [string]$ConfirmSkillOptions.selected_skill)
     } else {
-        $lines += '若你希望无人值守自动路由：在本次或下一次 prompt 加上 "进入无人值守模式"。'
+        $lines += 'If you want unattended auto-routing, add "enter unattended mode" to this prompt or the next one.'
     }
 
     return ($lines -join "`n")

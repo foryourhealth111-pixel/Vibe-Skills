@@ -28,7 +28,7 @@ def resolve_powershell() -> str | None:
 
 
 class BundledStageAssistantFreezeTests(unittest.TestCase):
-    def test_runtime_freeze_keeps_vibe_as_route_authority_and_promotes_stage_assistants(self) -> None:
+    def test_runtime_freeze_keeps_vibe_as_route_authority_and_splits_stage_assistants_from_specialists(self) -> None:
         shell = resolve_powershell()
         if shell is None:
             self.skipTest("PowerShell executable not available in PATH")
@@ -62,8 +62,15 @@ class BundledStageAssistantFreezeTests(unittest.TestCase):
                 (item["skill_id"], item["source"])
                 for item in packet["specialist_recommendations"]
             ]
-            self.assertIn(("writing-plans", "route_stage_assistant"), recommendation_pairs)
-            self.assertIn(("planning-with-files", "route_stage_assistant"), recommendation_pairs)
+            self.assertNotIn(("writing-plans", "route_stage_assistant"), recommendation_pairs)
+            self.assertNotIn(("planning-with-files", "route_stage_assistant"), recommendation_pairs)
+
+            hint_pairs = [
+                (item["skill_id"], item["source"])
+                for item in packet["stage_assistant_hints"]
+            ]
+            self.assertIn(("writing-plans", "route_stage_assistant"), hint_pairs)
+            self.assertIn(("planning-with-files", "route_stage_assistant"), hint_pairs)
 
 
 if __name__ == "__main__":

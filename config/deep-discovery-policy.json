@@ -62,14 +62,14 @@
                 },
     "interview":  {
                       "max_questions":  6,
-                      "question_templates":  [
-                                                 "你希望这次任务最终交付什么形式（脚本、报告、文档、页面、可运行流程）？",
-                                                 "这次任务的范围具体落在哪个仓库、目录、文件或数据源？如果已有目标路径，请直接列出来。",
-                                                 "你现在已经具备哪些输入或上下文（现有代码、样例、报错、截图、接口、数据、参考链接）？",
-                                                 "这次任务有哪些硬约束或禁区（时间、性能、兼容性、权限、预算、不能改的部分、禁止采用的方法）？",
-                                                 "你希望我这轮先做什么：先澄清并给方案，还是直接开始实现/执行？",
-                                                 "你认为什么结果才算完成？请给出验收标准、关键输出，以及希望我如何验证。"
-                                             ]
+                                              "question_templates":  [
+                                                 "What final deliverable shape do you want for this task (script, report, document, page, or runnable workflow)?",
+                                                 "What is the exact scope for this task: which repo, directory, file, or data source does it live in? If you already know the target path, list it directly.",
+                                                 "What inputs or context do you already have available (existing code, samples, errors, screenshots, APIs, data, or reference links)?",
+                                                 "What hard constraints or off-limits areas apply to this task (time, performance, compatibility, permissions, budget, untouched areas, or forbidden methods)?",
+                                                 "What do you want me to do first in this run: clarify and propose a plan, or start implementation/execution directly?",
+                                                 "What result counts as done for you? Please give the acceptance criteria, key outputs, and how you want me to verify them."
+                                              ]
                   },
     "intent_contract":  {
                             "required_fields":  [
@@ -106,5 +106,4 @@
                                   ]
                           }
 }
-
 

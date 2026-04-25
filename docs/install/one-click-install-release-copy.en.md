@@ -1,136 +1,77 @@
-# Install Entry (Single Public Entry)
+# Install VibeSkills
 
-This is the single public install entrypoint.
+This is the public install entry. If you are new here, start with the defaults:
 
-Normal users only need this page.
-It takes you to the four retained base install prompt docs.
+- Host: the AI app you actually use
+- Action: `install`
+- Version: `Full Version + Customizable Governance`
 
-If this is your first install, the default path is simple:
+## Before You Start
 
-1. choose your host
-2. choose `install`
-3. if you are unsure, choose `Full Version + Customizable Governance`
-4. copy the matching prompt and paste it into your AI app
+You need:
 
-## Runtime Prerequisites
+- PowerShell 7 (`pwsh`) available in `PATH` for the full governed verification path
+- Python 3.10+ (`python3` / `python`) for the wrapper-driven install surface
+- Git access to this repository
 
-Before using the documented install, check, upgrade, or one-shot commands:
+Linux and macOS can still use the `bash` install entrypoints. PowerShell 7 is recommended because the full governed check surface uses it.
 
-- Windows: install **PowerShell 7** and make sure `pwsh` is available in `PATH`
-- Linux: install **PowerShell 7** and make sure `pwsh` is available in `PATH`
-- macOS: install **PowerShell 7** and make sure `pwsh` is available in `PATH` if you plan to use the PowerShell command surface
-- all platforms: `python3` / `python` must satisfy **Python 3.10+** for the wrapper-driven install surface
-- shell entrypoints are still available on Linux / macOS, but the full governed runtime and verification surface also depends on PowerShell 7
+> Prefer to run commands yourself? Open [`recommended-full-path.en.md`](./recommended-full-path.en.md). This page is the prompt-based install path.
 
+## Choose Three Things
 
-## Choose Host, Action, and Version
+| Choice | Options | Default |
+|:---|:---|:---|
+| Host | `codex`, `claude-code`, `cursor`, `windsurf`, `openclaw`, `opencode` | the app you use |
+| Action | `install`, `update` | `install` |
+| Version | `Full Version + Customizable Governance`, `Framework Only + Customizable Governance` | `Full Version + Customizable Governance` |
 
-1. Confirm the host: `codex`, `claude-code`, `cursor`, `windsurf`, `openclaw`, or `opencode`
-2. Confirm the action:
-   - for a first install, usually choose: `install`
-   - choose `update` only when you already installed VibeSkills and want to upgrade it
-3. Confirm the public version:
-   - install: `Full Version + Customizable Governance`
-   - install: `Framework Only + Customizable Governance`
-   - update: `Full Version + Customizable Governance`
-   - update: `Framework Only + Customizable Governance`
-
-Public version maps to:
+Public version mapping:
 
 - `Full Version + Customizable Governance` -> `full`
 - `Framework Only + Customizable Governance` -> `minimal`
 
-For a normal first install, these two defaults are usually enough:
-
-- if you are unsure, start with `install + Full Version + Customizable Governance`
-- choose `Framework Only + Customizable Governance` only if you deliberately want the lighter framework-only path
-
-Notes:
-
-- host mode is resolved from [`../../config/adapter-registry.json`](../../config/adapter-registry.json)
-- the same public entry can resolve into `governed`, `preview-guidance`, or `runtime-core`
-- `opencode` can still prefer the thinner direct install/check path in the public prompts, but the registry-driven one-shot wrapper is also available
+Use `full` unless you intentionally want the smaller framework-only install.
 
 ## Copy One Prompt
 
-The four retained base prompt docs cover install / update and full / minimal.
-Most first-time users only need the first two; the last two are for updating an existing install.
-Outside these four docs, the other pages no longer act as public install prompt entrypoints.
+Pick the one matching your action and version, then paste it into your AI app:
 
-- [`prompts/full-version-install.en.md`](./prompts/full-version-install.en.md)
-- [`prompts/framework-only-install.en.md`](./prompts/framework-only-install.en.md)
-- [`prompts/full-version-update.en.md`](./prompts/full-version-update.en.md)
-- [`prompts/framework-only-update.en.md`](./prompts/framework-only-update.en.md)
+| Need | Prompt |
+|:---|:---|
+| First install, recommended | [`prompts/full-version-install.en.md`](./prompts/full-version-install.en.md) |
+| First install, framework only | [`prompts/framework-only-install.en.md`](./prompts/framework-only-install.en.md) |
+| Update existing full install | [`prompts/full-version-update.en.md`](./prompts/full-version-update.en.md) |
+| Update existing framework install | [`prompts/framework-only-update.en.md`](./prompts/framework-only-update.en.md) |
 
-## Read Next Only If Needed
+## What The Prompt Will Do
 
-Only continue into these docs if you hit one of these cases:
+The prompt asks the assistant to:
 
-- Host-specific supplements:
-  - [`openclaw-path.en.md`](./openclaw-path.en.md)
-  - [`opencode-path.en.md`](./opencode-path.en.md)
-- Framework-only command path:
-  - [`minimal-path.en.md`](./minimal-path.en.md)
-- More install commands and host details:
-  - [`recommended-full-path.en.md`](./recommended-full-path.en.md)
-  - [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
-  - [`manual-copy-install.en.md`](./manual-copy-install.en.md)
-  - [`host-plugin-policy.en.md`](./host-plugin-policy.en.md)
-- If you want to bring in your own workflows or skills afterward:
-  - [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
-  - [`custom-skill-governance-rules.en.md`](./custom-skill-governance-rules.en.md)
+1. confirm host and public version before running install commands;
+2. install into the real host root by default, for example `~/.codex` for Codex so `$vibe` is discoverable;
+3. run the matching install and check commands;
+4. keep secrets, URLs, and model names out of chat;
+5. avoid guiding users through built-in online enhancement configuration that is not publicly open yet;
+6. report these states separately: `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, and `online-ready`.
 
-## If you need to uninstall afterward
+`$vibe` or `/vibe` means the governed runtime entry is available. It is not MCP completion and not proof that every MCP is host-visible.
 
-The symmetric path after install is the repo-root `uninstall.ps1` / `uninstall.sh` entrypoint. It accepts the same `--host`, `--target-root`, and `--profile` arguments as `install.*`, runs uninstall directly by default, and only removes content that Vibe can prove it owns.
+## Read More Only If Needed
 
-- Full contract: [`../uninstall-governance.md`](../uninstall-governance.md)
-- Add `--preview` if you want to inspect the planned deletions first
-- It does not roll back host-managed login state, provider credentials, plugin state, or user-maintained config by default
+- Unsure which host root to use: [`../cold-start-install-paths.en.md`](../cold-start-install-paths.en.md)
+- Prefer direct commands: [`recommended-full-path.en.md`](./recommended-full-path.en.md)
+- OpenClaw details: [`openclaw-path.en.md`](./openclaw-path.en.md)
+- OpenCode details: [`opencode-path.en.md`](./opencode-path.en.md)
+- Offline/manual install: [`manual-copy-install.en.md`](./manual-copy-install.en.md)
+- Custom Skills after install: [`custom-workflow-onboarding.en.md`](./custom-workflow-onboarding.en.md)
+- Post-install configuration boundaries: [`configuration-guide.en.md`](./configuration-guide.en.md)
 
-## About Follow-Up Configuration
+## Uninstall
 
-- the base install can be used directly once it finishes
-- if you later want online providers, MCP, host-local settings, or plugin integrations, those should be presented as optional enhancement guidance rather than mandatory blockers
-- the prompt docs and references still explain truthfully which parts remain host-managed
+Use the repo-root uninstall entrypoint:
 
-## If you want AI governance online afterward, configure the built-in key sets
+- Windows: `uninstall.ps1 -HostId <host>`
+- Linux / macOS: `uninstall.sh --host <host>`
 
-Built-in governance advice needs:
-
-- `VCO_INTENT_ADVICE_API_KEY`
-- optional `VCO_INTENT_ADVICE_BASE_URL`
-- `VCO_INTENT_ADVICE_MODEL`
-- `VCO_VECTOR_DIFF_API_KEY` / `VCO_VECTOR_DIFF_BASE_URL` / `VCO_VECTOR_DIFF_MODEL` (optional, vector diff gracefully degrades when missing)
-
-Notes:
-
-- the built-in AI governance layer now reads from the `VCO_INTENT_ADVICE_*` keys only and no longer backfills legacy `OPENAI_*` names
-- vector diff embeddings are a separate configuration plane under `VCO_VECTOR_DIFF_*` and are not required for advice to run
-- see [`configuration-guide.en.md`](./configuration-guide.en.md) for the complete explanation
-
-## Quick Check After Install: Is AI Governance Configured?
-
-If you want to quickly confirm whether the router AI governance advice path is configured, run this from the repo root:
-
-- Windows:
-  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-ai-connectivity-gate.ps1 -TargetRoot "<target host root>" -WriteArtifacts`
-- Linux / macOS:
-  - `python3 ./scripts/verify/runtime_neutral/router_ai_connectivity_probe.py --target-root "<target host root>" --write-artifacts`
-
-If PowerShell 7 is already installed on your machine, you can replace `powershell.exe` with `pwsh`.
-
-Common default target roots:
-
-- `codex` -> default `CODEX_HOME` to the real `~/.codex` so the current Codex can discover `$vibe` immediately after install; use `~/.vibeskills/targets/codex` only for explicit isolation
-- `claude-code` -> default `CLAUDE_HOME` to the real `~/.claude`
-- `cursor` -> default `CURSOR_HOME` to the real `~/.cursor`
-- `windsurf` -> `WINDSURF_HOME` or the real host root `~/.codeium/windsurf`
-- `openclaw` -> `OPENCLAW_HOME` or the real host root `~/.openclaw`
-- `opencode` -> `OPENCODE_HOME` or the real host root `~/.config/opencode`
-
-Result hints:
-
-- `ok`: AI governance advice is online
-- `missing_credentials` / `missing_model`: local configuration is still incomplete
-- `provider_rejected_request` / `provider_unreachable`: an online call was attempted, but it is not ready yet
+Uninstall removes only Vibe-managed payloads and does not roll back host login state, provider credentials, plugin state, or user-maintained config by default.

@@ -1,13 +1,13 @@
 {
   "schema_version": "runtime.contract.golden.v1",
-  "generated_at": "2026-03-30",
+  "generated_at": "2026-04-23",
   "case_id": "governed_runtime_root",
   "notes": "Normalized root governed runtime baseline. Dynamic run ids and host-local absolute paths are replaced with placeholders.",
   "expected": {
     "runtime_input_packet": {
       "governance_scope": "root",
       "runtime_mode": "interactive_governed",
-      "internal_grade": "M",
+      "internal_grade": "L",
       "hierarchy": {
         "governance_scope": "root",
         "root_run_id": "<run_id>",
@@ -58,7 +58,7 @@
     "execution_manifest": {
       "governance_scope": "root",
       "mode": "interactive_governed",
-      "internal_grade": "M",
+      "internal_grade": "L",
       "hierarchy": {
         "governance_scope": "root",
         "root_run_id": "<run_id>",

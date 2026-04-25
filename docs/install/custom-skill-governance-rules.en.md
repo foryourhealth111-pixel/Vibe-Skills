@@ -120,14 +120,9 @@ For both hosts, never ask users to paste key/url/model values into chat. Only gu
 
 Baseline online provider access does not automatically mean the governance AI online layer is ready.
 
-For the common governance-advice online path, the user should configure locally:
+The public install flow does not currently expose built-in online enhancement configuration. Custom Skill governance docs should not list provider, credential, URL, or model configuration for users, and missing values for that path must not be described as a custom Skill onboarding failure.
 
-- `VCO_INTENT_ADVICE_API_KEY`
-- optional `VCO_INTENT_ADVICE_BASE_URL`
-- `VCO_INTENT_ADVICE_MODEL`
-- `VCO_VECTOR_DIFF_API_KEY` / `VCO_VECTOR_DIFF_BASE_URL` / `VCO_VECTOR_DIFF_MODEL` when vector diff embeddings are desired
-
-Without those values, the environment may be described only as "basic online available" or "local install complete", not as "governance AI online ready".
+If related online capabilities are not configured through the public path, describe them only as "base install complete" or "related online capability not ready/not verified", not as online enhancement ready.
 
 ## Minimal Acceptance Checklist
 

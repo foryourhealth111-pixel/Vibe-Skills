@@ -1,90 +1,111 @@
 # Quick Start
 
-如果你是第一次来到这个仓库，先不用把所有文档都看一遍。
+[English](./quick-start.en.md)
 
-按你现在的目的，直接走对应入口就可以。
+第一次来到这个仓库，不需要先读完所有文档。
 
-## 我只想快速明白这是什么
+你可以先把 VibeSkills 理解成一个给 AI Agent 用的 **Super Skill Harness**：
 
-先看：
+> 你给目标，`vibe` 接管推进节奏：先弄清需求，再拆阶段，自动调用合适的专家 Skills，推动测试和验证，并把关键上下文留下来。
 
-- [`../README.md`](../README.md)
+它不是一串让用户自己挑的工具菜单。它更像一个即插即用的工作流包，让支持 Skills 的 AI Agent 更容易开始、更少失控、更适合做跨阶段任务。
 
-它会先告诉你这个项目是做什么的、解决什么问题，以及为什么它不是另一个普通 skills 仓库。
+## 1. 三分钟知道它解决什么
 
-## 我想马上开始用
+VibeSkills 重点解决五件事：
 
-直接看：
+| 你遇到的问题 | VibeSkills 做什么 |
+|:---|:---|
+| Skills 太多，不知道该叫哪个 | harness 按任务和阶段自动编排专家 Skills |
+| AI 容易跳过需求、计划或测试 | `vibe` 把任务推进成受管阶段 |
+| 用户总要手动提醒“先规划”“去验证” | 用户只给目标，流程控制交给 harness |
+| 长任务换会话后上下文丢失 | 需求、计划、决策和证据会结构化保存 |
+| 新领域 Skills 接入成本高 | Skills 包是核心封装，未来任意领域 Skills 都可以接入同一套流程 |
+
+如果你只记一句话：
+
+> **VibeSkills 的核心创新，是把“专家 Skills + 自动编排 + 测试验证 + 跨会话记忆”封装成一个通用、好安装、好上手的 Super Skill。**
+
+## 2. 最快开始使用
+
+打开安装入口：
 
 - [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md)
 
-这里的主入口不是一堆命令，而是一段可以直接复制给 AI 的安装提示词。
+按页面选择三件事：
 
-当前公开投影出来的宿主可见入口固定是这四个 wrapper：
+1. 选择宿主：`codex`、`claude-code`、`cursor`、`windsurf`、`openclaw` 或 `opencode`
+2. 选择动作：第一次安装选 `install`，已经装过选 `update`
+3. 选择版本：普通用户推荐 `full`，只想先装轻量框架时选 `minimal`
+
+然后把对应提示词复制到你要安装 VibeSkills 的 AI 客户端里，让它执行安装和检查。
+
+安装完成后，从宿主的 Skills 入口调用：
+
+| 宿主 | 常见调用方式 |
+|:---|:---|
+| Codex | 在请求里附上 `$vibe` |
+| Claude Code | 在请求里附上 `/vibe` |
+| OpenCode | 使用 `/vibe` 或宿主支持的 Skills 调用方式 |
+| Cursor / Windsurf / OpenClaw | 参考对应宿主的 Skills 入口说明 |
+
+更新时保留：
+
+- `vibe-upgrade`
+
+## 3. 当前公开入口
+
+当前公开、宿主可见的入口只有：
 
 - `vibe`
-- `vibe-want`
-- `vibe-how`
-- `vibe-do`
+- `vibe-upgrade`
 
-如果宿主支持菜单化展示，它通常会把它们显示成这几种标签：
+`vibe` 是主入口。它会在需求、计划和执行边界停下来，等到明确确认后再继续推进。
 
-- `Vibe`
-- `Vibe: What Do I Want?`
-- `Vibe: How Do We Do It?`
-- `Vibe: Do It`
+`vibe-upgrade` 是受管升级入口，用来更新当前宿主安装。
 
-它们都还是同一个 `vibe` governed runtime，只是默认停靠点不同：
+旧阶段专用入口和旧 CLI 入口已经退出公开的宿主可见入口，不应再宣传或安装。
 
-- `vibe` / `Vibe`：走完整受管流程
-- `vibe-want` / `Vibe: What Do I Want?`：先把目标、边界、验收标准说清楚，并冻结 requirement 后停止
-- `vibe-how` / `Vibe: How Do We Do It?`：冻结 requirement 和 plan 后停止
-- `vibe-do` / `Vibe: Do It`：执行完整流程，但不会跳过 requirement / plan
-
-如果你希望提高执行强度，只用：
+如果你想提高执行强度，只使用公开的轻量覆盖：
 
 - `--l`
 - `--xl`
 
-不要再记 `vibe-l`、`vibe-xl` 这种组合入口，系统不支持这类别名。
+旧的阶段 ID 可能仍保留在运行时元数据里，用于兼容和连续性；但它们不是用户应该调用的 commands / skills。
 
-如果你的目标宿主是 OpenCode，也可以直接看：
+## 4. 什么时候继续看更多文档
 
-- [`install/opencode-path.md`](./install/opencode-path.md)
+按你的目的选，不用从头读：
 
-## 我想理解这个项目为什么会做出来
+| 你想做什么 | 看这里 |
+|:---|:---|
+| 想看项目完整介绍 | [`../README.zh.md`](../README.zh.md) |
+| 想安装或更新 | [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md) |
+| 想看完整命令参考 | [`install/recommended-full-path.md`](./install/recommended-full-path.md) |
+| 不确定宿主根目录 | [`cold-start-install-paths.md`](./cold-start-install-paths.md) |
+| 使用 OpenCode | [`install/opencode-path.md`](./install/opencode-path.md) |
+| 使用 OpenClaw | [`install/openclaw-path.md`](./install/openclaw-path.md) |
+| 想手动/离线安装 | [`install/manual-copy-install.md`](./install/manual-copy-install.md) |
+| 想接入自定义 Skills | [`install/custom-workflow-onboarding.md`](./install/custom-workflow-onboarding.md) |
+| 想理解项目为什么存在 | [`manifesto.md`](./manifesto.md) |
 
-看：
+## 5. 几个容易混淆的点
 
-- [`manifesto.md`](./manifesto.md)
-
-这份文档不会再讲一大套宏大宣言，而是更直接地解释：这个项目是怎么从真实问题里长出来的，它坚持什么，也不想变成什么。
-
-## 我已经是重度用户，想看更完整的安装说明
-
-看这两份：
-
-- [`install/recommended-full-path.md`](./install/recommended-full-path.md)
-- [`cold-start-install-paths.md`](./cold-start-install-paths.md)
-- [`install/opencode-path.md`](./install/opencode-path.md)
-
-它们比公开入口更完整，也更偏 operator / heavy-user 视角。
-
-## 我应该怎么理解 `VibeSkills` 和 `VCO`
-
-最简单的理解是：
-
-- `VibeSkills` 是你在公开入口里看到的项目名字
-- `VCO` 是它背后的核心运行时
-
-前者更像你要使用的整套系统，后者更像这套系统让 AI 按受管流程工作的核心骨架。
+- `$vibe` 或 `/vibe` 只表示进入 governed runtime，不等于 MCP 已经完成配置。
+- 安装报告应该分开说明 `installed locally`、`vibe host-ready`、`mcp native auto-provision attempted`、每个 MCP 的 `host-visible readiness` 和 `online-ready`。
+- VibeSkills 是 Skills 格式运行时，不是让你在终端里直接运行的独立 CLI。
+- `full` 是普通用户默认推荐版本；`minimal` 适合明确只想要轻量治理框架的人。
 
 ## 推荐阅读顺序
 
-如果你不想走错路，建议顺序就是：
+如果你只想走最短路径：
 
-1. [`../README.md`](../README.md)
+1. [`../README.zh.md`](../README.zh.md)
 2. [`install/one-click-install-release-copy.md`](./install/one-click-install-release-copy.md)
-3. [`manifesto.md`](./manifesto.md)
+3. 用一个小任务试试 `vibe`
 
-这三步读完，你基本就知道：它是什么、怎么开始、它为什么会是现在这个样子。
+从一个简单请求开始就好，比如：
+
+> 帮我把这个需求先澄清并拆成计划 `$vibe`
+
+你会更快感受到它和普通 Skills 列表的区别：用户不用一直做调度员，AI 会在 harness 下更有节奏地推进任务。

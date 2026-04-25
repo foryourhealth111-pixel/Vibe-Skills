@@ -26,6 +26,8 @@
 - 主技能合同：[`../SKILL.md`](../SKILL.md)
 - 运行时协议：[`../protocols/runtime.md`](../protocols/runtime.md)
 - 多代理协议：[`../protocols/team.md`](../protocols/team.md)
+- bounded re-entry 与 host decision SOP：见 [`../SKILL.md`](../SKILL.md) 的 Structured host decision SOP；`vibe` 会在 `requirement_doc` 和 `xl_plan` 边界返回控制权，宿主需用 `--continue-from-run-id`、`--bounded-reentry-token`、`--host-decision-json` 继续
+- specialist dispatch 与 delivery acceptance：[`governance/specialist-dispatch-governance.md`](./governance/specialist-dispatch-governance.md)、[`governance/vibe-governed-project-delivery-acceptance-governance.md`](./governance/vibe-governed-project-delivery-acceptance-governance.md)
 - 当前 live summary：[`status/current-state.md`](./status/current-state.md)
 - 最小 proof contract：[`status/non-regression-proof-bundle.md`](./status/non-regression-proof-bundle.md)
 

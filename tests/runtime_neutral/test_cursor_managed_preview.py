@@ -52,10 +52,6 @@ class CursorManagedPreviewTests(unittest.TestCase):
             self.assertTrue(closure_path.exists())
             self.assertTrue(host_settings_path.exists())
             self.assertTrue((target_root / "skills" / "vibe" / "SKILL.md").exists())
-            self.assertTrue((target_root / "skills" / "vibe-want" / "SKILL.md").exists())
-            self.assertTrue((target_root / "skills" / "vibe-how" / "SKILL.md").exists())
-            self.assertTrue((target_root / "skills" / "vibe-do" / "SKILL.md").exists())
-            self.assertTrue((target_root / "skills" / "vibe-upgrade" / "SKILL.md").exists())
             self.assertFalse((target_root / "settings.json").exists())
             self.assertFalse((target_root / "commands").exists())
 

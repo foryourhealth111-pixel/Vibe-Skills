@@ -69,8 +69,14 @@ function Test-VgoPathWithin {
         return $false
     }
 
-    $parentFull = [System.IO.Path]::GetFullPath($ParentPath)
-    $childFull = [System.IO.Path]::GetFullPath($ChildPath)
+    $trimChars = @([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $parentFull = [System.IO.Path]::GetFullPath($ParentPath).TrimEnd($trimChars)
+    $childFull = [System.IO.Path]::GetFullPath($ChildPath).TrimEnd($trimChars)
+
+    if ($childFull.Equals($parentFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true
+    }
+
     if (-not $parentFull.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
         $parentFull += [System.IO.Path]::DirectorySeparatorChar
     }
@@ -1800,11 +1806,24 @@ function Get-VgoSkillContractCompleteness {
         [bool]$MustPreserveWorkflow = $true
     )
 
+    $resolvedSkillRoot = [string]$SkillRoot
+    if ([string]::IsNullOrWhiteSpace($resolvedSkillRoot) -and -not [string]::IsNullOrWhiteSpace($SkillMdPath)) {
+        try {
+            $resolvedSkillRoot = [string](Split-Path -LiteralPath $SkillMdPath -Parent)
+        } catch {
+            try {
+                $resolvedSkillRoot = [string](Split-Path -Path $SkillMdPath -Parent)
+            } catch {
+                $resolvedSkillRoot = ''
+            }
+        }
+    }
+
     $missingFields = @()
     if ([string]::IsNullOrWhiteSpace($SkillMdPath)) {
         $missingFields += 'native_skill_entrypoint'
     }
-    if ([string]::IsNullOrWhiteSpace($SkillRoot)) {
+    if ([string]::IsNullOrWhiteSpace($resolvedSkillRoot)) {
         $missingFields += 'skill_root'
     }
     if ([string]::IsNullOrWhiteSpace($Description)) {

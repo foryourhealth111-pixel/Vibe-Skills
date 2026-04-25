@@ -1,7 +1,7 @@
 {
   "schema_version": 4,
   "package_id": "runtime-core-minimal",
-  "summary": "Governed runtime foundation payload with only the canonical vibe runtime publicly exposed and the required workflow support skills hidden inside the vibe internal corpus.",
+  "summary": "Governed runtime foundation payload with the canonical vibe runtime and host upgrade entry publicly exposed while the required workflow support skills stay hidden inside the vibe internal corpus.",
   "profile_manifests": {
     "minimal": "config/runtime-core-packaging.minimal.json",
     "full": "config/runtime-core-packaging.full.json"
@@ -20,6 +20,11 @@
     {
       "source": "config/upstream-lock.json",
       "target": "config/upstream-lock.json",
+      "optional": false
+    },
+    {
+      "source": "config/powershell-host-policy.json",
+      "target": "config/powershell-host-policy.json",
       "optional": false
     },
     {
@@ -66,6 +71,11 @@
           "source": "config/adapter-registry.json",
           "target": "config/adapter-registry.json",
           "optional": false
+        },
+        {
+          "source": "config/powershell-host-policy.json",
+          "target": "config/powershell-host-policy.json",
+          "optional": false
         }
       ]
     },
@@ -78,9 +88,9 @@
       "internal_skill_corpus": "Full bundled specialist corpus may be materialized under the canonical vibe root and consumed by runtime descriptor resolution without top-level exposure.",
       "compatibility_skill_projections": "Compatibility projections preserve selected direct-entry skill paths only when host or runtime behavior still depends on them.",
       "public_skill_surface_mode": "discoverable_wrapper_projection",
+      "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
       "internal_skill_corpus_enabled": true,
-      "compatibility_projection_mode": "explicit_projection_only",
-      "discoverable_entry_surface": "config/vibe-entry-surfaces.json"
+      "compatibility_projection_mode": "explicit_projection_only"
     },
     "copy_directories": {
       "active_sources": [
@@ -144,9 +154,6 @@
     "discoverable_entry_surface": "config/vibe-entry-surfaces.json",
     "projected_skill_names": [
       "vibe",
-      "vibe-want",
-      "vibe-how",
-      "vibe-do",
       "vibe-upgrade"
     ]
   },

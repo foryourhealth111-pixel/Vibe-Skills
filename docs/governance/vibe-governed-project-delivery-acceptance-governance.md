@@ -35,6 +35,8 @@ Every governed project run must distinguish four truths:
 
 No lower truth may be reported as if it automatically implies a higher one.
 
+Runtime reports may expose additional sub-truths such as specialist disclosure truth, specialist decision truth, code-task TDD evidence truth, and artifact-review truth. These do not replace the four delivery truths; they explain why one of the four truths is passing, degraded, failing, or manual-review-required.
+
 ## Mental Model
 
 Short form:
@@ -67,6 +69,8 @@ Proves that:
 - the planned work items were actually executed
 - required artifacts and outputs were produced
 - specialist and child-lane work reconciled back into the root-governed task
+
+For direct current-session specialist dispatch, this reconciliation must include `specialist-execution.json`. If the runtime approved a direct routed specialist unit but the sidecar is missing or incomplete, workflow completion must remain manual-review-required.
 
 ### Product Acceptance Truth
 
@@ -151,6 +155,27 @@ Examples:
 - data-processing work must be checked for functional correctness and regression safety
 
 The system must not flatten all specialist output into a generic “some unit executed” success signal.
+
+## Specialist Execution Sidecar Rule
+
+When `phase-execute.json` or runtime disclosure reports direct current-session specialist units, delivery acceptance reads:
+
+`outputs/runtime/vibe-sessions/<run-id>/specialist-execution.json`
+
+Allowed unit outcomes are:
+
+- `executed`: the host ran the bounded specialist workflow and recorded evidence
+- `degraded`: the host ran a reduced but explicit specialist workflow and recorded why it is not fully green
+- `blocked`: the specialist could not be run, with the blocking reason recorded
+- `not_applicable`: the routed specialist was demonstrably unrelated to the final approved scope
+
+Only `executed` units count as fully resolved. `degraded`, `blocked`, missing units, and unexplained `not_applicable` units must keep completion wording downgraded until the host refreshes delivery acceptance and the report returns passing.
+
+The required refresh command is:
+
+```bash
+py -3 scripts/verify/runtime_neutral/runtime_delivery_acceptance.py --session-root "<session-root>" --write-artifacts
+```
 
 ## Stability Rule
 

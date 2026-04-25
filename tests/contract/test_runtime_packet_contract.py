@@ -13,7 +13,7 @@ def test_runtime_packet_roundtrip() -> None:
     packet = RuntimePacket(
         goal='x',
         stage='deep_interview',
-        entry_intent_id='vibe-how',
+        entry_intent_id='vibe-how-do-we-do',
         requested_stage_stop='xl_plan',
         requested_grade_floor='XL',
     )

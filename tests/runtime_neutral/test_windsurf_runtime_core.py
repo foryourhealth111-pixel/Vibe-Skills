@@ -52,7 +52,7 @@ def run_package_install(*, host: str, target_root: Path, profile: str = "full") 
 
 
 class WindsurfRuntimeCoreTests(unittest.TestCase):
-    EXPECTED_WRAPPER_SKILLS = ("vibe", "vibe-want", "vibe-how", "vibe-do", "vibe-upgrade")
+    EXPECTED_WRAPPER_SKILLS = ("vibe",)
 
     def test_adapter_registry_exposes_windsurf_parallel_root(self) -> None:
         registry = _load_module("installer_adapter_registry_windsurf", ADAPTER_REGISTRY_MODULE)

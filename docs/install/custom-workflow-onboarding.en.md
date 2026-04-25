@@ -212,11 +212,6 @@ Do not ask me to paste any API key, URL, or model into chat.
 
 ## Online Configuration Reminder
 
-If you want to enable the governance AI online layer, the user should configure the built-in key sets locally:
+The public install flow does not currently expose built-in online enhancement configuration. During custom workflow onboarding, do not ask users for providers, credentials, URLs, or model names, and do not make that path a prerequisite for completing workflow onboarding.
 
-- `VCO_INTENT_ADVICE_API_KEY`
-- optional `VCO_INTENT_ADVICE_BASE_URL`
-- `VCO_INTENT_ADVICE_MODEL`
-- `VCO_VECTOR_DIFF_API_KEY` / `VCO_VECTOR_DIFF_BASE_URL` / `VCO_VECTOR_DIFF_MODEL` (vector diff is optional and will gracefully degrade when any of these are missing)
-
-Without them, the environment may only be described as "local install complete, but governance AI online capability not ready".
+If those capabilities are not configured through the public path, describe them only as not ready or not verified. Do not provide concrete configuration keys.

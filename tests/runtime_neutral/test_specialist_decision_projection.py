@@ -125,3 +125,8 @@ class SpecialistDecisionProjectionTests(unittest.TestCase):
 
         self.assertEqual([], payload["matched_skill_ids"])
         self.assertEqual([], payload["surfaced_skill_ids"])
+        self.assertEqual("no_specialist_recommendations", payload["decision_state"])
+        self.assertEqual("no_matching_specialist", payload["resolution_mode"])
+        self.assertEqual([], payload["candidate_skill_ids_reviewed"])
+        self.assertEqual([], payload["selected_skill_ids"])
+        self.assertEqual([], payload["rejected_candidates"])

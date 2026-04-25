@@ -26,6 +26,10 @@ This document only maps that truth into the install entrypoints.
 | macOS + `pwsh` | shell path inferred | partial | `not-yet-proven` | must be measured and recorded |
 | macOS without `pwsh` | shell path inferred | partial | `not-yet-proven` | must be measured and recorded |
 
+## PowerShell Host Policy Boundary
+
+`pwsh` is the preferred PowerShell host for the documented install/check surface. Linux and macOS require PowerShell 7 before PowerShell-native governed verification, doctor, freshness, or parity gates can be claimed. Without `pwsh`, shell install and runtime-neutral checks may still run, but closeout wording must remain degraded and must not claim full governed-runtime readiness.
+
 ## Lane Applicability
 
 - `official-runtime` and `host-codex` inherit this platform matrix directly.

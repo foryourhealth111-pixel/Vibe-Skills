@@ -5,7 +5,8 @@ param(
     [AllowEmptyString()] [string]$RequestedStageStop = '',
     [AllowEmptyString()] [string]$RequestedGradeFloor = '',
     [AllowEmptyString()] [string]$RunId = '',
-    [AllowEmptyString()] [string]$ArtifactRoot = ''
+    [AllowEmptyString()] [string]$ArtifactRoot = '',
+    [AllowEmptyString()] [string]$HostDecisionJson = ''
 )
 
 Set-StrictMode -Version Latest
@@ -45,6 +46,9 @@ try {
     }
     if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         $invokeArgs.ArtifactRoot = $ArtifactRoot
+    }
+    if (-not [string]::IsNullOrWhiteSpace($HostDecisionJson)) {
+        $invokeArgs.HostDecisionJson = $HostDecisionJson
     }
 
     $result = & $runtimeEntrypoint @invokeArgs

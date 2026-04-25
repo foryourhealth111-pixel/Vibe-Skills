@@ -16,10 +16,14 @@ Execution rules:
 
 - delegate to canonical `vibe`
 - keep `vibe` as the only runtime authority
+- let canonical `vibe` keep router selection and `confirm_required` ownership
 - do not create a second requirement surface
 - do not create a second plan surface
 - do not create a parallel runtime
+- do not preflight-scan the current workspace or repository for canonical proof files before launch
+- Launch canonical-entry first; validate receipts only after it returns a session root
 - do not continue into `xl_plan`, `plan_execute`, or `phase_cleanup` unless the user explicitly re-enters through canonical `vibe` or another approved wrapper
+- when a later wrapper intentionally continues from this bounded stop, forward `--continue-from-run-id <source_run_id>` and `--bounded-reentry-token <reentry_token>` from the latest `runtime-summary.json` `bounded_return_control` block
 
 When this wrapper is chosen, enter canonical `vibe` with:
 

@@ -34,10 +34,8 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any], output_directory:
         "",
         "## Settings",
         "",
-        f"- `VCO_INTENT_ADVICE_API_KEY`: `{artifact['settings']['intent_advice_api_key_state']}` via `{artifact['settings']['intent_advice_api_key_source']}`",
-        f"- `VCO_INTENT_ADVICE_MODEL`: `{artifact['settings']['intent_advice_model_state']}` via `{artifact['settings']['intent_advice_model_source']}`",
-        f"- `VCO_VECTOR_DIFF_API_KEY`: `{artifact['settings']['vector_diff_api_key_state']}` via `{artifact['settings']['vector_diff_api_key_source']}`",
-        f"- `VCO_VECTOR_DIFF_MODEL`: `{artifact['settings']['vector_diff_model_state']}` via `{artifact['settings']['vector_diff_model_source']}`",
+        f"- Settings Surface Exists: `{artifact['settings']['exists']}`",
+        "- Built-in Online Enhancement Config: `not evaluated during public install`",
         "",
     ]
     global_instruction_bootstrap = ((artifact.get("host_runtime") or {}).get("global_instruction_bootstrap") or {})

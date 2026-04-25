@@ -344,6 +344,10 @@ class PlanExecuteReceiptTests(unittest.TestCase):
             "- Open the declared native_skill_entrypoint before doing bounded specialist work.",
             prompt,
         )
+        self.assertIn(
+            "- If the routed specialist is disclosed by path, do not replace native_skill_entrypoint with a host Skill(specialist_skill_id) lookup unless that skill name is explicitly host-visible in the current session.",
+            prompt,
+        )
         self.assertNotIn("- Open the specialist SKILL.md entrypoint before doing bounded specialist work.", prompt)
 
     def test_convert_to_vibe_executed_unit_receipt_preserves_prompt_injection_fields(self) -> None:

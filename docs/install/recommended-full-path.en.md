@@ -23,11 +23,15 @@ All six public hosts now follow one shared, non-blocking MCP contract:
 - failure does not block the base install; failures are summarized only in the final report
 - the final report separates `installed locally`, `vibe host-ready`, `mcp native auto-provision attempted`, per-MCP `host-visible readiness`, `manual follow-up`, and `online-ready`
 
-Public Linux / macOS prerequisites:
+Public platform prerequisites:
 
+- Windows: install **PowerShell 7** first and make sure `pwsh` is available in `PATH`
+- Linux: install **PowerShell 7** first and make sure `pwsh` is available in `PATH`
+- macOS: install **PowerShell 7** and make sure `pwsh` is available in `PATH` if you plan to use the PowerShell command surface
 - the shell entrypoints are maintained against the macOS system Bash 3.2 baseline
 - `python3` / `python` must satisfy **Python 3.10+**
 - launching from `zsh` is not the actual problem; the real compatibility boundary is the resolved `bash` / `python3` version
+- the shell entrypoints remain supported, but the full governed runtime and verification surface also depends on PowerShell 7
 
 ## Supported Hosts and Default Paths
 
@@ -168,20 +172,19 @@ git checkout vX.Y.Z
 
 ## What You Still Handle Locally After Install
 
+Command install only installs VibeSkills into the target host root and runs checks. The public docs do not currently guide users through built-in online enhancement configuration; do not ask users to add providers, credentials, URLs, or model names as part of post-install steps. If that path is not configured through the public flow, keep `online-ready` separate and report it as not ready or not verified.
+
 ### Codex
 
 - hooks remain frozen; that is not an install failure
-- for the built-in governance-advice path, prefer:
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - optional `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-- add `VCO_VECTOR_DIFF_*` only when you also want vector diff embeddings
+- maintain the real `~/.codex/settings.json` when host-local settings are needed
+- do not describe `$vibe` discoverability as MCP completion or online enhancement readiness
 
 ### Claude Code
 
 - it preserves the real `~/.claude/settings.json` while merging a bounded managed `vibeskills` settings surface
 - broader Claude plugins, MCP registration, credentials, and host behavior remain host-managed
-- AI governance advice uses `VCO_INTENT_ADVICE_*`, with optional `VCO_VECTOR_DIFF_*`
+- do not claim that host-side providers, plugins, or MCP surfaces are fully ready just because install completed
 
 ### Cursor
 

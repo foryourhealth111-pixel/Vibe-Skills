@@ -65,11 +65,7 @@
 - 明确说明这是当前最完整的 governed 路径；如果目标是安装后就能被当前 Codex 直接发现 `$vibe`，默认必须落到真实 `~/.codex`
 - `~/.vibeskills/targets/codex` 只能在用户显式要求隔离安装，或 Codex 已经明确指向该目录时使用
 - hook 当前因兼容性问题被冻结；这不是安装失败
-- 如需 AI 治理 advice 的常见配置路径，去本地 `~/.codex/settings.json` 的 `env` 或本地环境变量配置：
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - 可选 `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-- 内置 AI 治理层当前只支持 OpenAI-compatible 协议，凭据读取统一改为 `VCO_INTENT_ADVICE_*`
+- 暂时不要在公开安装流程里引导用户配置内置在线增强能力的 provider、凭据、URL 或模型
 - 不能把宿主基础在线能力偷换成“治理 AI online readiness 已完成”
 
 ## 规则 8：Claude Code 要按“支持的安装与使用路径”口径描述
@@ -124,23 +120,19 @@
 - direct install/check 会写入 skills、`.vibeskills/*` sidecar 与 `opencode.json.example`
 - 真实 `opencode.json`、provider 凭据、plugin 安装和 MCP 信任仍由宿主侧本地完成
 
-## 规则 13：AI 治理在线配置要优先说真实推荐键名
+## 规则 13：暂不公开引导内置在线增强配置
 
-如需解释 AI 治理 advice 的在线配置，优先使用：
+公开安装、更新、手动复制和提示词安装都暂时不向用户说明内置在线增强能力的配置细节。安装助手必须遵守：
 
-- 主路径（intent advice）：
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - 可选 `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-- 可选增强路径（vector diff embeddings）：
-  - `VCO_VECTOR_DIFF_API_KEY`
-  - 可选 `VCO_VECTOR_DIFF_BASE_URL`
-  - `VCO_VECTOR_DIFF_MODEL`
+- 不向用户推荐这条路径的 provider、凭据、URL 或模型配置
+- 不把这条路径的缺失描述成基础安装失败
+- 不把宿主基础在线能力偷换成在线增强能力已就绪
+- 如果相关能力没有通过公开路径配置好，只能把 `online-ready` 分开报告为未就绪或未验证
 
 
 ## 规则 14：不要要求用户把密钥贴到聊天里
 
-对六个支持宿主，都不要要求用户把密钥、URL 或 model 直接粘贴到聊天里；只引导用户去本地 settings 或本地环境变量配置。
+对六个支持宿主，都不要要求用户把密钥、URL 或 model 直接粘贴到聊天里。公开安装当前也不要引导用户为内置在线增强能力补这些配置。
 
 ## 规则 15：MCP 默认必须以宿主原生 MCP 配置面为完成目标
 

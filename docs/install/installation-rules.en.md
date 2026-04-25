@@ -65,12 +65,7 @@ If the user chooses `codex`:
 - describe it as the strongest governed path today; if the goal is to install and have the current Codex discover `$vibe` directly, the default target must be the real `~/.codex`
 - only use `~/.vibeskills/targets/codex` when the user explicitly asks for an isolated target root, or Codex is already intentionally pointed there
 - explain that hook installation is currently frozen because of compatibility issues; that is not an install failure
-- if the common governance-advice path is needed, point the user to local configuration for:
-  - `VCO_INTENT_ADVICE_API_KEY`
-  - optional `VCO_INTENT_ADVICE_BASE_URL`
-  - `VCO_INTENT_ADVICE_MODEL`
-  - `VCO_VECTOR_DIFF_API_KEY` (optional vector diff embeddings that degrade gracefully)
-- the built-in AI governance layer now reads the advice credentials strictly from `VCO_INTENT_ADVICE_*`
+- do not guide users through built-in online enhancement provider, credential, URL, or model configuration in the public install flow for now
 - never imply that baseline host online access automatically means governance-AI online readiness
 
 ## Rule 8: Describe Claude Code as a supported install-and-use path
@@ -126,19 +121,19 @@ If the user chooses `opencode`:
 - do not claim ownership of the real `opencode.json`
 - keep provider credentials, plugin installation, and MCP trust on the host-managed side
 
-## Rule 13: Prefer the real recommended key names for AI-governance online config
+## Rule 13: Do not publicly guide built-in online enhancement configuration
 
-When explaining AI-governance advice connectivity, prefer:
+Public install, update, manual copy, and prompt-based install docs do not currently expose built-in online enhancement configuration to users. Install assistants must:
 
-- `VCO_INTENT_ADVICE_API_KEY`
-- optional `VCO_INTENT_ADVICE_BASE_URL`
-- `VCO_INTENT_ADVICE_MODEL`
-- mention `VCO_VECTOR_DIFF_*` if vector embeddings are configured, and note that missing vector diff keys do not block the advice path because it degrades gracefully
+- not recommend providers, credentials, URLs, or models for that path
+- not describe missing values for that path as a base install failure
+- not turn baseline host online access into an online enhancement readiness claim
+- keep `online-ready` separate and report it as not ready or not verified when the public flow has not configured it
 
 
 ## Rule 14: Never ask users to paste secrets into chat
 
-For all six supported hosts, do not ask users to paste keys, URLs, or model names into chat. Point them to local settings or local environment variables instead.
+For all six supported hosts, do not ask users to paste keys, URLs, or model names into chat. The public install flow also should not direct users to add those values for built-in online enhancement configuration right now.
 
 ## Rule 15: MCP completion must target the host's native MCP surface
 

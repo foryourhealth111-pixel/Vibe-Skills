@@ -63,6 +63,13 @@ class PythonValidationContractTests(unittest.TestCase):
         self.assertIn("requires Python ${PYTHON_MIN_MAJOR}.${PYTHON_MIN_MINOR}+", text)
         self.assertIn("python3 --version", text)
 
+    def test_router_entrypoint_forces_utf8_console_output_for_unicode_prompts(self) -> None:
+        self.assertTrue(RESOLVE_PACK_ROUTE.exists(), "router entrypoint should exist")
+
+        text = RESOLVE_PACK_ROUTE.read_text(encoding="utf-8")
+        self.assertIn("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8", text)
+        self.assertIn("$OutputEncoding = [System.Text.Encoding]::UTF8", text)
+
     def test_python_validation_targets_cover_critical_invariants(self) -> None:
         self.assertTrue(TARGETS_FILE.exists(), "canonical Python validation target list should exist")
 
@@ -124,8 +131,9 @@ class PythonValidationContractTests(unittest.TestCase):
     def test_pack_route_overrides_stay_inside_authority_ranked_results(self) -> None:
         text = RESOLVE_PACK_ROUTE.read_text(encoding="utf-8-sig")
         normalized_text = re.sub(r"\s+", " ", text)
-        authority_lookup = (
-            "$overrideTop = $authorityRanked | Where-Object { [string]$_.pack_id -eq $overridePackId } | "
+        selection_pool = "$selectionPool = if ($authorityRanked.Count -gt 0) { @($authorityRanked) } else { @($ranked) }"
+        selection_lookup = (
+            "$overrideTop = $selectionPool | Where-Object { [string]$_.pack_id -eq $overridePackId } | "
             "Select-Object -First 1"
         )
         ranked_lookup = (
@@ -133,7 +141,8 @@ class PythonValidationContractTests(unittest.TestCase):
             "Select-Object -First 1"
         )
 
-        self.assertEqual(2, normalized_text.count(authority_lookup))
+        self.assertIn(selection_pool, normalized_text)
+        self.assertEqual(2, normalized_text.count(selection_lookup))
         self.assertNotIn(ranked_lookup, normalized_text)
         self.assertIn("ai_rerank_override_block_reason", text)
         self.assertIn("llm_acceleration_override_block_reason", text)

@@ -8,8 +8,8 @@
   "require_hazard_alert": true,
   "hazard_alert_title": "FALLBACK HAZARD ALERT",
   "hazard_alert_severity": "critical",
-  "hazard_summary": "当前结果来自回退或退化路径，不等价于标准成功。继续使用可能在不自知的情况下承受功能退化、验证强度下降或可靠性下降。",
-  "hazard_recovery_action": "如需 authoritative 结果，请先修复主路径能力或补齐依赖后重新执行。",
+  "hazard_summary": "This result came from a fallback or degraded path and is not equivalent to standard success. Continuing may expose you to reduced functionality, weaker verification, or lower reliability without an obvious warning.",
+  "hazard_recovery_action": "If you need an authoritative result, restore the primary path capability or missing dependency first, then rerun.",
   "truth_contract": {
     "fallback_truth_level": "non_authoritative",
     "standard_truth_level": "authoritative",

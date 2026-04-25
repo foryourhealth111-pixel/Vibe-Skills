@@ -70,7 +70,7 @@ pwsh -File .\scripts\verify\vibe-version-packaging-gate.ps1
 
 - 宿主侧插件是否启用、版本是否受控
 - MCP 是否注册/授权完成（尤其是 plugin-backed MCP）
-- provider secrets（例如 `VCO_INTENT_ADVICE_API_KEY` 与可选 `VCO_VECTOR_DIFF_API_KEY`）的分发/轮换/权限策略
+- provider secrets 的分发/轮换/权限策略
 - 外部 CLI（node/npm/gh 等）是否在目标机器/镜像中一致
 
 这些未完成时，最终状态合理地落在 `manual_actions_pending`；不要把它写成“已 fully ready”。

@@ -6,12 +6,12 @@ This document defines how specialist skills are used inside the governed `vibe` 
 
 - router finds candidate specialists
 - root `vibe` freezes approved specialist dispatch
-- child `vibe` executes bounded lanes
+- a child `vibe` lane or the current host session executes bounded specialist work according to the active execution policy
 - specialists contribute native expertise
 
 Short form:
 
-`router suggests, root vibe approves, child vibe executes, specialists assist`
+`router suggests, root vibe approves, host or child lane executes, specialists assist`
 
 ## Why This Exists
 
@@ -61,9 +61,36 @@ This layer turns suggestions into executable specialist contracts with:
 
 ### 4. Execution Layer
 
-Owned by bounded lanes under `vibe`.
+Owned by bounded lanes under `vibe` or by the current host session when the policy is `direct_current_session_route`.
 
 This layer runs the specialist using its native workflow while staying subordinate to the frozen requirement and plan.
+
+## Direct Current-Session Execution
+
+Some specialist dispatch is intentionally not launched in a hidden subprocess. When the runtime emits `direct_current_session_route`, the host must:
+
+1. read the disclosed `native_skill_entrypoint`
+2. execute the bounded specialist work in the current host session
+3. preserve the specialist skill's native workflow and validation style
+4. write `specialist-execution.json` under the session root
+5. refresh delivery acceptance before making completion claims
+
+Routing and disclosure are not execution. A specialist is not considered executed merely because it appears in `runtime-input-packet.json`, `host-stage-disclosure.json`, or `specialist-lifecycle-disclosure.json`.
+
+The sidecar path is part of the contract:
+
+`outputs/runtime/vibe-sessions/<run-id>/specialist-execution.json`
+
+Each sidecar unit must retain:
+
+- `unit_id`
+- `skill_id`
+- `resolution_state`
+- `native_skill_entrypoint`
+- evidence paths
+- notes explaining executed, degraded, blocked, or not-applicable handling
+
+Do not rewrite a disclosed `native_skill_entrypoint` into a generic skill name unless that public skill name is visibly registered in the current host.
 
 ## Phase-Bound Specialist Model
 
@@ -150,7 +177,8 @@ To claim this model works, runtime evidence must show:
 - which specialists were recommended
 - which specialists were approved
 - which phase each specialist was bound to
-- whether each specialist ran serially, in bounded parallel, or degraded
+- whether each specialist ran serially, in bounded parallel, through direct current-session execution, or degraded
+- whether `specialist-execution.json` reconciles every direct current-session unit
 - whether child suggestions were auto-absorbed or escalated
 - that root completion authority stayed single-owner
 

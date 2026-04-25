@@ -25,13 +25,14 @@ GRADE_ORDER = {'M': 0, 'L': 1, 'XL': 2}
 def build_execution_plan(
     task_type: str,
     *,
+    task: str | None = None,
     stage_machine: RuntimeStageMachine | None = None,
     stages: tuple[str, ...] | None = None,
     requested_grade_floor: str | None = None,
     requested_stage_stop: str | None = None,
 ) -> RuntimeExecutionPlan:
     machine = stage_machine or RuntimeStageMachine()
-    selected_grade = choose_internal_grade(task_type)
+    selected_grade = choose_internal_grade(task_type, task=task)
     normalized_floor = str(requested_grade_floor).strip().upper() if requested_grade_floor else None
     if normalized_floor:
         if normalized_floor not in GRADE_ORDER:

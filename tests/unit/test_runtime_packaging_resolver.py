@@ -7,14 +7,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'runtime_packaging.py'
-CODEX_VIBE_WRAPPER_SKILLS = [
-    'vibe-do-it',
-    'vibe-how-do-we-do',
-    'vibe-upgrade',
-    'vibe-what-do-i-want',
-]
-
-
 def _load_module():
     spec = importlib.util.spec_from_file_location('runtime_packaging_unit', MODULE_PATH)
     if spec is None or spec.loader is None:
@@ -37,10 +29,10 @@ def test_runtime_packaging_resolver_loads_profile_projection_from_authoritative_
     assert minimal['payload_roles']['delivery_model']['bundled_skill_mode'] == 'hidden_allowlist_internal_corpus_plus_canonical_vibe'
     assert full['payload_roles']['delivery_model']['bundled_skill_mode'] == 'hidden_full_internal_corpus_minus_canonical_vibe'
     assert minimal['compatibility_skill_projections']['projected_skill_names'] == []
-    assert sorted(full['compatibility_skill_projections']['projected_skill_names']) == CODEX_VIBE_WRAPPER_SKILLS
+    assert full['compatibility_skill_projections']['projected_skill_names'] == []
     assert minimal['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
     assert full['public_skill_surface']['mode'] == 'discoverable_wrapper_projection'
     assert minimal['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
     assert full['public_skill_surface']['discoverable_entry_surface'] == 'config/vibe-entry-surfaces.json'
-    assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do', 'vibe-upgrade']
-    assert full['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-want', 'vibe-how', 'vibe-do', 'vibe-upgrade']
+    assert minimal['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-upgrade']
+    assert full['public_skill_surface']['projected_skill_names'] == ['vibe', 'vibe-upgrade']
