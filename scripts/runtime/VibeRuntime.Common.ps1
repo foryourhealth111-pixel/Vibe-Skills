@@ -281,12 +281,12 @@ function Get-VibeHostRevisionDelta {
         if (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'host_revision_delta') {
             $items += @(Get-VibeNormalizedStringList -Values $RuntimeInputPacket.host_revision_delta)
         }
+        $runtimeContinuationContext = Get-VibeHostContinuationContext -HostDecision $RuntimeInputPacket
         if (
-            (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'continuation_context') -and
-            $null -ne $RuntimeInputPacket.continuation_context -and
-            (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket.continuation_context -PropertyName 'revision_delta')
+            $null -ne $runtimeContinuationContext -and
+            (Test-VibeObjectHasProperty -InputObject $runtimeContinuationContext -PropertyName 'revision_delta')
         ) {
-            $items += @(Get-VibeNormalizedStringList -Values $RuntimeInputPacket.continuation_context.revision_delta)
+            $items += @(Get-VibeNormalizedStringList -Values $runtimeContinuationContext.revision_delta)
         }
     }
 
@@ -303,7 +303,7 @@ function Test-VibeRevisionDeltaRequestsAdvisoryOnlySpecialists {
         return $false
     }
 
-    return ($text -match 'advisory[- ]?only|do not (adopt|require)|not (adopt|required|require)|no forced (adopt|specialist)|不得.*强制|不强制.*专家|仅.*advisory|只.*advisory')
+    return ($text -match 'advisory[- ]?only[^.;。；]*(specialist|skill|dispatch)|(?:specialist|skill|dispatch)[^.;。；]*advisory[- ]?only|do not (?:adopt|require)[^.;。；]*(?:specialist|skill|dispatch)|(?:specialist|skill|dispatch)[^.;。；]*(?:do not|not)[^.;。；]*(?:adopt(?:ed)?|require(?:d)?)|not[^.;。；]*(?:adopt(?:ed)?|require(?:d)?)[^.;。；]*(?:specialist|skill|dispatch)|no forced (?:adopt(?:ion)?|specialist|skill|dispatch)|不得[^.;。；]*强制[^.;。；]*(?:专家|技能|specialist|skill)|不强制[^.;。；]*(?:专家|技能|specialist|skill)|(?:仅|只)[^.;。；]*(?:advisory|建议)[^.;。；]*(?:专家|技能|specialist|skill)')
 }
 
 function Test-VibeRevisionDeltaRequestsTddNotApplicable {
@@ -316,7 +316,7 @@ function Test-VibeRevisionDeltaRequestsTddNotApplicable {
         return $false
     }
 
-    return ($text -match 'tdd[^.;。]*not[_ -]?applicable|not[_ -]?applicable[^.;。]*tdd|tdd[^.;。]*(not required|not require|skip|disabled|off)|研究/设计阶段\s*tdd\s*not[_ -]?applicable')
+    return ($text -match 'tdd[^.;。；]*not[_ -]?applicable|not[_ -]?applicable[^.;。；]*tdd|tdd[^.;。；]*(not\s+required|not\s+require|skip(?:ped)?|disabled|turn(?:ed)?\s+off|switch(?:ed)?\s+off)|研究/设计阶段\s*tdd\s*not[_ -]?applicable')
 }
 
 function Split-VibeRequirementRevisionItems {
@@ -329,7 +329,7 @@ function Split-VibeRequirementRevisionItems {
         return @()
     }
 
-    $items = @($normalized -split '\s*;\s*' | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    $items = @($normalized -split '\s*[;；]\s*' | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
     if (@($items).Count -eq 0) {
         return @($normalized)
     }
@@ -681,13 +681,12 @@ function Resolve-VibeHostSpecialistDispatchDecision {
         return $null
     }
     $revisionDelta = @(Get-VibeHostRevisionDelta -HostDecision $HostDecision)
+    $isRootGovernanceScope = [string]::Equals([string]$GovernanceScope, 'root', [System.StringComparison]::OrdinalIgnoreCase)
     if (
+        $isRootGovernanceScope -and
         ($null -eq $HostDecision -or -not (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'specialist_dispatch_decision')) -and
         (Test-VibeRevisionDeltaRequestsAdvisoryOnlySpecialists -RevisionDelta $revisionDelta)
     ) {
-        if ([string]$contract.scope -eq 'root_only' -and -not [string]::Equals([string]$GovernanceScope, 'root', [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw 'structured host specialist dispatch decision is currently supported only in root governance scope'
-        }
         $surfacedSkillIds = @($Recommendations | ForEach-Object {
             if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
         } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)

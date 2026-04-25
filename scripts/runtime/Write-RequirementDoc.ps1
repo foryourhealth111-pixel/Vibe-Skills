@@ -340,8 +340,6 @@ $docPath = if ($isChildScope) {
     Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 }
 $antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
-$productAcceptanceCriteria = Get-VibeProductAcceptanceCriteria -IntentContract $intentContract
-$manualSpotChecks = Get-VibeManualSpotChecks -Task $Task -IntentContract $intentContract
 $completionLanguagePolicy = Get-VibeCompletionLanguagePolicy
 $deliveryTruthContract = Get-VibeDeliveryTruthContractLines
 $artifactReviewRequirements = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('artifact_review_requirements', 'artifactReviewRequirements')
@@ -423,7 +421,10 @@ $codeTaskTddDecision = if ($packetCodeTaskTddDecision) {
         -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
         -DocumentArtifactBaseline $needsDocumentArtifactBaseline
 }
-if ([bool]$hostRequirementRevision.tdd_not_applicable) {
+if (
+    [bool]$hostRequirementRevision.tdd_not_applicable -and
+    ($null -eq $codeTaskTddDecision -or [string]$codeTaskTddDecision.source -ne 'host_decision')
+) {
     $codeTaskTddDecision = [pscustomobject]@{
         mode = 'not_applicable'
         source = 'host_revision_delta'
