@@ -10,8 +10,8 @@ This is the public install entry. If you are new here, start with the defaults:
 
 You need:
 
-- Python 3.10+
-- PowerShell 7 (`pwsh`) for the full governed verification path
+- PowerShell 7 (`pwsh`) available in `PATH` for the full governed verification path
+- Python 3.10+ (`python3` / `python`) for the wrapper-driven install surface
 - Git access to this repository
 
 Linux and macOS can still use the `bash` install entrypoints. PowerShell 7 is recommended because the full governed check surface uses it.

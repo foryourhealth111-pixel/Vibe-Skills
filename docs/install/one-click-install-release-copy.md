@@ -10,8 +10,8 @@
 
 你需要：
 
-- Python 3.10+
-- PowerShell 7（`pwsh`），用于完整 governed verification
+- PowerShell 7（`pwsh`），并确保 `pwsh` 在 `PATH` 中，用于完整 governed verification
+- Python 3.10+（`python3` / `python`），用于 wrapper 驱动的安装面
 - 能访问这个 GitHub 仓库
 
 Linux 和 macOS 仍然可以使用 `bash` 安装入口。推荐安装 PowerShell 7，是因为完整验证面会用到它。
