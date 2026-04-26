@@ -261,6 +261,130 @@ function Get-VibeHostContinuationContext {
     return $context
 }
 
+function Get-VibeHostRevisionDelta {
+    param(
+        [AllowNull()] [object]$HostDecision = $null,
+        [AllowNull()] [object]$RuntimeInputPacket = $null
+    )
+
+    $items = @()
+    if ($null -ne $HostDecision) {
+        if (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'revision_delta') {
+            $items += @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $HostDecision -PropertyName 'revision_delta'))
+        }
+        $continuationContext = Get-VibeHostContinuationContext -HostDecision $HostDecision
+        if ($null -ne $continuationContext -and (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'revision_delta')) {
+            $items += @(Get-VibeNormalizedStringList -Values $continuationContext.revision_delta)
+        }
+    }
+    if ($null -ne $RuntimeInputPacket) {
+        if (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'host_revision_delta') {
+            $items += @(Get-VibeNormalizedStringList -Values $RuntimeInputPacket.host_revision_delta)
+        }
+        $runtimeContinuationContext = Get-VibeHostContinuationContext -HostDecision $RuntimeInputPacket
+        if (
+            $null -ne $runtimeContinuationContext -and
+            (Test-VibeObjectHasProperty -InputObject $runtimeContinuationContext -PropertyName 'revision_delta')
+        ) {
+            $items += @(Get-VibeNormalizedStringList -Values $runtimeContinuationContext.revision_delta)
+        }
+    }
+
+    return @($items | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique)
+}
+
+function Test-VibeRevisionDeltaRequestsAdvisoryOnlySpecialists {
+    param(
+        [AllowNull()] [object[]]$RevisionDelta = @()
+    )
+
+    $text = ([string]::Join(' ', @(Get-VibeNormalizedStringList -Values $RevisionDelta))).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $false
+    }
+
+    return ($text -match 'advisory[- ]?only[^.;。；]*(specialist|skill|dispatch)|(?:specialist|skill|dispatch)[^.;。；]*advisory[- ]?only|do not (?:adopt|require)[^.;。；]*(?:specialist|skill|dispatch)|(?:specialist|skill|dispatch)[^.;。；]*(?:do not|not)[^.;。；]*(?:adopt(?:ed)?|require(?:d)?)|not[^.;。；]*(?:adopt(?:ed)?|require(?:d)?)[^.;。；]*(?:specialist|skill|dispatch)|no forced (?:adopt(?:ion)?|specialist|skill|dispatch)|不得[^.;。；]*强制[^.;。；]*(?:专家|技能|specialist|skill)|不强制[^.;。；]*(?:专家|技能|specialist|skill)|(?:仅|只)[^.;。；]*(?:advisory|建议)[^.;。；]*(?:专家|技能|specialist|skill)')
+}
+
+function Test-VibeRevisionDeltaRequestsTddNotApplicable {
+    param(
+        [AllowNull()] [object[]]$RevisionDelta = @()
+    )
+
+    $text = ([string]::Join(' ', @(Get-VibeNormalizedStringList -Values $RevisionDelta))).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $false
+    }
+
+    return ($text -match 'tdd[^.;。；]*not[_ -]?applicable|not[_ -]?applicable[^.;。；]*tdd|tdd[^.;。；]*(not\s+required|not\s+require|skip(?:ped)?|disabled|turn(?:ed)?\s+off|switch(?:ed)?\s+off)|研究/设计阶段\s*tdd\s*not[_ -]?applicable')
+}
+
+function Split-VibeRequirementRevisionItems {
+    param(
+        [AllowEmptyString()] [string]$Text = ''
+    )
+
+    $normalized = ([string]$Text).Trim()
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        return @()
+    }
+
+    $items = @($normalized -split '\s*[;；]\s*' | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    if (@($items).Count -eq 0) {
+        return @($normalized)
+    }
+    return @($items)
+}
+
+function Get-VibeRequirementRevisionProjection {
+    param(
+        [AllowNull()] [object[]]$RevisionDelta = @()
+    )
+
+    $deliverable = ''
+    $acceptanceCriteria = @()
+    $productAcceptanceCriteria = @()
+    foreach ($item in @(Get-VibeNormalizedStringList -Values $RevisionDelta)) {
+        $text = ([string]$item).Trim()
+        if ([string]::IsNullOrWhiteSpace($text)) {
+            continue
+        }
+
+        if ([string]::IsNullOrWhiteSpace($deliverable) -and $text -match '(?i)(?:^|[.]\s*)(?:the\s+)?deliverable(?:\s+field)?\s+must\s+(?:be|include)\s*[:：]\s*(.+)$') {
+            $deliverable = $Matches[1].Trim()
+            continue
+        }
+        if ([string]::IsNullOrWhiteSpace($deliverable) -and $text -match '(?i)deliverable\s*必须[^:：]*[:：]\s*(.+)$') {
+            $deliverable = $Matches[1].Trim()
+            continue
+        }
+        if (@($acceptanceCriteria).Count -eq 0 -and $text -match '(?i)acceptance\s+criteria(?:\s+field)?\s+must\s+(?:include|contain|be)\s*[:：]\s*(.+)$') {
+            $acceptanceCriteria = @(Split-VibeRequirementRevisionItems -Text $Matches[1])
+            continue
+        }
+        if (@($acceptanceCriteria).Count -eq 0 -and $text -match '(?i)acceptance\s+criteria\s*必须[^:：]*[:：]\s*(.+)$') {
+            $acceptanceCriteria = @(Split-VibeRequirementRevisionItems -Text $Matches[1])
+            continue
+        }
+        if (@($productAcceptanceCriteria).Count -eq 0 -and $text -match '(?i)product\s+acceptance(?:\s+criteria)?(?:\s+field)?\s+(?:must\s+(?:include|contain|be)|requires?)\s*[:：]?\s*(.+)$') {
+            $productAcceptanceCriteria = @(Split-VibeRequirementRevisionItems -Text $Matches[1])
+            continue
+        }
+        if (@($productAcceptanceCriteria).Count -eq 0 -and $text -match '(?i)product\s+acceptance\s+criteria\s*必须[^:：]*[:：]\s*(.+)$') {
+            $productAcceptanceCriteria = @(Split-VibeRequirementRevisionItems -Text $Matches[1])
+            continue
+        }
+    }
+
+    return [pscustomobject]@{
+        deliverable = $deliverable
+        acceptance_criteria = @($acceptanceCriteria | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique)
+        product_acceptance_criteria = @($productAcceptanceCriteria | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique)
+        specialist_advisory_only = [bool](Test-VibeRevisionDeltaRequestsAdvisoryOnlySpecialists -RevisionDelta $RevisionDelta)
+        tdd_not_applicable = [bool](Test-VibeRevisionDeltaRequestsTddNotApplicable -RevisionDelta $RevisionDelta)
+    }
+}
+
 function Test-VibeStructuredBoundedReentryContext {
     param(
         [AllowNull()] [object]$ContinuationContext = $null
@@ -556,6 +680,30 @@ function Resolve-VibeHostSpecialistDispatchDecision {
     if (-not [bool]$contract.enabled) {
         return $null
     }
+    $revisionDelta = @(Get-VibeHostRevisionDelta -HostDecision $HostDecision)
+    $isRootGovernanceScope = [string]::Equals([string]$GovernanceScope, 'root', [System.StringComparison]::OrdinalIgnoreCase)
+    if (
+        $isRootGovernanceScope -and
+        ($null -eq $HostDecision -or -not (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'specialist_dispatch_decision')) -and
+        (Test-VibeRevisionDeltaRequestsAdvisoryOnlySpecialists -RevisionDelta $revisionDelta)
+    ) {
+        $surfacedSkillIds = @($Recommendations | ForEach-Object {
+            if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
+        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+        return [pscustomobject]@{
+            protocol_version = 'v1'
+            derived_by = 'host_revision_delta'
+            selection_mode = 'curated_only'
+            requested_selection_mode = 'curated_only'
+            approved_skill_ids = @()
+            deferred_skill_ids = @($surfacedSkillIds)
+            rejected_skill_ids = @()
+            surfaced_skill_ids = @($surfacedSkillIds)
+            stale_skill_ids = @()
+            reconciliation_state = 'current'
+            requires_recuration = $false
+        }
+    }
     if ($null -eq $HostDecision -or -not (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'specialist_dispatch_decision')) {
         return $null
     }
@@ -711,6 +859,16 @@ function Resolve-VibeCodeTaskTddDecision {
     $hostDecisionProjection = Get-VibeCodeTaskTddDecisionFromHostDecision -HostDecision $HostDecision
     if ($null -ne $hostDecisionProjection) {
         return $hostDecisionProjection
+    }
+
+    $revisionDelta = @(Get-VibeHostRevisionDelta -HostDecision $HostDecision)
+    if (Test-VibeRevisionDeltaRequestsTddNotApplicable -RevisionDelta $revisionDelta) {
+        return [pscustomobject]@{
+            mode = 'not_applicable'
+            source = 'host_revision_delta'
+            reason = 'Host revision delta explicitly scoped this stage as not requiring code-task TDD evidence.'
+            exception = $null
+        }
     }
 
     if ($DocumentArtifactBaseline) {

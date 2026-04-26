@@ -340,8 +340,6 @@ $docPath = if ($isChildScope) {
     Get-VibeRequirementDocPath -RepoRoot $runtime.repo_root -Task $Task -ArtifactRoot $ArtifactRoot
 }
 $antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
-$productAcceptanceCriteria = Get-VibeProductAcceptanceCriteria -IntentContract $intentContract
-$manualSpotChecks = Get-VibeManualSpotChecks -Task $Task -IntentContract $intentContract
 $completionLanguagePolicy = Get-VibeCompletionLanguagePolicy
 $deliveryTruthContract = Get-VibeDeliveryTruthContractLines
 $artifactReviewRequirements = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('artifact_review_requirements', 'artifactReviewRequirements')
@@ -372,6 +370,20 @@ $runtimeTaskType = if (
 } else {
     ''
 }
+$hostRevisionDeltaForRequirement = @(Get-VibeHostRevisionDelta -RuntimeInputPacket $runtimeInputPacket)
+$hostRequirementRevision = Get-VibeRequirementRevisionProjection -RevisionDelta $hostRevisionDeltaForRequirement
+if (-not [string]::IsNullOrWhiteSpace([string]$hostRequirementRevision.deliverable)) {
+    $intentContract | Add-Member -NotePropertyName deliverable -NotePropertyValue ([string]$hostRequirementRevision.deliverable) -Force
+}
+if (@($hostRequirementRevision.acceptance_criteria).Count -gt 0) {
+    $intentContract | Add-Member -NotePropertyName acceptance_criteria -NotePropertyValue ([object[]]@($hostRequirementRevision.acceptance_criteria)) -Force
+}
+if (@($hostRequirementRevision.product_acceptance_criteria).Count -gt 0) {
+    $productAcceptanceCriteria = @($hostRequirementRevision.product_acceptance_criteria)
+} else {
+    $productAcceptanceCriteria = Get-VibeProductAcceptanceCriteria -IntentContract $intentContract
+}
+$manualSpotChecks = Get-VibeManualSpotChecks -Task $Task -IntentContract $intentContract
 $needsDocumentArtifactBaseline = Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable ([string]$intentContract.deliverable)
 $heuristicRequiresCodeTaskTddEvidence = Test-VibeTaskNeedsCodeTaskTddEvidence -Task $Task -Deliverable ([string]$intentContract.deliverable)
 $packetCodeTaskTddDecision = if (
@@ -409,9 +421,20 @@ $codeTaskTddDecision = if ($packetCodeTaskTddDecision) {
         -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
         -DocumentArtifactBaseline $needsDocumentArtifactBaseline
 }
+if (
+    [bool]$hostRequirementRevision.tdd_not_applicable -and
+    ($null -eq $codeTaskTddDecision -or [string]$codeTaskTddDecision.source -ne 'host_decision')
+) {
+    $codeTaskTddDecision = [pscustomobject]@{
+        mode = 'not_applicable'
+        source = 'host_revision_delta'
+        reason = 'Host revision delta explicitly scoped this requirement/design stage as not requiring code-task TDD evidence.'
+        exception = $null
+    }
+}
 $hostExplicitTddNotApplicable = (
     $codeTaskTddDecision -and
-    [string]$codeTaskTddDecision.source -eq 'host_decision' -and
+    [string]$codeTaskTddDecision.source -in @('host_decision', 'host_revision_delta') -and
     [string]$codeTaskTddDecision.mode -eq 'not_applicable'
 )
 if (@($codeTaskTddEvidenceRequirements).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
