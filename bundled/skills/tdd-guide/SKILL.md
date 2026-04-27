@@ -1,11 +1,21 @@
 ---
 name: tdd-guide
-description: Test-driven development wrapper for vibe coding flow. Enforces RED -> GREEN -> REFACTOR and >=80% coverage target.
+description: Test-first development route for TDD, writing failing tests first, RED -> GREEN -> REFACTOR, and behavior-changing feature/bug/refactor work. Do not use for already-failing test root-cause debugging, test-report packaging, or final completion evidence.
 ---
 
 # tdd-guide (Codex Compatibility)
 
 Use this skill for all feature work, bug fixes, and refactors that change behavior.
+
+## Routing Boundary
+
+Use this skill when the user wants to build or change behavior through tests:
+- TDD / test-driven development
+- write failing tests first
+- test-first implementation
+- RED -> GREEN -> REFACTOR
+
+Do not use it when tests are already failing and the user wants root cause; route that to `systematic-debugging`. Do not use it when the user only wants a test/coverage report; route that to `generating-test-reports`.
 
 ## Core Rule
 

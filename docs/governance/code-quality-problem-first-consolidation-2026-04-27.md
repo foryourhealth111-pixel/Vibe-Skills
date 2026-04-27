@@ -56,10 +56,23 @@
 | 用户问题 | 现在应该命中 |
 |---|---|
 | `run code review and quality checks` | `code-quality / code-reviewer` |
+| `code review and security audit` | `code-quality / security-reviewer` |
 | `收到CodeRabbit评审意见，帮我逐条判断是否要改` | `code-quality / receiving-code-review` |
 | `准备收尾，确认测试通过并给出验收证据` | `code-quality / verification-before-completion` |
 | `清理AI生成代码里的废话注释和多余防御式检查` | `code-quality / deslop` |
+| `write failing tests first for this feature` | `code-quality / tdd-guide` |
 | `构建失败，TypeScript compile error，帮我定位` | `code-quality / systematic-debugging` |
+
+## 第二轮边界加固
+
+这次继续整治时发现两个容易误抢的边界：
+
+| 旧风险 | 加固方式 |
+|---|---|
+| `code review and security audit` 里 `code-reviewer` 和 `security-reviewer` 打平，容易因为排序让普通 review 抢安全审计。 | 给 `code-reviewer` 增加安全审计负向词，给 `security-reviewer` 增加 security review、secret leak、auth bypass、injection、安全审计等正向词。 |
+| `write failing tests first for this feature` 被 `systematic-debugging` 的 `failing tests` 吸走。 | 给 `tdd-guide` 增加 `write failing tests first`、`test first`、`先写失败测试` 等正向词，并给 `systematic-debugging` 增加 test-first/TDD 负向词。 |
+
+同时补充了各主路由 skill 的 `SKILL.md` 边界说明：`code-reviewer` 不再自称主做安全扫描，`systematic-debugging` 明确只处理已经坏掉的问题，`tdd-guide` 明确接管测试先行开发，`requesting-code-review` 明确是阶段助手。
 
 ## 验证方法
 

@@ -37,13 +37,13 @@
       "keywords": ["subagent", "parallel tasks", "子代理", "并行执行", "多任务协作"]
     },
     "tdd-guide": {
-      "keywords": ["tdd", "red green refactor", "测试驱动", "先写测试", "红绿重构"]
+      "keywords": ["tdd", "red green refactor", "write failing tests first", "failing tests first", "test first", "测试驱动", "先写测试", "先写失败测试", "测试先行", "红绿重构"]
     },
     "systematic-debugging": {
       "keywords": ["root cause", "debugging", "systematic debugging", "build error", "compile error", "failing tests", "test failure", "stack trace", "traceback", "type error", "bug diagnosis", "根因分析", "系统化调试", "故障定位", "构建失败", "编译错误", "测试失败", "报错", "异常", "定位bug"]
     },
     "security-reviewer": {
-      "keywords": ["security audit", "security review", "owasp", "threat model", "secret leak", "auth bypass", "injection", "权限", "越权", "安全审计", "安全评审", "漏洞排查", "风险评估"]
+      "keywords": ["security", "security audit", "security review", "owasp", "threat model", "secret leak", "auth bypass", "injection", "权限", "越权", "安全", "安全审计", "安全评审", "漏洞排查", "风险评估"]
     },
     "code-reviewer": {
       "keywords": ["code review", "pr review", "review this change", "quality checks", "maintainability", "maintainable", "bug risk", "regression risk", "代码评审", "代码审查", "审查代码", "质量检查", "变更审查", "可维护性", "回归风险"]

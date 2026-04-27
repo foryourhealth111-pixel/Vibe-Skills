@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+description: Root-cause route for actual bugs, failing tests, build errors, crashes, stack traces, and unexpected behavior. Do not use for test-first/TDD feature work, test-report packaging, review-feedback handling, or final completion evidence.
 ---
 
 # Systematic Debugging
@@ -30,6 +30,16 @@ Use for ANY technical issue:
 - Performance problems
 - Build failures
 - Integration issues
+
+## Routing Boundary
+
+Use this skill when something is already broken and needs root-cause investigation.
+
+Do not use it for nearby but different problems:
+- `tdd-guide` owns "write failing tests first", "test first", and new behavior developed through RED -> GREEN -> REFACTOR.
+- `generating-test-reports` owns packaging existing test and coverage output into a report.
+- `verification-before-completion` owns final evidence before declaring work complete.
+- `windows-hook-debugging` owns Windows/Git Bash/WSL hook execution failures.
 
 **Use this ESPECIALLY when:**
 - Under time pressure (emergencies make guessing tempting)

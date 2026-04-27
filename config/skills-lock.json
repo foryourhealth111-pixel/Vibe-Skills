@@ -1,9 +1,9 @@
 ﻿{
     "version":  1,
-    "generated_at":  "2026-04-27T17:10:49+08:00",
+    "generated_at":  "2026-04-27T17:27:10+08:00",
     "source":  "bundled/skills",
     "skill_count":  333,
-    "total_bytes":  21293226,
+    "total_bytes":  21297031,
     "skills":  [
                    {
                        "name":  ".system",
@@ -353,9 +353,9 @@
                        "name":  "code-reviewer",
                        "relative_path":  "bundled/skills/code-reviewer",
                        "file_count":  7,
-                       "bytes":  18977,
-                       "skill_md_hash":  "777841d763d199f85c64e3fd38189443505db6e1443e0a7e8a52a5f228c43ab1",
-                       "dir_hash":  "637170ae84118f8eb96f5a49bd01e00b79b7f35d6d63b1569787f20e8349f695"
+                       "bytes":  19696,
+                       "skill_md_hash":  "12aa340b3f638137d04b653366c49eea04898372824e2be3705f95a5cd63b7c8",
+                       "dir_hash":  "76588e71c583e06455221cc0194abb790ff035ed25974a27f3be5a4c2a2fb5d4"
                    },
                    {
                        "name":  "code-review-excellence",
@@ -569,9 +569,9 @@
                        "name":  "deslop",
                        "relative_path":  "bundled/skills/deslop",
                        "file_count":  1,
-                       "bytes":  1000,
-                       "skill_md_hash":  "2b106d2147e8aa353e0d5feb429ca4e20b5bc700719acc677bf5482e53e785fa",
-                       "dir_hash":  "4b20bc263ce2779a403e56a43d3b32401579d3516053af6d5dfdd61196b2f55b"
+                       "bytes":  1322,
+                       "skill_md_hash":  "78344c54f7ba52b0a8df06e7fef3fdf2f02e1f49b1803a013313a02d7f552f7f",
+                       "dir_hash":  "d3680b7096c065140f60d16bcf85aa680ea83f1d8056a5d8e4cc94c09faa08a5"
                    },
                    {
                        "name":  "detecting-data-anomalies",
@@ -1793,9 +1793,9 @@
                        "name":  "receiving-code-review",
                        "relative_path":  "bundled/skills/receiving-code-review",
                        "file_count":  1,
-                       "bytes":  6314,
-                       "skill_md_hash":  "c9382e92b8f32363566068ecfed19d3b2651eaf40d3942b24840f839dedfc406",
-                       "dir_hash":  "24d30aebd5b261a7bd3e481f9390dbb4fed8e9762fc2423ced2528a7977a9465"
+                       "bytes":  6547,
+                       "skill_md_hash":  "86be4ebbbb530bca38934ecba15be90f4a0a7bbae8623769498ecb77a6a9fc2b",
+                       "dir_hash":  "65e6fa52a4f35a57ca2e38017c62df3fbed48eab97e9e6496269f46d9fb4ad72"
                    },
                    {
                        "name":  "report-generator",
@@ -1809,9 +1809,9 @@
                        "name":  "requesting-code-review",
                        "relative_path":  "bundled/skills/requesting-code-review",
                        "file_count":  2,
-                       "bytes":  6085,
-                       "skill_md_hash":  "2da31af22a58938ab78f3ee6d5b4687fcca062b923b646459eb52ba72117ef97",
-                       "dir_hash":  "f36a7f29d05b7dde007efd0d7f36e2b445f6857aa7a1e39510c639dd41eb7a7f"
+                       "bytes":  6389,
+                       "skill_md_hash":  "245084997b934069fd4bd3313409a6b5d8788655f4a511fdd2119bee314362f8",
+                       "dir_hash":  "a2d9dfdf658575f64bef24e5533a92e44eaebd8addf7281cead1c9374bca58e7"
                    },
                    {
                        "name":  "research-grants",
@@ -2009,9 +2009,9 @@
                        "name":  "security-reviewer",
                        "relative_path":  "bundled/skills/security-reviewer",
                        "file_count":  1,
-                       "bytes":  1450,
-                       "skill_md_hash":  "78c0f20891ae585097d1f043973a5bb0251c0e7b67ddc8bf59befee8a297a9df",
-                       "dir_hash":  "b303ab3bd7c9dbdc074941726bbf896478a445177538e14656514329290c4ec4"
+                       "bytes":  2092,
+                       "skill_md_hash":  "719c5dba860b09c47405de4b0980ec9a708504f19fa0e4331d84be2470874391",
+                       "dir_hash":  "863046c36aeadf61ad38e49ece4afbb7302390f044158556ab833a51f6bc4715"
                    },
                    {
                        "name":  "security-threat-model",
@@ -2329,17 +2329,17 @@
                        "name":  "systematic-debugging",
                        "relative_path":  "bundled/skills/systematic-debugging",
                        "file_count":  11,
-                       "bytes":  40913,
-                       "skill_md_hash":  "4999cb851360485eca5074e727bbdd62ef20549c5d5b01216fcbf5831badb473",
-                       "dir_hash":  "75c847bc0824b9de9031c8311508ee0c1c8c02017a7375bea7b066f566e7cd75"
+                       "bytes":  41591,
+                       "skill_md_hash":  "b5464c64bf6577c3bbcbe5a24b161181dc4efcfc70eaa2e2bd6f94fbb1288c37",
+                       "dir_hash":  "68d7137bd3a4e29ba574f2c3a00f1a038c7a9317d63e4c1cdf1a062af6b0220e"
                    },
                    {
                        "name":  "tdd-guide",
                        "relative_path":  "bundled/skills/tdd-guide",
                        "file_count":  1,
-                       "bytes":  1247,
-                       "skill_md_hash":  "7815c308eb6940c2aca4cda26d17574c6ecc0847c3f8437c44e263bb9ce47923",
-                       "dir_hash":  "b206b212e9b6538d88c2e4b81c664ca58c47ffbd891453266381e7426b1cfa11"
+                       "bytes":  1820,
+                       "skill_md_hash":  "4e23eb7fbc3fb32077d74f48c41c7b389dbe408ecf3da4971ca0ca0c8ca622c2",
+                       "dir_hash":  "18f179f41263a6caead258c31513adfe308ade85095c5c9df9a827e581670360"
                    },
                    {
                        "name":  "tensorboard",
@@ -2521,9 +2521,9 @@
                        "name":  "verification-before-completion",
                        "relative_path":  "bundled/skills/verification-before-completion",
                        "file_count":  1,
-                       "bytes":  4201,
-                       "skill_md_hash":  "ea52d15aabaf72bc6b558efe2c126f161b53961090ddcd712000273bfe8c7b6c",
-                       "dir_hash":  "a47ef4ef5b04c2bc29852a290adc9789c5480fde2db005d4f45b021355653408"
+                       "bytes":  4535,
+                       "skill_md_hash":  "747860a51c07b4691e5ac36ccddec8e1ddd4c1940037ae56f4161eab5dfb8ce4",
+                       "dir_hash":  "c92184272139906fc2b2d7551d2bed158846bafcbb8a325c225dcb1a9931703a"
                    },
                    {
                        "name":  "verification-quality-assurance",

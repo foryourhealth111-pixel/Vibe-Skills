@@ -771,7 +771,16 @@
                                                                    "ai-generated code",
                                                                    "清理ai生成代码",
                                                                    "废话注释",
-                                                                   "防御式检查"
+                                                                   "防御式检查",
+                                                                   "security audit",
+                                                                   "security review",
+                                                                   "owasp",
+                                                                   "vulnerability",
+                                                                   "secret leak",
+                                                                   "auth bypass",
+                                                                   "安全审计",
+                                                                   "安全评审",
+                                                                   "漏洞"
                                                                ],
                                          "equivalent_group":  "code-review-core",
                                          "canonical_for_task":  [
@@ -880,7 +889,13 @@
                                                                           "review comments",
                                                                           "验收证据",
                                                                           "测试报告",
-                                                                          "清理ai生成代码"
+                                                                          "清理ai生成代码",
+                                                                          "write failing tests first",
+                                                                          "failing tests first",
+                                                                          "test first",
+                                                                          "new feature",
+                                                                          "先写失败测试",
+                                                                          "测试先行"
                                                                       ],
                                                 "equivalent_group":  "debug-root-cause",
                                                 "canonical_for_task":  [
@@ -931,7 +946,12 @@
                                      "positive_keywords":  [
                                                                "tdd",
                                                                "red green refactor",
-                                                               "测试驱动"
+                                                               "write failing tests first",
+                                                               "failing tests first",
+                                                               "test first",
+                                                               "测试驱动",
+                                                               "先写失败测试",
+                                                               "测试先行"
                                                            ],
                                      "negative_keywords":  [
                                                                "deploy"
@@ -947,8 +967,16 @@
                                                                 "debug"
                                                             ],
                                              "positive_keywords":  [
+                                                                       "security",
                                                                        "security audit",
+                                                                       "security review",
                                                                        "owasp",
+                                                                       "secret leak",
+                                                                       "auth bypass",
+                                                                       "injection",
+                                                                       "安全",
+                                                                       "安全审计",
+                                                                       "安全评审",
                                                                        "漏洞",
                                                                        "threat"
                                                                    ],

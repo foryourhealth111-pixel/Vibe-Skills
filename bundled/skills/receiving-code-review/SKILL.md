@@ -1,6 +1,6 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+description: Review-feedback handling route for CodeRabbit, GitHub, PR, or human reviewer comments. Use before implementing suggestions to verify each finding. Do not use for a fresh code review, security audit, TDD, or final completion evidence.
 ---
 
 # Code Review Reception
@@ -10,6 +10,10 @@ description: Use when receiving code review feedback, before implementing sugges
 Code review requires technical evaluation, not emotional performance.
 
 **Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
+
+## Routing Boundary
+
+Use this skill only when feedback already exists and must be evaluated. A fresh request like "review this PR" belongs to `code-reviewer`; a request like "run OWASP security audit" belongs to `security-reviewer`.
 
 ## The Response Pattern
 

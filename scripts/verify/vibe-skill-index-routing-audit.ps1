@@ -59,6 +59,7 @@ $cases = @(
     [pscustomobject]@{ Name = "llm benchmark"; Prompt = "用MMLU和GSM8K做大模型评测"; Grade = "M"; TaskType = "research"; ExpectedPack = "ai-llm"; ExpectedSkill = "evaluating-llms-harness" },
 
     [pscustomobject]@{ Name = "tdd flow"; Prompt = "按TDD方式开发，先写失败测试再重构"; Grade = "M"; TaskType = "coding"; ExpectedPack = "code-quality"; ExpectedSkill = "tdd-guide" },
+    [pscustomobject]@{ Name = "tdd feature test-first"; Prompt = "write failing tests first for this feature"; Grade = "M"; TaskType = "coding"; ExpectedPack = "code-quality"; ExpectedSkill = "tdd-guide" },
     [pscustomobject]@{ Name = "systematic debug"; Prompt = "请做系统化调试和根因定位"; Grade = "M"; TaskType = "debug"; ExpectedPack = "code-quality"; ExpectedSkill = "systematic-debugging" },
     [pscustomobject]@{ Name = "build compile debug"; Prompt = "构建失败，TypeScript compile error，帮我定位"; Grade = "M"; TaskType = "debug"; ExpectedPack = "code-quality"; ExpectedSkill = "systematic-debugging" },
     [pscustomobject]@{ Name = "general code review"; Prompt = "run code review and quality checks"; Grade = "M"; TaskType = "review"; ExpectedPack = "code-quality"; ExpectedSkill = "code-reviewer" },
@@ -66,6 +67,7 @@ $cases = @(
     [pscustomobject]@{ Name = "completion verification"; Prompt = "准备收尾，确认测试通过并给出验收证据"; Grade = "M"; TaskType = "review"; ExpectedPack = "code-quality"; ExpectedSkill = "verification-before-completion" },
     [pscustomobject]@{ Name = "ai code cleanup"; Prompt = "清理AI生成代码里的废话注释和多余防御式检查"; Grade = "M"; TaskType = "coding"; ExpectedPack = "code-quality"; ExpectedSkill = "deslop" },
     [pscustomobject]@{ Name = "security review"; Prompt = "做一次OWASP安全审计并给出修复建议"; Grade = "M"; TaskType = "review"; ExpectedPack = "code-quality"; ExpectedSkill = "security-reviewer" },
+    [pscustomobject]@{ Name = "security audit mixed review"; Prompt = "code review and security audit"; Grade = "M"; TaskType = "review"; ExpectedPack = "code-quality"; ExpectedSkill = "security-reviewer" },
 
     [pscustomobject]@{ Name = "brainstorming route"; Prompt = "先做头脑风暴，发散方案"; Grade = "L"; TaskType = "planning"; ExpectedPack = "orchestration-core"; ExpectedSkill = "brainstorming" },
     [pscustomobject]@{ Name = "writing plans route"; Prompt = "请输出实施计划并做任务拆解"; Grade = "L"; TaskType = "planning"; ExpectedPack = "orchestration-core"; ExpectedSkill = "writing-plans" },

@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+description: Completion-evidence route used before claiming work is complete, fixed, passing, committed, or PR-ready. Requires fresh verification output before success claims. Do not use for root-cause debugging, TDD implementation, test-report packaging, or review-feedback triage.
 ---
 
 # Verification Before Completion
@@ -10,6 +10,10 @@ description: Use when about to claim work is complete, fixed, or passing, before
 Claiming work is complete without verification is dishonesty, not efficiency.
 
 **Core principle:** Evidence before claims, always.
+
+## Routing Boundary
+
+Use this skill at the end of work, when the question is "can we honestly claim this is done?" Use `systematic-debugging` for unexplained failures, `tdd-guide` for test-first implementation, and `generating-test-reports` when the deliverable is a readable test report.
 
 **Violating the letter of this rule is violating the spirit of this rule.**
 

@@ -1,11 +1,15 @@
 ---
 name: deslop
-description: Remove AI-generated code slop from a branch. Use when cleaning up AI-generated code, removing unnecessary comments, defensive checks, or type casts. Checks diff against main and fixes style inconsistencies.
+description: Remove AI-generated code slop from a branch: unnecessary comments, redundant defensive checks, boilerplate, style drift, and type casts. Use for cleanup of AI-written code, not for broad code review, security audit, TDD, or final verification.
 ---
 
 # Remove AI Code Slop
 
 Check the diff against main and remove all AI-generated slop introduced in this branch.
+
+## Routing Boundary
+
+Use this skill when the user's problem is cleanup of AI-generated code noise. If the user asks for a broad correctness/maintainability review, use `code-reviewer`. If the user asks whether existing review comments should be accepted, use `receiving-code-review`.
 
 ## What to Remove
 
