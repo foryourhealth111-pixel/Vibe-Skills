@@ -16,7 +16,7 @@ NEVER use multiple agent systems for the same control responsibility.
 | XL (degraded) | Codex native team only | When optional collaboration stack is unavailable |
 
 Exceptions:
-- `build-error-resolver`: may be used at any grade for build failures
+- `systematic-debugging`: may be used at any grade for build failures
 - `security-reviewer`: may be used at any grade for security audits
 
 Key rule:

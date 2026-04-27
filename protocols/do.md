@@ -122,9 +122,9 @@ Defer to vibe-team protocol (wave-sequential orchestration + step-level bounded 
 |-------|----------|------|
 | M | Structured debugging | superpowers:systematic-debugging (4-phase root cause) |
 | L | Parallel investigation | systematic-debugging + dispatching-parallel-agents |
-| Any | Build-specific errors | everything-claude-code:build-error-resolver* |
+| Any | Build-specific errors | superpowers:systematic-debugging* |
 
-*If unavailable, fall back to local build-error-resolver alias skill (delegates to error-resolver).
+*If an external build-error specialist is unavailable, keep build failures in the local systematic-debugging root-cause flow.
 
 ## Browser Testing
 When UI testing is needed:

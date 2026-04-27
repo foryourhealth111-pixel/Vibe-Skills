@@ -739,47 +739,45 @@
                                          "positive_keywords":  [
                                                                    "code review",
                                                                    "quality check",
+                                                                   "quality checks",
                                                                    "best practices",
                                                                    "代码审查",
                                                                    "maintainability",
                                                                    "maintainable",
                                                                    "review this change",
+                                                                   "pr review",
                                                                    "bugs",
-                                                                   "bug risk"
+                                                                   "bug risk",
+                                                                   "regression risk",
+                                                                   "变更审查",
+                                                                   "可维护性",
+                                                                   "回归风险"
                                                                ],
                                          "negative_keywords":  [
                                                                    "threat model only",
                                                                    "incident response",
                                                                    "product backlog",
-                                                                   "prd"
+                                                                   "prd",
+                                                                   "coderabbit",
+                                                                   "review feedback",
+                                                                   "review comments",
+                                                                   "评审意见",
+                                                                   "评审反馈",
+                                                                   "逐条判断",
+                                                                   "收尾",
+                                                                   "验收证据",
+                                                                   "确认测试",
+                                                                   "cleanup ai code",
+                                                                   "ai-generated code",
+                                                                   "清理ai生成代码",
+                                                                   "废话注释",
+                                                                   "防御式检查"
                                                                ],
                                          "equivalent_group":  "code-review-core",
                                          "canonical_for_task":  [
                                                                     "review"
                                                                 ]
                                      },
-                   "reviewing-code":  {
-                                          "task_allow":  [
-                                                             "review"
-                                                         ],
-                                          "positive_keywords":  [
-                                                                    "review implementation",
-                                                                    "maintainability",
-                                                                    "correctness",
-                                                                    "api design",
-                                                                    "design quality"
-                                                                ],
-                                          "negative_keywords":  [
-                                                                    "security-only",
-                                                                    "deploy",
-                                                                    "prd",
-                                                                    "product owner backlog"
-                                                                ],
-                                          "equivalent_group":  "code-review-core",
-                                          "canonical_for_task":  [
-
-                                                                 ]
-                                      },
                    "code-review-excellence":  {
                                                   "task_allow":  [
                                                                      "review",
@@ -823,14 +821,33 @@
                                                  "positive_keywords":  [
                                                                            "address review",
                                                                            "feedback",
-                                                                           "评审反馈"
+                                                                           "review feedback",
+                                                                           "review comments",
+                                                                           "coderabbit",
+                                                                           "CodeRabbit",
+                                                                           "review finding",
+                                                                           "should fix",
+                                                                           "评审反馈",
+                                                                           "评审意见",
+                                                                           "审查意见",
+                                                                           "逐条判断",
+                                                                           "是否要改",
+                                                                           "处理评论",
+                                                                           "回复评审意见"
                                                                        ],
                                                  "negative_keywords":  [
-                                                                           "new architecture"
+                                                                           "new architecture",
+                                                                           "fresh review",
+                                                                           "run code review",
+                                                                           "security audit",
+                                                                           "owasp",
+                                                                           "收尾",
+                                                                           "验收证据",
+                                                                           "清理ai生成代码"
                                                                        ],
                                                  "equivalent_group":  null,
                                                  "canonical_for_task":  [
-
+                                                                            "review"
                                                                         ]
                                              },
                    "systematic-debugging":  {
@@ -841,11 +858,29 @@
                                                 "positive_keywords":  [
                                                                           "root cause",
                                                                           "systematic debugging",
+                                                                          "build error",
+                                                                          "compile error",
+                                                                          "failing tests",
+                                                                          "test failure",
+                                                                          "stack trace",
+                                                                          "traceback",
+                                                                          "typescript compile error",
                                                                           "根因分析",
-                                                                          "故障定位"
+                                                                          "故障定位",
+                                                                          "构建失败",
+                                                                          "编译错误",
+                                                                          "测试失败",
+                                                                          "报错",
+                                                                          "异常",
+                                                                          "定位"
                                                                       ],
                                                 "negative_keywords":  [
-                                                                          "feature ideation"
+                                                                          "feature ideation",
+                                                                          "code review feedback",
+                                                                          "review comments",
+                                                                          "验收证据",
+                                                                          "测试报告",
+                                                                          "清理ai生成代码"
                                                                       ],
                                                 "equivalent_group":  "debug-root-cause",
                                                 "canonical_for_task":  [
@@ -888,23 +923,6 @@
 
                                                                  ]
                                       },
-                   "build-error-resolver":  {
-                                                "task_allow":  [
-                                                                   "debug"
-                                                               ],
-                                                "positive_keywords":  [
-                                                                          "build error",
-                                                                          "compile error",
-                                                                          "构建失败"
-                                                                      ],
-                                                "negative_keywords":  [
-                                                                          "product roadmap"
-                                                                      ],
-                                                "equivalent_group":  "debug-root-cause",
-                                                "canonical_for_task":  [
-
-                                                                       ]
-                                            },
                    "tdd-guide":  {
                                      "task_allow":  [
                                                         "coding",
@@ -952,14 +970,30 @@
                                                                                     "verify",
                                                                                     "run tests",
                                                                                     "completion gate",
-                                                                                    "验收"
+                                                                                    "verify before completion",
+                                                                                    "acceptance evidence",
+                                                                                    "test evidence",
+                                                                                    "final verification",
+                                                                                    "closeout",
+                                                                                    "验收",
+                                                                                    "验收证据",
+                                                                                    "收尾",
+                                                                                    "确认测试",
+                                                                                    "测试通过",
+                                                                                    "完成声明"
                                                                                 ],
                                                           "negative_keywords":  [
-                                                                                    "requirements discovery"
+                                                                                    "requirements discovery",
+                                                                                    "test report",
+                                                                                    "coverage report",
+                                                                                    "review feedback",
+                                                                                    "coderabbit",
+                                                                                    "清理ai生成代码",
+                                                                                    "测试报告"
                                                                                 ],
                                                           "equivalent_group":  null,
                                                           "canonical_for_task":  [
-
+                                                                                     "review"
                                                                                  ]
                                                       },
                    "deslop":  {
@@ -970,14 +1004,27 @@
                                   "positive_keywords":  [
                                                             "cleanup ai code",
                                                             "remove slop",
-                                                            "代码清理"
+                                                            "ai-generated code",
+                                                            "redundant comments",
+                                                            "defensive checks",
+                                                            "cleanup boilerplate",
+                                                            "代码清理",
+                                                            "清理ai生成代码",
+                                                            "废话注释",
+                                                            "多余防御式检查",
+                                                            "代码废话",
+                                                            "冗余注释"
                                                         ],
                                   "negative_keywords":  [
-                                                            "incident"
+                                                            "incident",
+                                                            "security audit",
+                                                            "code review feedback",
+                                                            "验收证据",
+                                                            "构建失败"
                                                         ],
                                   "equivalent_group":  null,
                                   "canonical_for_task":  [
-
+                                                             "coding"
                                                          ]
                               },
                    "generating-test-reports":  {
@@ -988,14 +1035,22 @@
                                                    "positive_keywords":  [
                                                                              "test report",
                                                                              "coverage report",
-                                                                             "测试报告"
+                                                                             "test summary",
+                                                                             "junit report",
+                                                                             "coverage summary",
+                                                                             "测试报告",
+                                                                             "测试覆盖率",
+                                                                             "测试结果汇总"
                                                                          ],
                                                    "negative_keywords":  [
-                                                                             "new feature build"
+                                                                             "new feature build",
+                                                                             "验收证据",
+                                                                             "收尾",
+                                                                             "构建失败"
                                                                          ],
                                                    "equivalent_group":  null,
                                                    "canonical_for_task":  [
-
+                                                                              "review"
                                                                           ]
                                                },
                    "aeon":  {
@@ -1071,14 +1126,22 @@
                                                                             "windows hook",
                                                                             "cannot execute binary file",
                                                                             "WSL",
-                                                                            "Git Bash"
+                                                                            "Git Bash",
+                                                                            "git bash hook",
+                                                                            "pre-commit hook",
+                                                                            "powershell hook",
+                                                                            "Windows钩子",
+                                                                            "钩子失败",
+                                                                            "无法执行二进制文件"
                                                                         ],
                                                   "negative_keywords":  [
-                                                                            "model eval"
+                                                                            "model eval",
+                                                                            "linux only",
+                                                                            "docker build"
                                                                         ],
                                                   "equivalent_group":  null,
                                                   "canonical_for_task":  [
-
+                                                                            "debug"
                                                                          ]
                                               },
                    "scikit-learn":  {

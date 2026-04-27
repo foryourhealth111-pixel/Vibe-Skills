@@ -42,7 +42,7 @@ Fallback triggers:
 
 | Grade | Primary | Fallback |
 |-------|---------|----------|
-| M | superpowers:systematic-debugging | everything-claude-code:build-error-resolver (or local build-error-resolver -> error-resolver alias) |
+| M | superpowers:systematic-debugging | systematic-debugging with exact failing command and stderr/stdout |
 | L | systematic-debugging + dispatching-parallel-agents | systematic-debugging (single) |
 
 ### Research Tasks
@@ -170,12 +170,13 @@ Notes:
 4. Plugin missing: Skill invocation returns "skill not found"
 5. Native team failure: spawn/send/wait/close orchestration fails
 
-## build-error-resolver Compatibility
+## Build Failure Compatibility
 
 Resolution order for build-specific debugging:
-1. `everything-claude-code:build-error-resolver`
-2. local `build-error-resolver` alias skill
-3. `error-resolver` skill
+1. Use `superpowers:systematic-debugging` as the local route authority.
+2. Capture the exact failing command and full stderr/stdout.
+3. Classify dependency/setup, compile/type/lint, env/config, or test/runtime failure.
+4. Re-run the original failing command after the smallest root-cause fix.
 
 ## Fallback Protocol
 

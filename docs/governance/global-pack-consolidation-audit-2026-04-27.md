@@ -17,17 +17,17 @@
 | priority | pack | score | skills | route authority | stage assistant | rationale |
 |---|---|---:|---:|---:|---:|---|
 | P0 | `bio-science` | 66.40 | 26 | 0 | 0 | 26 skill candidates; no explicit role split; 15 tool-like primary candidates; 26 candidates with scripts/references/assets |
-| P0 | `code-quality` | 65.20 | 16 | 0 | 0 | 16 skill candidates; no explicit role split; 16 suspected overlap pairs; 4 shared broad keywords; 1 tool-like primary candidates; 3 candidates with scripts/references/assets |
 | P0 | `research-design` | 64.40 | 24 | 14 | 3 | 24 skill candidates; 14 route authorities; 3 suspected overlap pairs; 1 shared broad keywords; 2 tool-like primary candidates; 15 candidates with scripts/references/assets |
 | P0 | `science-literature-citations` | 61.40 | 12 | 10 | 2 | 12 skill candidates; 10 route authorities; 5 shared broad keywords; 9 tool-like primary candidates; 11 candidates with scripts/references/assets |
 | P0 | `scholarly-publishing-workflow` | 59.70 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 13 shared broad keywords; 4 tool-like primary candidates; 9 candidates with scripts/references/assets |
 | P0 | `science-chem-drug` | 57.70 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 13 candidates with scripts/references/assets |
-| P1 | `science-lab-automation` | 47.90 | 7 | 0 | 0 | no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 7 candidates with scripts/references/assets |
+| P0 | `science-lab-automation` | 47.90 | 7 | 0 | 0 | no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P1 | `integration-devops` | 42.90 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 3 tool-like primary candidates; 12 candidates with scripts/references/assets |
 | P1 | `science-communication-slides` | 40.20 | 8 | 0 | 0 | no explicit role split; 3 shared broad keywords; 4 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P1 | `orchestration-core` | 39.60 | 27 | 1 | 26 | 27 skill candidates; 2 suspected overlap pairs; 1 shared broad keywords; 9 candidates with scripts/references/assets |
 | P1 | `ai-llm` | 39.30 | 11 | 0 | 0 | no explicit role split; 1 shared broad keywords; 4 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P1 | `science-clinical-regulatory` | 37.70 | 7 | 0 | 0 | no explicit role split; 1 shared broad keywords; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
+| P1 | `code-quality` | 37.00 | 10 | 9 | 1 | 9 route authorities; 3 suspected overlap pairs; 2 candidates with scripts/references/assets |
 | P1 | `docs-media` | 37.00 | 8 | 8 | 0 | 8 route authorities; 1 suspected overlap pairs; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P1 | `finance-edgar-macro` | 35.90 | 7 | 0 | 0 | no explicit role split; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P1 | `data-ml` | 29.40 | 8 | 7 | 1 | 7 route authorities; 1 tool-like primary candidates; 7 candidates with scripts/references/assets |
@@ -66,22 +66,22 @@
 | priority | pack | score | skills | route authority | stage assistant | rationale |
 |---|---|---:|---:|---:|---:|---|
 | P0 | `bio-science` | 66.40 | 26 | 0 | 0 | 26 skill candidates; no explicit role split; 15 tool-like primary candidates; 26 candidates with scripts/references/assets |
-| P0 | `code-quality` | 65.20 | 16 | 0 | 0 | 16 skill candidates; no explicit role split; 16 suspected overlap pairs; 4 shared broad keywords; 1 tool-like primary candidates; 3 candidates with scripts/references/assets |
 | P0 | `research-design` | 64.40 | 24 | 14 | 3 | 24 skill candidates; 14 route authorities; 3 suspected overlap pairs; 1 shared broad keywords; 2 tool-like primary candidates; 15 candidates with scripts/references/assets |
 | P0 | `science-literature-citations` | 61.40 | 12 | 10 | 2 | 12 skill candidates; 10 route authorities; 5 shared broad keywords; 9 tool-like primary candidates; 11 candidates with scripts/references/assets |
 | P0 | `scholarly-publishing-workflow` | 59.70 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 13 shared broad keywords; 4 tool-like primary candidates; 9 candidates with scripts/references/assets |
 | P0 | `science-chem-drug` | 57.70 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 13 candidates with scripts/references/assets |
+| P0 | `science-lab-automation` | 47.90 | 7 | 0 | 0 | no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 7 candidates with scripts/references/assets |
 
 ## P1
 
 | priority | pack | score | skills | route authority | stage assistant | rationale |
 |---|---|---:|---:|---:|---:|---|
-| P1 | `science-lab-automation` | 47.90 | 7 | 0 | 0 | no explicit role split; 6 shared broad keywords; 6 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P1 | `integration-devops` | 42.90 | 13 | 0 | 0 | 13 skill candidates; no explicit role split; 3 tool-like primary candidates; 12 candidates with scripts/references/assets |
 | P1 | `science-communication-slides` | 40.20 | 8 | 0 | 0 | no explicit role split; 3 shared broad keywords; 4 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P1 | `orchestration-core` | 39.60 | 27 | 1 | 26 | 27 skill candidates; 2 suspected overlap pairs; 1 shared broad keywords; 9 candidates with scripts/references/assets |
 | P1 | `ai-llm` | 39.30 | 11 | 0 | 0 | no explicit role split; 1 shared broad keywords; 4 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P1 | `science-clinical-regulatory` | 37.70 | 7 | 0 | 0 | no explicit role split; 1 shared broad keywords; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
+| P1 | `code-quality` | 37.00 | 10 | 9 | 1 | 9 route authorities; 3 suspected overlap pairs; 2 candidates with scripts/references/assets |
 | P1 | `docs-media` | 37.00 | 8 | 8 | 0 | 8 route authorities; 1 suspected overlap pairs; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P1 | `finance-edgar-macro` | 35.90 | 7 | 0 | 0 | no explicit role split; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P1 | `data-ml` | 29.40 | 8 | 7 | 1 | 7 route authorities; 1 tool-like primary candidates; 7 candidates with scripts/references/assets |

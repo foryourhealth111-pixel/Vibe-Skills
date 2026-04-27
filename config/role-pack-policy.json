@@ -228,7 +228,7 @@
           "vibe",
           "subagent-driven-development",
           "context-hunter",
-          "reviewing-code"
+          "code-reviewer"
         ],
         "references": [
           "references/team-templates.md",
@@ -297,8 +297,7 @@
         "skills": [
           "code-reviewer",
           "security-reviewer",
-          "verification-before-completion",
-          "reviewing-code"
+          "verification-before-completion"
         ],
         "references": [
           "references/team-templates.md",

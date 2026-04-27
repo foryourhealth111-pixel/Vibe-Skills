@@ -18,20 +18,15 @@
             "code-quality"
         ],
         "skill_allow": [
-            "build-error-resolver",
-            "code-review",
             "code-reviewer",
-            "code-review-excellence",
-            "debugging-strategies",
             "deslop",
-            "error-resolver",
             "receiving-code-review",
             "requesting-code-review",
-            "reviewing-code",
             "security-reviewer",
             "systematic-debugging",
             "tdd-guide",
-            "verification-before-completion"
+            "verification-before-completion",
+            "windows-hook-debugging"
         ]
     },
     "risk_keywords": [
@@ -115,6 +110,5 @@
         "on_analyzer_failure": "continue_advisory"
     }
 }
-
 
 

@@ -171,7 +171,7 @@ Complete reference of VCO execution tools, their capabilities, APIs, state paths
 | code-reviewer | Sonnet | Quality/security review | ✅ |
 | tdd-guide | Sonnet | Test-driven development | ✅ |
 | security-reviewer | Sonnet | Vulnerability detection | ✅ |
-| build-error-resolver | Sonnet | Build fix specialist | ✅ |
+| systematic-debugging | Sonnet | Root-cause and build failure debugging | ✅ |
 
 ### Key Skills
 | Skill | Purpose | Verified |

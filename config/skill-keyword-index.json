@@ -40,13 +40,25 @@
       "keywords": ["tdd", "red green refactor", "测试驱动", "先写测试", "红绿重构"]
     },
     "systematic-debugging": {
-      "keywords": ["root cause", "debugging", "根因分析", "系统化调试", "故障定位"]
+      "keywords": ["root cause", "debugging", "systematic debugging", "build error", "compile error", "failing tests", "test failure", "stack trace", "traceback", "type error", "bug diagnosis", "根因分析", "系统化调试", "故障定位", "构建失败", "编译错误", "测试失败", "报错", "异常", "定位bug"]
     },
     "security-reviewer": {
-      "keywords": ["security audit", "owasp", "threat", "安全审计", "漏洞排查", "风险评估"]
+      "keywords": ["security audit", "security review", "owasp", "threat model", "secret leak", "auth bypass", "injection", "权限", "越权", "安全审计", "安全评审", "漏洞排查", "风险评估"]
     },
     "code-reviewer": {
-      "keywords": ["code review", "review comments", "代码评审", "审查代码", "质量检查"]
+      "keywords": ["code review", "pr review", "review this change", "quality checks", "maintainability", "maintainable", "bug risk", "regression risk", "代码评审", "代码审查", "审查代码", "质量检查", "变更审查", "可维护性", "回归风险"]
+    },
+    "receiving-code-review": {
+      "keywords": ["address review", "review feedback", "review comments", "CodeRabbit", "coderabbit", "review finding", "should fix", "评审反馈", "评审意见", "审查意见", "逐条判断", "是否要改", "处理评论", "回复评审意见"]
+    },
+    "verification-before-completion": {
+      "keywords": ["verify before completion", "completion gate", "acceptance evidence", "test evidence", "run tests before finish", "closeout", "final verification", "收尾", "验收证据", "确认测试", "测试通过", "完成声明", "最终验证"]
+    },
+    "deslop": {
+      "keywords": ["cleanup ai code", "ai-generated code", "remove slop", "redundant comments", "defensive checks", "cleanup boilerplate", "清理AI生成代码", "废话注释", "多余防御式检查", "代码废话", "冗余注释"]
+    },
+    "windows-hook-debugging": {
+      "keywords": ["windows hook", "git bash hook", "wsl hook", "cannot execute binary file", "pre-commit hook", "powershell hook", "Windows钩子", "Git Bash", "WSL", "钩子失败", "无法执行二进制文件"]
     },
     "verification-quality-assurance": {
       "keywords": ["quality assurance", "routing audit", "关键词准确", "命中范围", "互不干扰", "命中稳定性验证", "误路由检查", "实践验证"]
