@@ -139,7 +139,7 @@ class GlobalPackAuditArtifact:
 def _read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def _as_list(value: Any) -> list[Any]:
@@ -293,8 +293,8 @@ def _tool_primary_risk_count(repo_root: Path, pack: dict[str, Any], skill_ids: l
     return count
 
 
-def _priority(score: float) -> str:
-    if score >= 23:
+def _priority_for_rank(score: float, rank: int) -> str:
+    if rank <= 6 and score >= 23:
         return "P0"
     if score >= 14:
         return "P1"
@@ -401,7 +401,6 @@ def audit_repository(repo_root: Path) -> GlobalPackAuditArtifact:
             tool_primary_risk=tool_primary_risk,
             asset_heavy=asset_heavy,
         )
-        priority = _priority(score)
         rationale = _rationale(
             skill_count=len(skills),
             route_count=len(route_authority),
@@ -426,20 +425,26 @@ def audit_repository(repo_root: Path) -> GlobalPackAuditArtifact:
             tool_primary_risk_count=tool_primary_risk,
             asset_heavy_candidate_count=asset_heavy,
             risk_score=score,
-            priority=priority,
+            priority="P2",
             recommended_next_action="",
             rationale=rationale,
         )
-        rows.append(
+        rows.append(provisional)
+
+    rows = sorted(rows, key=lambda row: (-row.risk_score, row.pack_id))
+    finalized_rows: list[PackAuditRow] = []
+    for rank, row in enumerate(rows, start=1):
+        priority = _priority_for_rank(row.risk_score, rank)
+        finalized = PackAuditRow(**{**asdict(row), "priority": priority})
+        finalized_rows.append(
             PackAuditRow(
                 **{
-                    **asdict(provisional),
-                    "recommended_next_action": _recommended_next_action(provisional),
+                    **asdict(finalized),
+                    "recommended_next_action": _recommended_next_action(finalized),
                 }
             )
         )
-
-    rows = sorted(rows, key=lambda row: (-row.risk_score, row.pack_id))
+    rows = finalized_rows
     summary = {
         "pack_count": len(rows),
         "p0_count": sum(1 for row in rows if row.priority == "P0"),

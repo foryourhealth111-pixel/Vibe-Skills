@@ -191,6 +191,7 @@ class GlobalPackConsolidationAuditTests(unittest.TestCase):
         self.assertEqual("P0", rows["code-quality"].priority)
         self.assertFalse(rows["code-quality"].has_explicit_role_split)
         self.assertGreater(rows["code-quality"].suspected_overlap_count, 0)
+        self.assertEqual(2, artifact.summary["p0_count"])
 
     def test_artifact_writer_outputs_json_csv_and_markdown(self) -> None:
         artifact = audit_repository(self.root)
@@ -222,6 +223,16 @@ class GlobalPackConsolidationAuditTests(unittest.TestCase):
 
         after = {path: path.read_text(encoding="utf-8") for path in config_paths}
         self.assertEqual(before, after)
+
+    def test_audit_reads_bom_encoded_json_config(self) -> None:
+        pack_manifest_path = self.root / "config" / "pack-manifest.json"
+        original = pack_manifest_path.read_text(encoding="utf-8")
+        pack_manifest_path.write_text(original, encoding="utf-8-sig", newline="\n")
+
+        artifact = audit_repository(self.root)
+
+        self.assertEqual(3, artifact.summary["pack_count"])
+        self.assertIn("research-design", {row.pack_id for row in artifact.rows})
 
 
 if __name__ == "__main__":
