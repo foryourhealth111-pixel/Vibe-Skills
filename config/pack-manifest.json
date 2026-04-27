@@ -77,11 +77,12 @@
                                                "writing-plans"
                                            ],
                       "route_authority_candidates":  [
-                                                       "vibe"
+                                                       "brainstorming",
+                                                       "writing-plans",
+                                                       "subagent-driven-development"
                                                    ],
                       "stage_assistant_candidates":  [
                                                        "autonomous-builder",
-                                                       "brainstorming",
                                                        "cancel-ralph",
                                                        "claude-skills",
                                                        "context-fundamentals",
@@ -102,17 +103,15 @@
                                                        "speckit-tasks",
                                                        "speckit-taskstoissues",
                                                        "spec-kit-vibe-compat",
-                                                       "subagent-driven-development",
                                                        "superclaude-framework-compat",
-                                                       "think-harder",
-                                                       "writing-plans"
+                                                       "think-harder"
                                                    ],
                       "defaults_by_task":  {
-                                               "debug":  "vibe",
-                                               "planning":  "vibe",
-                                               "research":  "vibe",
-                                               "coding":  "vibe",
-                                               "review":  "vibe"
+                                               "debug":  "subagent-driven-development",
+                                               "planning":  "writing-plans",
+                                               "research":  "brainstorming",
+                                               "coding":  "subagent-driven-development",
+                                               "review":  "writing-plans"
                                            }
                   },
                   {

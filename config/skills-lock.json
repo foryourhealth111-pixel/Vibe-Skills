@@ -1,6 +1,6 @@
 ﻿{
     "version":  1,
-    "generated_at":  "2026-04-27T17:27:10+08:00",
+    "generated_at":  "04/27/2026 18:36:58",
     "source":  "bundled/skills",
     "skill_count":  333,
     "total_bytes":  21297031,
@@ -11,7 +11,7 @@
                        "file_count":  18,
                        "bytes":  91686,
                        "skill_md_hash":  null,
-                       "dir_hash":  "24a4f05e3a761b20fb2f56184b82e3bbe9d3aabcb078cd266dc73407bf1baa9a"
+                       "dir_hash":  "03b12a876fbdec4b9d9502facc0b36f30e5bf217ca249014cffd286b90c4aed1"
                    },
                    {
                        "name":  "adaptyv",
@@ -627,7 +627,7 @@
                        "file_count":  6,
                        "bytes":  26920,
                        "skill_md_hash":  "0a635585817d1ac96e8e512114d08258b70f9e54ce0052078a258291ac13a8ed",
-                       "dir_hash":  "c349e89cc6f45adaed95325e8ee8adf1f0c403860a233f8040d269080e21cc11"
+                       "dir_hash":  "f8aa1d110c6fb838374db3f1b4740bf5675634ca269e8d2ba19189e052510ce8"
                    },
                    {
                        "name":  "docs-review",
@@ -659,7 +659,7 @@
                        "file_count":  84,
                        "bytes":  1456187,
                        "skill_md_hash":  "cf8d095fd6f106a7121655098f22c9ea9678c8105728f9187f461836e4875861",
-                       "dir_hash":  "5896395d88b50443617574abf64b760cd79ee517ab09e0ed7bc5919abc0d97c0"
+                       "dir_hash":  "391537bbed6a01050e0286b2cc739e92013426e2444092bd4df365a4a88cdb65"
                    },
                    {
                        "name":  "docx",
@@ -739,7 +739,7 @@
                        "file_count":  5,
                        "bytes":  76410,
                        "skill_md_hash":  "994175f14e3a8acc9302190b11d468a5f68fb943561095c854ca3a9a669b548e",
-                       "dir_hash":  "6e794ada2ed340004a32b78ffaed7cb665dfe21efc1f2b17b3e722ad3884589b"
+                       "dir_hash":  "4b2fd3e549f6b38a22569f18be0e3025d23a8e8bb5b8ed9b6c19e981c1ef368d"
                    },
                    {
                        "name":  "etetoolkit",
@@ -819,7 +819,7 @@
                        "file_count":  8,
                        "bytes":  23641,
                        "skill_md_hash":  "5b11f7c8d0ce4c047b401323e7b8fe6559bd3162a3397bf5248634a5444609d5",
-                       "dir_hash":  "73aa58080f3a818f4c69f64673f5a06f29be6e1270a6a457ea1e114a1ae34009"
+                       "dir_hash":  "3a9ff3347f1ff95e76ac4c681d3d614be9e9b0544ab960aa7df2fec19c5391cf"
                    },
                    {
                        "name":  "figma-implement-design",
@@ -827,7 +827,7 @@
                        "file_count":  6,
                        "bytes":  26753,
                        "skill_md_hash":  "adea0fa5ed0b77a75112f64737f4aa562fcc231d242370f8cbdb25d050be19ad",
-                       "dir_hash":  "217cfb841b39185ec907f30b20d835bc39216d491d5e36be5f3e4f8cb5b32f20"
+                       "dir_hash":  "f0a6609d86e378e09f30c66716b04c821dc6c8c786ae225611498b8a563ccc8a"
                    },
                    {
                        "name":  "file-organizer",
@@ -955,7 +955,7 @@
                        "file_count":  6,
                        "bytes":  22403,
                        "skill_md_hash":  "77389eefd3fb6584210668ca8e43f4b8de87e7722ddd953474bc9e24cdfaaedd",
-                       "dir_hash":  "df667ee4a3ca6f715c70bf871bf71fbba423dd7ab01770b6d78aa48e04294337"
+                       "dir_hash":  "f073284a4cdea766643f85e609095d1aff5ffbddf0e62866dbcabc8f8e203e29"
                    },
                    {
                        "name":  "gh-fix-ci",
@@ -963,7 +963,7 @@
                        "file_count":  6,
                        "bytes":  33151,
                        "skill_md_hash":  "7b326b4a2f0f5f85122144628ec02077e48841e0e0e82efce88b3415bcfb7c26",
-                       "dir_hash":  "4480294937d4c2f12f192e1019afc654f5fb1fe0aeb9da14e282d076f202a52d"
+                       "dir_hash":  "0236ac399e18ed8258c7960ee7402e2200277d66374a17448f2f8f72b8bd2a33"
                    },
                    {
                        "name":  "ginkgo-cloud-lab",
@@ -1059,7 +1059,7 @@
                        "file_count":  11,
                        "bytes":  85275,
                        "skill_md_hash":  "4da06e7a1fbfaa94154dda2699e449a1f6d79e6e4299fcfeb785aad7c87f59dc",
-                       "dir_hash":  "cdd269d0057774b2e140888ac9f6fc6294b39a33a93aec40aaaf42ba484e71ed"
+                       "dir_hash":  "185b49ae8536e1d38fba518ce7e1084bcc6a917808bbda430debd7798492d514"
                    },
                    {
                        "name":  "imaging-data-commons",
@@ -1075,7 +1075,7 @@
                        "file_count":  6,
                        "bytes":  141704,
                        "skill_md_hash":  "f178bf7856b08f98a2349bc955ae4b964a64b472bc484340b9bf0f15aed85e72",
-                       "dir_hash":  "b89ed3d6b2c68ad698efcd62cde2cace16b9236e04eb565218303accde0dfeae"
+                       "dir_hash":  "142f560170ffe26bd0a68121ed7c2522ea97d7624cccdc62cf99c541b25f24b2"
                    },
                    {
                        "name":  "iso-13485-certification",
@@ -1091,7 +1091,7 @@
                        "file_count":  12,
                        "bytes":  31211,
                        "skill_md_hash":  "62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb",
-                       "dir_hash":  "4cfd7065245358ca0c5fff27b342f8dc2b41d7635dfe153890d9e6125f153830"
+                       "dir_hash":  "c96c789546839fcea65f64b06d0830573eee484700921bf7e0553d5647f15ebd"
                    },
                    {
                        "name":  "kegg-database",
@@ -1347,7 +1347,7 @@
                        "file_count":  8,
                        "bytes":  33655,
                        "skill_md_hash":  "bb2c29bf599a043cade932f60cc64f632ca100e8767ccdfa2ba1a42c8d43958f",
-                       "dir_hash":  "4f34f47608cfdcd82a0dd8d7345bea4425d4f58fe1690c07d4f65ec08486a41f"
+                       "dir_hash":  "e38bb62163d4b7ee6d35c76648616e5aa9031379edfcdab0d7ac655274ed3f73"
                    },
                    {
                        "name":  "networkx",
@@ -1403,7 +1403,7 @@
                        "file_count":  5,
                        "bytes":  17246,
                        "skill_md_hash":  "100099568ce8887ccd961aad2aa824a6d6054d4e5e697625815cc6e1b30d54a7",
-                       "dir_hash":  "dd1f721fe48277c4bb4e051f0501da1175082a62a6e9b2f9a8bf2e65735741ea"
+                       "dir_hash":  "5a7119470c3bcea595f03613d5bbe660d76ccd874f345815688f11a078025b6b"
                    },
                    {
                        "name":  "openai-knowledge",
@@ -1475,7 +1475,7 @@
                        "file_count":  14,
                        "bytes":  71342,
                        "skill_md_hash":  "d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2",
-                       "dir_hash":  "5e6ed2c1615f532cf0175dc4179d02b40dba20bcbbd998b7975409d5b424451a"
+                       "dir_hash":  "31f18f86a658e3f5f1d3c04e080b2d14e6884b525dc27c4061a5424772693fb4"
                    },
                    {
                        "name":  "peer-review",
@@ -1539,7 +1539,7 @@
                        "file_count":  9,
                        "bytes":  22649,
                        "skill_md_hash":  "0ffaabcc8e0990627c4725f18bf1c7955534a796c1c199e872909de2013ce6a8",
-                       "dir_hash":  "148c92677b66b90e03e20fd23c904abf199d0c74412ce54d6b8268b3493aeaa9"
+                       "dir_hash":  "32944e160f943abaea806ffa92df2b04650ff4153fcc08c6d533d8e35703ecd7"
                    },
                    {
                        "name":  "plotly",
@@ -1907,7 +1907,7 @@
                        "file_count":  7,
                        "bytes":  95380,
                        "skill_md_hash":  "1b1229a58ab27bc6e371b20e368bd7ff8d1475e37d939f96ca7f60362d619168",
-                       "dir_hash":  "a870d5a02628d388e15631053f565492da02b203b9df5c4477228d9455594b76"
+                       "dir_hash":  "e6f689adc843504b4c2f608b6fa9471975d1eaed4596ce473eef41a070c054b4"
                    },
                    {
                        "name":  "scientific-slides",
@@ -1915,7 +1915,7 @@
                        "file_count":  17,
                        "bytes":  329829,
                        "skill_md_hash":  "27db363932fd87b45dcd4765388814ba77c05464913b696a6ae93ebcd3864df7",
-                       "dir_hash":  "4205caf6a0a63d6c582a323ed2d27d398c5d28b1d72179798382ddad61cbff85"
+                       "dir_hash":  "e2676842a686c38d13e2e1d153a10088035c8daf743bc2b598ff8f6267651e08"
                    },
                    {
                        "name":  "scientific-visualization",
@@ -1971,7 +1971,7 @@
                        "file_count":  11,
                        "bytes":  52769,
                        "skill_md_hash":  "081935a6a163277537d46365f49d6b4a3cb40b4748347e7e88759c5927fa8cf5",
-                       "dir_hash":  "7dd209bace8d0f25b986853d74f397586143907d0e9c99f74927fa160489317d"
+                       "dir_hash":  "4108f207cacbf361b72209423c55d4ab105001aabfeba8a44807fef737e9ffb0"
                    },
                    {
                        "name":  "scvi-tools",
@@ -2059,7 +2059,7 @@
                        "file_count":  6,
                        "bytes":  25076,
                        "skill_md_hash":  "b598ea447ad6bec923f5c3879ace25e4a7f1368a7eac019b5c0e2f79a36322c6",
-                       "dir_hash":  "48f327912bedb36695a2b648e1d7944060c702708887982f47ac251e746bf119"
+                       "dir_hash":  "eec4b383cddc300f670ba1f5d96bd06e50d51a113d2b693bb79e2e91097c1638"
                    },
                    {
                        "name":  "shap",
@@ -2227,7 +2227,7 @@
                        "file_count":  16,
                        "bytes":  49301,
                        "skill_md_hash":  "d6120efc03ea0e80204f687801cfaec8efc4519a3430b68e13e4ebd8e1c69b52",
-                       "dir_hash":  "a4132577d3b64bbb0f2840c6e5a81e096a776f6469579707847aa3e6fbd3d6df"
+                       "dir_hash":  "2577f07e91925207e9652844b041144f19f667461332c0adf13375696b26c4ce"
                    },
                    {
                        "name":  "splitting-datasets",
@@ -2243,7 +2243,7 @@
                        "file_count":  9,
                        "bytes":  29306,
                        "skill_md_hash":  "a9c3e61acb5e33b92760e9a1ea75b0031328095b0bb0118cacd055d749d1b73f",
-                       "dir_hash":  "6ae0061187edfd69d1f4e45893ecd1ecec6e3e9a5c9b31229d836c3ba5d0adc6"
+                       "dir_hash":  "9e8e2914bdfdc5173335ab24301bfe2b5a5dd54720a908e6ac27c0f3e9021181"
                    },
                    {
                        "name":  "stable-baselines3",
@@ -2315,7 +2315,7 @@
                        "file_count":  33,
                        "bytes":  199484,
                        "skill_md_hash":  "0ed05ae178065f152d626d5df3046dfcc2ab1af275a42f9aa2d550fda36d1182",
-                       "dir_hash":  "1a7ffbe32359f230c51d5bfe5642b2c615e3dbb8bee06e1ca46e33403add3f9c"
+                       "dir_hash":  "d0d7793966a0ec85acb25af46d52751debc05ee552474218655a5584a1f2343c"
                    },
                    {
                        "name":  "sympy",
@@ -2331,7 +2331,7 @@
                        "file_count":  11,
                        "bytes":  41591,
                        "skill_md_hash":  "b5464c64bf6577c3bbcbe5a24b161181dc4efcfc70eaa2e2bd6f94fbb1288c37",
-                       "dir_hash":  "68d7137bd3a4e29ba574f2c3a00f1a038c7a9317d63e4c1cdf1a062af6b0220e"
+                       "dir_hash":  "543d7cd227f001c07575a9a4d150ddb4c087ba9f6908a241ebb55fb67debe774"
                    },
                    {
                        "name":  "tdd-guide",
@@ -2355,7 +2355,7 @@
                        "file_count":  13,
                        "bytes":  228894,
                        "skill_md_hash":  "c35893e221e28895c52143cc11bf30e41a44817796b39d4b15727dadc9796552",
-                       "dir_hash":  "2dc086f497837795a5a8ef494ac15e51a733f193cc73dad48c07a6440803a5c5"
+                       "dir_hash":  "f48e5cb761ec5529a29d9412f1fb8ae98a784280f178de00135954167e808d72"
                    },
                    {
                        "name":  "think-harder",
@@ -2419,7 +2419,7 @@
                        "file_count":  7,
                        "bytes":  25479,
                        "skill_md_hash":  "f530021da9f377362ee4214e0bc689cbb5404640d2eb88ee272d51d61f530a09",
-                       "dir_hash":  "cb6ec9ad3ae8260755fe6afc6980b4e3e05f9eee237c1683dd625df1366b50a1"
+                       "dir_hash":  "dfd5503651a3f2ae52018bd0f85f56f57b5ac2c439b8ec167d3c7b651aae99ce"
                    },
                    {
                        "name":  "transformer-lens-interpretability",
@@ -2467,7 +2467,7 @@
                        "file_count":  5,
                        "bytes":  828004,
                        "skill_md_hash":  "ac7f1d1f87d08d7f8713f07c1f6522268b814acea850f97bc986e00f8b461bc3",
-                       "dir_hash":  "6dfaf0353eee0a510723bdb1e98c16837fec60cacf278013df5a8d81f8ceb36b"
+                       "dir_hash":  "0f17de6b52e3eef8720c45e93242d887c8ad4677326129bf8767a4d50f706171"
                    },
                    {
                        "name":  "usfiscaldata",
@@ -2515,7 +2515,7 @@
                        "file_count":  6,
                        "bytes":  13930,
                        "skill_md_hash":  "f4a6cbfbb378a320fae179a79f727a881d19677e9b3db96ed49d2dc02a74fa46",
-                       "dir_hash":  "6e3e57917fe1eb0c570045b451d0859fcacf62e265625730d518217e023ffb13"
+                       "dir_hash":  "331ccbff92a7addad1fb639d93be4a9ae317fb1a5a0acb8b1d29e48bff317849"
                    },
                    {
                        "name":  "verification-before-completion",
@@ -2651,7 +2651,7 @@
                        "file_count":  5,
                        "bytes":  14973,
                        "skill_md_hash":  "2b4583b296a3a043b9002cd74e3ca5407fce832598dcd428272da08a9839f64b",
-                       "dir_hash":  "96d620e2b6637f1f7fd07fa191ffb658fcf5c22305c88c115b4105c2f46fe3b6"
+                       "dir_hash":  "c3c2c52c5fee3b34dd593e39189a35aa5b4a1151773c08d40d65ddc7342e3975"
                    },
                    {
                        "name":  "zarr-python",
