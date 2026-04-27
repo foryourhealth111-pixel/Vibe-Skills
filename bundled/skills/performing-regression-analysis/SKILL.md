@@ -25,8 +25,8 @@ Use this skill when:
 ## Not For / Boundaries
 
 - Causal identification or policy-effect claims: use `performing-causal-analysis`
-- Pairwise screening before modeling: use `correlation-analyzer`
-- Inline regression help inside a broader ML workflow: use `regression-analysis-helper`
+- Pairwise screening before modeling: use `exploratory-data-analysis`
+- Inline regression help inside a broader ML workflow: use `scikit-learn`
 - Final deliverable writing and packaging: use `scientific-reporting`
 
 ## Typical Outputs
@@ -37,6 +37,6 @@ Use this skill when:
 
 ## Related Skills
 
-- `correlation-analyzer` for pre-model screening
-- `regression-analysis-helper` for lightweight inline support inside a larger ML workflow
+- `exploratory-data-analysis` for pre-model screening
+- `scikit-learn` for lightweight inline support inside a larger ML workflow
 - `scientific-reporting` when the regression needs to become a deliverable report

@@ -21,7 +21,7 @@
 - 完全未接通 `68`
 - 一批 built-in skills 仍然使用 “Auto-activating / 自动激活 / 自动触发” 等自我触发表述
 - 已观察到的真实误差包括：
-  - anomaly detector 语义难以稳定命中 `anomaly-detector`
+  - anomaly detector 语义曾难以稳定命中 dedicated anomaly helper；后续 ML 瘦身将该薄模板合并到 `scikit-learn`
   - visualization best practices 未稳定命中 `visualization-best-practices`
   - Obsidian 保存语义未稳定命中 `knowledge-steward`
 

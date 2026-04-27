@@ -325,7 +325,7 @@ When creating features.json, each feature includes recommended skills:
 Feature: Data Analysis Pipeline
 Steps:
   1. Load data → invoke: exploratory-data-analysis
-  2. Clean data → invoke: data-quality-checker
+  2. Clean data → invoke: exploratory-data-analysis
   3. Analyze → invoke: statistical-analysis
   4. Visualize → invoke: data-artist
   5. Report → invoke: report-generator

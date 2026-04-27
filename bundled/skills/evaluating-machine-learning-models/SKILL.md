@@ -36,5 +36,5 @@ This skill focuses on choosing and interpreting the right evaluation metrics for
 
 ## Related Skills
 
-- `confusion-matrix-generator` for class-level error breakdowns
+- `scikit-learn` for class-level error breakdowns and confusion matrices
 - `scientific-reporting` when the evaluation must become a deliverable

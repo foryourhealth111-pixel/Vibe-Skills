@@ -30,7 +30,7 @@ This skill focuses on everyday analytical visualization choices: bars, lines, sc
 
 ## Integration
 
-- Pair with `data-quality-checker` before plotting questionable data
+- Pair with `exploratory-data-analysis` before plotting questionable data
 - Hand off to `scientific-visualization` if the chart must meet publication standards
 
 ## Example Requests

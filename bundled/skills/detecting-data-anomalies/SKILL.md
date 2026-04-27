@@ -14,7 +14,7 @@ license: MIT
 ## Positioning
 
 Treat this skill as an explicit/manual helper.
-In governed ML routing, anomaly-detection ownership normally belongs to `anomaly-detector`.
+In governed ML routing, anomaly-detection ownership normally belongs to `scikit-learn`.
 
 ## When to Use
 
@@ -25,7 +25,7 @@ Use this skill when:
 
 ## Not For / Boundaries
 
-- Null/duplicate/schema/range validation: use `data-quality-checker`
+- Null/duplicate/schema/range validation: use `exploratory-data-analysis`
 - Full model training or end-to-end pipeline ownership: use `training-machine-learning-models`
 - Publication-grade figure production: use `scientific-visualization`
 
@@ -37,5 +37,5 @@ Use this skill when:
 
 ## Related Skills
 
-- `anomaly-detector` as the governed routed owner
+- `scikit-learn` as the governed routed owner for classical anomaly-detection workflows
 - `creating-data-visualizations` after anomalies are identified

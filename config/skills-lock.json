@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-27T10:27:45+08:00",
+  "generated_at": "2026-04-27T10:39:30+08:00",
   "source": "bundled/skills",
-  "skill_count": 343,
-  "total_bytes": 21310340.0,
+  "skill_count": 336,
+  "total_bytes": 21300691.0,
   "skills": [
     {
       "name": ".system",
@@ -158,14 +158,6 @@
       "dir_hash": "2425cff4a17725e6d6091aef6383a95a4dd0a00efe7dca9838778411d3feed19"
     },
     {
-      "name": "anomaly-detector",
-      "relative_path": "bundled/skills/anomaly-detector",
-      "file_count": 1,
-      "bytes": 1404,
-      "skill_md_hash": "a28656dd514e824c1550f754632aa30eda1f806e2fbfdb95bedf9899f3f988d0",
-      "dir_hash": "e474ca5c6622c1cf8d8be79127c127a9eeef1d65f2144dac007f0a0e0cb20941"
-    },
-    {
       "name": "arboreto",
       "relative_path": "bundled/skills/arboreto",
       "file_count": 5,
@@ -193,9 +185,9 @@
       "name": "autonomous-builder",
       "relative_path": "bundled/skills/autonomous-builder",
       "file_count": 25,
-      "bytes": 249382,
+      "bytes": 249387,
       "skill_md_hash": "37adcc0486afdaca2c699b7dcc1d8bd5eec90fc46ca75ae80adb038190e95aad",
-      "dir_hash": "5421d8bfb0cd6ebef30f11fb42eeaf5c0f542e265700ba42fc3b2e3e65c95630"
+      "dir_hash": "8c3cbba459400a57c46e681351a7a65391167bd852e346ac7e82b840f64e2dd3"
     },
     {
       "name": "benchling-integration",
@@ -305,9 +297,9 @@
       "name": "claude-skills",
       "relative_path": "bundled/skills/claude-skills",
       "file_count": 11,
-      "bytes": 41803,
+      "bytes": 41800,
       "skill_md_hash": "f660d6a166c5231e5ec6bedb8797752ddcdb0ffe14137773ebe6ec92bdc3f6de",
-      "dir_hash": "5c8f962b46fb31ca4453f9138399517f6511340d04351b3f2b6ed2bb507689e5"
+      "dir_hash": "2b0859a4e8eca4e15a6385d2e802ef839c281d31c2bce19e99be050de71e6f4a"
     },
     {
       "name": "clinical-decision-support",
@@ -406,14 +398,6 @@
       "dir_hash": "c32c0ff3a3f6143b3e9bb862d652ca360df4543fd4acca584ff662360221696b"
     },
     {
-      "name": "confusion-matrix-generator",
-      "relative_path": "bundled/skills/confusion-matrix-generator",
-      "file_count": 1,
-      "bytes": 1374,
-      "skill_md_hash": "37ad5578256aa22441e624d8eae521a13bbff5db731f541bb35e3a3db3a61071",
-      "dir_hash": "e71d161b4346cef99e9f0aef55e4b41e3765b4579f606a3cb1094c5911a2a4a6"
-    },
-    {
       "name": "content-research-writer",
       "relative_path": "bundled/skills/content-research-writer",
       "file_count": 1,
@@ -438,14 +422,6 @@
       "dir_hash": "45d9b70d9186530687bbfb4ebdf1cf0f744348d566952ab4e328fd7673a73695"
     },
     {
-      "name": "correlation-analyzer",
-      "relative_path": "bundled/skills/correlation-analyzer",
-      "file_count": 1,
-      "bytes": 1236,
-      "skill_md_hash": "03d26fda4c963c19021e8d8298d61fc0723021f0995fa2424fff6a4deb78acf1",
-      "dir_hash": "6b9ebef4ed2a50c4d54bd986d003204f6c43e9391311afda2bbe8bb83c7d85c7"
-    },
-    {
       "name": "cosmic-database",
       "relative_path": "bundled/skills/cosmic-database",
       "file_count": 3,
@@ -465,9 +441,9 @@
       "name": "creating-data-visualizations",
       "relative_path": "bundled/skills/creating-data-visualizations",
       "file_count": 7,
-      "bytes": 14415,
-      "skill_md_hash": "e6f739729ed5988a2fbc51be9013cb1f50507b2dbbadbbfddc24f60646710661",
-      "dir_hash": "bfead1a23ab310c92e39d307df742bfb91a285933ed0f18d27c194998a31ff15"
+      "bytes": 14420,
+      "skill_md_hash": "2c01c526fb11eed78e64a23d83a394a3c545741cabaea04620614edeab60bd85",
+      "dir_hash": "8a0f2a626c42c6ade4e72eceef3de6c07d784a758b5b9544b8d4fb736a1c2273"
     },
     {
       "name": "cs-foundations",
@@ -500,22 +476,6 @@
       "bytes": 250863,
       "skill_md_hash": "f7c74a056cceddeacd70256865db59b1af7decffbc08423eef896c1d87d2b965",
       "dir_hash": "1940eb253b6ed23d9ee1729e4cda2f157be51bb3af94742e7fa2305f615c66ef"
-    },
-    {
-      "name": "data-normalization-tool",
-      "relative_path": "bundled/skills/data-normalization-tool",
-      "file_count": 1,
-      "bytes": 1405,
-      "skill_md_hash": "672c31feae5ac541a57c30c1cd1589a43e09188062f9f3b03db6ca9db287b97e",
-      "dir_hash": "bc42fca88e8c5765abc2e0e93346e0871fcc2a7f2de06a163bb971f03a2e50aa"
-    },
-    {
-      "name": "data-quality-checker",
-      "relative_path": "bundled/skills/data-quality-checker",
-      "file_count": 1,
-      "bytes": 1277,
-      "skill_md_hash": "b28f022b3454327e87b2b165f645cf302665e7335ba173fef1828a6059c4169f",
-      "dir_hash": "199c4817b21a50c554066474ef406170c0451b0a6864169741e92bb35e2363d1"
     },
     {
       "name": "data-quality-frameworks",
@@ -625,9 +585,9 @@
       "name": "detecting-data-anomalies",
       "relative_path": "bundled/skills/detecting-data-anomalies",
       "file_count": 11,
-      "bytes": 18251,
-      "skill_md_hash": "245c5a0090db11f23a8d3f1c83265cd374cd0b24ce0ba9ad6438160b2d62ba3a",
-      "dir_hash": "dbc39ab4f066e48634e236d360dabfd48a3e37ae56e105545f1f4b080789da5c"
+      "bytes": 18290,
+      "skill_md_hash": "e0fbfed3b5a63be520588eeb65111f6fbdf08dff6aa9a78a332e558a3cf4a9d4",
+      "dir_hash": "41969e73a99197ec0e65a5ebc6257cfacbed455a3ab2553ad4e590071ece17ef"
     },
     {
       "name": "detecting-performance-regressions",
@@ -761,9 +721,9 @@
       "name": "engineering-features-for-machine-learning",
       "relative_path": "bundled/skills/engineering-features-for-machine-learning",
       "file_count": 11,
-      "bytes": 32751,
-      "skill_md_hash": "46ae67a119f65cdd9ca1085c72a37c3b899a647fad6c748bf31fee15713c6064",
-      "dir_hash": "982b13e3ebc89842e3a7eaa414d1a8acaf7a9930c492b5a52e09ba494a3f713c"
+      "bytes": 32748,
+      "skill_md_hash": "de9deef2abf168cc50d039ffa4af784cd7334e322f6802c7d5b976bd317083e6",
+      "dir_hash": "2aa2cdf97551df80ff3ef2f46fb28c9d4eee28a0120aada4be6dea6b6c7b52b2"
     },
     {
       "name": "ensembl-database",
@@ -825,9 +785,9 @@
       "name": "evaluating-machine-learning-models",
       "relative_path": "bundled/skills/evaluating-machine-learning-models",
       "file_count": 8,
-      "bytes": 17421,
-      "skill_md_hash": "1417f044c0c7d095ae9f95049dd95607e5387466453a4c5fb85469b8320b641e",
-      "dir_hash": "615a31b18018b23887098c169c81475d181c5c4616d4da2be98a63024dbdb0bd"
+      "bytes": 17430,
+      "skill_md_hash": "17ff5dc43e2a19245721c592868ac1c14a597e90aca861a41d7fccc73a42ff8f",
+      "dir_hash": "08b48a849ae92c90e838f53eb45672ced44e8537b1896647dd5ffbac4e94b05c"
     },
     {
       "name": "excel-analysis",
@@ -868,14 +828,6 @@
       "bytes": 126501,
       "skill_md_hash": "5022fc49a23ed1aa1a37414fa899e1c2ed781b98d7dd4e4d33aac913c1424fc6",
       "dir_hash": "86621eb6354144a8e50ebc3c824df9c7fe58515fddde5ccdceb5b3c071bf1e12"
-    },
-    {
-      "name": "feature-importance-analyzer",
-      "relative_path": "bundled/skills/feature-importance-analyzer",
-      "file_count": 1,
-      "bytes": 1369,
-      "skill_md_hash": "0233048a7777309b1899c0febb13657590c458ae1b7ac78415765db751b30bd2",
-      "dir_hash": "698f78b799b0a34a18bbdea7de0f9fdf2bf24abb317285932f84ab71b55af015"
     },
     {
       "name": "figma",
@@ -1577,9 +1529,9 @@
       "name": "performing-regression-analysis",
       "relative_path": "bundled/skills/performing-regression-analysis",
       "file_count": 9,
-      "bytes": 51001,
-      "skill_md_hash": "51d1a4ac2fafc5febedf174da8084bb201fcb2c580a4b9bb1003212488ffb6aa",
-      "dir_hash": "fef5c98aaa2b644a9f62cbf1f55dac035c9d05ed4ba3e45f9be2c7ef6520c1cf"
+      "bytes": 50983,
+      "skill_md_hash": "89d62f03a8f6174ee35b0c7c8262f34eb2594050144a8220492c69fc41ecd44b",
+      "dir_hash": "3a0918f2fe3034307c226bc43227a9b150ee38314e4eb5da02982fa0d62e7e27"
     },
     {
       "name": "perplexity-search",
@@ -1862,14 +1814,6 @@
       "dir_hash": "24d30aebd5b261a7bd3e481f9390dbb4fed8e9762fc2423ced2528a7977a9465"
     },
     {
-      "name": "regression-analysis-helper",
-      "relative_path": "bundled/skills/regression-analysis-helper",
-      "file_count": 1,
-      "bytes": 1610,
-      "skill_md_hash": "e6f8e267e0c07cad5eb8f5cd0382e8724592626b159a4a5fea1f02b84066f0a8",
-      "dir_hash": "68b68302dbdfcb7f85a27913413b0620aa2c75cdba29f4724b8f0087742ffcac"
-    },
-    {
       "name": "report-generator",
       "relative_path": "bundled/skills/report-generator",
       "file_count": 3,
@@ -1921,9 +1865,9 @@
       "name": "running-clustering-algorithms",
       "relative_path": "bundled/skills/running-clustering-algorithms",
       "file_count": 12,
-      "bytes": 25504,
-      "skill_md_hash": "a87db0e78175e5220d4b22bb26bfc873cd0cb564892b044a53fec9b061607499",
-      "dir_hash": "7ac4711fbae762841a8b6fc036fa5f1959b80681506f4516781aac826c914240"
+      "bytes": 25496,
+      "skill_md_hash": "6d30a105d32e983d90ae0c6638ebbe8e0b2d91668b5c3fc73698e13dbf44e281",
+      "dir_hash": "5a85f2549cba9eb21df7aca18d0cfe795dad9e19437eb67df60e8738c038d777"
     },
     {
       "name": "scanpy",

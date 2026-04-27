@@ -25,7 +25,7 @@ This skill covers algorithm choice, preprocessing implications, cluster validati
 ## Not For / Boundaries
 
 - Supervised prediction with labels: use `training-machine-learning-models`
-- Pure anomaly review without clustering as the central method: use `anomaly-detector`
+- Pure anomaly review without clustering as the central method: use `scikit-learn`
 - Final narrative report packaging: use `scientific-reporting`
 
 ## Typical Outputs
@@ -37,4 +37,4 @@ This skill covers algorithm choice, preprocessing implications, cluster validati
 ## Related Skills
 
 - `creating-data-visualizations` for exploratory plots of cluster structure
-- `anomaly-detector` when outliers become the next question
+- `scikit-learn` when outliers become the next question

@@ -507,22 +507,15 @@
                                            ],
                       "skill_candidates":  [
                                                "aeon",
-                                               "anomaly-detector",
-                                               "confusion-matrix-generator",
-                                               "correlation-analyzer",
                                                "creating-data-visualizations",
                                                "data-exploration-visualization",
-                                               "data-normalization-tool",
-                                               "data-quality-checker",
                                                "engineering-features-for-machine-learning",
                                                "evaluating-machine-learning-models",
                                                "exploratory-data-analysis",
-                                               "feature-importance-analyzer",
                                                "LQF_Machine_Learning_Expert_Guide",
                                                "ml-data-leakage-guard",
                                                "ml-pipeline-workflow",
                                                "preprocessing-data-with-automated-pipelines",
-                                               "regression-analysis-helper",
                                                "running-clustering-algorithms",
                                                "scikit-learn",
                                                "shap",
@@ -545,17 +538,10 @@
                                                        "training-machine-learning-models"
                                                    ],
                       "stage_assistant_candidates":  [
-                                                       "anomaly-detector",
-                                                       "confusion-matrix-generator",
-                                                       "correlation-analyzer",
                                                        "creating-data-visualizations",
                                                        "data-exploration-visualization",
-                                                       "data-normalization-tool",
-                                                       "data-quality-checker",
                                                        "engineering-features-for-machine-learning",
-                                                       "feature-importance-analyzer",
-                                                       "preprocessing-data-with-automated-pipelines",
-                                                       "regression-analysis-helper"
+                                                       "preprocessing-data-with-automated-pipelines"
                                                    ],
                       "defaults_by_task":  {
                                                "planning":  "ml-pipeline-workflow",

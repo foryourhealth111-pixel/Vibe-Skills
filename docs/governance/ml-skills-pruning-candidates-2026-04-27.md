@@ -4,13 +4,13 @@
 
 ## 结论先看
 
-本文件是删除前证据清单，不是删除补丁。当前没有删除任何 skill 目录。
+本文件最初是删除前证据清单。作者确认后，下面 7 个 skill 已进入删除补丁。
 
 - 本次审计识别出 40 个 ML 相关 skill。
 - 第一轮建议删除 7 个通用模板型 stage assistant。
 - 12 个专业工具型 skill 暂缓专项评估，本轮不删。
 - 13 个 skill 标记为 `merge-into`，说明有重叠或边界问题，但证据还不足以直接删。
-- 真正删除前，还需要作者确认下面的具体 skill ID。
+- 作者已确认下面的具体 skill ID 可以删除。
 
 一句话解释：
 
@@ -96,13 +96,13 @@
 
 | skill_id | 是否读过 SKILL.md | 是否有 scripts | 是否有 references | 是否同意删除 | 复核备注 |
 |---|---|---:|---:|---:|---|
-| `anomaly-detector` | 是 | 否 | 否 | 待作者确认 | 内容是异常检测薄流程，边界清楚但没有独立资产。 |
-| `confusion-matrix-generator` | 是 | 否 | 否 | 待作者确认 | 内容是分类错误分析薄流程，可由 `scikit-learn` 覆盖。 |
-| `correlation-analyzer` | 是 | 否 | 否 | 待作者确认 | 内容是相关性筛查薄流程，可由 EDA 覆盖。 |
-| `data-normalization-tool` | 是 | 否 | 否 | 待作者确认 | 内容是归一化薄流程，可由预处理 pipeline 覆盖。 |
-| `data-quality-checker` | 是 | 否 | 否 | 待作者确认 | 内容是基础数据质量薄流程，可由 EDA 覆盖。 |
-| `feature-importance-analyzer` | 是 | 否 | 否 | 待作者确认 | 内容是特征重要性薄流程，可由 `shap` 覆盖。 |
-| `regression-analysis-helper` | 是 | 否 | 否 | 待作者确认 | 内容是轻量回归分析帮助，可由 `scikit-learn` 覆盖。 |
+| `anomaly-detector` | 是 | 否 | 否 | 是 | 内容是异常检测薄流程，边界清楚但没有独立资产。 |
+| `confusion-matrix-generator` | 是 | 否 | 否 | 是 | 内容是分类错误分析薄流程，可由 `scikit-learn` 覆盖。 |
+| `correlation-analyzer` | 是 | 否 | 否 | 是 | 内容是相关性筛查薄流程，可由 EDA 覆盖。 |
+| `data-normalization-tool` | 是 | 否 | 否 | 是 | 内容是归一化薄流程，可由预处理 pipeline 覆盖。 |
+| `data-quality-checker` | 是 | 否 | 否 | 是 | 内容是基础数据质量薄流程，可由 EDA 覆盖。 |
+| `feature-importance-analyzer` | 是 | 否 | 否 | 是 | 内容是特征重要性薄流程，可由 `shap` 覆盖。 |
+| `regression-analysis-helper` | 是 | 否 | 否 | 是 | 内容是轻量回归分析帮助，可由 `scikit-learn` 覆盖。 |
 
 ## 引用检查摘要
 
@@ -120,11 +120,24 @@
 - 清理相邻 skill 文案里指向已删除 skill 的 Related Skills / Boundaries。
 - 保留审计文档里的迁移映射，作为删除原因和历史证据。
 
+## 删除后审计结果
+
+作者确认后已删除上述 7 个目录，并重新运行 ML 审计 gate。
+
+删除后结果：
+
+- `delete` 行数：0
+- `defer-specialist-review`：12
+- `keep`：8
+- `merge-into`：13
+
+这表示第一轮已确认的薄模板删除候选已经从当前 bundled skills 面清掉。
+
 ## 作者确认区
 
-只有作者确认后，下一步才允许删除目录。
+作者已在 2026-04-27 确认可以删除下列目录。
 
-待确认删除名单：
+确认删除名单：
 
 ```text
 anomaly-detector

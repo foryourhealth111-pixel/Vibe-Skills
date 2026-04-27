@@ -78,10 +78,10 @@ Rationale:
 
 Examples:
 - One-way governance reference:
-  - `detecting-data-anomalies` MAY reference `anomaly-detector` as the governed routed owner.
-  - `anomaly-detector` does NOT need to reference `detecting-data-anomalies` back unless that reverse path is intentionally supported.
+  - `detecting-data-anomalies` MAY reference `scikit-learn` as the governed routed owner.
+  - `scikit-learn` does NOT need to reference `detecting-data-anomalies` back unless that reverse path is intentionally supported.
 - Symmetric collaboration reference:
-  - `correlation-analyzer` and `performing-regression-analysis` SHOULD reference each other when screening commonly hands off into regression and regression often points back to screening outputs.
+  - `exploratory-data-analysis` and `performing-regression-analysis` SHOULD reference each other when screening commonly hands off into regression and regression often points back to screening outputs.
 - Routing-language usage:
   - Use phrases like "governed routed owner" only when the relationship is about route authority.
   - Use neutral phrases like "next modeling step" or "complementary helper" when the relationship is collaborative rather than authoritative.

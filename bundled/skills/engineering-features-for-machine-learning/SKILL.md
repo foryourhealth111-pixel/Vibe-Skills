@@ -25,7 +25,7 @@ This skill covers feature creation, encoding, scaling coordination, and feature 
 ## Not For / Boundaries
 
 - Full training runs and benchmark ownership: use `training-machine-learning-models`
-- Post-hoc interpretation of a trained model: use `feature-importance-analyzer`
+- Post-hoc interpretation of a trained model: use `shap`
 - Leak checking across the preprocessing order: use `ml-data-leakage-guard`
 
 ## Typical Outputs
@@ -36,5 +36,5 @@ This skill covers feature creation, encoding, scaling coordination, and feature 
 
 ## Related Skills
 
-- `data-normalization-tool` for scaling-only questions
+- `preprocessing-data-with-automated-pipelines` for scaling-only questions
 - `ml-data-leakage-guard` before accepting the engineered pipeline
