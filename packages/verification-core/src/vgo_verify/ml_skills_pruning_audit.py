@@ -101,6 +101,222 @@ CSV_FIELDS = [
     "risk_level",
 ]
 
+PROBLEM_MAP_CSV_FIELDS = [
+    "skill_id",
+    "problem_ids",
+    "primary_problem_id",
+    "current_role",
+    "target_role",
+    "target_owner",
+    "overlap_with",
+    "unique_assets",
+    "routing_change",
+    "delete_allowed_after_migration",
+    "risk_level",
+    "rationale",
+]
+
+DATA_ML_TARGET_SKILLS = {
+    "aeon",
+    "evaluating-machine-learning-models",
+    "exploratory-data-analysis",
+    "ml-data-leakage-guard",
+    "ml-pipeline-workflow",
+    "preprocessing-data-with-automated-pipelines",
+    "scikit-learn",
+    "shap",
+}
+
+DATA_ML_PROBLEM_DECISIONS: dict[str, dict[str, Any]] = {
+    "aeon": {
+        "problem_ids": ["ml_time_series"],
+        "primary_problem_id": "ml_time_series",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "statsmodels; timesfm-forecasting",
+        "routing_change": "keep in data-ml as narrow time-series ML route authority",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "时间序列 ML 是独立问题类型，普通 scikit-learn 不够精确。",
+    },
+    "creating-data-visualizations": {
+        "problem_ids": ["ml_data_understanding"],
+        "primary_problem_id": "ml_data_understanding",
+        "target_role": "move-out",
+        "target_owner": "science-figures-visualization",
+        "overlap_with": "exploratory-data-analysis; data-exploration-visualization",
+        "routing_change": "remove from data-ml; keep as visualization skill outside this pack",
+        "delete_allowed_after_migration": False,
+        "risk_level": "medium",
+        "rationale": "普通图表有价值，但不是 data-ml 核心主路由职责。",
+    },
+    "data-exploration-visualization": {
+        "problem_ids": ["ml_data_understanding"],
+        "primary_problem_id": "ml_data_understanding",
+        "target_role": "merge-delete-after-migration",
+        "target_owner": "exploratory-data-analysis",
+        "overlap_with": "exploratory-data-analysis; creating-data-visualizations",
+        "routing_change": "remove from data-ml; migrate reusable EDA assets before deleting",
+        "delete_allowed_after_migration": True,
+        "risk_level": "medium",
+        "rationale": "EDA 主流程和普通可视化已由更清晰的 owner 覆盖。",
+    },
+    "engineering-features-for-machine-learning": {
+        "problem_ids": ["ml_preprocessing_features"],
+        "primary_problem_id": "ml_preprocessing_features",
+        "target_role": "merge-delete-after-migration",
+        "target_owner": "preprocessing-data-with-automated-pipelines",
+        "overlap_with": "preprocessing-data-with-automated-pipelines; scikit-learn",
+        "routing_change": "remove from data-ml; migrate reusable feature-engineering assets first",
+        "delete_allowed_after_migration": True,
+        "risk_level": "medium",
+        "rationale": "特征工程和预处理是同一阶段问题，应集中到一个阶段助手。",
+    },
+    "evaluating-machine-learning-models": {
+        "problem_ids": ["ml_model_evaluation"],
+        "primary_problem_id": "ml_model_evaluation",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "scikit-learn; training-machine-learning-models",
+        "routing_change": "keep in data-ml as review/evaluation route authority",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "模型评估、阈值、校准和比较是独立高价值问题。",
+    },
+    "exploratory-data-analysis": {
+        "problem_ids": ["ml_data_understanding"],
+        "primary_problem_id": "ml_data_understanding",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "data-exploration-visualization; creating-data-visualizations",
+        "routing_change": "keep in data-ml as data-understanding route authority",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "数据质量、结构、分布和初步理解是 ML 流程的核心入口。",
+    },
+    "LQF_Machine_Learning_Expert_Guide": {
+        "problem_ids": ["ml_critical_review"],
+        "primary_problem_id": "ml_critical_review",
+        "target_role": "move-out",
+        "target_owner": "explicit-review",
+        "overlap_with": "ml-pipeline-workflow; evaluating-machine-learning-models",
+        "routing_change": "remove from data-ml; keep only for explicit critical-review use",
+        "delete_allowed_after_migration": False,
+        "risk_level": "medium",
+        "rationale": "批判式评审有价值，但触发面过宽，不应压住普通 ML 主路由。",
+    },
+    "ml-data-leakage-guard": {
+        "problem_ids": ["ml_leakage_audit"],
+        "primary_problem_id": "ml_leakage_audit",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "evaluating-machine-learning-models; preprocessing-data-with-automated-pipelines",
+        "routing_change": "keep in data-ml as leakage-audit route authority",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "数据泄漏是独立高风险问题，应保留专门检查入口。",
+    },
+    "ml-pipeline-workflow": {
+        "problem_ids": ["ml_workflow_orchestration"],
+        "primary_problem_id": "ml_workflow_orchestration",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "training-machine-learning-models; scikit-learn",
+        "routing_change": "keep in data-ml as planning/default workflow owner",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "端到端流程规划和 MLOps 生命周期需要独立 owner。",
+    },
+    "preprocessing-data-with-automated-pipelines": {
+        "problem_ids": ["ml_preprocessing_features"],
+        "primary_problem_id": "ml_preprocessing_features",
+        "target_role": "stage-assistant",
+        "target_owner": "",
+        "overlap_with": "engineering-features-for-machine-learning; scikit-learn",
+        "routing_change": "keep in data-ml as the only stage assistant",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "清洗、编码、缩放、转换和验证应集中到一个阶段助手。",
+    },
+    "running-clustering-algorithms": {
+        "problem_ids": ["ml_tabular_modeling"],
+        "primary_problem_id": "ml_tabular_modeling",
+        "target_role": "merge-delete-after-migration",
+        "target_owner": "scikit-learn",
+        "overlap_with": "scikit-learn; aeon",
+        "routing_change": "remove from data-ml; migrate reusable clustering assets first",
+        "delete_allowed_after_migration": True,
+        "risk_level": "medium",
+        "rationale": "普通聚类是传统 ML 子问题，应由 scikit-learn 主导。",
+    },
+    "scikit-learn": {
+        "problem_ids": ["ml_tabular_modeling", "ml_model_evaluation"],
+        "primary_problem_id": "ml_tabular_modeling",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "training-machine-learning-models; running-clustering-algorithms",
+        "routing_change": "keep in data-ml as coding/research default",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "传统表格分类、回归、聚类、调参和 baseline 的主入口。",
+    },
+    "shap": {
+        "problem_ids": ["ml_explainability"],
+        "primary_problem_id": "ml_explainability",
+        "target_role": "keep",
+        "target_owner": "",
+        "overlap_with": "evaluating-machine-learning-models",
+        "routing_change": "keep in data-ml as narrow explainability route authority",
+        "delete_allowed_after_migration": False,
+        "risk_level": "low",
+        "rationale": "模型解释和特征归因是独立问题，且 SHAP 工具边界清楚。",
+    },
+    "statistical-analysis": {
+        "problem_ids": ["statistics_research"],
+        "primary_problem_id": "statistics_research",
+        "target_role": "move-out",
+        "target_owner": "research-design",
+        "overlap_with": "statsmodels; scikit-learn",
+        "routing_change": "remove from data-ml; keep for statistics/research tasks",
+        "delete_allowed_after_migration": False,
+        "risk_level": "medium",
+        "rationale": "统计检验和研究统计有价值，但不应做普通 ML pack 候选。",
+    },
+    "statsmodels": {
+        "problem_ids": ["statistics_modeling", "ml_time_series"],
+        "primary_problem_id": "statistics_modeling",
+        "target_role": "move-out",
+        "target_owner": "research-design",
+        "overlap_with": "statistical-analysis; aeon",
+        "routing_change": "remove from data-ml; keep for explicit statistical modeling/ARIMA",
+        "delete_allowed_after_migration": False,
+        "risk_level": "medium",
+        "rationale": "统计建模和计量边界清楚，但更适合统计/科研设计语境。",
+    },
+    "training-machine-learning-models": {
+        "problem_ids": ["ml_tabular_modeling", "ml_workflow_orchestration"],
+        "primary_problem_id": "ml_tabular_modeling",
+        "target_role": "merge-delete-after-migration",
+        "target_owner": "scikit-learn",
+        "overlap_with": "scikit-learn; ml-pipeline-workflow",
+        "routing_change": "remove from data-ml; migrate useful training assets first",
+        "delete_allowed_after_migration": True,
+        "risk_level": "medium",
+        "rationale": "训练本身不是独立 pack 问题，应由传统 ML 或流程 owner 接管。",
+    },
+    "umap-learn": {
+        "problem_ids": ["ml_dimensionality_reduction"],
+        "primary_problem_id": "ml_dimensionality_reduction",
+        "target_role": "move-out",
+        "target_owner": "explicit-tool",
+        "overlap_with": "scikit-learn; exploratory-data-analysis",
+        "routing_change": "remove from data-ml; keep for explicit UMAP/manifold requests",
+        "delete_allowed_after_migration": False,
+        "risk_level": "medium",
+        "rationale": "UMAP 是窄工具，只有明确降维/流形学习请求时应触发。",
+    },
+}
+
 
 @dataclass(frozen=True)
 class AuditRow:
@@ -138,6 +354,46 @@ class AuditArtifact:
                     1 for row in self.rows if row.recommended_action == "defer-specialist-review"
                 ),
             },
+            "rows": [asdict(row) for row in self.rows],
+        }
+
+
+@dataclass(frozen=True)
+class ProblemMapRow:
+    skill_id: str
+    problem_ids: str
+    primary_problem_id: str
+    current_role: str
+    target_role: str
+    target_owner: str
+    overlap_with: str
+    unique_assets: str
+    routing_change: str
+    delete_allowed_after_migration: bool
+    risk_level: str
+    rationale: str
+
+
+@dataclass(frozen=True)
+class ProblemMapArtifact:
+    generated_at: str
+    repo_root: str
+    rows: list[ProblemMapRow]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "generated_at": self.generated_at,
+            "repo_root": self.repo_root,
+            "summary": {
+                "data_ml_skill_count": len(self.rows),
+                "target_keep_count": sum(1 for row in self.rows if row.target_role == "keep"),
+                "target_stage_assistant_count": sum(1 for row in self.rows if row.target_role == "stage-assistant"),
+                "target_move_out_count": sum(1 for row in self.rows if row.target_role == "move-out"),
+                "target_merge_delete_count": sum(
+                    1 for row in self.rows if row.target_role == "merge-delete-after-migration"
+                ),
+            },
+            "target_data_ml_skill_candidates": sorted(DATA_ML_TARGET_SKILLS),
             "rows": [asdict(row) for row in self.rows],
         }
 
@@ -503,7 +759,82 @@ def audit_repository(repo_root: Path) -> AuditArtifact:
     )
 
 
-def _markdown_table(rows: list[AuditRow], fields: list[str]) -> list[str]:
+def _data_ml_pack(pack_manifest: dict[str, Any]) -> dict[str, Any]:
+    for pack in _as_list(pack_manifest.get("packs")):
+        if isinstance(pack, dict) and str(pack.get("id", "")).strip() == "data-ml":
+            return pack
+    return {}
+
+
+def _file_count(directory: Path) -> int:
+    if not directory.is_dir():
+        return 0
+    return sum(1 for item in directory.rglob("*") if item.is_file())
+
+
+def _asset_summary(skill_dir: Path) -> str:
+    parts = [
+        f"scripts={_file_count(skill_dir / 'scripts')}",
+        f"references={_file_count(skill_dir / 'references')}",
+        f"assets={_file_count(skill_dir / 'assets')}",
+    ]
+    return "; ".join(parts)
+
+
+def _problem_decision_for(skill_id: str) -> dict[str, Any]:
+    return DATA_ML_PROBLEM_DECISIONS.get(
+        skill_id,
+        {
+            "problem_ids": ["manual_review"],
+            "primary_problem_id": "manual_review",
+            "target_role": "manual-review",
+            "target_owner": "",
+            "overlap_with": "",
+            "routing_change": "manual review required before changing data-ml membership",
+            "delete_allowed_after_migration": False,
+            "risk_level": "high",
+            "rationale": "未在 problem-first 决策表中登记，不能自动收敛。",
+        },
+    )
+
+
+def audit_data_ml_problem_map(repo_root: Path) -> ProblemMapArtifact:
+    repo_root = repo_root.resolve()
+    pack_manifest = _read_json(repo_root / "config" / "pack-manifest.json")
+    pack_index = _build_pack_index(pack_manifest)
+    data_ml = _data_ml_pack(pack_manifest)
+    rows: list[ProblemMapRow] = []
+    for skill_id_raw in _as_list(data_ml.get("skill_candidates")):
+        skill_id = str(skill_id_raw).strip()
+        if not skill_id:
+            continue
+        record = pack_index.get(skill_id, {"packs": set(), "route_authority": set(), "stage_assistant": set(), "defaults": set()})
+        decision = _problem_decision_for(skill_id)
+        skill_dir = repo_root / "bundled" / "skills" / skill_id
+        rows.append(
+            ProblemMapRow(
+                skill_id=skill_id,
+                problem_ids="; ".join(_as_list(decision.get("problem_ids"))),
+                primary_problem_id=str(decision.get("primary_problem_id", "")),
+                current_role=_current_role(record),
+                target_role=str(decision.get("target_role", "manual-review")),
+                target_owner=str(decision.get("target_owner", "")),
+                overlap_with=str(decision.get("overlap_with", "")),
+                unique_assets=_asset_summary(skill_dir),
+                routing_change=str(decision.get("routing_change", "")),
+                delete_allowed_after_migration=bool(decision.get("delete_allowed_after_migration", False)),
+                risk_level=str(decision.get("risk_level", "high")),
+                rationale=str(decision.get("rationale", "")),
+            )
+        )
+    return ProblemMapArtifact(
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        repo_root=str(repo_root),
+        rows=rows,
+    )
+
+
+def _markdown_table(rows: list[Any], fields: list[str]) -> list[str]:
     lines = ["| " + " | ".join(fields) + " |", "| " + " | ".join(["---"] * len(fields)) + " |"]
     for row in rows:
         data = asdict(row)
@@ -559,6 +890,79 @@ def _write_markdown(path: Path, artifact: AuditArtifact) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _write_problem_markdown(path: Path, artifact: ProblemMapArtifact) -> None:
+    keep_rows = [row for row in artifact.rows if row.target_role == "keep"]
+    stage_rows = [row for row in artifact.rows if row.target_role == "stage-assistant"]
+    move_rows = [row for row in artifact.rows if row.target_role == "move-out"]
+    merge_rows = [row for row in artifact.rows if row.target_role == "merge-delete-after-migration"]
+    lines: list[str] = [
+        "# Data-ML Problem-First Consolidation",
+        "",
+        f"- Generated At: `{artifact.generated_at}`",
+        f"- Current Data-ML Skills: {len(artifact.rows)}",
+        f"- Target Keep: {len(keep_rows)}",
+        f"- Target Stage Assistants: {len(stage_rows)}",
+        f"- Move Out: {len(move_rows)}",
+        f"- Merge/Delete After Migration: {len(merge_rows)}",
+        "",
+        "## 目标保留",
+        "",
+    ]
+    if keep_rows:
+        lines.extend(_markdown_table(keep_rows, ["skill_id", "primary_problem_id", "current_role", "rationale"]))
+    else:
+        lines.append("- none")
+    lines.extend(["", "## 阶段助手", ""])
+    if stage_rows:
+        lines.extend(_markdown_table(stage_rows, ["skill_id", "primary_problem_id", "current_role", "rationale"]))
+    else:
+        lines.append("- none")
+    lines.extend(["", "## 移出 data-ml 但保留目录", ""])
+    if move_rows:
+        lines.extend(
+            _markdown_table(
+                move_rows,
+                ["skill_id", "primary_problem_id", "target_owner", "unique_assets", "rationale"],
+            )
+        )
+    else:
+        lines.append("- none")
+    lines.extend(["", "## 合并迁移后可删除", ""])
+    if merge_rows:
+        lines.extend(
+            _markdown_table(
+                merge_rows,
+                ["skill_id", "primary_problem_id", "target_owner", "unique_assets", "rationale"],
+            )
+        )
+    else:
+        lines.append("- none")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_data_ml_problem_artifacts(
+    repo_root: Path,
+    artifact: ProblemMapArtifact,
+    output_dir: Path | None = None,
+) -> dict[str, Path]:
+    repo_root = repo_root.resolve()
+    output_dir = output_dir or repo_root / "outputs" / "skills-audit"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = output_dir / "data-ml-problem-map.json"
+    csv_path = output_dir / "data-ml-problem-map.csv"
+    markdown_path = output_dir / "data-ml-problem-consolidation.md"
+
+    json_path.write_text(json.dumps(artifact.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=PROBLEM_MAP_CSV_FIELDS)
+        writer.writeheader()
+        for row in artifact.rows:
+            writer.writerow(asdict(row))
+    _write_problem_markdown(markdown_path, artifact)
+    return {"json": json_path, "csv": csv_path, "markdown": markdown_path}
+
+
 def write_artifacts(repo_root: Path, artifact: AuditArtifact, output_dir: Path | None = None) -> dict[str, Path]:
     repo_root = repo_root.resolve()
     output_dir = output_dir or repo_root / "outputs" / "skills-audit"
@@ -590,6 +994,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.write_artifacts:
         output_dir = Path(args.output_directory).resolve() if args.output_directory else None
         write_artifacts(repo_root, artifact, output_dir)
+        problem_artifact = audit_data_ml_problem_map(repo_root)
+        write_data_ml_problem_artifacts(repo_root, problem_artifact, output_dir)
     print(json.dumps(artifact.to_dict(), ensure_ascii=False, indent=2))
     return 0
 

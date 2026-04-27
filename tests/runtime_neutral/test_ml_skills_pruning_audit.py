@@ -12,7 +12,12 @@ VERIFICATION_CORE_SRC = REPO_ROOT / "packages" / "verification-core" / "src"
 if str(VERIFICATION_CORE_SRC) not in sys.path:
     sys.path.insert(0, str(VERIFICATION_CORE_SRC))
 
-from vgo_verify.ml_skills_pruning_audit import audit_repository, write_artifacts
+from vgo_verify.ml_skills_pruning_audit import (
+    audit_data_ml_problem_map,
+    audit_repository,
+    write_artifacts,
+    write_data_ml_problem_artifacts,
+)
 
 
 class MlSkillsPruningAuditTests(unittest.TestCase):
@@ -222,6 +227,37 @@ class MlSkillsPruningAuditTests(unittest.TestCase):
         self.assertIn("# ML Skills Pruning Audit", markdown_text)
         self.assertIn("## 删除候选", markdown_text)
         self.assertIn("anomaly-detector", markdown_text)
+
+    def test_data_ml_problem_map_marks_targets_for_consolidation(self) -> None:
+        artifact = audit_data_ml_problem_map(self.root)
+        rows = {row.skill_id: row for row in artifact.rows}
+
+        self.assertEqual("keep", rows["scikit-learn"].target_role)
+        self.assertEqual("ml_tabular_modeling", rows["scikit-learn"].primary_problem_id)
+        self.assertEqual("keep", rows["shap"].target_role)
+        self.assertEqual("ml_explainability", rows["shap"].primary_problem_id)
+
+        self.assertEqual("merge-delete-after-migration", rows["training-machine-learning-models"].target_role)
+        self.assertEqual("scikit-learn", rows["training-machine-learning-models"].target_owner)
+        self.assertTrue(rows["training-machine-learning-models"].delete_allowed_after_migration)
+
+    def test_problem_artifact_writer_outputs_json_csv_and_markdown(self) -> None:
+        artifact = audit_data_ml_problem_map(self.root)
+        output_dir = self.root / "outputs" / "skills-audit"
+        written = write_data_ml_problem_artifacts(self.root, artifact, output_dir)
+
+        self.assertTrue(written["json"].exists())
+        self.assertTrue(written["csv"].exists())
+        self.assertTrue(written["markdown"].exists())
+        self.assertIn("data-ml-problem-map", written["json"].name)
+
+        csv_text = written["csv"].read_text(encoding="utf-8")
+        self.assertIn("skill_id,problem_ids,primary_problem_id", csv_text)
+        self.assertIn("training-machine-learning-models", csv_text)
+
+        markdown_text = written["markdown"].read_text(encoding="utf-8")
+        self.assertIn("# Data-ML Problem-First Consolidation", markdown_text)
+        self.assertIn("## 目标保留", markdown_text)
 
     def test_runtime_neutral_wrapper_exposes_main(self) -> None:
         wrapper = REPO_ROOT / "scripts" / "verify" / "runtime_neutral" / "ml_skills_pruning_audit.py"
