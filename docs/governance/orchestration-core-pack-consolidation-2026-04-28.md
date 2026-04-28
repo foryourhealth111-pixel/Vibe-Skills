@@ -2,6 +2,9 @@
 
 Date: 2026-04-28
 
+> Superseded by `docs/governance/orchestration-core-hard-removal-2026-04-28.md`.
+> This document records the intermediate 8-skill consolidation state, not the current hard-removal target.
+
 ## Summary
 
 This pass shrinks `orchestration-core` from a broad 27-skill surface into a problem-first orchestration surface.

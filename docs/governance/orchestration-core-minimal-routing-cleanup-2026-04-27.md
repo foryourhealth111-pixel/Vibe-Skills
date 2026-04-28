@@ -2,6 +2,9 @@
 
 Date: 2026-04-27
 
+> Superseded by `docs/governance/orchestration-core-hard-removal-2026-04-28.md`.
+> This document records the earlier minimal cleanup state.
+
 ## Summary
 
 This pass keeps canonical `vibe` as the runtime authority while removing it from ordinary `orchestration-core` primary specialist selection.
