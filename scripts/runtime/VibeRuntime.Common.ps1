@@ -3380,7 +3380,7 @@ function New-VibeHostUserBriefingSegmentProjection {
         'execution_dispatch' {
             $category = 'execution'
             $status = 'execution_disclosure'
-            $segmentLines += 'Vibe approved these Skills for execution:'
+            $segmentLines += 'Vibe approved these Skills for execution dispatch. Dispatch alone is not a `used` claim:'
         }
         default {
             if ($segmentId -match '^(discussion|planning)_consultation$') {
@@ -3418,7 +3418,7 @@ function New-VibeHostUserBriefingSegmentProjection {
                 if ($routedCount -gt 0 -and $consultedCount -eq 0) {
                     $segmentLines += ('Vibe routed these Skills for direct current-session consultation during {0}; freeze gate: {1}.' -f $windowId, $gateStatus)
                 } elseif ($consultedCount -gt 0 -and $routedCount -eq 0) {
-                    $segmentLines += ('Vibe consulted these Skills during {0}; freeze gate: {1}.' -f $windowId, $gateStatus)
+                    $segmentLines += ('Vibe recorded these Skills in the {0} consultation audit chain; freeze gate: {1}. Usage claims still require `skill_usage` evidence.' -f $windowId, $gateStatus)
                 } else {
                     $segmentLines += ('Vibe recorded these Skills in the {0} consultation chain; freeze gate: {1}.' -f $windowId, $gateStatus)
                 }

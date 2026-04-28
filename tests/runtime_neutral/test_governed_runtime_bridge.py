@@ -367,8 +367,9 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertFalse(runtime_input_packet["canonical_router"]["unattended"])
             self.assertEqual("structure", runtime_input_packet["provenance"]["proof_class"])
             self.assertEqual("vibe", runtime_input_packet["authority_flags"]["explicit_runtime_skill"])
-            self.assertEqual("vibe", runtime_input_packet["route_snapshot"]["selected_skill"])
-            self.assertFalse(runtime_input_packet["divergence_shadow"]["skill_mismatch"])
+            self.assertEqual("systematic-debugging", runtime_input_packet["route_snapshot"]["selected_skill"])
+            self.assertEqual("vibe", runtime_input_packet["divergence_shadow"]["runtime_selected_skill"])
+            self.assertTrue(runtime_input_packet["divergence_shadow"]["skill_mismatch"])
             self.assertGreaterEqual(len(runtime_input_packet["specialist_recommendations"]), 1)
             self.assertIn("specialist_decision", runtime_input_packet)
             self.assertIn(
@@ -389,9 +390,12 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertEqual(0, execution_manifest["failed_unit_count"])
             self.assertEqual("runtime", execution_manifest["proof_class"])
             self.assertTrue(Path(execution_manifest["plan_shadow"]["path"]).exists())
-            self.assertEqual("vibe", execution_manifest["route_runtime_alignment"]["router_selected_skill"])
+            self.assertEqual(
+                runtime_input_packet["route_snapshot"]["selected_skill"],
+                execution_manifest["route_runtime_alignment"]["router_selected_skill"],
+            )
             self.assertEqual("vibe", execution_manifest["route_runtime_alignment"]["runtime_selected_skill"])
-            self.assertFalse(execution_manifest["route_runtime_alignment"]["skill_mismatch"])
+            self.assertTrue(execution_manifest["route_runtime_alignment"]["skill_mismatch"])
             self.assertGreaterEqual(execution_manifest["specialist_accounting"]["recommendation_count"], 1)
             self.assertGreaterEqual(execution_manifest["specialist_accounting"]["dispatch_unit_count"], 1)
             self.assertIn("systematic-debugging", execution_manifest["specialist_accounting"]["specialist_skills"])
@@ -619,6 +623,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "decision_kind": "approval_response",
+                    "decision_action": "approve_requirement",
+                    "approval_decision": "approve",
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -630,7 +642,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{DOC_CODE_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]

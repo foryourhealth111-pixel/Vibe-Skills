@@ -882,7 +882,11 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
         assert isinstance(completed, subprocess.CompletedProcess)
         self.assertNotEqual(0, completed.returncode)
         self.assertIn(
-            "Enabled specialist consultation receipts must declare window_id as",
+            "Enabled specialist consultation receipts must declare",
+            completed.stderr,
+        )
+        self.assertIn(
+            "window_id as discussion or planning.",
             completed.stderr,
         )
 
@@ -1739,7 +1743,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
             )
             self.assertEqual([1, 2, 3, 4], [int(event["sequence"]) for event in list(host_stage_disclosure["events"])])
             self.assertIn("Vibe routed these Skills", host_stage_disclosure["rendered_text"])
-            self.assertIn("Vibe approved these Skills for execution", host_stage_disclosure["rendered_text"])
+            self.assertIn("Vibe approved these Skills for execution dispatch", host_stage_disclosure["rendered_text"])
             execution_event = next(
                 item for item in list(host_stage_disclosure["events"]) if item["segment_id"] == "execution_dispatch"
             )
@@ -1767,7 +1771,7 @@ class VibeSpecialistConsultationTests(unittest.TestCase):
                 host_user_briefing["rendered_text"],
             )
             self.assertIn("freeze gate: passed", host_user_briefing["rendered_text"])
-            self.assertIn("Vibe approved these Skills for execution", host_user_briefing["rendered_text"])
+            self.assertIn("Vibe approved these Skills for execution dispatch", host_user_briefing["rendered_text"])
             self.assertIn("systematic-debugging", host_user_briefing["rendered_text"])
             self.assertIn(host_user_briefing["rendered_text"], host_user_briefing_doc)
             self.assertEqual(artifacts["host_user_briefing"], payload["host_user_briefing_path"])
