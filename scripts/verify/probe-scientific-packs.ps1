@@ -461,6 +461,76 @@ $cases = @(
         expected_pack = "bio-science"
         expected_skill = "cobrapy"
         requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_scanpy_h5ad_marker_genes"
+        group = "bio-science"
+        prompt = "/vibe 读取 h5ad，做 Leiden clustering 和 marker genes"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "scanpy"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_pydeseq2_bulk_de"
+        group = "bio-science"
+        prompt = "/vibe 进行 bulk RNA-seq 差异表达分析并画 volcano plot"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "pydeseq2"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_pysam_bam_vcf_coverage"
+        group = "bio-science"
+        prompt = "/vibe 解析 BAM 和 VCF 文件并统计 coverage"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "pysam"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_gget_gene_symbol"
+        group = "bio-science"
+        prompt = "/vibe 用 gget 快速查询 gene symbol 和 Ensembl ID"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "gget"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_flowio_fcs"
+        group = "bio-science"
+        prompt = "/vibe 读取 FCS 流式细胞文件并提取通道矩阵"
+        grade = "M"
+        task_type = "coding"
+        expected_pack = "bio-science"
+        expected_skill = "flowio"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_arboreto_grn"
+        group = "bio-science"
+        prompt = "/vibe 用 pySCENIC 和 arboreto 推断 gene regulatory network"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "arboreto"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_geniml_embedding"
+        group = "bio-science"
+        prompt = "/vibe 用 geniml 做 genomic ML 和 genome embedding"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "geniml"
+        requested_skill = $null
     }
 )
 
@@ -565,4 +635,3 @@ Write-MarkdownReport -Path $reportPath -Rows $rows -GroupSummary $groupSummary -
 
 Write-Host ("Probe complete: {0}" -f $reportPath)
 Write-Host ("Summary JSON: {0}" -f $summaryPath)
-
