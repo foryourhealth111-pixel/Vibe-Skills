@@ -1911,6 +1911,7 @@ function New-VibeRuntimeInputPacketProjection {
         internal_grade = $InternalGrade
         hierarchy = $HierarchyProjection
         canonical_router = [pscustomobject]@{
+            role = 'internal_specialist_recommender'
             prompt = $Task
             task_type = if ([string]::IsNullOrWhiteSpace($TaskType)) { $null } else { [string]$TaskType }
             requested_skill = if ([string]::IsNullOrWhiteSpace([string]$RequestedSkill)) { $null } else { [string]$RequestedSkill }
@@ -1992,7 +1993,7 @@ function New-VibeRuntimeInputPacketProjection {
             governance_scope_mismatch = $false
         }
         provenance = [pscustomobject]@{
-            source_of_truth = 'canonical_router_shadow_freeze'
+            source_of_truth = 'vibe_runtime_with_internal_specialist_recommender'
             freeze_before_requirement_doc = [bool]$Policy.freeze_before_requirement_doc
             proof_class = 'structure'
         }

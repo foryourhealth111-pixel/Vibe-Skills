@@ -9,7 +9,9 @@
     "vibe"
   ],
   "authority": {
+    "internal_specialist_recommender": "scripts/router/resolve-pack-route.ps1",
     "canonical_router": "scripts/router/resolve-pack-route.ps1",
+    "canonical_router_compatibility": "legacy packet field name only; runtime authority remains vibe",
     "runtime_protocol": "protocols/runtime.md",
     "forbid_second_router": true
   },

@@ -44,9 +44,11 @@ Do not inspect repository files, protocol docs, previous run outputs, or old
 proof artifacts before canonical launch returns. Reading this file, a wrapper,
 or an AGENTS/CLAUDE bootstrap block is not proof of canonical entry.
 
-Canonical router: `scripts/router/resolve-pack-route.ps1`
+Internal specialist recommendation router: `scripts/router/resolve-pack-route.ps1`
 
-Router input rules:
+Specialist recommender input rules:
+
+This recommender runs inside canonical `vibe`; it may suggest specialist skills, but it does not decide whether `$vibe` is the public runtime entry.
 
 - Include work type, domain/technology, deliverable, and explicit constraints.
 - Reuse verified frozen requirement/plan facts when continuing a run.
@@ -229,5 +231,5 @@ Read these references only after canonical launch or when maintaining the repo:
 - Runtime family: governed-runtime-first
 - Version: 3.1.0
 - Updated: 2026-04-26
-- Canonical router: `scripts/router/resolve-pack-route.ps1`
+- Internal specialist recommendation router: `scripts/router/resolve-pack-route.ps1`
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`

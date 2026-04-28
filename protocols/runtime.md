@@ -18,7 +18,7 @@
 > | 6 | `phase_cleanup` | Clean up temp artifacts and produce a final report |
 >
 > **Key terms used below:**
-> - **Canonical router**: The internal logic that picks which skill handles your task.
+> - **Internal specialist recommender**: The internal logic that suggests bounded specialist help after `vibe` is already the runtime authority.
 > - **Root/Child lane**: In multi-agent tasks, "root" is the coordinator; "child" lanes are workers. Only root makes final completion claims.
 > - **Frozen requirement/plan**: Once you approve the requirements or plan, they are locked -- the system will not silently change scope.
 > - **Proof bundle**: Evidence that a task was actually completed -- test results, output logs, verification commands.
@@ -28,8 +28,8 @@
 Governed runtime contract for `vibe`.
 
 This protocol defines the user-facing runtime path that all host syntaxes share.
-It does not replace the canonical router.
-It defines what must happen after `vibe` is selected.
+It does not create a second router or second runtime surface.
+It defines what must happen after `$vibe` enters the governed runtime.
 
 ## Runtime Identity
 
@@ -43,7 +43,7 @@ These are syntax variants for the same governed runtime, not separate entrypoint
 
 ## Contract Priorities
 
-1. Canonical router authority stays intact.
+1. `vibe` runtime authority stays intact.
 2. User-facing runtime path stays fixed.
 3. `M`, `L`, `XL` remain internal execution grades only.
 4. Requirement freezing happens before plan execution.
@@ -207,10 +207,10 @@ The runtime may delegate stage internals to existing protocols:
 
 Delegation must not bypass the fixed stage order.
 
-## Router Integration Rules
+## Specialist Recommender Integration Rules
 
-- route authority remains in `scripts/router/resolve-pack-route.ps1`
-- `confirm_required` stays on the existing white-box confirm surface
+- specialist recommendation logic remains in `scripts/router/resolve-pack-route.ps1`
+- `confirm_required` stays on the existing white-box confirm surface when specialist choice needs host confirmation
 - unattended routing is interpreted as a governed runtime mode choice, not as a second runtime
 - provider-backed intelligence remains advice-only
 - fallback or degraded paths must emit an explicit hazard alert rather than a silent warning
@@ -222,10 +222,10 @@ The ecosystem may carry multiple helpful layers, but runtime authority must stay
 
 Layer ownership is:
 
-- canonical router: route selection authority
-- VCO governed runtime: stage order, requirement freeze, plan traceability, execution receipts, cleanup receipts
+- VCO governed runtime: public entry, stage order, requirement freeze, plan traceability, execution receipts, cleanup receipts
+- internal specialist recommender: bounded specialist suggestions inside the governed runtime
 - host bridge: hidden governance context attachment and host-hook wiring only
-- superpowers and similar process layers: workflow discipline only
+- process-method layers: workflow discipline only, never a second runtime surface
 
 Explicitly forbidden:
 

@@ -67,7 +67,7 @@ function Invoke-VibeFrozenRoute {
 
     $routeInvocation = Invoke-VgoPowerShellFile -ScriptPath $RouterScriptPath -ArgumentList $routeArgs -NoProfile
     if ([int]$routeInvocation.exit_code -ne 0) {
-        throw ("Failed to freeze runtime input packet because canonical router exited with code {0}." -f [int]$routeInvocation.exit_code)
+        throw ("Failed to freeze runtime input packet because internal specialist recommender exited with code {0}." -f [int]$routeInvocation.exit_code)
     }
 
     $routeJson = (@($routeInvocation.output) -join [Environment]::NewLine).Trim()
@@ -770,7 +770,7 @@ function Get-VibeSpecialistRecommendations {
             -SkillId $RouterSelectedSkill `
             -Source 'route_selected' `
             -TaskType $TaskType `
-            -Reason 'canonical router selected a specialist candidate for governed bounded execution' `
+            -Reason 'internal specialist recommender selected a bounded specialist candidate for governed execution' `
             -PackId $null `
             -Confidence 0.0 `
             -Rank (@($recommendations).Count + 1) `
