@@ -63,6 +63,7 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         specialist_execution_path: str | None = None,
         omit_default_specialist_decision: bool = False,
         skill_usage: dict[str, object] | None = None,
+        skill_routing: dict[str, object] | None = None,
     ) -> Path:
         tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(tempdir.cleanup)
@@ -181,6 +182,8 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 "explicit_runtime_skill": "vibe",
             }
         }
+        if skill_routing is not None:
+            runtime_input_packet_payload["skill_routing"] = skill_routing
         if approved_dispatch is not None:
             approved_skill_ids = [
                 str(item["skill_id"]).strip()
@@ -334,6 +337,44 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         report = evaluate(REPO_ROOT, session_root)
         self.assertEqual("FAIL", report["skill_usage_truth"]["state"])
         self.assertIn("missing_artifact_impact", report["skill_usage_truth"]["failure_reasons"])
+
+    def test_legacy_dispatch_without_skill_routing_selected_does_not_count_as_selected(self) -> None:
+        session_root = self._build_session(
+            approved_dispatch=[
+                {
+                    "skill_id": "scanpy",
+                    "native_skill_entrypoint": "bundled/skills/scanpy/SKILL.md",
+                }
+            ],
+            skill_routing={"candidates": [], "selected": [], "rejected": []},
+            skill_usage={"schema_version": 2, "state_model": "binary_used_unused", "used": [], "unused": []},
+        )
+
+        report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("PASS", report["skill_usage_truth"]["state"])
+        self.assertEqual([], report["execution_context"]["selected_skill_ids"])
+
+    def test_selected_skill_without_load_evidence_fails_usage_truth(self) -> None:
+        session_root = self._build_session(
+            skill_routing={
+                "candidates": [{"skill_id": "scanpy"}],
+                "selected": [{"skill_id": "scanpy", "skill_md_path": "bundled/skills/scanpy/SKILL.md"}],
+                "rejected": [],
+            },
+            skill_usage={
+                "schema_version": 2,
+                "state_model": "binary_used_unused",
+                "used": [],
+                "unused": [{"skill_id": "scanpy", "reason": "selected_but_not_loaded"}],
+                "loaded_skills": [],
+            },
+        )
+
+        report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("FAIL", report["skill_usage_truth"]["state"])
+        self.assertIn("selected_skill_missing_load_evidence", report["skill_usage_truth"]["failure_reasons"])
 
     def test_approved_dispatch_without_skill_usage_does_not_count_as_used(self) -> None:
         session_root = self._build_session(

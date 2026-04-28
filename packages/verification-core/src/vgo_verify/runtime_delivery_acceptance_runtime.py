@@ -75,7 +75,10 @@ def _load_skill_usage(
     }
 
 
-def _evaluate_skill_usage_truth(skill_usage: dict[str, Any]) -> dict[str, Any]:
+def _evaluate_skill_usage_truth(
+    skill_usage: dict[str, Any],
+    selected_skill_ids: list[str] | None = None,
+) -> dict[str, Any]:
     used_rows = [row for row in list(skill_usage.get("used") or []) if isinstance(row, dict)]
     unused_rows = [row for row in list(skill_usage.get("unused") or []) if isinstance(row, dict)]
     new_used_ids = [row.get("skill_id") for row in used_rows]
@@ -131,6 +134,10 @@ def _evaluate_skill_usage_truth(skill_usage: dict[str, Any]) -> dict[str, Any]:
             if not str(impact.get("impact_summary") or impact.get("impact") or "").strip():
                 failure_reasons.append("missing_impact_summary")
 
+    for skill_id in selected_skill_ids or []:
+        if skill_id not in loaded_by_skill:
+            failure_reasons.append("selected_skill_missing_load_evidence")
+
     state = "PASS" if not failure_reasons else "FAIL"
     return {
         "state": state,
@@ -174,10 +181,15 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     execution_plan_text = _read_text_if_exists(execution_plan_path)
     execution_manifest = load_json(execution_manifest_path)
     runtime_input_packet = load_json(runtime_input_packet_path) if runtime_input_packet_path.exists() else {}
-    specialist_dispatch = runtime_input_packet.get("specialist_dispatch") or {}
+    skill_routing = runtime_input_packet.get("skill_routing") or {}
+    legacy_skill_routing = runtime_input_packet.get("legacy_skill_routing") or {}
+    specialist_dispatch = (
+        runtime_input_packet.get("specialist_dispatch")
+        or legacy_skill_routing.get("specialist_dispatch")
+        or {}
+    )
     specialist_accounting = execution_manifest.get("specialist_accounting") or {}
     skill_usage = _load_skill_usage(session_root, runtime_input_packet, execution_manifest, execute_receipt)
-    skill_usage_truth = _evaluate_skill_usage_truth(skill_usage)
 
     product_acceptance_criteria = _extract_bullets(requirement_text, "Product Acceptance Criteria")
     manual_spot_checks, manual_section_missing = _manual_spot_checks_from_requirement(requirement_text)
@@ -318,6 +330,16 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     else:
         approved_dispatch = specialist_dispatch.get("approved_dispatch") or []
     approved_dispatch_skill_ids = _normalize_skill_id_list(approved_dispatch)
+    if skill_routing:
+        selected_skill_ids = _normalize_skill_id_list(skill_routing.get("selected") or [])
+        selected_skill_ids_for_usage_truth = selected_skill_ids
+    else:
+        selected_skill_ids = approved_dispatch_skill_ids
+        selected_skill_ids_for_usage_truth = []
+    skill_usage_truth = _evaluate_skill_usage_truth(
+        skill_usage,
+        selected_skill_ids=selected_skill_ids_for_usage_truth,
+    )
     runtime_specialist_execution_status = str(specialist_accounting.get("effective_execution_status") or "").strip()
     effective_specialist_execution_status = runtime_specialist_execution_status
 
@@ -1173,6 +1195,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "specialist_execution_source_path": specialist_execution_source_path,
             "specialist_execution_sidecar_path": str(session_root / "specialist-execution.json"),
             "approved_dispatch_skill_ids": approved_dispatch_skill_ids,
+            "selected_skill_ids": selected_skill_ids,
             "disclosed_specialist_skill_ids": disclosure_skill_ids,
             "direct_routed_specialist_unit_ids": direct_routed_unit_ids,
             "direct_routed_specialist_skill_ids": direct_routed_skill_ids,
