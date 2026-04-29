@@ -1230,25 +1230,26 @@
                                                "model eval",
                                                "rag",
                                                "embedding",
-                                               "agent",
                                                "大模型",
                                                 "提示词",
                                                 "system prompt",
                                                 "模型评测",
                                                "向量检索",
                                                "嵌入",
-                                               "智能体",
-                                               "推理优化",
-                                               "微调",
                                                "responses api",
                                                "openai文档",
                                                "提示词模板",
                                                "vector search",
+                                               "vector database",
+                                               "nearest neighbor",
+                                               "similarity search",
                                                "semantic retrieval",
                                                "chunking",
                                                "embedding策略",
                                                "分块",
                                                "向量搜索",
+                                               "向量数据库",
+                                               "相似度搜索",
                                                 "embedding pipeline",
                                                 "improve prompt",
                                                 "optimize prompt",
@@ -1256,22 +1257,26 @@
                                                 "改进提示词"
                                             ],
                       "skill_candidates":  [
-                                               "documentation-lookup",
-                                               "embedding-strategies",
-                                               "evaluating-code-models",
-                                               "evaluating-llms-harness",
-                                               "nowait-reasoning-optimizer",
                                                "openai-docs",
-                                               "openai-knowledge",
                                                "prompt-lookup",
+                                               "embedding-strategies",
                                                "similarity-search-patterns",
-                                               "transformer-lens-interpretability",
-                                               "transformers"
+                                               "evaluating-llms-harness"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "openai-docs",
+                                                       "prompt-lookup",
+                                                       "embedding-strategies",
+                                                       "similarity-search-patterns",
+                                                       "evaluating-llms-harness"
+                                                   ],
+                      "stage_assistant_candidates":  [
+
+                                                   ],
                       "defaults_by_task":  {
                                                "planning":  "embedding-strategies",
                                                "review":  "evaluating-llms-harness",
-                                               "coding":  "documentation-lookup",
+                                               "coding":  "openai-docs",
                                                "research":  "openai-docs"
                                            }
                   },

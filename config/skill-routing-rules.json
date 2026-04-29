@@ -2587,14 +2587,18 @@
                                                       "positive_keywords":  [
                                                                                 "vector database",
                                                                                 "nearest neighbor",
-                                                                                "similarity search"
+                                                                                "similarity search",
+                                                                                "semantic search system",
+                                                                                "向量数据库",
+                                                                                "近邻搜索",
+                                                                                "相似度搜索"
                                                                             ],
                                                       "negative_keywords":  [
                                                                                 "release notes"
                                                                             ],
                                                       "equivalent_group":  null,
                                                       "canonical_for_task":  [
-
+                                                                                 "planning"
                                                                              ]
                                                   },
                    "transformers":  {
@@ -3096,7 +3100,14 @@
                                                                               "graphical abstract",
                                                                               "poster",
                                                                               "slidev",
-                                                                              "ppt"
+                                                                              "ppt",
+                                                                              "vector database",
+                                                                              "nearest neighbor",
+                                                                              "similarity search",
+                                                                              "semantic search system",
+                                                                              "向量数据库",
+                                                                              "近邻搜索",
+                                                                              "相似度搜索"
                                                                           ],
                                                     "equivalent_group":  "science-figures",
                                                     "canonical_for_task":  [

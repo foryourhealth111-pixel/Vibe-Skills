@@ -93,6 +93,9 @@
     "embedding-strategies": {
       "keywords": ["embedding strategy", "chunking", "semantic search", "向量嵌入", "嵌入策略", "语义检索"]
     },
+    "similarity-search-patterns": {
+      "keywords": ["vector database", "nearest neighbor", "similarity search", "semantic search system", "向量数据库", "近邻搜索", "相似度搜索", "语义搜索系统"]
+    },
     "evaluating-llms-harness": {
       "keywords": ["mmlu", "gsm8k", "truthfulqa", "llm benchmark", "大模型评测", "学术基准评测"]
     },

@@ -90,6 +90,12 @@ $cases = @(
     [pscustomobject]@{ Name = "prompt lookup"; Prompt = "帮我检索提示词模板并优化prompt"; Grade = "M"; TaskType = "research"; ExpectedPack = "ai-llm"; ExpectedSkill = "prompt-lookup" },
     [pscustomobject]@{ Name = "embedding strategy"; Prompt = "设计向量嵌入策略用于语义检索"; Grade = "M"; TaskType = "planning"; ExpectedPack = "ai-llm"; ExpectedSkill = "embedding-strategies" },
     [pscustomobject]@{ Name = "llm benchmark"; Prompt = "用MMLU和GSM8K做大模型评测"; Grade = "M"; TaskType = "research"; ExpectedPack = "ai-llm"; ExpectedSkill = "evaluating-llms-harness" },
+    [pscustomobject]@{ Name = "similarity search patterns"; Prompt = "设计vector database nearest neighbor similarity search方案"; Grade = "M"; TaskType = "planning"; ExpectedPack = "ai-llm"; ExpectedSkill = "similarity-search-patterns" },
+    [pscustomobject]@{ Name = "generic framework docs not ai llm"; Prompt = "查询React 19官方文档并给出useEffect示例"; Grade = "M"; TaskType = "coding"; BlockedPack = "ai-llm" },
+    [pscustomobject]@{ Name = "code model eval not ai llm"; Prompt = "用HumanEval和MBPP评测代码生成模型"; Grade = "M"; TaskType = "research"; BlockedPack = "ai-llm" },
+    [pscustomobject]@{ Name = "nowait not ai llm"; Prompt = "优化DeepSeek-R1推理，减少thinking tokens和反思token"; Grade = "M"; TaskType = "coding"; BlockedPack = "ai-llm" },
+    [pscustomobject]@{ Name = "transformer lens not ai llm"; Prompt = "用TransformerLens做activation patching和circuit analysis"; Grade = "M"; TaskType = "research"; BlockedPack = "ai-llm" },
+    [pscustomobject]@{ Name = "hf transformers not ai llm"; Prompt = "用Hugging Face Transformers微调BERT文本分类模型"; Grade = "M"; TaskType = "coding"; BlockedPack = "ai-llm" },
 
     [pscustomobject]@{ Name = "tdd flow"; Prompt = "按TDD方式开发，先写失败测试再重构"; Grade = "M"; TaskType = "coding"; ExpectedPack = "code-quality"; ExpectedSkill = "tdd-guide" },
     [pscustomobject]@{ Name = "tdd feature test-first"; Prompt = "write failing tests first for this feature"; Grade = "M"; TaskType = "coding"; ExpectedPack = "code-quality"; ExpectedSkill = "tdd-guide" },
