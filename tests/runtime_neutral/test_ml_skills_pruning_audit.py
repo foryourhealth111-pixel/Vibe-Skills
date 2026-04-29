@@ -244,6 +244,11 @@ class MlSkillsPruningAuditTests(unittest.TestCase):
         self.assertEqual("ml_tabular_modeling", rows["scikit-learn"].primary_problem_id)
         self.assertEqual("keep", rows["shap"].target_role)
         self.assertEqual("ml_explainability", rows["shap"].primary_problem_id)
+        self.assertEqual("keep", rows["preprocessing-data-with-automated-pipelines"].target_role)
+        self.assertEqual(
+            "ml_preprocessing_features",
+            rows["preprocessing-data-with-automated-pipelines"].primary_problem_id,
+        )
 
         self.assertEqual("merge-delete-after-migration", rows["training-machine-learning-models"].target_role)
         self.assertEqual("scikit-learn", rows["training-machine-learning-models"].target_owner)
@@ -251,6 +256,7 @@ class MlSkillsPruningAuditTests(unittest.TestCase):
 
     def test_problem_artifact_writer_outputs_json_csv_and_markdown(self) -> None:
         artifact = audit_data_ml_problem_map(self.root)
+        self.assertEqual(0, artifact.to_dict()["summary"]["target_stage_assistant_count"])
         output_dir = self.root / "outputs" / "skills-audit"
         written = write_data_ml_problem_artifacts(self.root, artifact, output_dir)
 

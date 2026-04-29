@@ -170,7 +170,7 @@ DATA_ML_PROBLEM_DECISIONS: dict[str, dict[str, Any]] = {
         "routing_change": "remove from data-ml; migrate reusable feature-engineering assets first",
         "delete_allowed_after_migration": True,
         "risk_level": "medium",
-        "rationale": "特征工程和预处理是同一阶段问题，应集中到一个阶段助手。",
+        "rationale": "特征工程和预处理是同一类输入准备问题，应集中到直接预处理流水线 owner。",
     },
     "evaluating-machine-learning-models": {
         "problem_ids": ["ml_model_evaluation"],
@@ -230,13 +230,13 @@ DATA_ML_PROBLEM_DECISIONS: dict[str, dict[str, Any]] = {
     "preprocessing-data-with-automated-pipelines": {
         "problem_ids": ["ml_preprocessing_features"],
         "primary_problem_id": "ml_preprocessing_features",
-        "target_role": "stage-assistant",
+        "target_role": "keep",
         "target_owner": "",
-        "overlap_with": "engineering-features-for-machine-learning; scikit-learn",
-        "routing_change": "keep in data-ml as the only stage assistant",
+        "overlap_with": "engineering-features-for-machine-learning; scikit-learn; ml-pipeline-workflow",
+        "routing_change": "keep in data-ml as direct preprocessing-pipeline route authority",
         "delete_allowed_after_migration": False,
         "risk_level": "low",
-        "rationale": "清洗、编码、缩放、转换和验证应集中到一个阶段助手。",
+        "rationale": "清洗、编码、缩放、转换和验证可形成独立的可复用预处理流水线任务。",
     },
     "running-clustering-algorithms": {
         "problem_ids": ["ml_tabular_modeling"],
