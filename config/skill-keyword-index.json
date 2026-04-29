@@ -451,7 +451,7 @@
       "keywords": ["scientific slides", "slide deck", "ppt", "pptx", "powerpoint", "presentation", "research talk", "seminar talk", "defense slides", "group meeting slides", "科研幻灯片", "学术幻灯片", "组会汇报", "答辩幻灯片", "路演PPT"]
     },
     "pptx-posters": {
-      "keywords": ["pptx poster", "powerpoint poster", "powerpoint pptx", "ppt poster", "PPT海报", "PowerPoint海报", "PPTX学术海报", "可编辑海报"]
+      "keywords": ["pptx poster", "powerpoint poster", "powerpoint pptx", "ppt poster", "PPT海报", "PowerPoint海报", "PPTX学术海报", "PowerPoint PPTX学术海报", "可编辑海报"]
     },
     "infographics": {
       "keywords": ["infographic", "visual summary", "visual one-pager", "research summary graphic", "信息图", "可视化总结", "视觉摘要"]
