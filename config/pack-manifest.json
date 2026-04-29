@@ -382,7 +382,8 @@
                       "task_allow":  [
                                          "planning",
                                          "coding",
-                                         "research"
+                                         "research",
+                                         "review"
                                      ],
                       "trigger_keywords":  [
                                                "chembl",
@@ -535,7 +536,8 @@
                       "task_allow":  [
                                          "planning",
                                          "coding",
-                                         "research"
+                                         "research",
+                                         "review"
                                      ],
                       "trigger_keywords":  [
                                                "clinicaltrials",
@@ -544,16 +546,38 @@
                                                "eligibility",
                                                "fda",
                                                "drug label",
-                                               "guideline",
+                                               "clinical guideline",
+                                               "treatment guideline",
+                                               "fda guidance",
                                                "pharmacogenomics",
                                                "cpic",
+                                               "clinical report",
+                                               "case report",
+                                               "clinical study report",
+                                               "hipaa",
+                                               "de-identification",
+                                               "treatment plan",
+                                               "care plan",
+                                               "clinical decision support",
+                                               "cds",
+                                               "grade evidence",
+                                               "qms",
+                                               "medical device",
                                                "临床试验",
                                                "入排标准",
                                                "试验阶段",
                                                "药品说明书",
                                                "用药指南",
                                                "药物基因组",
+                                               "临床报告",
+                                               "病例报告",
+                                               "去标识化",
                                                "治疗方案",
+                                               "随访计划",
+                                               "临床决策支持",
+                                               "循证",
+                                               "医疗器械",
+                                               "质量体系",
                                                "iso 13485"
                                            ],
                       "skill_candidates":  [
@@ -565,9 +589,20 @@
                                                "iso-13485-certification",
                                                "clinical-decision-support"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "clinicaltrials-database",
+                                                       "fda-database",
+                                                       "clinpgx-database",
+                                                       "clinical-reports",
+                                                       "treatment-plans",
+                                                       "iso-13485-certification",
+                                                       "clinical-decision-support"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "clinical-decision-support",
                                                "coding":  "clinicaltrials-database",
+                                               "review":  "clinical-reports",
                                                "research":  "clinicaltrials-database"
                                            }
                   },

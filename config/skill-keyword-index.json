@@ -310,25 +310,25 @@
       "keywords": ["pytdc", "tdc", "therapeutics data commons", "admet benchmark", "drug discovery benchmark", "scaffold split", "get_split", "药物发现数据集", "基准数据集"]
     },
     "clinicaltrials-database": {
-      "keywords": ["clinicaltrials.gov", "clinical trial", "nct", "trial phase", "eligibility", "临床试验", "NCT"]
+      "keywords": ["clinicaltrials.gov", "clinical trial", "nct", "trial phase", "eligibility", "endpoint", "study status", "临床试验", "入排标准", "试验终点", "NCT"]
     },
     "fda-database": {
-      "keywords": ["fda", "drug label", "drug safety", "adverse event", "药监", "药品说明书", "不良反应"]
+      "keywords": ["fda", "openfda", "drug label", "drug safety", "adverse event", "recall", "510k", "pma", "药监", "药品说明书", "不良反应", "召回"]
     },
     "clinpgx-database": {
-      "keywords": ["pharmacogenomics", "cpic", "pharmgkb", "drug gene", "药物基因组", "用药基因"]
+      "keywords": ["pharmacogenomics", "cpic", "pharmgkb", "drug gene", "gene-drug", "pgx", "allele function", "药物基因组", "用药基因"]
     },
     "clinical-reports": {
-      "keywords": ["clinical report", "case report", "medical report", "临床报告", "病例报告"]
+      "keywords": ["clinical report", "case report", "medical report", "clinical study report", "csr", "sae report", "soap note", "discharge summary", "hipaa", "de-identification", "medical terminology", "临床报告", "病例报告", "去标识化", "医学术语"]
     },
     "treatment-plans": {
-      "keywords": ["treatment plan", "care plan", "治疗方案", "诊疗方案", "用药方案"]
+      "keywords": ["treatment plan", "care plan", "smart goal", "follow-up plan", "individualized treatment plan", "治疗方案", "诊疗方案", "用药方案", "随访计划"]
     },
     "iso-13485-certification": {
-      "keywords": ["iso 13485", "medical device", "quality system", "regulatory", "医疗器械", "质量体系"]
+      "keywords": ["iso 13485", "medical device", "quality system", "qms", "quality manual", "capa", "regulatory", "医疗器械", "质量体系", "质量手册"]
     },
     "clinical-decision-support": {
-      "keywords": ["clinical decision support", "cds", "guideline", "evidence-based", "临床决策支持", "用药指南"]
+      "keywords": ["clinical decision support", "cds", "clinical guideline", "grade evidence", "treatment algorithm", "cohort analysis", "biomarker stratification", "evidence-based", "临床决策支持", "用药指南", "循证"]
     },
     "pydicom": {
       "keywords": ["pydicom", "dicom", "ct", "mri", "dicom tag", "医学影像", "DICOM"]

@@ -342,6 +342,56 @@ $cases = @(
         expected_skill = "clinical-decision-support"
         requested_skill = $null
     },
+    [pscustomobject]@{
+        name = "clinical_clinpgx_cpic_lookup"
+        group = "science-clinical-regulatory"
+        prompt = "/vibe 查询 CPIC 药物基因组指南，解释 CYP2C19 和 clopidogrel 的 gene-drug 用药建议"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "science-clinical-regulatory"
+        expected_skill = "clinpgx-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "clinical_report_care"
+        group = "science-clinical-regulatory"
+        prompt = "/vibe 撰写 CARE guidelines 病例报告，包含临床时间线、诊断、治疗、知情同意和去标识化检查"
+        grade = "M"
+        task_type = "planning"
+        expected_pack = "science-clinical-regulatory"
+        expected_skill = "clinical-reports"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "clinical_report_review"
+        group = "science-clinical-regulatory"
+        prompt = "/vibe 审查 clinical report 的 HIPAA 合规性、去标识化、完整性和医学术语规范"
+        grade = "M"
+        task_type = "review"
+        expected_pack = "science-clinical-regulatory"
+        expected_skill = "clinical-reports"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "clinical_treatment_plan"
+        group = "science-clinical-regulatory"
+        prompt = "/vibe 为糖尿病患者生成一页式 treatment plan，包含 SMART 目标、用药方案和随访计划"
+        grade = "M"
+        task_type = "planning"
+        expected_pack = "science-clinical-regulatory"
+        expected_skill = "treatment-plans"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "clinical_iso_13485_qms"
+        group = "science-clinical-regulatory"
+        prompt = "/vibe 准备 ISO 13485 医疗器械 QMS 认证差距分析、质量手册和 CAPA 程序文件"
+        grade = "M"
+        task_type = "planning"
+        expected_pack = "science-clinical-regulatory"
+        expected_skill = "iso-13485-certification"
+        requested_skill = $null
+    },
 
     # science-medical-imaging
     [pscustomobject]@{

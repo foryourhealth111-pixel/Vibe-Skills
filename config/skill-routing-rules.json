@@ -4465,8 +4465,11 @@
                                                                              "nct",
                                                                              "eligibility",
                                                                              "trial phase",
+                                                                             "endpoint",
+                                                                             "study status",
                                                                              "临床试验",
-                                                                             "入排标准"
+                                                                             "入排标准",
+                                                                             "试验终点"
                                                                          ],
                                                    "negative_keywords":  [
                                                                              "pubmed",
@@ -4485,11 +4488,18 @@
                                                        ],
                                         "positive_keywords":  [
                                                                   "fda",
+                                                                  "openfda",
                                                                   "drug label",
                                                                   "package insert",
                                                                   "orange book",
                                                                   "guidance",
+                                                                  "adverse event",
+                                                                  "recall",
+                                                                  "510k",
+                                                                  "pma",
                                                                   "药品说明书",
+                                                                  "不良反应",
+                                                                  "召回",
                                                                   "FDA"
                                                               ],
                                         "negative_keywords":  [
@@ -4511,7 +4521,9 @@
                                                                       "pharmacogenomics",
                                                                       "pgx",
                                                                       "drug-gene",
+                                                                      "gene-drug",
                                                                       "genotype",
+                                                                      "allele function",
                                                                       "药物基因组",
                                                                       "用药基因"
                                                                   ],
@@ -4532,16 +4544,31 @@
                                                            ],
                                             "positive_keywords":  [
                                                                       "clinical report",
+                                                                      "case report",
+                                                                      "medical report",
+                                                                      "clinical study report",
+                                                                      "csr",
+                                                                      "sae report",
+                                                                      "soap note",
+                                                                      "discharge summary",
+                                                                      "hipaa",
+                                                                      "de-identification",
+                                                                      "medical terminology",
                                                                       "cohort",
                                                                       "outcomes",
                                                                       "hazard ratio",
                                                                       "临床报告",
+                                                                      "病例报告",
+                                                                      "去标识化",
+                                                                      "医学术语",
                                                                       "队列",
                                                                       "生存分析"
                                                                   ],
                                             "negative_keywords":  [
                                                                       "dicom",
-                                                                      "wsi"
+                                                                      "wsi",
+                                                                      "scientific report",
+                                                                      "科研技术报告"
                                                                   ],
                                             "equivalent_group":  "clinical-reporting",
                                             "canonical_for_task":  [
@@ -4558,13 +4585,21 @@
                                                                      "guideline",
                                                                      "therapy",
                                                                      "recommendation",
+                                                                     "care plan",
+                                                                     "smart goal",
+                                                                     "follow-up plan",
+                                                                     "individualized treatment plan",
                                                                      "治疗方案",
                                                                      "用药方案",
+                                                                     "随访计划",
                                                                      "临床路径"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "docking",
-                                                                     "smiles"
+                                                                     "smiles",
+                                                                     "clinical study report",
+                                                                     "csr",
+                                                                     "hazard ratio"
                                                                  ],
                                            "equivalent_group":  "clinical-reporting",
                                            "canonical_for_task":  [
@@ -4582,12 +4617,20 @@
                                                                              "qms",
                                                                              "quality management",
                                                                              "medical device",
+                                                                             "quality system",
+                                                                             "quality manual",
+                                                                             "capa",
                                                                              "认证",
-                                                                             "质量体系"
+                                                                             "质量体系",
+                                                                             "质量手册"
                                                                          ],
                                                    "negative_keywords":  [
                                                                              "pubmed",
-                                                                             "pmid"
+                                                                             "pmid",
+                                                                             "code quality",
+                                                                             "test coverage",
+                                                                             "代码质量",
+                                                                             "测试覆盖率"
                                                                          ],
                                                    "equivalent_group":  "clinical-regulatory",
                                                    "canonical_for_task":  [
@@ -4603,9 +4646,14 @@
                                                      "positive_keywords":  [
                                                                                "clinical decision support",
                                                                                "cds",
-                                                                               "guideline",
+                                                                               "clinical guideline",
+                                                                               "treatment guideline",
                                                                                "grade",
+                                                                               "grade evidence",
                                                                                "evidence",
+                                                                               "treatment algorithm",
+                                                                               "cohort analysis",
+                                                                               "biomarker",
                                                                                "临床决策支持",
                                                                                "循证"
                                                                            ],
@@ -4618,7 +4666,12 @@
                                                                                "route confidence",
                                                                                "task classification",
                                                                                "routing grade selection",
-                                                                               "candidate scoring"
+                                                                               "candidate scoring",
+                                                                               "coding guideline",
+                                                                               "style guide",
+                                                                               "code review",
+                                                                               "代码规范",
+                                                                               "代码审查"
                                                                            ],
                                                      "equivalent_group":  "clinical-reporting",
                                                      "canonical_for_task":  [
