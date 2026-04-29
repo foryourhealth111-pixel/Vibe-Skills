@@ -4737,8 +4737,8 @@
                                                                            "opentrons api",
                                                                            "opentrons thermocycler",
                                                                            "opentrons module",
-                                                                           "pipetting robot",
-                                                                           "移液机器人",
+                                                                           "opentrons pipetting robot",
+                                                                           "opentrons 移液机器人",
                                                                            "opentrons 机器人"
                                                                        ],
                                                  "negative_keywords":  [
@@ -4798,12 +4798,16 @@
                                                                   ],
                                                    "positive_keywords":  [
                                                                              "protocolsio",
+                                                                             "protocols.io",
                                                                              "在 protocols.io",
                                                                              "protocols.io api",
                                                                              "protocols.io search",
                                                                              "protocols.io publish",
                                                                              "protocols.io workspace",
                                                                              "protocols.io file attachment",
+                                                                             "publish to protocols.io",
+                                                                             "protocol to protocols.io",
+                                                                             "attachments to protocols.io",
                                                                              "protocols.io 查找",
                                                                              "protocols.io 发布"
                                                                          ],
@@ -4811,11 +4815,12 @@
                                                                              "dicom",
                                                                              "sec",
                                                                              "不使用 protocols.io",
+                                                                             "不使用 protocols.io 或机器人",
                                                                              "without protocols.io",
                                                                              "no protocols.io",
                                                                              "普通 wet-lab protocol",
-                                                                             "generic protocol",
-                                                                             "markdown"
+                                                                             "markdown 文档",
+                                                                             "generic protocol"
                                                                          ],
                                                    "equivalent_group":  "lab-automation",
                                                    "canonical_for_task":  [
@@ -4838,7 +4843,8 @@
                                                                            "benchling workflow",
                                                                            "benchling app",
                                                                            "benchling lims",
-                                                                           "样品管理"
+                                                                           "benchling sample management",
+                                                                           "benchling 样品管理"
                                                                        ],
                                                  "negative_keywords":  [
                                                                            "pubmed",
@@ -4865,13 +4871,13 @@
                                                                             "labarchives api",
                                                                             "labarchives notebook",
                                                                             "labarchives entry",
-                                                                            "notebook backup",
-                                                                            "entry attachment",
-                                                                            "entries",
-                                                                            "attachments",
+                                                                            "labarchives backup",
+                                                                            "labarchives entries",
+                                                                            "labarchives attachments",
+                                                                            "labarchives entry attachment",
+                                                                            "labarchives csv attachment",
                                                                             "备份 labarchives",
-                                                                            "备份电子实验记录",
-                                                                            "附件"
+                                                                            "labarchives 附件"
                                                                         ],
                                                   "negative_keywords":  [
                                                                             "pubmed",

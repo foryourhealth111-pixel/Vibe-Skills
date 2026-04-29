@@ -343,19 +343,19 @@
       "keywords": ["pathml", "digital pathology", "wsi", "tissue segmentation", "数字病理", "病理图像分析"]
     },
     "opentrons-integration": {
-      "keywords": ["opentrons", "ot-2", "ot2", "opentrons flex", "opentrons protocol", "opentrons thermocycler", "opentrons module", "opentrons api", "移液机器人"]
+      "keywords": ["opentrons", "ot-2", "ot2", "opentrons flex", "opentrons protocol", "opentrons thermocycler", "opentrons module", "opentrons api", "opentrons pipetting robot", "opentrons 移液机器人"]
     },
     "pylabrobot": {
       "keywords": ["pylabrobot", "hamilton", "tecan", "multi-vendor lab automation", "liquid handling workflow", "deck layout", "resource simulation", "plate reader", "液体处理机器人"]
     },
     "protocolsio-integration": {
-      "keywords": ["protocols.io", "protocolsio", "protocols.io api", "protocols.io search", "protocols.io publish", "protocols.io workspace", "protocols.io file attachment", "protocols.io protocol"]
+      "keywords": ["protocolsio", "protocols.io api", "protocols.io search", "protocols.io publish", "protocols.io workspace", "protocols.io file attachment", "protocols.io protocol", "protocols.io 查找", "publish to protocols.io", "protocol to protocols.io", "attachments to protocols.io"]
     },
     "benchling-integration": {
-      "keywords": ["benchling", "benchling registry", "benchling inventory", "benchling eln", "benchling data warehouse", "benchling workflow", "benchling app", "benchling entry", "Benchling"]
+      "keywords": ["benchling", "benchling registry", "benchling inventory", "benchling eln", "benchling data warehouse", "benchling workflow", "benchling app", "benchling entry", "benchling sample management", "benchling 样品管理"]
     },
     "labarchive-integration": {
-      "keywords": ["labarchives", "labarchives api", "labarchives notebook", "labarchives entry", "notebook backup", "entry attachment", "labarchives attachment", "备份 LabArchives", "备份电子实验记录"]
+      "keywords": ["labarchives", "labarchives api", "labarchives notebook", "labarchives entry", "labarchives backup", "labarchives entries", "labarchives attachments", "labarchives entry attachment", "labarchives csv attachment", "备份 LabArchives", "LabArchives 附件"]
     },
     "latchbio-integration": {
       "keywords": ["latchbio", "latch sdk", "latch workflow", "latchbio workflow", "latch pipeline", "latchbio pipeline", "latchfile", "latchdir", "nextflow workflow", "bioinformatics workflow platform", "生信工作流平台"]
