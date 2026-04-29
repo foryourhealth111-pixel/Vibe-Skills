@@ -76,6 +76,15 @@ $cases = @(
     [pscustomobject]@{ Name = "mcp integration"; Prompt = "需要接入MCP server并配置.mcp.json"; Grade = "L"; TaskType = "planning"; ExpectedPack = "integration-devops"; ExpectedSkill = "mcp-integration" },
     [pscustomobject]@{ Name = "sentry diagnostics"; Prompt = "查看Sentry线上报错并汇总根因"; Grade = "L"; TaskType = "debug"; ExpectedPack = "integration-devops"; ExpectedSkill = "sentry" },
     [pscustomobject]@{ Name = "vercel deploy"; Prompt = "请把应用部署到Vercel并返回访问链接"; Grade = "L"; TaskType = "coding"; ExpectedPack = "integration-devops"; ExpectedSkill = "vercel-deploy" },
+    [pscustomobject]@{ Name = "netlify deploy"; Prompt = "请部署到Netlify并生成预览链接"; Grade = "L"; TaskType = "coding"; ExpectedPack = "integration-devops"; ExpectedSkill = "netlify-deploy" },
+    [pscustomobject]@{ Name = "node zombie cleanup"; Prompt = "审计并清理VCO托管的僵尸node进程"; Grade = "L"; TaskType = "debug"; ExpectedPack = "integration-devops"; ExpectedSkill = "node-zombie-guardian" },
+    [pscustomobject]@{ Name = "security best practices not devops"; Prompt = "做一次安全最佳实践审查"; Grade = "M"; TaskType = "review"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "threat model not devops"; Prompt = "为这个仓库做威胁建模"; Grade = "M"; TaskType = "planning"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "security ownership not devops"; Prompt = "分析安全所有权和bus factor"; Grade = "M"; TaskType = "review"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "file permission not devops"; Prompt = "处理文件写入失败和Permission denied"; Grade = "M"; TaskType = "debug"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "benchmarkdotnet not devops"; Prompt = "运行BenchmarkDotNet性能测试"; Grade = "M"; TaskType = "coding"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "pr review comments not devops"; Prompt = "回复PR评审意见并修改代码"; Grade = "M"; TaskType = "coding"; BlockedPack = "integration-devops" },
+    [pscustomobject]@{ Name = "yeet pr publish not devops"; Prompt = "一键提交commit push并打开PR"; Grade = "M"; TaskType = "coding"; BlockedPack = "integration-devops" },
 
     [pscustomobject]@{ Name = "openai docs"; Prompt = "查询OpenAI官方文档中的Responses API用法"; Grade = "M"; TaskType = "research"; ExpectedPack = "ai-llm"; ExpectedSkill = "openai-docs" },
     [pscustomobject]@{ Name = "prompt lookup"; Prompt = "帮我检索提示词模板并优化prompt"; Grade = "M"; TaskType = "research"; ExpectedPack = "ai-llm"; ExpectedSkill = "prompt-lookup" },
@@ -158,7 +167,7 @@ foreach ($case in $cases) {
     if ($case.PSObject.Properties.Name -contains "BlockedSkill" -and $case.BlockedSkill) {
         $results += Assert-True -Condition ($route.selected.skill -ne $case.BlockedSkill) -Message "[$($case.Name)] blocked skill $($case.BlockedSkill) not selected"
     }
-    $results += Assert-True -Condition ($route.selected.selection_reason -in @("keyword_ranked", "requested_skill", "fallback_first_candidate", "fallback_task_default", "fallback_task_default_after_task_filter", "fallback_first_candidate_after_task_filter")) -Message "[$($case.Name)] selection reason is valid"
+    $results += Assert-True -Condition ($route.selected.selection_reason -in @("keyword_ranked", "requested_skill", "fallback_first_candidate", "fallback_task_default", "fallback_task_default_after_task_filter", "fallback_first_candidate_after_task_filter", "host_selection_candidate")) -Message "[$($case.Name)] selection reason is valid"
 }
 
 # Determinism check for per-skill selection.

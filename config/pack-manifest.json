@@ -816,9 +816,7 @@
                                                        "pptx-posters",
                                                        "infographics"
                                                    ],
-                      "stage_assistant_candidates":  [
-
-                                           ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "scientific-slides",
                                                "coding":  "slides-as-code",
@@ -1161,12 +1159,10 @@
                       "task_allow":  [
                                          "planning",
                                          "coding",
-                                         "debug",
-                                         "review"
+                                         "debug"
                                      ],
                       "trigger_keywords":  [
                                                "deploy",
-                                               "github",
                                                "ci",
                                                "cd",
                                                "mcp",
@@ -1178,39 +1174,38 @@
                                                "orphan node",
                                                "devops",
                                                "部署",
-                                               "发布",
-                                               "运维",
                                                "流水线",
                                                "持续集成",
                                                "持续交付",
-                                               "故障排查",
                                                "僵尸node",
                                                "僵尸进程",
-                                               "威胁建模",
                                                "github actions",
                                                "日志排查",
                                                "线上告警"
                                            ],
                       "skill_candidates":  [
-                                               "gh-address-comments",
                                                "gh-fix-ci",
                                                "mcp-integration",
-                                               "netlify-deploy",
-                                               "node-zombie-guardian",
-                                               "performance-testing",
-                                               "security-best-practices",
-                                               "security-ownership-map",
-                                               "security-threat-model",
                                                "sentry",
-                                               "smart-file-writer",
                                                "vercel-deploy",
-                                               "yeet"
+                                               "netlify-deploy",
+                                               "node-zombie-guardian"
+                                           ],
+                      "route_authority_candidates":  [
+                                                       "gh-fix-ci",
+                                                       "mcp-integration",
+                                                       "sentry",
+                                                       "vercel-deploy",
+                                                       "netlify-deploy",
+                                                       "node-zombie-guardian"
+                                                   ],
+                      "stage_assistant_candidates":  [
+
                                            ],
                       "defaults_by_task":  {
                                                "debug":  "gh-fix-ci",
                                                "planning":  "mcp-integration",
-                                               "coding":  "vercel-deploy",
-                                               "review":  "security-best-practices"
+                                               "coding":  "vercel-deploy"
                                            }
                   },
                   {
