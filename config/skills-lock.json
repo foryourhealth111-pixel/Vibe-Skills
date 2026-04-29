@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-29T21:55:57+08:00",
+  "generated_at": "2026-04-29T22:58:50+08:00",
   "source": "bundled/skills",
   "skill_count": 314,
-  "total_bytes": 20854715.0,
+  "total_bytes": 20854814.0,
   "skills": [
     {
       "name": ".system",
@@ -1433,9 +1433,9 @@
       "name": "preprocessing-data-with-automated-pipelines",
       "relative_path": "bundled/skills/preprocessing-data-with-automated-pipelines",
       "file_count": 9,
-      "bytes": 48740,
-      "skill_md_hash": "943022423cb0eb12d7ae05a23c0a26d46dab5b35e0f64573ace5a81df6d63636",
-      "dir_hash": "d260e9ee204c67e551a1c91a6f7d9bcb4a94c3a718f680c009e1ee0dc3e6e02f"
+      "bytes": 48670,
+      "skill_md_hash": "1dd37b79c6dd26edd61528cc31b248bdd3de9251cc8c9c3777aad548993dcb9a",
+      "dir_hash": "7cee356e7169905e009334196f29ee7728bead916f656959794254c8bc585231"
     },
     {
       "name": "prompt-lookup",
@@ -1673,9 +1673,9 @@
       "name": "requesting-code-review",
       "relative_path": "bundled/skills/requesting-code-review",
       "file_count": 2,
-      "bytes": 6389,
-      "skill_md_hash": "245084997b934069fd4bd3313409a6b5d8788655f4a511fdd2119bee314362f8",
-      "dir_hash": "a2d9dfdf658575f64bef24e5533a92e44eaebd8addf7281cead1c9374bca58e7"
+      "bytes": 6558,
+      "skill_md_hash": "da85de61842cbebff74c46b1f2ef4dc18cf0605aa0f516858862f6cccf0c63c6",
+      "dir_hash": "392a1bb9569cdec682b4f9557742e5ae3e746a79b7b9713cbce2b476b1d46240"
     },
     {
       "name": "research-grants",
