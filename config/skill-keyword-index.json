@@ -21,6 +21,9 @@
     "scrapling": {
       "keywords": ["scrapling", "scrapling extract", "scrapling mcp", "web scraping", "scrape", "scraping", "scraper", "crawl", "crawler", "spider", "html extraction", "content extraction", "css selector", "css-selector", "xpath", "xpath selector", "cf-turnstile", "turnstile", "cloudflare", "cloudflare challenge", "captcha", "anti-bot", "网页爬虫", "爬虫", "网页爬取", "抓取网页", "网页抓取", "网页采集", "反爬", "CSS选择器", "XPath选择器", "选择器提取"]
     },
+    "playwright": {
+      "keywords": ["playwright", "browser automation", "headless browser", "browser test", "form filling", "login flow", "dynamic page", "screenshot flow", "页面自动化", "浏览器自动化", "登录表单", "动态页面", "截图调试"]
+    },
     "deepagent-toolchain-plan": {
       "keywords": ["deepagent", "tool discovery", "toolchain", "skill chain", "confirm_required", "white-box menu", "capability interview", "route instability", "工具发现", "工具链", "技能链", "选技能", "确认菜单", "能力访谈", "路由不确定"]
     },
@@ -427,10 +430,10 @@
       "keywords": ["hedge fund monitor", "ofr", "hedge fund", "对冲基金", "OFR"]
     },
     "market-research-reports": {
-      "keywords": ["market research", "industry report", "competitive analysis", "市场研究", "行业报告", "市场调研"]
+      "keywords": ["market research", "industry report", "competitive analysis", "consulting-style market research report", "consulting report", "市场研究", "行业报告", "市场调研", "咨询式报告"]
     },
     "datacommons-client": {
-      "keywords": ["data commons", "datacommons", "public data", "open data", "公共数据", "开放数据"]
+      "keywords": ["data commons", "datacommons", "public data", "public statistical data", "open data", "population indicators", "公共数据", "开放数据", "人口经济指标"]
     },
     "qiskit": {
       "keywords": ["qiskit", "quantum circuit", "ibm quantum", "量子电路", "量子计算"]
@@ -457,10 +460,10 @@
       "keywords": ["geopandas", "gis", "shapefile", "geojson", "geospatial", "地理数据", "空间数据", "地图"]
     },
     "geo-database": {
-      "keywords": ["geodatabase", "geodata", "geonames", "spatial database", "地理数据库", "地理信息"]
+      "keywords": ["ncbi geo", "gene expression omnibus", "gse", "gsm", "gpl", "geo dataset", "expression dataset", "基因表达数据库", "表达谱数据"]
     },
     "geomaster": {
-      "keywords": ["geomaster", "coordinate transform", "projection", "geospatial", "坐标转换", "投影"]
+      "keywords": ["geomaster", "coordinate transform", "projection", "geospatial", "remote sensing", "earth observation", "raster", "satellite", "坐标转换", "投影", "遥感", "地球观测"]
     },
     "polars": {
       "keywords": ["polars", "dataframe", "parquet", "arrow", "rust dataframe", "高性能dataframe", "大表处理"]

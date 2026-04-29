@@ -415,6 +415,26 @@ $cases = @(
         requested_skill = $null
     },
     [pscustomobject]@{
+        name = "imaging_histolab_tiles"
+        group = "science-medical-imaging"
+        prompt = "/vibe 用 histolab 对 whole slide image 做 tissue detection 和 tile extraction"
+        grade = "M"
+        task_type = "coding"
+        expected_pack = "science-medical-imaging"
+        expected_skill = "histolab"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "imaging_omero_roi"
+        group = "science-medical-imaging"
+        prompt = "/vibe 用 OMERO 读取 microscopy image server 里的 ROI annotations"
+        grade = "M"
+        task_type = "coding"
+        expected_pack = "science-medical-imaging"
+        expected_skill = "omero-integration"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
         name = "imaging_pathml_wsi"
         group = "science-medical-imaging"
         prompt = "/vibe 用 PathML 做 WSI patch extraction，并准备一个最小可复现实验脚本"
@@ -633,6 +653,46 @@ $cases = @(
         expected_skill = "alpha-vantage"
         requested_skill = $null
     },
+    [pscustomobject]@{
+        name = "finance_usfiscal_debt"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 用 U.S. Treasury Fiscal Data 查询 national debt 和 federal spending"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "finance-edgar-macro"
+        expected_skill = "usfiscaldata"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "finance_hedgefundmonitor"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 查询 OFR Hedge Fund Monitor 和 Form PF aggregate statistics"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "finance-edgar-macro"
+        expected_skill = "hedgefundmonitor"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "finance_market_research_report"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 生成 consulting-style market research report 和 competitive analysis"
+        grade = "M"
+        task_type = "planning"
+        expected_pack = "finance-edgar-macro"
+        expected_skill = "market-research-reports"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "finance_datacommons_public_stats"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 用 Data Commons 查询 public statistical data 和人口经济指标"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "finance-edgar-macro"
+        expected_skill = "datacommons-client"
+        requested_skill = $null
+    },
 
     # science-quantum
     [pscustomobject]@{
@@ -713,6 +773,17 @@ $cases = @(
         expected_skill = "geomaster"
         requested_skill = $null
     },
+    [pscustomobject]@{
+        name = "geo_ncbi_geo_not_geospatial"
+        group = "science-geospatial"
+        prompt = "/vibe 查询 NCBI GEO 的 GSE 和 GSM gene expression dataset"
+        grade = "M"
+        task_type = "research"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "science-geospatial"
+        requested_skill = $null
+    },
 
     # science-zarr-polars
     [pscustomobject]@{
@@ -723,6 +794,16 @@ $cases = @(
         task_type = "coding"
         expected_pack = "science-zarr-polars"
         expected_skill = "polars"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bigdata_vaex_out_of_core"
+        group = "science-zarr-polars"
+        prompt = "/vibe 用 Vaex 做 out-of-core big dataframe filtering"
+        grade = "M"
+        task_type = "coding"
+        expected_pack = "science-zarr-polars"
+        expected_skill = "vaex"
         requested_skill = $null
     },
     [pscustomobject]@{

@@ -757,6 +757,14 @@
                                                "omero-integration",
                                                "pathml"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "pydicom",
+                                                       "imaging-data-commons",
+                                                       "histolab",
+                                                       "omero-integration",
+                                                       "pathml"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "pathml",
                                                "coding":  "pydicom",
@@ -903,6 +911,13 @@
                                                "captcha",
                                                "anti-bot",
                                                "headless browser",
+                                               "playwright",
+                                               "browser automation",
+                                               "browser test",
+                                               "form filling",
+                                               "login flow",
+                                               "dynamic page",
+                                               "screenshot flow",
                                                "爬虫",
                                                "抓取",
                                                "采集",
@@ -911,6 +926,10 @@
                                                "反爬",
                                                "验证码",
                                                "无头浏览器",
+                                               "浏览器自动化",
+                                               "登录表单",
+                                               "动态页面",
+                                               "截图调试",
                                                "解析html",
                                                "选择器"
                                            ],
@@ -918,6 +937,11 @@
                                                "scrapling",
                                                "playwright"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "scrapling",
+                                                       "playwright"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "coding":  "scrapling",
                                                "research":  "scrapling",
@@ -1175,9 +1199,13 @@
                                                "us fiscal",
                                                "ofr",
                                                "hedge fund",
+                                               "data commons",
+                                               "datacommons",
+                                               "public statistical data",
                                                "财报",
                                                "美国证监会",
                                                "宏观数据",
+                                               "人口经济指标",
                                                "国债",
                                                "财政数据",
                                                "fomc"
@@ -1191,6 +1219,16 @@
                                                "market-research-reports",
                                                "datacommons-client"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "edgartools",
+                                                       "alpha-vantage",
+                                                       "fred-economic-data",
+                                                       "usfiscaldata",
+                                                       "hedgefundmonitor",
+                                                       "market-research-reports",
+                                                       "datacommons-client"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "market-research-reports",
                                                "coding":  "edgartools",
@@ -1480,13 +1518,17 @@
                                            ],
                       "skill_candidates":  [
                                                "geopandas",
-                                               "geo-database",
                                                "geomaster"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "geopandas",
+                                                       "geomaster"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "geopandas",
                                                "coding":  "geopandas",
-                                               "research":  "geo-database"
+                                               "research":  "geomaster"
                                             }
                   },
                   {
@@ -1510,6 +1552,10 @@
                       "skill_candidates":  [
                                                "tiledbvcf"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "tiledbvcf"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "tiledbvcf",
                                                "coding":  "tiledbvcf",
@@ -1853,16 +1899,19 @@
                                                "polars",
                                                "vaex",
                                                "zarr",
-                                               "tiledb",
-                                               "tiledbvcf",
                                                "parquet"
                                            ],
                       "skill_candidates":  [
                                                "polars",
                                                "vaex",
-                                               "zarr-python",
-                                               "tiledbvcf"
+                                               "zarr-python"
                                            ],
+                      "route_authority_candidates":  [
+                                                       "polars",
+                                                       "vaex",
+                                                       "zarr-python"
+                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "zarr-python",
                                                "coding":  "polars",

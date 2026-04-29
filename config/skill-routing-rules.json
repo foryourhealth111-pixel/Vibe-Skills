@@ -204,7 +204,18 @@
                                                              "seaborn",
                                                              "可视化",
                                                              "图表",
-                                                             "绘图"
+                                                             "绘图",
+                                                             "browser automation",
+                                                             "playwright",
+                                                             "form filling",
+                                                             "login flow",
+                                                             "screenshot",
+                                                             "dynamic page",
+                                                             "headless browser",
+                                                             "浏览器自动化",
+                                                             "登录表单",
+                                                             "动态页面",
+                                                             "截图调试"
                                                          ],
                                     "equivalent_group":  "web-scraping",
                                     "canonical_for_task":  [
@@ -4065,14 +4076,33 @@
                                       "positive_keywords":  [
                                                                 "browser automation",
                                                                 "playwright",
-                                                                "页面自动化"
+                                                                "headless browser",
+                                                                "browser test",
+                                                                "form filling",
+                                                                "login flow",
+                                                                "screenshot",
+                                                                "dynamic page",
+                                                                "页面自动化",
+                                                                "浏览器自动化",
+                                                                "登录表单",
+                                                                "动态页面",
+                                                                "截图调试"
                                                             ],
                                       "negative_keywords":  [
-                                                                "paper writing"
+                                                                "paper writing",
+                                                                "pubmed",
+                                                                "citation",
+                                                                "references",
+                                                                "bibtex",
+                                                                "literature review",
+                                                                "文献",
+                                                                "参考文献",
+                                                                "引用"
                                                             ],
-                                      "equivalent_group":  null,
+                                      "equivalent_group":  "web-scraping",
                                       "canonical_for_task":  [
-
+                                                                "coding",
+                                                                "debug"
                                                              ]
                                   },
                    "hypothesis-testing":  {
@@ -5765,7 +5795,12 @@
                                                             ],
                                       "negative_keywords":  [
                                                                 "pubmed",
-                                                                "pmid"
+                                                                "pmid",
+                                                                "ncbi geo",
+                                                                "gene expression omnibus",
+                                                                "gse",
+                                                                "gsm",
+                                                                "gene expression"
                                                             ],
                                       "equivalent_group":  "finance-data",
                                       "canonical_for_task":  [
@@ -5870,14 +5905,29 @@
                                                                              "market research",
                                                                              "industry report",
                                                                              "competitive analysis",
+                                                                             "consulting-style market research report",
+                                                                             "consulting report",
                                                                              "市场研究",
                                                                              "行业报告",
-                                                                             "市场调研"
-                                                                         ],
-                                                   "negative_keywords":  [
-                                                                             "pubmed",
-                                                                             "pmid"
-                                                                         ],
+                                                                             "市场调研",
+                                                                             "咨询式报告"
+                                                                          ],
+                                                    "negative_keywords":  [
+                                                                              "pubmed",
+                                                                              "pmid",
+                                                                              "edgar",
+                                                                              "sec",
+                                                                              "10-k",
+                                                                              "10q",
+                                                                              "xbrl",
+                                                                              "fred",
+                                                                              "cpi",
+                                                                              "alpha vantage",
+                                                                              "treasury",
+                                                                              "fiscal data",
+                                                                              "hedge fund monitor",
+                                                                              "data commons"
+                                                                          ],
                                                    "equivalent_group":  "finance-strategy",
                                                    "canonical_for_task":  [
                                                                               "planning"
@@ -5893,8 +5943,11 @@
                                                                         "datacommons",
                                                                         "open data",
                                                                         "public data",
+                                                                        "public statistical data",
+                                                                        "population indicators",
                                                                         "公共数据",
-                                                                        "开放数据"
+                                                                        "开放数据",
+                                                                        "人口经济指标"
                                                                     ],
                                               "negative_keywords":  [
                                                                         "pubmed",
@@ -5902,7 +5955,8 @@
                                                                     ],
                                               "equivalent_group":  "public-data",
                                               "canonical_for_task":  [
-  
+                                                                        "research",
+                                                                        "coding"
                                                                      ]
                                           },
                    "qiskit":  {
@@ -6034,7 +6088,12 @@
                                                          ],
                                    "negative_keywords":  [
                                                              "pubmed",
-                                                             "pmid"
+                                                             "pmid",
+                                                             "vcf",
+                                                             "bcf",
+                                                             "tiledbvcf",
+                                                             "genomics storage",
+                                                             "variant storage"
                                                          ],
                                    "equivalent_group":  "astronomy",
                                    "canonical_for_task":  [
@@ -6056,10 +6115,15 @@
                                                               "材料",
                                                               "晶体"
                                                           ],
-                                    "negative_keywords":  [
-                                                              "pubmed",
-                                                              "pmid"
-                                                          ],
+                                 "negative_keywords":  [
+                                                           "pubmed",
+                                                           "pmid",
+                                                           "vcf",
+                                                           "bcf",
+                                                           "tiledbvcf",
+                                                           "genomics storage",
+                                                           "variant storage"
+                                                       ],
                                     "equivalent_group":  "materials",
                                     "canonical_for_task":  [
                                                                "coding"
@@ -6080,10 +6144,14 @@
                                                                "地图",
                                                                "空间数据"
                                                            ],
-                                     "negative_keywords":  [
-                                                               "pubmed",
-                                                               "pmid"
-                                                           ],
+                                        "negative_keywords":  [
+                                                                  "pubmed",
+                                                                  "pmid",
+                                                                  "vcf",
+                                                                  "bcf",
+                                                                  "tiledbvcf",
+                                                                  "variant storage"
+                                                              ],
                                      "equivalent_group":  "geospatial",
                                      "canonical_for_task":  [
                                                                 "coding"
@@ -6094,19 +6162,28 @@
                                                            "research",
                                                            "coding"
                                                        ],
-                                        "positive_keywords":  [
-                                                                  "geodatabase",
-                                                                  "geonames",
-                                                                  "spatial database",
-                                                                  "place name",
-                                                                  "地理数据库",
-                                                                  "地名"
-                                                              ],
-                                        "negative_keywords":  [
-                                                                  "pubmed",
-                                                                  "pmid"
-                                                              ],
-                                        "equivalent_group":  "geospatial",
+                                         "positive_keywords":  [
+                                                                   "ncbi geo",
+                                                                   "gene expression omnibus",
+                                                                   "gse",
+                                                                   "gsm",
+                                                                   "gpl",
+                                                                   "expression dataset",
+                                                                   "基因表达数据库",
+                                                                   "表达谱数据"
+                                                               ],
+                                         "negative_keywords":  [
+                                                                   "pubmed",
+                                                                   "pmid",
+                                                                   "geospatial",
+                                                                   "gis",
+                                                                   "shapefile",
+                                                                   "geojson",
+                                                                   "map",
+                                                                   "地理",
+                                                                   "地图"
+                                                               ],
+                                        "equivalent_group":  "bio-expression-database",
                                         "canonical_for_task":  [
                                                                    "research"
                                                                ]
@@ -6118,17 +6195,28 @@
                                                         "research"
                                                     ],
                                      "positive_keywords":  [
-                                                               "coordinate transform",
-                                                               "projection",
-                                                               "epsg",
-                                                               "坐标转换",
-                                                               "投影",
-                                                               "经纬度"
-                                                           ],
-                                     "negative_keywords":  [
-                                                               "pubmed",
-                                                               "pmid"
-                                                           ],
+                                                                "coordinate transform",
+                                                                "projection",
+                                                                "epsg",
+                                                                "remote sensing",
+                                                                "earth observation",
+                                                                "raster",
+                                                                "satellite",
+                                                                "坐标转换",
+                                                                "投影",
+                                                                "经纬度",
+                                                                "遥感",
+                                                                "地球观测"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "pubmed",
+                                                                "pmid",
+                                                                "ncbi geo",
+                                                                "gene expression omnibus",
+                                                                "gse",
+                                                                "gsm",
+                                                                "gene expression"
+                                                            ],
                                      "equivalent_group":  "geospatial",
                                      "canonical_for_task":  [
                                                                 "coding"
@@ -6208,17 +6296,28 @@
                                                          "research"
                                                      ],
                                      "positive_keywords":  [
-                                                               "tiledbvcf",
-                                                               "vcf",
-                                                               "variant storage",
-                                                               "genomics storage",
-                                                               "变异存储"
-                                                           ],
-                                     "negative_keywords":  [
-                                                               "pubmed",
-                                                               "pmid"
-                                                           ],
-                                     "equivalent_group":  "tabular-bigdata",
+                                                                "tiledbvcf",
+                                                                "tiledb-vcf",
+                                                                "tiledb vcf",
+                                                                "vcf",
+                                                                "bcf",
+                                                                "variant storage",
+                                                                "genomics storage",
+                                                                "population genomics",
+                                                                "variant query",
+                                                                "变异存储"
+                                                            ],
+                                      "negative_keywords":  [
+                                                                "pubmed",
+                                                                "pmid",
+                                                                "polars",
+                                                                "vaex",
+                                                                "zarr",
+                                                                "parquet",
+                                                                "dataframe",
+                                                                "chunked array"
+                                                            ],
+                                      "equivalent_group":  "genomic-variant-storage",
                                      "canonical_for_task":  [
                                                                 "coding"
                                                             ]
