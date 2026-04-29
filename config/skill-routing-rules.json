@@ -2915,6 +2915,7 @@
                                              },
                    "performing-regression-analysis":  {
                                                            "task_allow":  [
+                                                                              "planning",
                                                                               "research",
                                                                               "review"
                                                                           ],
@@ -2924,23 +2925,26 @@
                                                                                      "multiple regression",
                                                                                      "glm",
                                                                                      "ols",
+                                                                                     "coefficient",
+                                                                                     "confidence interval",
+                                                                                     "regression diagnostics",
                                                                                      "回归分析",
                                                                                      "线性回归",
+                                                                                     "多元回归",
                                                                                      "回归建模",
-                                                                                     "回归诊断"
+                                                                                     "回归诊断",
+                                                                                     "系数",
+                                                                                     "置信区间"
                                                                                  ],
                                                            "negative_keywords":  [
                                                                                      "causal inference",
                                                                                      "difference-in-differences",
                                                                                      "synthetic control",
-                                                                                     "literature review",
                                                                                      "grant proposal",
                                                                                      "research report",
-                                                                                     "executive summary",
                                                                                      "data leakage",
-                                                                                     "fit before split",
-                                                                                     "因果分析",
-                                                                                     "基金申请"
+                                                                                     "figma",
+                                                                                     "browser automation"
                                                                                  ],
                                                            "equivalent_group":  "quant-regression",
                                                            "canonical_for_task":  [
@@ -3186,31 +3190,211 @@
                                                                      "research"
                                                                  ],
                                                   "positive_keywords":  [
+                                                                            "research design",
+                                                                            "experimental design",
+                                                                            "experiment design",
+                                                                            "quasi-experimental",
+                                                                            "quasi experimental",
                                                                             "did",
                                                                             "difference-in-differences",
                                                                             "difference in differences",
                                                                             "its",
                                                                             "interrupted time series",
                                                                             "synthetic control",
-                                                                            "quasi-experimental",
-                                                                            "quasi experimental",
+                                                                            "regression discontinuity",
                                                                             "准实验",
-                                                                            "合成控制",
-                                                                            "中断时间序列",
+                                                                            "实验设计",
+                                                                            "研究设计",
                                                                             "差分中的差分",
-                                                                            "断点回归",
-                                                                            "regression discontinuity"
+                                                                            "中断时间序列",
+                                                                            "合成控制",
+                                                                            "断点回归"
                                                                         ],
                                                   "negative_keywords":  [
-                                                                            "hypothesis",
-                                                                            "research hypothesis",
-                                                                            "假设",
-                                                                            "deploy"
+                                                                            "python hypothesis",
+                                                                            "property-based",
+                                                                            "pytest",
+                                                                            "browser automation",
+                                                                            "figma",
+                                                                            "bibtex",
+                                                                            "pubmed",
+                                                                            "report"
                                                                         ],
                                                   "equivalent_group":  null,
                                                   "canonical_for_task":  [
+                                                                             "planning"
                                                                          ]
                                               },
+                   "experiment-failure-analysis":  {
+                                                       "task_allow":  [
+                                                                          "planning",
+                                                                          "review",
+                                                                          "research"
+                                                                      ],
+                                                       "positive_keywords":  [
+                                                                                "experiment failure",
+                                                                                "failed experiment",
+                                                                                "failure analysis",
+                                                                                "root cause experiment",
+                                                                                "optimization setback",
+                                                                                "abandon experiment",
+                                                                                "validation plan",
+                                                                                "实验失败",
+                                                                                "失败复盘",
+                                                                                "失败原因",
+                                                                                "优化失败",
+                                                                                "是否放弃",
+                                                                                "验证计划"
+                                                                            ],
+                                                       "negative_keywords":  [
+                                                                                "ci failure",
+                                                                                "test failure",
+                                                                                "pytest failure",
+                                                                                "github actions",
+                                                                                "build failure",
+                                                                                "browser automation"
+                                                                            ],
+                                                       "equivalent_group":  null,
+                                                       "canonical_for_task":  [
+                                                                                  "review"
+                                                                              ]
+                                                   },
+                   "hypogenic":  {
+                                     "task_allow":  [
+                                                        "planning",
+                                                        "research"
+                                                    ],
+                                     "positive_keywords":  [
+                                                               "hypogenic",
+                                                               "automated hypothesis generation",
+                                                               "automated hypothesis testing",
+                                                               "llm hypothesis",
+                                                               "hypothesis discovery",
+                                                               "generate and test hypotheses",
+                                                               "从数据生成假设",
+                                                               "自动假设生成",
+                                                               "自动假设验证",
+                                                               "科研假设自动化"
+                                                           ],
+                                     "negative_keywords":  [
+                                                               "pytest",
+                                                               "python hypothesis",
+                                                               "property-based",
+                                                               "unit test"
+                                                           ],
+                                     "equivalent_group":  "research-ideation",
+                                     "canonical_for_task":  [
+                                                                "research"
+                                                            ]
+                                 },
+                   "literature-matrix":  {
+                                             "task_allow":  [
+                                                                "planning",
+                                                                "research"
+                                                            ],
+                                             "positive_keywords":  [
+                                                                       "literature matrix",
+                                                                       "paper combination matrix",
+                                                                       "research idea matrix",
+                                                                       "method combination",
+                                                                       "a+b research idea",
+                                                                       "unified framework",
+                                                                       "paper combination",
+                                                                       "论文组合矩阵",
+                                                                       "文献矩阵",
+                                                                       "研究创新点",
+                                                                       "方法组合",
+                                                                       "统一框架",
+                                                                       "A+B"
+                                                                   ],
+                                             "negative_keywords":  [
+                                                                       "pubmed",
+                                                                       "bibtex",
+                                                                       "zotero",
+                                                                       "citation format",
+                                                                       "pdf extraction",
+                                                                       "full-text evidence table"
+                                                                   ],
+                                             "equivalent_group":  "research-ideation",
+                                             "canonical_for_task":  [
+                                                                        "planning",
+                                                                        "research"
+                                                                    ]
+                                         },
+                   "performing-causal-analysis":  {
+                                                      "task_allow":  [
+                                                                         "planning",
+                                                                         "research",
+                                                                         "review"
+                                                                     ],
+                                                      "positive_keywords":  [
+                                                                                "causal analysis",
+                                                                                "causal inference",
+                                                                                "causal model",
+                                                                                "treatment effect",
+                                                                                "impact evaluation",
+                                                                                "difference-in-differences",
+                                                                                "did",
+                                                                                "synthetic control",
+                                                                                "interrupted time series",
+                                                                                "regression discontinuity",
+                                                                                "因果分析",
+                                                                                "因果推断",
+                                                                                "因果模型",
+                                                                                "处理效应",
+                                                                                "政策评估",
+                                                                                "DID",
+                                                                                "合成控制",
+                                                                                "中断时间序列",
+                                                                                "断点回归"
+                                                                            ],
+                                                      "negative_keywords":  [
+                                                                                "python hypothesis",
+                                                                                "property-based",
+                                                                                "bibtex",
+                                                                                "pubmed",
+                                                                                "figma",
+                                                                                "browser automation"
+                                                                            ],
+                                                      "equivalent_group":  "causal-methods",
+                                                      "canonical_for_task":  [
+                                                                                 "research",
+                                                                                 "review"
+                                                                             ]
+                                                  },
+                   "scientific-brainstorming":  {
+                                                    "task_allow":  [
+                                                                       "planning",
+                                                                       "research"
+                                                                   ],
+                                                    "positive_keywords":  [
+                                                                              "scientific brainstorming",
+                                                                              "research brainstorming",
+                                                                              "research ideation",
+                                                                              "research gaps",
+                                                                              "mechanism brainstorming",
+                                                                              "scientific mechanism",
+                                                                              "experimental direction",
+                                                                              "科研头脑风暴",
+                                                                              "科研创意",
+                                                                              "研究思路",
+                                                                              "研究空白",
+                                                                              "可能机制",
+                                                                              "实验方向"
+                                                                          ],
+                                                    "negative_keywords":  [
+                                                                              "figma",
+                                                                              "browser automation",
+                                                                              "property-based",
+                                                                              "pubmed",
+                                                                              "bibtex",
+                                                                              "technical report"
+                                                                          ],
+                                                    "equivalent_group":  "research-ideation",
+                                                    "canonical_for_task":  [
+                                                                               "planning"
+                                                                           ]
+                                                },
                    "figma":  {
                                  "task_allow":  [
                                                     "planning",
@@ -3295,16 +3479,27 @@
                                                                  "review"
                                                              ],
                                               "positive_keywords":  [
-                                                                        "hypothesis",
+                                                                        "python hypothesis",
+                                                                        "hypothesis library",
+                                                                        "@given",
                                                                         "property-based",
-                                                                        "@given"
+                                                                        "property based",
+                                                                        "pytest hypothesis"
                                                                     ],
                                               "negative_keywords":  [
+                                                                        "scientific hypothesis",
+                                                                        "research hypothesis",
+                                                                        "hypothesis generation",
+                                                                        "科研假设",
+                                                                        "研究假设",
+                                                                        "假设生成",
+                                                                        "clinical hypothesis",
                                                                         "business hypothesis"
                                                                     ],
                                               "equivalent_group":  "property-testing",
                                               "canonical_for_task":  [
-
+                                                                         "coding",
+                                                                         "review"
                                                                      ]
                                           },
                    "property-based-testing":  {
@@ -3313,17 +3508,28 @@
                                                                      "review"
                                                                  ],
                                                   "positive_keywords":  [
+                                                                            "property-based testing",
+                                                                            "property based testing",
                                                                             "fast-check",
                                                                             "quickcheck",
                                                                             "property testing",
+                                                                            "hypothesis library",
+                                                                            "@given",
                                                                             "性质测试"
                                                                         ],
                                                   "negative_keywords":  [
+                                                                            "scientific hypothesis",
+                                                                            "research hypothesis",
+                                                                            "hypothesis generation",
+                                                                            "科研假设",
+                                                                            "研究假设",
+                                                                            "假设生成",
                                                                             "clinical hypothesis"
                                                                         ],
                                                   "equivalent_group":  "property-testing",
                                                   "canonical_for_task":  [
-
+                                                                             "coding",
+                                                                             "review"
                                                                          ]
                                               },
                    "scientific-data-preprocessing":  {
@@ -5078,25 +5284,28 @@
                                                                      "research"
                                                                  ],
                                                   "positive_keywords":  [
-                                                                            "hypothesis",
-                                                                            "hypotheses",
                                                                             "hypothesis generation",
                                                                             "research hypothesis",
                                                                             "scientific hypothesis",
-                                                                            "testable",
+                                                                            "testable hypothesis",
                                                                             "falsifiable",
+                                                                            "mechanism",
+                                                                            "prediction",
                                                                             "假设生成",
                                                                             "研究假设",
                                                                             "科学假设",
-                                                                            "假设",
+                                                                            "科研假设",
                                                                             "可检验",
                                                                             "可证伪",
-                                                                            "prediction",
+                                                                            "机制假设",
                                                                             "预测"
                                                                         ],
                                                   "negative_keywords":  [
+                                                                            "python hypothesis",
+                                                                            "property-based",
                                                                             "pytest",
-                                                                            "unit test"
+                                                                            "unit test",
+                                                                            "business hypothesis"
                                                                        ],
                                                  "equivalent_group":  "research-ideation",
                                                  "canonical_for_task":  [
@@ -5109,21 +5318,26 @@
                                                               "research"
                                                           ],
                                            "positive_keywords":  [
+                                                                     "research grant",
                                                                      "grant",
                                                                      "grants",
                                                                      "grant proposal",
                                                                      "proposal",
-                                                                     "proposals",
                                                                      "nih",
                                                                      "nsf",
                                                                      "nsfc",
                                                                      "darpa",
+                                                                     "significance",
+                                                                     "innovation",
+                                                                     "broader impacts",
                                                                      "funding",
                                                                      "科研基金",
                                                                      "基金申请",
                                                                      "基金申请书",
                                                                      "基金标书",
-                                                                     "项目申请书"
+                                                                     "项目申请书",
+                                                                     "立项依据",
+                                                                     "创新性"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "tender",
@@ -5132,7 +5346,8 @@
                                                                      "投标",
                                                                      "采购",
                                                                      "docking",
-                                                                     "smiles"
+                                                                     "smiles",
+                                                                     "figma"
                                                                  ],
                                            "equivalent_group":  "research-grants",
                                            "canonical_for_task":  [

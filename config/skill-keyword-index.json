@@ -184,7 +184,22 @@
       "keywords": ["scientific writing", "imrad", "manuscript", "科研写作", "论文写作", "学术稿件"]
     },
     "designing-experiments": {
-      "keywords": ["did", "difference-in-differences", "its", "interrupted time series", "synthetic control", "quasi-experimental", "准实验", "合成控制", "中断时间序列", "断点回归"]
+      "keywords": ["research design", "experimental design", "experiment design", "quasi-experimental", "quasi experimental", "did", "difference-in-differences", "difference in differences", "its", "interrupted time series", "synthetic control", "regression discontinuity", "准实验", "实验设计", "研究设计", "差分中的差分", "中断时间序列", "合成控制", "断点回归"]
+    },
+    "experiment-failure-analysis": {
+      "keywords": ["experiment failure", "failed experiment", "failure analysis", "root cause experiment", "optimization setback", "abandon experiment", "validation plan", "实验失败", "失败复盘", "失败原因", "优化失败", "是否放弃", "验证计划"]
+    },
+    "hypogenic": {
+      "keywords": ["hypogenic", "automated hypothesis generation", "automated hypothesis testing", "llm hypothesis", "hypothesis discovery", "generate and test hypotheses", "从数据生成假设", "自动假设生成", "自动假设验证", "科研假设自动化"]
+    },
+    "literature-matrix": {
+      "keywords": ["literature matrix", "paper combination matrix", "research idea matrix", "method combination", "a+b research idea", "unified framework", "paper combination", "论文组合矩阵", "文献矩阵", "研究创新点", "方法组合", "统一框架", "A+B"]
+    },
+    "performing-causal-analysis": {
+      "keywords": ["causal analysis", "causal inference", "causal model", "treatment effect", "impact evaluation", "difference-in-differences", "did", "synthetic control", "interrupted time series", "regression discontinuity", "因果分析", "因果推断", "因果模型", "处理效应", "政策评估", "DID", "合成控制", "中断时间序列", "断点回归"]
+    },
+    "scientific-brainstorming": {
+      "keywords": ["scientific brainstorming", "research brainstorming", "research ideation", "research gaps", "mechanism brainstorming", "scientific mechanism", "experimental direction", "科研头脑风暴", "科研创意", "研究思路", "研究空白", "可能机制", "实验方向"]
     },
     "figma-implement-design": {
       "keywords": ["figma to code", "implement design", "design implementation", "design to code", "frontend implementation", "Figma 设计稿", "figma设计稿", "设计稿还原", "figma实现", "按figma开发", "按 Figma 开发", "还原代码", "还原为可运行代码", "设计转代码", "UI还原"]
@@ -217,7 +232,7 @@
       "keywords": ["literature search", "paper search", "文献检索", "查找论文", "研究调研"]
     },
     "performing-regression-analysis": {
-      "keywords": ["regression analysis", "linear regression", "multiple regression", "glm", "ols", "回归分析", "线性回归", "回归建模", "回归诊断"]
+      "keywords": ["regression analysis", "linear regression", "multiple regression", "glm", "ols", "coefficient", "confidence interval", "regression diagnostics", "回归分析", "线性回归", "多元回归", "回归建模", "回归诊断", "系数", "置信区间"]
     },
     "pubmed-database": {
       "keywords": ["pubmed", "pmid", "mesh", "medline", "ncbi", "e-utilities", "biomedical literature", "文献检索", "医学文献"]
@@ -412,10 +427,10 @@
       "keywords": ["tiledb-vcf", "tiledb vcf", "tiledbvcf", "vcf", "bcf", "genomics storage", "variant storage", "变异存储", "population genomics", "variant query"]
     },
     "hypothesis-generation": {
-      "keywords": ["hypothesis", "hypotheses", "hypothesis generation", "research hypothesis", "scientific hypothesis", "testable", "falsifiable", "假设生成", "研究假设", "科学假设", "假设", "可检验", "可证伪", "prediction", "预测"]
+      "keywords": ["hypothesis", "hypotheses", "hypothesis generation", "research hypothesis", "scientific hypothesis", "testable hypothesis", "falsifiable", "prediction", "mechanism", "假设生成", "研究假设", "科学假设", "科研假设", "可检验", "可证伪", "预测", "机制假设"]
     },
     "research-grants": {
-      "keywords": ["research grant", "grant", "grants", "grant proposal", "proposal", "proposals", "nih", "nsf", "nsfc", "darpa", "科研基金", "项目申请书", "基金申请", "基金申请书", "基金标书"]
+      "keywords": ["research grant", "grant", "grants", "grant proposal", "proposal", "nih", "nsf", "nsfc", "darpa", "significance", "innovation", "broader impacts", "funding", "科研基金", "基金申请", "基金申请书", "基金标书", "项目申请书", "立项依据", "创新性"]
     },
     "arboreto": {
       "keywords": ["arboreto", "pyscenic", "pySCENIC", "grn", "gene regulatory network", "transcription factor network", "基因调控网络", "转录因子网络"]
