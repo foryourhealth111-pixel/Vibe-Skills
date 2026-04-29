@@ -97,6 +97,13 @@ $cases = @(
     [pscustomobject]@{ Name = "rebuttal matrix"; Prompt = "回复审稿意见：生成rebuttal逐条回应矩阵，提供返修清单，并起草cover letter"; Grade = "L"; TaskType = "planning"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "submission-checklist" },
 
     [pscustomobject]@{ Name = "grant proposal"; Prompt = "请帮我写NSFC科研基金申请书（基金申请书），需要结构化标书与评审点对齐"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "research-grants" },
+    [pscustomobject]@{ Name = "experiment failure analysis"; Prompt = "分析实验失败原因，判断是否继续优化还是放弃该方案"; Grade = "L"; TaskType = "review"; ExpectedPack = "research-design"; ExpectedSkill = "experiment-failure-analysis" },
+    [pscustomobject]@{ Name = "hypogenic automated hypothesis"; Prompt = "用 HypoGeniC 从数据和文献中生成并测试科研假设"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "hypogenic" },
+    [pscustomobject]@{ Name = "scientific hypothesis generation"; Prompt = "根据实验观察生成可检验的科研假设和预测"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "hypothesis-generation" },
+    [pscustomobject]@{ Name = "literature matrix research ideas"; Prompt = "构建论文组合矩阵，寻找 A+B 的研究创新点"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "literature-matrix" },
+    [pscustomobject]@{ Name = "causal analysis did synthetic control"; Prompt = "用 DID 和 synthetic control 做因果分析方案"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "performing-causal-analysis" },
+    [pscustomobject]@{ Name = "regression coefficient confidence interval"; Prompt = "做回归分析并解释系数、置信区间和诊断结果"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "performing-regression-analysis" },
+    [pscustomobject]@{ Name = "scientific brainstorming mechanisms"; Prompt = "围绕这个生物机制做科研头脑风暴，提出可能机制和实验方向"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "scientific-brainstorming" },
 
     [pscustomobject]@{ Name = "top ppt deck"; Prompt = "顶级PPT制作：组会汇报slide deck，需要讲述结构与视觉规范"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "scientific-slides" },
     [pscustomobject]@{ Name = "slidev slides as code"; Prompt = "用Slidev做组会汇报：slides as code，要求可复现导出PDF"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "slides-as-code" },
