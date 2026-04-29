@@ -163,7 +163,7 @@
       "keywords": ["xan", "large csv", "big csv", "streaming csv", "low memory csv", "csv pipeline", "百万行csv", "超大csv", "流式csv", "低内存处理"]
     },
     "pdf": {
-      "keywords": ["pdf extract", "pdf parse", "pdf extraction", "render pdf", "读取pdf", "提取pdf文本", "pdf报告处理", "pdf正文", "pdf布局"]
+      "keywords": ["pdf extract", "pdf parse", "pdf extraction", "render pdf", "读取pdf", "读取 PDF", "提取pdf文本", "提取 PDF 文本", "提取正文", "pdf报告处理", "pdf正文", "PDF 正文", "pdf布局"]
     },
     "docx": {
       "keywords": ["docx", "word", "word document", "tracked changes", "docx formatting", "word修订", "文档编辑", "word报告", "word文档", "修订", "文档排版"]
@@ -502,7 +502,7 @@
       "keywords": ["批注", "回复批注", "word批注", "评论线程", "comment thread", "comment reply", "threaded comment", "comments.xml", "commentsExtended.xml", "commentsextended.xml", "docx批注", "doc批注"]
     },
     "scientific-visualization": {
-      "keywords": ["publication figure", "journal figure", "figure panel", "subplot", "multi-panel", "tiff", "600dpi", "dpi", "vector", "eps", "svg", "colorblind", "okabe-ito", "scienceplots", "科研绘图", "顶刊作图", "投稿图", "误差棒", "显著性"]
+      "keywords": ["publication figure", "journal figure", "figure panel", "subplot", "multi-panel", "tiff", "600dpi", "dpi", "vector", "eps", "svg", "colorblind", "okabe-ito", "scienceplots", "data visualization", "result visualization", "result figure", "result figures", "analysis figure", "model result figure", "model evaluation plot", "evaluation result plot", "科研绘图", "顶刊作图", "投稿图", "误差棒", "显著性", "数据可视化", "结果图", "结果可视化", "可视化结果", "模型结果图", "模型评估图", "评估结果图"]
     },
     "scientific-schematics": {
       "keywords": ["schematic", "diagram", "flowchart", "mechanism", "pathway", "system diagram", "示意图", "流程图", "机制图", "通路图", "系统图"]
@@ -532,7 +532,7 @@
       "keywords": ["manuscript as code", "paper as code", "论文工程化", "可复现构建", "reproducible build", "ci build", "版本控制论文", "final_v7"]
     },
     "latex-submission-pipeline": {
-      "keywords": ["latexmk", "overleaf", "chktex", "latexindent", "bibtex", "biber", "texlive", "latex action", "submission zip", "latex投稿"]
+      "keywords": ["latex", "latexmk", "overleaf", "chktex", "latexindent", "bibtex", "biber", "texlive", "latex action", "submission zip", "latex投稿", "latex paper", "latex manuscript", "latex pdf", "paper pdf build", "manuscript pdf build", "build manuscript pdf", "compile paper", "compile manuscript", "LaTeX 论文", "LaTeX 写论文", "LaTeX 论文 PDF", "LaTeX 写成论文", "LaTeX 写成论文 PDF", "写成论文 PDF", "论文 PDF", "PDF 构建", "生成论文 PDF", "编译论文", "论文编译", "构建可投稿 PDF", "可投稿 PDF"]
     },
     "slides-as-code": {
       "keywords": ["slidev", "marp", "reveal.js", "quarto slides", "decktape", "slides as code", "组会汇报", "导出pdf"]

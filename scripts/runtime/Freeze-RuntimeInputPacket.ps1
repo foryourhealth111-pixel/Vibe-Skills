@@ -641,7 +641,15 @@ function Get-VibeSpecialistRecommendations {
 
         $rankedConfidence = if ($ranked.PSObject.Properties.Name -contains 'score' -and $ranked.score -ne $null) { [double]$ranked.score } else { 0.0 }
         $candidateSelectionReason = if ($ranked.PSObject.Properties.Name -contains 'candidate_selection_reason') { [string]$ranked.candidate_selection_reason } else { '' }
-        if ($rankedConfidence -lt $minimumRecommendationConfidence -and $candidateSelectionReason -match 'fallback') {
+        $candidateSelectionScore = if ($ranked.PSObject.Properties.Name -contains 'candidate_selection_score' -and $ranked.candidate_selection_score -ne $null) {
+            [double]$ranked.candidate_selection_score
+        } else {
+            $rankedConfidence
+        }
+        if (
+            $candidateSelectionReason -match 'fallback' -and
+            ($rankedConfidence -lt $minimumRecommendationConfidence -or $candidateSelectionScore -lt $minimumRecommendationConfidence)
+        ) {
             continue
         }
 
