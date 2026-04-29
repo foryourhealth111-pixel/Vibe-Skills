@@ -2658,48 +2658,92 @@
                                                     },
                    "scientific-writing":  {
                                               "task_allow":  [
+                                                                 "planning",
                                                                  "research",
-                                                                 "planning"
+                                                                 "review"
                                                              ],
                                               "positive_keywords":  [
                                                                         "scientific writing",
                                                                         "imrad",
-                                                                        "manuscript",
-                                                                        "科研写作"
+                                                                        "manuscript prose",
+                                                                        "paper writing",
+                                                                        "abstract",
+                                                                        "introduction",
+                                                                        "methods section",
+                                                                        "results section",
+                                                                        "discussion section",
+                                                                        "journal manuscript",
+                                                                        "research manuscript",
+                                                                        "科研写作",
+                                                                        "论文写作",
+                                                                        "论文正文",
+                                                                        "摘要写作",
+                                                                        "引言写作",
+                                                                        "论文方法部分",
+                                                                        "论文结果部分",
+                                                                        "论文讨论部分",
+                                                                        "学术稿件"
                                                                     ],
                                               "negative_keywords":  [
-                                                                        "ci pipeline"
+                                                                        "ci pipeline",
+                                                                        "latexmk",
+                                                                        "chktex",
+                                                                        "rebuttal matrix",
+                                                                        "cover letter",
+                                                                        "slide deck",
+                                                                        "ppt",
+                                                                        "result figure",
+                                                                        "html",
+                                                                        "pdf",
+                                                                        "report",
+                                                                        "technical report",
+                                                                        "科研报告",
+                                                                        "技术报告",
+                                                                        "科研技术报告"
                                                                     ],
-                                              "equivalent_group":  null,
+                                              "equivalent_group":  "scientific-writing",
                                               "canonical_for_task":  [
-
+                                                                         "research"
                                                                      ]
                                           },
                    "scholarly-publishing":  {
-                                                "task_allow":  [
+                                               "task_allow":  [
                                                                    "planning",
                                                                    "research",
                                                                    "review"
                                                                ],
-                                                "positive_keywords":  [
+                                               "positive_keywords":  [
                                                                           "scholarly publishing",
+                                                                          "publishing workflow",
                                                                           "journal submission workflow",
+                                                                          "submission package",
+                                                                          "camera-ready",
+                                                                          "proof",
+                                                                          "journal submission",
+                                                                          "conference submission",
+                                                                          "投稿",
                                                                           "投稿流程",
-                                                                          "期刊投稿"
+                                                                          "期刊投稿",
+                                                                          "投稿包",
+                                                                          "出版流程",
+                                                                          "相机就绪",
+                                                                          "校样"
                                                                       ],
                                                 "negative_keywords":  [
-                                                                          "rebuttal",
+                                                                          "rebuttal matrix",
                                                                           "response to reviewers",
+                                                                          "cover letter",
                                                                           "latexmk",
                                                                           "chktex",
+                                                                          "latexindent",
+                                                                          "slidev",
+                                                                          "ppt",
+                                                                          "result figure",
+                                                                          "model evaluation plot",
+                                                                          "bibtex",
+                                                                          "reference formatting",
                                                                           "figma",
-                                                                          "figma to code",
-                                                                          "Figma 设计稿",
-                                                                          "figma设计稿",
-                                                                          "设计稿还原",
-                                                                          "还原为可运行代码",
-                                                                          "设计转代码",
-                                                                          "UI还原"
+                                                                          "figma to code"
                                                                       ],
                                                 "equivalent_group":  "scholarly-publishing",
                                                 "canonical_for_task":  [
@@ -2716,20 +2760,24 @@
                                                 "positive_keywords":  [
                                                                           "submission checklist",
                                                                           "pre-submission",
+                                                                          "cover letter",
                                                                           "rebuttal",
                                                                           "response to reviewers",
+                                                                          "rebuttal matrix",
                                                                           "revision",
                                                                           "resubmission",
-                                                                          "camera-ready",
-                                                                          "proof",
-                                                                          "cover letter",
+                                                                          "camera-ready checklist",
+                                                                          "proof checklist",
                                                                           "highlights",
                                                                           "graphical abstract",
                                                                           "投稿清单",
+                                                                          "投稿前自检",
+                                                                          "附信",
                                                                           "返修",
                                                                           "回复审稿意见",
-                                                                          "相机就绪",
-                                                                          "校样"
+                                                                          "逐条回应",
+                                                                          "相机就绪清单",
+                                                                          "校样清单"
                                                                       ],
                                                 "negative_keywords":  [
                                                                           "latexmkrc",
@@ -2737,11 +2785,14 @@
                                                                           "latexindent",
                                                                           "chktex",
                                                                           "github actions",
-                                                                          "ci pipeline"
+                                                                          "ci pipeline",
+                                                                          "slidev",
+                                                                          "ppt"
                                                                       ],
                                                 "equivalent_group":  "scholarly-publishing",
                                                 "canonical_for_task":  [
-                                                                           "planning"
+                                                                           "planning",
+                                                                           "review"
                                                                        ]
                                             },
                    "manuscript-as-code":  {
@@ -2752,19 +2803,31 @@
                                                              ],
                                               "positive_keywords":  [
                                                                         "manuscript as code",
-                                                                        "manubot",
+                                                                        "paper as code",
                                                                         "reproducible manuscript",
+                                                                        "reproducible build",
                                                                         "version control",
-                                                                        "git",
+                                                                        "git manuscript",
                                                                         "repository structure",
+                                                                        "figure pipeline",
+                                                                        "ci build",
+                                                                        "final_v7",
+                                                                        "论文工程化",
                                                                         "论文仓库",
-                                                                        "可复现写作"
+                                                                        "可复现写作",
+                                                                        "可复现构建",
+                                                                        "版本控制论文",
+                                                                        "图表流水线"
                                                                     ],
                                               "negative_keywords":  [
                                                                         "rebuttal",
                                                                         "cover letter",
                                                                         "latexindent",
-                                                                        "chktex"
+                                                                        "chktex",
+                                                                        "slidev",
+                                                                        "ppt",
+                                                                        "pubmed",
+                                                                        "bibtex"
                                                                     ],
                                               "equivalent_group":  "scholarly-publishing",
                                               "canonical_for_task":  [
@@ -2794,6 +2857,7 @@
                                                                                "ci pipeline",
                                                                                "compile latex",
                                                                                "build pdf",
+                                                                               "submission zip",
                                                                                "自动编译",
                                                                                "latex",
                                                                                "latex paper",
@@ -2824,14 +2888,15 @@
                                                                                "cover letter",
                                                                                "highlights",
                                                                                "graphical abstract",
+                                                                               "read pdf",
+                                                                               "extract pdf",
+                                                                               "pdf extraction",
+                                                                               "读取 PDF",
+                                                                               "提取正文",
                                                                                "figma",
                                                                                "figma to code",
-                                                                               "Figma 设计稿",
-                                                                               "figma设计稿",
-                                                                               "设计稿还原",
-                                                                               "还原为可运行代码",
-                                                                               "设计转代码",
-                                                                               "UI还原"
+                                                                               "slidev",
+                                                                               "ppt"
                                                                            ],
                                                      "equivalent_group":  "latex-pipeline",
                                                      "canonical_for_task":  [
@@ -2890,6 +2955,11 @@
                                                                           "rmarkdown",
                                                                           "html report",
                                                                           "pdf report",
+                                                                          "html",
+                                                                          "pdf",
+                                                                          "输出 HTML",
+                                                                          "输出 PDF",
+                                                                          "科研技术报告",
                                                                           "科研报告",
                                                                           "技术报告",
                                                                           "分析报告",
@@ -2901,6 +2971,11 @@
                                                                           "response to reviewers",
                                                                           "camera-ready",
                                                                           "cover letter",
+                                                                          "manuscript as code",
+                                                                          "paper as code",
+                                                                          "论文工程化",
+                                                                          "论文仓库",
+                                                                          "可复现构建",
                                                                           "trace.jsonl",
                                                                           "sources.json",
                                                                           "multi-hop browse",
@@ -3056,10 +3131,13 @@
                                                           ],
                                            "positive_keywords":  [
                                                                      "venue template",
+                                                                     "latex template",
+                                                                     "author guidelines",
                                                                      "submission guidelines",
                                                                      "formatting requirements",
-                                                                     "author guidelines",
                                                                      "camera-ready format",
+                                                                     "anonymous submission",
+                                                                     "page limit",
                                                                      "neurips",
                                                                      "icml",
                                                                      "cvpr",
@@ -3068,10 +3146,12 @@
                                                                      "science",
                                                                      "ieee",
                                                                      "acm",
-                                                                     "模板",
                                                                      "投稿模板",
                                                                      "格式要求",
-                                                                     "版式要求"
+                                                                     "版式要求",
+                                                                     "匿名投稿",
+                                                                     "页数限制",
+                                                                     "作者指南"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "rebuttal",
@@ -3079,7 +3159,9 @@
                                                                      "latexmk",
                                                                      "chktex",
                                                                      "plot",
-                                                                     "作图"
+                                                                     "作图",
+                                                                     "slide deck",
+                                                                     "ppt"
                                                                  ],
                                            "equivalent_group":  "venue-format",
                                            "canonical_for_task":  [
@@ -3096,16 +3178,26 @@
                                          "positive_keywords":  [
                                                                    "poster",
                                                                    "conference poster",
+                                                                   "academic poster",
+                                                                   "research poster",
                                                                    "beamerposter",
                                                                    "tikzposter",
                                                                    "baposter",
+                                                                   "poster latex",
+                                                                   "a0 poster",
                                                                    "学术海报",
-                                                                   "展板"
+                                                                   "科研海报",
+                                                                   "会议海报",
+                                                                   "展板",
+                                                                   "a0海报"
                                                                ],
                                          "negative_keywords":  [
                                                                    "slidev",
                                                                    "marp",
-                                                                   "ppt"
+                                                                   "ppt",
+                                                                   "powerpoint",
+                                                                   "paper2web",
+                                                                   "paper2video"
                                                                ],
                                          "equivalent_group":  "posters",
                                          "canonical_for_task":  [
@@ -3705,19 +3797,36 @@
                                                                  "paper2web",
                                                                  "paper2poster",
                                                                  "paper2video",
+                                                                 "paper to web",
+                                                                 "paper to poster",
+                                                                 "paper to video",
                                                                  "convert paper",
+                                                                 "project homepage",
+                                                                 "paper website",
+                                                                 "video abstract",
                                                                  "conference poster",
+                                                                 "conference poster from paper",
                                                                  "论文转网站",
+                                                                 "论文转网页",
+                                                                 "论文项目主页",
                                                                  "论文转海报",
+                                                                 "论文转视频",
                                                                  "视频摘要"
                                                              ],
                                        "negative_keywords":  [
                                                                  "pubmed",
-                                                                 "pmid"
+                                                                 "pmid",
+                                                                 "citation format",
+                                                                 "bibtex",
+                                                                 "latexmk",
+                                                                 "chktex",
+                                                                 "slidev",
+                                                                 "ppt"
                                                              ],
                                        "equivalent_group":  "paper-transform",
                                        "canonical_for_task":  [
- 
+                                                                 "planning",
+                                                                 "coding"
                                                               ]
                                    },
                    "pyzotero":  {
