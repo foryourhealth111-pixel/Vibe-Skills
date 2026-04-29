@@ -4035,14 +4035,26 @@
                                                                      "chembl",
                                                                      "bioactivity",
                                                                      "assay",
-                                                                     "target",
+                                                                     "target activity",
                                                                      "ic50",
                                                                      "ki",
-                                                                     "活性数据"
+                                                                     "kd",
+                                                                     "活性数据",
+                                                                     "靶点活性"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "pubmed",
-                                                                     "pmid"
+                                                                     "pmid",
+                                                                     "pubchem",
+                                                                     "drugbank",
+                                                                     "clinicaltrials",
+                                                                     "nct",
+                                                                     "bulk RNA-seq",
+                                                                     "rna-seq",
+                                                                     "gene expression",
+                                                                     "GO enrichment",
+                                                                     "KEGG enrichment",
+                                                                     "dicom"
                                                                  ],
                                            "equivalent_group":  "chem-db",
                                            "canonical_for_task":  [
@@ -4057,14 +4069,23 @@
                                              "positive_keywords":  [
                                                                        "drugbank",
                                                                        "drug interaction",
+                                                                       "drug-drug interaction",
                                                                        "drug target",
+                                                                       "pharmacology",
                                                                        "atc",
                                                                        "药物相互作用",
-                                                                       "药物数据库"
+                                                                       "药理信息"
                                                                    ],
                                              "negative_keywords":  [
                                                                        "chembl",
-                                                                       "pubchem"
+                                                                       "pubchem",
+                                                                       "brenda",
+                                                                       "hmdb",
+                                                                       "pubmed",
+                                                                       "clinicaltrials",
+                                                                       "nct",
+                                                                       "bulk RNA-seq",
+                                                                       "dicom"
                                                                    ],
                                              "equivalent_group":  "chem-db",
                                              "canonical_for_task":  [
@@ -4079,14 +4100,26 @@
                                             "positive_keywords":  [
                                                                       "pubchem",
                                                                       "cid",
-                                                                      "compound",
+                                                                      "pug-rest",
+                                                                      "compound property",
+                                                                      "molecular formula",
                                                                       "smiles",
                                                                       "inchi",
-                                                                      "化合物"
+                                                                      "化合物物性",
+                                                                      "化合物编号"
                                                                   ],
                                             "negative_keywords":  [
                                                                       "pubmed",
-                                                                      "pmid"
+                                                                      "pmid",
+                                                                      "chembl",
+                                                                      "drugbank",
+                                                                      "brenda",
+                                                                      "hmdb",
+                                                                      "zinc",
+                                                                      "clinicaltrials",
+                                                                      "nct",
+                                                                      "bulk RNA-seq",
+                                                                      "gene expression"
                                                                   ],
                                             "equivalent_group":  "chem-db",
                                             "canonical_for_task":  [
@@ -4100,16 +4133,25 @@
                                                           ],
                                            "positive_keywords":  [
                                                                      "brenda",
-                                                                     "enzyme",
                                                                      "ec number",
+                                                                     "enzyme kinetics",
                                                                      "kinetics",
                                                                      "km",
                                                                      "kcat",
-                                                                     "酶动力学"
+                                                                     "vmax",
+                                                                     "substrate specificity",
+                                                                     "酶动力学",
+                                                                     "酶参数"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "docking",
-                                                                     "pose"
+                                                                     "pose",
+                                                                     "diffdock",
+                                                                     "pubchem",
+                                                                     "drugbank",
+                                                                     "clinical trial",
+                                                                     "dicom",
+                                                                     "pubmed"
                                                                  ],
                                            "equivalent_group":  "chem-db",
                                            "canonical_for_task":  [
@@ -4126,12 +4168,22 @@
                                                                    "metabolite",
                                                                    "metabolomics",
                                                                    "ms/ms",
+                                                                   "nmr",
+                                                                   "metabolite identification",
+                                                                   "biomarker",
                                                                    "代谢物",
-                                                                   "代谢组"
+                                                                   "代谢组",
+                                                                   "代谢物鉴定"
                                                                ],
                                          "negative_keywords":  [
                                                                    "patent",
-                                                                   "uspto"
+                                                                   "uspto",
+                                                                   "drugbank",
+                                                                   "clinical trial",
+                                                                   "nct",
+                                                                   "pubmed",
+                                                                   "bulk RNA-seq",
+                                                                   "dicom"
                                                                ],
                                          "equivalent_group":  "chem-db",
                                          "canonical_for_task":  [
@@ -4145,15 +4197,23 @@
                                                         ],
                                          "positive_keywords":  [
                                                                    "zinc",
-                                                                   "virtual screening",
+                                                                   "zinc id",
+                                                                   "purchasable compounds",
+                                                                   "virtual screening library",
                                                                    "compound library",
-                                                                   "vendor",
+                                                                   "vendor compound",
+                                                                   "可购买小分子",
                                                                    "筛选库",
                                                                    "化合物库"
                                                                ],
                                          "negative_keywords":  [
                                                                    "pubmed",
-                                                                   "pmid"
+                                                                   "pmid",
+                                                                   "chembl",
+                                                                   "drugbank",
+                                                                   "clinical trial",
+                                                                   "dicom",
+                                                                   "bulk RNA-seq"
                                                                ],
                                          "equivalent_group":  "chem-db",
                                          "canonical_for_task":  [
@@ -4166,16 +4226,16 @@
                                                       "research"
                                                   ],
                                    "positive_keywords":  [
-                                                             "datamol",
-                                                             "rdkit wrapper",
-                                                             "smiles",
-                                                             "mol",
-                                                             "molecule",
-                                                             "分子处理"
+                                                             "datamol"
                                                          ],
                                    "negative_keywords":  [
+                                                             "rdkit",
+                                                             "smiles",
+                                                             "fingerprint",
+                                                             "descriptor",
                                                              "clinical trial",
-                                                             "dicom"
+                                                             "dicom",
+                                                             "pubmed"
                                                          ],
                                    "equivalent_group":  "chem-toolkit",
                                    "canonical_for_task":  [
@@ -4190,13 +4250,29 @@
                                     "positive_keywords":  [
                                                               "deepchem",
                                                               "molecular ml",
+                                                              "molecular machine learning",
+                                                              "admet prediction",
+                                                              "toxicity prediction",
+                                                              "moleculenet",
                                                               "graphconv",
-                                                              "chemistry model",
-                                                              "分子机器学习"
+                                                              "graph neural network",
+                                                              "gnn",
+                                                              "chemberta",
+                                                              "molfeat",
+                                                              "molecular embedding",
+                                                              "分子机器学习",
+                                                              "分子属性预测"
                                                           ],
                                     "negative_keywords":  [
                                                               "excel",
-                                                              "pptx"
+                                                              "pptx",
+                                                              "pubmed",
+                                                              "clinical trial",
+                                                              "drugbank interaction",
+                                                              "cid lookup",
+                                                              "brenda",
+                                                              "hmdb",
+                                                              "zinc library"
                                                           ],
                                     "equivalent_group":  "chem-toolkit",
                                     "canonical_for_task":  [
@@ -4213,12 +4289,22 @@
                                                              "medicinal chemistry",
                                                              "sar",
                                                              "lead optimization",
+                                                             "hit to lead",
+                                                             "pains",
+                                                             "lipinski",
+                                                             "drug-likeness",
                                                              "药物化学",
-                                                             "构效关系"
+                                                             "构效关系",
+                                                             "先导优化"
                                                          ],
                                    "negative_keywords":  [
                                                              "dicom",
-                                                             "clinicaltrials"
+                                                             "clinicaltrials",
+                                                             "pubmed",
+                                                             "brenda",
+                                                             "hmdb",
+                                                             "zinc id",
+                                                             "pdb"
                                                          ],
                                    "equivalent_group":  "chem-strategy",
                                    "canonical_for_task":  [
@@ -4232,15 +4318,36 @@
                                                 ],
                                  "positive_keywords":  [
                                                            "rdkit",
+                                                           "datamol",
                                                            "smiles",
+                                                           "sdf",
                                                            "fingerprint",
+                                                           "morgan fingerprint",
+                                                           "descriptor",
                                                            "substructure",
-                                                           "molecule",
-                                                           "分子指纹"
+                                                           "similarity",
+                                                           "standardize smiles",
+                                                           "molecule standardization",
+                                                           "logp",
+                                                           "tpsa",
+                                                           "分子指纹",
+                                                           "分子描述符",
+                                                           "分子标准化"
                                                        ],
                                  "negative_keywords":  [
                                                            "pubmed",
-                                                           "pmid"
+                                                           "pmid",
+                                                           "chembl",
+                                                           "drugbank",
+                                                           "pubchem cid",
+                                                           "brenda",
+                                                           "hmdb",
+                                                           "zinc",
+                                                           "clinical trial",
+                                                           "nct",
+                                                           "bulk RNA-seq",
+                                                           "gene expression",
+                                                           "dicom"
                                                        ],
                                  "equivalent_group":  "chem-toolkit",
                                  "canonical_for_task":  [
@@ -4255,15 +4362,23 @@
                                     "positive_keywords":  [
                                                               "diffdock",
                                                               "docking",
+                                                              "protein ligand",
                                                               "binding pose",
-                                                              "ligand",
                                                               "pose prediction",
+                                                              "pdb smiles",
+                                                              "molecular docking",
                                                               "分子对接",
-                                                              "结合构象"
+                                                              "结合构象",
+                                                              "蛋白配体"
                                                           ],
                                     "negative_keywords":  [
                                                               "pubmed",
-                                                              "citation"
+                                                              "citation",
+                                                              "zinc library",
+                                                              "compound library",
+                                                              "clinical trial",
+                                                              "drug interaction",
+                                                              "admet benchmark"
                                                           ],
                                     "equivalent_group":  "chem-docking",
                                     "canonical_for_task":  [
@@ -4276,15 +4391,17 @@
                                                       "research"
                                                   ],
                                    "positive_keywords":  [
-                                                             "molfeat",
-                                                             "featurizer",
-                                                             "ecfp",
-                                                             "maccs",
-                                                             "molecular features",
-                                                             "分子特征"
+                                                             "molfeat"
                                                          ],
                                    "negative_keywords":  [
+                                                             "deepchem",
+                                                             "chemberta",
+                                                             "embedding",
+                                                             "fingerprint",
+                                                             "ecfp",
+                                                             "rdkit",
                                                              "dicom",
+                                                             "pubmed",
                                                              "clinical"
                                                          ],
                                    "equivalent_group":  "chem-toolkit",
@@ -4299,15 +4416,23 @@
                                                 ],
                                  "positive_keywords":  [
                                                            "tdc",
+                                                           "pytdc",
                                                            "therapeutics data commons",
-                                                           "adme",
-                                                           "toxicity",
+                                                           "admet benchmark",
                                                            "drug discovery benchmark",
+                                                           "get_split",
+                                                           "scaffold split",
                                                            "药物发现数据集"
                                                        ],
                                  "negative_keywords":  [
                                                            "pubmed",
-                                                           "pmid"
+                                                           "pmid",
+                                                           "deepchem training",
+                                                           "gnn",
+                                                           "drugbank interaction",
+                                                           "pubchem cid",
+                                                           "brenda",
+                                                           "hmdb"
                                                        ],
                                  "equivalent_group":  "chem-datasets",
                                  "canonical_for_task":  [

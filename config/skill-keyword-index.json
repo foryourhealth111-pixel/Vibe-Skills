@@ -268,43 +268,43 @@
       "keywords": ["critical thinking", "scientific critique", "methodology critique", "evidence strength", "bias", "confounders", "GRADE", "Cochrane", "risk of bias", "批判性思维", "科研批判", "方法学批判", "证据强度", "偏倚", "混杂因素"]
     },
     "chembl-database": {
-      "keywords": ["chembl", "bioactivity", "assay", "ic50", "ki", "kd", "target", "化合物活性", "药物靶点"]
+      "keywords": ["chembl", "bioactivity", "assay", "ic50", "ki", "kd", "target activity", "chembl target", "活性数据", "靶点活性", "药物靶点活性"]
     },
     "drugbank-database": {
-      "keywords": ["drugbank", "drug target", "drug interaction", "adme", "drug info", "药物靶点", "药物相互作用"]
+      "keywords": ["drugbank", "drug interaction", "drug-drug interaction", "drug target", "pharmacology", "atc", "药物相互作用", "药物靶点", "药理信息"]
     },
     "pubchem-database": {
-      "keywords": ["pubchem", "cid", "smiles", "inchi", "compound", "化合物", "化学结构"]
+      "keywords": ["pubchem", "cid", "pug-rest", "compound property", "smiles", "inchi", "molecular formula", "化合物物性", "化合物编号", "化学结构"]
     },
     "brenda-database": {
-      "keywords": ["brenda", "enzyme", "km", "kcat", "vmax", "enzymology", "酶动力学", "酶参数"]
+      "keywords": ["brenda", "ec number", "enzyme kinetics", "km", "kcat", "vmax", "substrate specificity", "酶动力学", "酶参数", "酶底物"]
     },
     "hmdb-database": {
-      "keywords": ["hmdb", "metabolite", "metabolomics", "代谢物", "代谢组"]
+      "keywords": ["hmdb", "metabolite", "metabolomics", "ms/ms", "nmr", "metabolite identification", "biomarker", "代谢物", "代谢组", "代谢物鉴定"]
     },
     "zinc-database": {
-      "keywords": ["zinc", "virtual screening", "compound library", "small molecules", "化合物库", "虚拟筛选库"]
+      "keywords": ["zinc", "zinc id", "purchasable compounds", "virtual screening library", "compound library", "vendor compound", "可购买小分子", "化合物库", "虚拟筛选库"]
     },
     "datamol": {
-      "keywords": ["datamol", "rdkit wrapper", "molecule utils", "molecule processing", "分子处理"]
+      "keywords": ["datamol"]
     },
     "deepchem": {
-      "keywords": ["deepchem", "cheminformatics", "drug discovery", "molecular ml", "药物发现", "分子机器学习"]
+      "keywords": ["deepchem", "molecular ml", "molecular machine learning", "admet prediction", "toxicity prediction", "moleculenet", "graph neural network", "gnn", "chemberta", "molfeat", "molecular embedding", "药物发现", "分子机器学习", "分子属性预测"]
     },
     "medchem": {
-      "keywords": ["medchem", "medicinal chemistry", "lead optimization", "hit to lead", "药物化学", "先导优化"]
+      "keywords": ["medchem", "medicinal chemistry", "sar", "lead optimization", "hit to lead", "pains", "lipinski", "drug-likeness", "药物化学", "构效关系", "先导优化"]
     },
     "rdkit": {
-      "keywords": ["rdkit", "smiles", "fingerprint", "descriptor", "logp", "tpsa", "分子指纹", "分子描述符"]
+      "keywords": ["rdkit", "datamol", "smiles", "sdf", "fingerprint", "morgan fingerprint", "descriptor", "substructure", "similarity", "standardize smiles", "logp", "tpsa", "分子指纹", "分子描述符", "分子标准化"]
     },
     "diffdock": {
-      "keywords": ["diffdock", "docking", "protein ligand", "binding pose", "virtual screening", "分子对接", "结合构象"]
+      "keywords": ["diffdock", "docking", "protein ligand", "binding pose", "pose prediction", "pdb smiles", "molecular docking", "分子对接", "结合构象", "蛋白配体"]
     },
     "molfeat": {
-      "keywords": ["molfeat", "featurization", "fingerprint", "molecular features", "分子特征", "分子表示"]
+      "keywords": ["molfeat"]
     },
     "pytdc": {
-      "keywords": ["tdc", "therapeutics data commons", "admet dataset", "drug discovery benchmark", "药物数据集", "基准数据集"]
+      "keywords": ["pytdc", "tdc", "therapeutics data commons", "admet benchmark", "drug discovery benchmark", "scaffold split", "get_split", "药物发现数据集", "基准数据集"]
     },
     "clinicaltrials-database": {
       "keywords": ["clinicaltrials.gov", "clinical trial", "nct", "trial phase", "eligibility", "临床试验", "NCT"]
