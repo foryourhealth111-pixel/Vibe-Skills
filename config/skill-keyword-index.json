@@ -343,25 +343,25 @@
       "keywords": ["pathml", "digital pathology", "wsi", "tissue segmentation", "数字病理", "病理图像分析"]
     },
     "opentrons-integration": {
-      "keywords": ["opentrons", "ot-2", "liquid handling", "pipetting robot", "实验室自动化", "移液机器人"]
+      "keywords": ["opentrons", "ot-2", "ot2", "opentrons flex", "opentrons protocol", "opentrons thermocycler", "opentrons module", "opentrons api", "移液机器人"]
     },
     "pylabrobot": {
-      "keywords": ["pylabrobot", "liquid handler", "hamilton", "tecan", "液体处理", "实验室机器人"]
+      "keywords": ["pylabrobot", "hamilton", "tecan", "multi-vendor lab automation", "liquid handling workflow", "deck layout", "resource simulation", "plate reader", "液体处理机器人"]
     },
     "protocolsio-integration": {
-      "keywords": ["protocols.io", "lab protocol", "protocol", "实验协议", "protocols"]
+      "keywords": ["protocols.io", "protocolsio", "protocols.io api", "protocols.io search", "protocols.io publish", "protocols.io workspace", "protocols.io file attachment", "protocols.io protocol"]
     },
     "benchling-integration": {
-      "keywords": ["benchling", "lims", "eln", "lab notebook", "实验室信息管理", "电子实验记录"]
+      "keywords": ["benchling", "benchling registry", "benchling inventory", "benchling eln", "benchling data warehouse", "benchling workflow", "benchling app", "benchling entry", "Benchling"]
     },
     "labarchive-integration": {
-      "keywords": ["labarchive", "eln", "lab notebook", "实验记录", "ELN"]
+      "keywords": ["labarchives", "labarchives api", "labarchives notebook", "labarchives entry", "notebook backup", "entry attachment", "labarchives attachment", "备份 LabArchives", "备份电子实验记录"]
     },
     "latchbio-integration": {
-      "keywords": ["latchbio", "latch workflow", "latchbio workflow", "bioinformatics platform", "latch pipeline", "latchbio pipeline", "latch sdk", "生信平台", "数据管道"]
+      "keywords": ["latchbio", "latch sdk", "latch workflow", "latchbio workflow", "latch pipeline", "latchbio pipeline", "latchfile", "latchdir", "nextflow workflow", "bioinformatics workflow platform", "生信工作流平台"]
     },
     "ginkgo-cloud-lab": {
-      "keywords": ["ginkgo", "cloud lab", "lab services", "云实验室", "外包实验"]
+      "keywords": ["ginkgo cloud lab", "cloud.ginkgo.bio", "ginkgo bioworks cloud lab", "cell-free protein expression", "protocol pricing", "cloud lab order", "ginkgo validation run", "云实验室下单"]
     },
     "edgartools": {
       "keywords": ["edgar", "sec", "10-k", "10q", "8-k", "13f", "财报", "美国证监会", "EDGAR"]

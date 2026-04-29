@@ -4731,20 +4731,32 @@
                                                  "positive_keywords":  [
                                                                            "opentrons",
                                                                            "ot-2",
-                                                                           "pipetting",
-                                                                           "protocol",
-                                                                           "liquid handling",
+                                                                           "ot2",
+                                                                           "opentrons flex",
+                                                                           "opentrons protocol",
+                                                                           "opentrons api",
+                                                                           "opentrons thermocycler",
+                                                                           "opentrons module",
+                                                                           "pipetting robot",
                                                                            "移液机器人",
-                                                                           "液体处理"
+                                                                           "opentrons 机器人"
                                                                        ],
                                                  "negative_keywords":  [
                                                                            "dicom",
-                                                                           "pubmed"
+                                                                           "pubmed",
+                                                                           "protocols.io",
+                                                                           "labarchives",
+                                                                           "benchling",
+                                                                           "ginkgo cloud lab",
+                                                                           "pylabrobot",
+                                                                           "hamilton",
+                                                                           "tecan"
                                                                        ],
                                                  "equivalent_group":  "lab-automation",
                                                  "canonical_for_task":  [
                                                                             "coding"
-                                                                        ]
+                                                                        ],
+                                                 "requires_positive_keyword_match":  true
                                              },
                    "pylabrobot":  {
                                       "task_allow":  [
@@ -4753,20 +4765,30 @@
                                                      ],
                                       "positive_keywords":  [
                                                                 "pylabrobot",
-                                                                "lab robot",
-                                                                "liquid handling",
-                                                                "automation",
-                                                                "实验室机器人",
-                                                                "移液"
+                                                                "hamilton",
+                                                                "tecan",
+                                                                "multi-vendor lab automation",
+                                                                "resource simulation",
+                                                                "pylabrobot resources",
+                                                                "deck layout",
+                                                                "plate reader",
+                                                                "liquid handling workflow",
+                                                                "液体处理机器人"
                                                             ],
                                       "negative_keywords":  [
                                                                 "pubmed",
-                                                                "pmid"
+                                                                "pmid",
+                                                                "opentrons",
+                                                                "protocols.io",
+                                                                "labarchives",
+                                                                "benchling",
+                                                                "ginkgo cloud lab"
                                                             ],
                                       "equivalent_group":  "lab-automation",
                                       "canonical_for_task":  [
  
-                                                             ]
+                                                             ],
+                                      "requires_positive_keyword_match":  true
                                   },
                    "protocolsio-integration":  {
                                                    "task_allow":  [
@@ -4775,21 +4797,31 @@
                                                                       "research"
                                                                   ],
                                                    "positive_keywords":  [
-                                                                             "protocols.io",
-                                                                             "protocol",
-                                                                             "methods",
-                                                                             "实验协议",
-                                                                             "实验步骤",
-                                                                             "protocolsio"
+                                                                             "protocolsio",
+                                                                             "在 protocols.io",
+                                                                             "protocols.io api",
+                                                                             "protocols.io search",
+                                                                             "protocols.io publish",
+                                                                             "protocols.io workspace",
+                                                                             "protocols.io file attachment",
+                                                                             "protocols.io 查找",
+                                                                             "protocols.io 发布"
                                                                          ],
                                                    "negative_keywords":  [
                                                                              "dicom",
-                                                                             "sec"
+                                                                             "sec",
+                                                                             "不使用 protocols.io",
+                                                                             "without protocols.io",
+                                                                             "no protocols.io",
+                                                                             "普通 wet-lab protocol",
+                                                                             "generic protocol",
+                                                                             "markdown"
                                                                          ],
                                                    "equivalent_group":  "lab-automation",
                                                    "canonical_for_task":  [
                                                                               "planning"
-                                                                          ]
+                                                                          ],
+                                                   "requires_positive_keyword_match":  true
                                                },
                    "benchling-integration":  {
                                                  "task_allow":  [
@@ -4798,20 +4830,30 @@
                                                                 ],
                                                  "positive_keywords":  [
                                                                            "benchling",
-                                                                           "lims",
-                                                                           "eln",
-                                                                           "registry",
-                                                                           "样品管理",
-                                                                           "Benchling"
+                                                                           "benchling registry",
+                                                                           "benchling inventory",
+                                                                           "benchling eln",
+                                                                           "benchling entry",
+                                                                           "benchling data warehouse",
+                                                                           "benchling workflow",
+                                                                           "benchling app",
+                                                                           "benchling lims",
+                                                                           "样品管理"
                                                                        ],
                                                  "negative_keywords":  [
                                                                            "pubmed",
-                                                                           "pmid"
+                                                                           "pmid",
+                                                                           "opentrons",
+                                                                           "protocols.io",
+                                                                           "labarchives",
+                                                                           "ginkgo cloud lab",
+                                                                           "latchbio"
                                                                        ],
                                                  "equivalent_group":  "lab-automation",
                                                  "canonical_for_task":  [
  
-                                                                        ]
+                                                                        ],
+                                                 "requires_positive_keyword_match":  true
                                              },
                    "labarchive-integration":  {
                                                   "task_allow":  [
@@ -4819,20 +4861,32 @@
                                                                      "coding"
                                                                  ],
                                                   "positive_keywords":  [
-                                                                            "labarchive",
-                                                                            "eln",
-                                                                            "lab notebook",
-                                                                            "实验记录",
-                                                                            "电子实验记录"
+                                                                            "labarchives",
+                                                                            "labarchives api",
+                                                                            "labarchives notebook",
+                                                                            "labarchives entry",
+                                                                            "notebook backup",
+                                                                            "entry attachment",
+                                                                            "entries",
+                                                                            "attachments",
+                                                                            "备份 labarchives",
+                                                                            "备份电子实验记录",
+                                                                            "附件"
                                                                         ],
                                                   "negative_keywords":  [
                                                                             "pubmed",
-                                                                            "pmid"
+                                                                            "pmid",
+                                                                            "opentrons",
+                                                                            "protocols.io",
+                                                                            "benchling",
+                                                                            "ginkgo cloud lab",
+                                                                            "latchbio"
                                                                         ],
                                                   "equivalent_group":  "lab-automation",
                                                   "canonical_for_task":  [
  
-                                                                         ]
+                                                                         ],
+                                                  "requires_positive_keyword_match":  true
                                               },
                    "latchbio-integration":  {
                                                 "task_allow":  [
@@ -4846,19 +4900,36 @@
                                                                              "latchbio workflow",
                                                                              "latch pipeline",
                                                                              "latchbio pipeline",
-                                                                             "bioinformatics platform",
+                                                                             "latchfile",
+                                                                             "latchdir",
+                                                                             "nextflow workflow",
+                                                                             "bioinformatics workflow platform",
                                                                              "latch sdk",
-                                                                             "生信平台",
-                                                                             "数据管道"
+                                                                             "生信工作流平台",
+                                                                             "计算工作流"
                                                                          ],
                                                 "negative_keywords":  [
                                                                           "dicom",
-                                                                          "sec"
+                                                                          "sec",
+                                                                          "opentrons",
+                                                                          "ot-2",
+                                                                          "opentrons flex",
+                                                                          "pylabrobot",
+                                                                          "hamilton",
+                                                                          "tecan",
+                                                                          "protocols.io",
+                                                                          "benchling",
+                                                                          "labarchives",
+                                                                          "ginkgo cloud lab",
+                                                                          "pipetting robot",
+                                                                          "液体处理机器人",
+                                                                          "移液机器人"
                                                                       ],
-                                                "equivalent_group":  "lab-automation",
+                                                "equivalent_group":  "bioinformatics-workflow-platform",
                                                 "canonical_for_task":  [
                                                                            "coding"
-                                                                       ]
+                                                                       ],
+                                                "requires_positive_keyword_match":  true
                                             },
                    "ginkgo-cloud-lab":  {
                                            "task_allow":  [
@@ -4866,20 +4937,30 @@
                                                               "research"
                                                           ],
                                            "positive_keywords":  [
-                                                                     "ginkgo",
-                                                                     "cloud lab",
-                                                                     "lab services",
-                                                                     "云实验室",
-                                                                     "外包实验"
+                                                                     "ginkgo cloud lab",
+                                                                     "cloud.ginkgo.bio",
+                                                                     "ginkgo bioworks cloud lab",
+                                                                     "cell-free protein expression",
+                                                                     "protocol pricing",
+                                                                     "cloud lab order",
+                                                                     "ginkgo validation run",
+                                                                     "云实验室下单"
                                                                  ],
                                            "negative_keywords":  [
                                                                      "dicom",
-                                                                     "pubmed"
+                                                                     "pubmed",
+                                                                     "opentrons",
+                                                                     "pylabrobot",
+                                                                     "protocols.io",
+                                                                     "benchling",
+                                                                     "labarchives",
+                                                                     "latchbio"
                                                                  ],
                                            "equivalent_group":  "lab-automation",
                                            "canonical_for_task":  [
  
-                                                                  ]
+                                                                  ],
+                                           "requires_positive_keyword_match":  true
                                        },
                    "scientific-slides":  {
                                              "task_allow":  [
