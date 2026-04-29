@@ -305,13 +305,43 @@ $cases = @(
         requested_skill = $null
     },
     [pscustomobject]@{
-        name = "comm_mermaid_flowchart"
+        name = "comm_slidev_as_code"
         group = "science-communication-slides"
+        prompt = "/vibe 用 Slidev 做组会汇报并导出 PDF"
+        grade = "L"
+        task_type = "coding"
+        expected_pack = "science-communication-slides"
+        expected_skill = "slides-as-code"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "figures_mermaid_flowchart"
+        group = "science-figures-visualization"
         prompt = "/vibe 用 Mermaid 写一个实验流程图（flowchart），并给出可复制的 markdown"
         grade = "M"
         task_type = "coding"
+        expected_pack = "science-figures-visualization"
+        expected_skill = "scientific-schematics"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "comm_pptx_poster"
+        group = "science-communication-slides"
+        prompt = "/vibe 制作 PowerPoint PPTX 学术海报"
+        grade = "L"
+        task_type = "planning"
         expected_pack = "science-communication-slides"
-        expected_skill = "markdown-mermaid-writing"
+        expected_skill = "pptx-posters"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "publishing_plain_conference_poster"
+        group = "scholarly-publishing-workflow"
+        prompt = "/vibe 制作学术海报 conference poster"
+        grade = "L"
+        task_type = "planning"
+        expected_pack = "scholarly-publishing-workflow"
+        expected_skill = "latex-posters"
         requested_skill = $null
     },
     [pscustomobject]@{

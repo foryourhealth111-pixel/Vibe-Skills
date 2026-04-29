@@ -114,6 +114,9 @@ $cases = @(
 
     [pscustomobject]@{ Name = "top ppt deck"; Prompt = "顶级PPT制作：组会汇报slide deck，需要讲述结构与视觉规范"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "scientific-slides" },
     [pscustomobject]@{ Name = "slidev slides as code"; Prompt = "用Slidev做组会汇报：slides as code，要求可复现导出PDF"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "slides-as-code" },
+    [pscustomobject]@{ Name = "pptx poster"; Prompt = "制作PowerPoint PPTX学术海报，需要可编辑PPT输出"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "pptx-posters" },
+    [pscustomobject]@{ Name = "plain conference poster"; Prompt = "制作学术海报 conference poster，准备会议展示"; Grade = "L"; TaskType = "planning"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "latex-posters" },
+    [pscustomobject]@{ Name = "mermaid flowchart belongs to figures"; Prompt = "用Mermaid写一个实验流程图flowchart，并给出可复制markdown"; Grade = "M"; TaskType = "coding"; ExpectedPack = "science-figures-visualization"; ExpectedSkill = "scientific-schematics" },
 
     [pscustomobject]@{ Name = "scientific writing"; Prompt = "请按IMRAD结构写科研论文正文"; Grade = "L"; TaskType = "research"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "scientific-writing" },
     [pscustomobject]@{ Name = "figma implementation planning"; Prompt = "把这个Figma设计稿还原为可运行代码"; Grade = "L"; TaskType = "planning"; ExpectedPack = "design-implementation"; ExpectedSkill = "figma-implement-design" },
