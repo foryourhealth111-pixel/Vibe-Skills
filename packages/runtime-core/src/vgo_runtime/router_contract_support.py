@@ -39,7 +39,7 @@ def resolve_repo_root(start_path: Path) -> Path:
 
     git_candidates = [candidate for candidate in candidates if (candidate / ".git").exists()]
     if git_candidates:
-        return git_candidates[-1]
+        return git_candidates[0]
     # Installed-host layouts can place host-level config files above skills/vibe.
     # Without a git root, prefer the nearest governed root to preserve installed
     # runtime routing semantics.

@@ -80,6 +80,30 @@ def test_resolve_repo_root_prefers_nearest_config_root_without_git(tmp_path: Pat
     assert resolved == installed_root
 
 
+def test_resolve_repo_root_prefers_nearest_governed_git_root_for_worktrees(tmp_path: Path) -> None:
+    module = _load_module()
+    outer_root = tmp_path / "repo"
+    worktree_root = outer_root / ".worktrees" / "feature"
+    script_path = worktree_root / "packages" / "runtime-core" / "src" / "vgo_runtime" / "router_bridge.py"
+
+    outer_root.mkdir(parents=True, exist_ok=True)
+    (outer_root / ".git").mkdir(parents=True, exist_ok=True)
+    (outer_root / "config").mkdir(parents=True, exist_ok=True)
+    (outer_root / "config" / "version-governance.json").write_text("{}\n", encoding="utf-8")
+
+    worktree_root.mkdir(parents=True, exist_ok=True)
+    (worktree_root / ".git").write_text("gitdir: ../../.git/worktrees/feature\n", encoding="utf-8")
+    (worktree_root / "config").mkdir(parents=True, exist_ok=True)
+    (worktree_root / "config" / "version-governance.json").write_text("{}\n", encoding="utf-8")
+
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text("# router bridge\n", encoding="utf-8")
+
+    resolved = module.resolve_repo_root(script_path)
+
+    assert resolved == worktree_root
+
+
 def test_keyword_hit_ignores_keywords_only_present_in_negated_scope() -> None:
     module = _load_module()
     prompt = "帮我整理电子实验记录 ELN 模板，不指定 Benchling 或 LabArchives".casefold()

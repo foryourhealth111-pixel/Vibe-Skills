@@ -404,6 +404,11 @@
                                                                    "bugs",
                                                                    "bug risk",
                                                                    "regression risk",
+                                                                   "review code change",
+                                                                   "code change",
+                                                                   "代码改动",
+                                                                   "代码变更",
+                                                                   "审查这次代码改动",
                                                                    "变更审查",
                                                                    "可维护性",
                                                                    "回归风险"
@@ -413,6 +418,13 @@
                                                                    "incident response",
                                                                    "product backlog",
                                                                    "prd",
+                                                                   "request code review",
+                                                                   "code review request",
+                                                                   "prepare review request",
+                                                                   "提交评审",
+                                                                   "发起代码审查",
+                                                                   "请求代码审查",
+                                                                   "整理 review 请求材料",
                                                                    "coderabbit",
                                                                    "review feedback",
                                                                    "review comments",
@@ -473,11 +485,30 @@
                                                                  ],
                                                   "positive_keywords":  [
                                                                             "request review",
+                                                                            "request code review",
+                                                                            "code review request",
+                                                                            "prepare review request",
                                                                             "before merge",
-                                                                            "提交评审"
+                                                                            "pre-merge review",
+                                                                            "提交评审",
+                                                                            "发起代码审查",
+                                                                            "请求代码审查",
+                                                                            "准备代码审查",
+                                                                            "整理 review 请求材料",
+                                                                            "整理review请求材料"
                                                                         ],
                                                   "negative_keywords":  [
-                                                                            "implement feature"
+                                                                            "implement feature",
+                                                                            "fresh code review",
+                                                                            "review this change",
+                                                                            "actual code review",
+                                                                            "security audit",
+                                                                            "review feedback",
+                                                                            "review comments",
+                                                                            "评审反馈",
+                                                                            "评审意见",
+                                                                            "逐条判断",
+                                                                            "审查这次代码改动"
                                                                         ],
                                                   "equivalent_group":  null,
                                                   "canonical_for_task":  [
@@ -498,6 +529,12 @@
                                                                            "CodeRabbit",
                                                                            "review finding",
                                                                            "should fix",
+                                                                           "received review feedback",
+                                                                           "received review comments",
+                                                                           "收到 review comments",
+                                                                           "收到 CodeRabbit",
+                                                                           "收到了 CodeRabbit",
+                                                                           "收到了 code review 意见",
                                                                            "评审反馈",
                                                                            "评审意见",
                                                                            "审查意见",
@@ -779,6 +816,7 @@
                                                                         "positive_keywords":  [
                                                                                                   "preprocess data",
                                                                                                   "data preprocessing",
+                                                                                                  "preprocessing pipeline",
                                                                                                   "data cleaning pipeline",
                                                                                                   "etl pipeline",
                                                                                                   "data transformation",
@@ -786,11 +824,17 @@
                                                                                                   "feature preprocessing",
                                                                                                   "standardize data",
                                                                                                   "normalize data",
+                                                                                                  "validate input data",
+                                                                                                  "reusable preprocessing pipeline",
                                                                                                   "数据预处理",
                                                                                                   "清洗数据",
+                                                                                                  "数据清洗",
+                                                                                                  "预处理流水线",
                                                                                                   "特征编码",
                                                                                                   "ETL流水线",
-                                                                                                  "数据转换"
+                                                                                                  "数据转换",
+                                                                                                  "数据验证",
+                                                                                                  "可复用预处理流水线"
                                                                                               ],
                                                                         "negative_keywords":  [
                                                                                                   "data leakage",
@@ -800,6 +844,9 @@
                                                                                                   "challenge my assumptions",
                                                                                                   "train model",
                                                                                                   "model evaluation",
+                                                                                                  "full machine learning workflow",
+                                                                                                  "完整机器学习建模流程",
+                                                                                                  "训练、评估",
                                                                                                   "publication figure",
                                                                                                   "research report"
                                                                                               ],
@@ -914,7 +961,10 @@
                                                                           "machine learning workflow",
                                                                           "end-to-end machine learning",
                                                                           "deployment workflow",
-                                                                          "训练流水线"
+                                                                          "训练流水线",
+                                                                          "完整机器学习建模流程",
+                                                                          "模型比较",
+                                                                          "结果汇报"
                                                                       ],
                                                 "negative_keywords":  [
                                                                           "latex manuscript",

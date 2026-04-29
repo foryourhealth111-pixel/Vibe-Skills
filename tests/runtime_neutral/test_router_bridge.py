@@ -391,25 +391,24 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("research-design", result["selected"]["pack_id"])
         self.assertEqual("performing-regression-analysis", result["selected"]["skill"])
 
-    def test_preprocessing_pipeline_keeps_legacy_stage_role_while_unifying_candidates(self) -> None:
+    def test_preprocessing_pipeline_routes_as_direct_data_ml_owner(self) -> None:
         result = run_bridge(
-            "请用 scikit-learn 设计数据预处理流水线：清洗、编码、标准化、ETL pipeline，但先不要做数据泄漏审计",
+            "机器学习 data preprocessing pipeline：清洗数据、feature encoding、standardize data、validate input data，输出可复用预处理流水线",
             "L",
-            "research",
+            "coding",
         )
 
         self.assertIn(result["route_mode"], {"pack_overlay", "confirm_required"})
+        self.assertEqual("data-ml", result["selected"]["pack_id"])
+        self.assertEqual("preprocessing-data-with-automated-pipelines", result["selected"]["skill"])
+
         data_ml_row = next(row for row in result["ranked"] if row["pack_id"] == "data-ml")
-        self.assertEqual("scikit-learn", data_ml_row["selected_candidate"])
         ranking_by_skill = {row["skill"]: row for row in data_ml_row["candidate_ranking"]}
         self.assertEqual(
-            "stage_assistant",
+            "route_authority",
             ranking_by_skill["preprocessing-data-with-automated-pipelines"]["legacy_role"],
         )
-        self.assertIn(
-            "preprocessing-data-with-automated-pipelines",
-            [row["skill"] for row in data_ml_row["stage_assistant_candidates"]],
-        )
+        self.assertEqual([], data_ml_row["stage_assistant_candidates"])
 
     def test_research_report_authoring_stays_on_scientific_reporting(self) -> None:
         result = run_bridge(

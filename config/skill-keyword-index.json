@@ -39,6 +39,9 @@
     "code-reviewer": {
       "keywords": ["code review", "pr review", "review this change", "quality checks", "maintainability", "maintainable", "bug risk", "regression risk", "代码评审", "代码审查", "审查代码", "质量检查", "变更审查", "可维护性", "回归风险"]
     },
+    "requesting-code-review": {
+      "keywords": ["request review", "request code review", "code review request", "prepare review request", "before merge", "pre-merge review", "提交评审", "发起代码审查", "请求代码审查", "准备代码审查", "整理 review 请求材料", "整理review请求材料"]
+    },
     "receiving-code-review": {
       "keywords": ["address review", "review feedback", "review comments", "CodeRabbit", "coderabbit", "review finding", "should fix", "评审反馈", "评审意见", "审查意见", "逐条判断", "是否要改", "处理评论", "回复评审意见"]
     },
@@ -127,7 +130,7 @@
       "keywords": ["data leakage", "leakage audit", "fit before split", "normalization before split", "train test contamination", "prediction time", "防止泄漏", "数据泄漏", "数据泄漏检查", "泄漏检查", "归一化", "划分前fit", "fit了", "训练测试污染", "时序泄漏"]
     },
     "preprocessing-data-with-automated-pipelines": {
-      "keywords": ["preprocess data", "data preprocessing", "data cleaning pipeline", "etl pipeline", "data transformation", "feature encoding", "standardize data", "normalize data", "数据预处理", "清洗数据", "ETL流水线", "数据转换"]
+      "keywords": ["preprocess data", "data preprocessing", "preprocessing pipeline", "data cleaning pipeline", "etl pipeline", "data transformation", "feature encoding", "feature preprocessing", "standardize data", "normalize data", "validate input data", "reusable preprocessing pipeline", "数据预处理", "清洗数据", "数据清洗", "预处理流水线", "特征编码", "ETL流水线", "数据转换", "数据验证", "可复用预处理流水线"]
     },
     "scanpy": {
       "keywords": ["scanpy", "single-cell", "single-cell clustering", "scRNA", "10x", "leiden", "marker genes", "单细胞聚类", "细胞注释", "marker基因"]

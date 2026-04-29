@@ -87,6 +87,15 @@
                                                "build error",
                                                "root cause",
                                                "code cleanup",
+                                               "request review",
+                                               "code review request",
+                                               "before merge",
+                                               "review code change",
+                                               "代码改动",
+                                               "代码变更",
+                                               "发起代码审查",
+                                               "请求代码审查",
+                                               "提交评审",
                                                "评审意见",
                                                "评审反馈",
                                                "逐条判断",
@@ -118,15 +127,14 @@
                                                        "deslop",
                                                        "generating-test-reports",
                                                        "receiving-code-review",
+                                                       "requesting-code-review",
                                                        "security-reviewer",
                                                        "systematic-debugging",
                                                        "tdd-guide",
                                                        "verification-before-completion",
                                                        "windows-hook-debugging"
                                                    ],
-                      "stage_assistant_candidates":  [
-                                                       "requesting-code-review"
-                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "debug":  "systematic-debugging",
                                                "coding":  "tdd-guide",
@@ -430,7 +438,18 @@
                                                "gpu优化",
                                                "核函数优化",
                                                "共享内存优化",
-                                               "occupancy"
+                                               "occupancy",
+                                               "data preprocessing",
+                                               "preprocessing pipeline",
+                                               "data cleaning pipeline",
+                                               "feature encoding",
+                                               "standardize data",
+                                               "validate input data",
+                                               "数据预处理",
+                                               "数据清洗",
+                                               "预处理流水线",
+                                               "特征编码",
+                                               "数据验证"
                                            ],
                       "skill_candidates":  [
                                                "aeon",
@@ -448,12 +467,11 @@
                                                        "exploratory-data-analysis",
                                                        "ml-data-leakage-guard",
                                                        "ml-pipeline-workflow",
+                                                       "preprocessing-data-with-automated-pipelines",
                                                        "scikit-learn",
                                                        "shap"
                                                    ],
-                      "stage_assistant_candidates":  [
-                                                       "preprocessing-data-with-automated-pipelines"
-                                                   ],
+                      "stage_assistant_candidates":  [],
                       "defaults_by_task":  {
                                                "planning":  "ml-pipeline-workflow",
                                                "research":  "scikit-learn",
