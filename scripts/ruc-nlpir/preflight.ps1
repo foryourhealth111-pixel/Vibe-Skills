@@ -62,7 +62,8 @@ Write-Host "- runtime: $runtimePath"
 
 Write-Section "Vendored upstream repos"
 $repoOk = $true
-foreach ($name in @("FlashRAG", "WebThinker", "DeepAgent")) {
+$repoNames = @($runtime.repos.PSObject.Properties.Name | Sort-Object)
+foreach ($name in $repoNames) {
   $repo = $runtime.repos.$name
   if (-not $repo) {
     Write-Host ("- {0}: missing in runtime config" -f $name) -ForegroundColor Red

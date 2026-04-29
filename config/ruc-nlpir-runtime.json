@@ -16,13 +16,6 @@
       "expected_commit": "db387eb3261de9b5e2db7d2d7fb20af2aceb7882",
       "requirements_relpath": "requirements.txt",
       "license_relpath": "LICENSE"
-    },
-    "DeepAgent": {
-      "upstream_repo": "https://github.com/RUC-NLPIR/DeepAgent",
-      "path": "${VCO_EXTERNAL_ROOT}/ruc-nlpir/DeepAgent",
-      "expected_commit": "d2bf7263c28e5c57f548ad9fe3b2fe9bfba9b310",
-      "requirements_relpath": "requirements.txt",
-      "license_relpath": "LICENSE"
     }
   },
   "python": {
@@ -51,9 +44,7 @@
   },
   "engine_defaults": {
     "flashrag_evidence": "auto",
-    "webthinker_deep_research": "lite",
-    "deepagent_toolchain_plan": "lite",
-    "deepagent_memory_fold": "lite"
+    "webthinker_deep_research": "lite"
   },
   "security": {
     "never_store_api_keys_in_repo": true,

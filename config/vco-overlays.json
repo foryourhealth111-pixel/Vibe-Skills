@@ -17,7 +17,7 @@
     },
     {
       "id": "ruc-nlpir",
-      "name": "RUC‑NLPIR Agents (FlashRAG / WebThinker / DeepAgent)",
+      "name": "RUC-NLPIR Tools (FlashRAG / WebThinker)",
       "config_path": "config/ruc-nlpir-overlays.json",
       "priority_boost": 0.05
     },

@@ -13,22 +13,16 @@
       "keywords": ["/vibe", "$vibe", "vibe route", "vibe 路由", "vibe内核", "vibe skills", "路由融合", "路由冲突", "命中稳定", "误路由", "权重计算", "阈值计算"]
     },
     "flashrag-evidence": {
-      "keywords": ["flashrag", "evidence", "evidence plane", "citation", "cite", "source of truth", "where is this defined", "policy", "protocol", "config", "router config", "vco config", "vibe config", "证据", "引用", "出处", "在哪里定义", "协议", "策略", "配置", "路由器"]
+      "keywords": ["flashrag", "local evidence", "repo evidence", "repo config evidence", "route rule evidence", "where is this defined", "source of truth", "path and line", "file and line", "skill.md", "本地证据", "仓库依据", "配置依据", "路由规则在哪里", "文件和行号", "出处"]
     },
     "webthinker-deep-research": {
-      "keywords": ["webthinker", "deep research", "deep research report", "multi-hop", "browse", "navigate", "extract", "trace", "trace.jsonl", "sources.json", "深度调研", "调研", "调研报告", "网页探索", "可审计", "证据链"]
+      "keywords": ["webthinker", "deep research", "deep research report", "multi-hop", "multi-hop browse", "trace.jsonl", "sources.json", "web source chain", "auditable web research", "深度调研", "多跳浏览", "网页证据链", "保留 trace", "可审计调研"]
     },
     "scrapling": {
       "keywords": ["scrapling", "scrapling extract", "scrapling mcp", "web scraping", "scrape", "scraping", "scraper", "crawl", "crawler", "spider", "html extraction", "content extraction", "css selector", "css-selector", "xpath", "xpath selector", "cf-turnstile", "turnstile", "cloudflare", "cloudflare challenge", "captcha", "anti-bot", "网页爬虫", "爬虫", "网页爬取", "抓取网页", "网页抓取", "网页采集", "反爬", "CSS选择器", "XPath选择器", "选择器提取"]
     },
     "playwright": {
       "keywords": ["playwright", "browser automation", "headless browser", "browser test", "form filling", "login flow", "dynamic page", "screenshot flow", "页面自动化", "浏览器自动化", "登录表单", "动态页面", "截图调试"]
-    },
-    "deepagent-toolchain-plan": {
-      "keywords": ["deepagent", "tool discovery", "toolchain", "skill chain", "confirm_required", "white-box menu", "capability interview", "route instability", "工具发现", "工具链", "技能链", "选技能", "确认菜单", "能力访谈", "路由不确定"]
-    },
-    "deepagent-memory-fold": {
-      "keywords": ["deepagent", "memory folding", "fold", "context compression", "compress context", "resume prompt", "handoff", "handover", "long-running", "上下文压缩", "记忆折叠", "续跑", "交接", "恢复提示"]
     },
     "spec-kit-vibe-compat": {
       "keywords": ["/speckit", "speckit", "spec-kit", ".specify", "specify cli", "spec.md", "tasks.md", "constitution.md"]

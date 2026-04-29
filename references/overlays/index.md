@@ -13,7 +13,7 @@
 | --- | --- |
 | [`agency`](agency) | agency-style role overlays |
 | [`gitnexus`](gitnexus) | GitNexus reasoning / impact / architecture references |
-| [`ruc-nlpir`](ruc-nlpir) | FlashRAG / WebThinker / DeepAgent overlay references |
+| [`ruc-nlpir`](ruc-nlpir) | FlashRAG / WebThinker tool overlay references |
 | [`turix-cua`](turix-cua) | BrowserOps / CUA foundations and runbooks |
 
 ## Rule

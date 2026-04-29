@@ -246,7 +246,7 @@ if ($catalog) {
     $corpusSourceIds = @($catalog.corpus_sources | ForEach-Object { [string]$_.id } | Where-Object { $_ })
     Add-Assertion -Results ([ref]$results) -Condition (Test-SetContains -Actual $corpusSourceIds -ExpectedSubset $requiredCorpusSources) -Message "required corpus sources are registered" -Details ((@($corpusSourceIds | Sort-Object) -join ", "))
 
-    Add-Assertion -Results ([ref]$results) -Condition (@($catalog.capabilities).Count -ge 18) -Message "capability catalog includes Wave37-38 expanded capability set"
+    Add-Assertion -Results ([ref]$results) -Condition (@($catalog.capabilities).Count -ge 16) -Message "capability catalog includes retained Wave37-38 capability set"
 
     foreach ($capability in @($catalog.capabilities)) {
         $capabilityId = [string]$capability.id
@@ -273,8 +273,11 @@ if ($catalog) {
             Add-Assertion -Results ([ref]$results) -Condition ([string]$materialization.runtime_surface -eq "none") -Message ("runtime_surface none enforced for {0}" -f $capabilityId)
         }
         if ($capability.catalog_kind -eq "productized_capability") {
-            Add-Assertion -Results ([ref]$results) -Condition ([string]$materialization.mode -eq "runtime_recommendation") -Message ("runtime recommendation mode enforced for {0}" -f $capabilityId)
-            Add-Assertion -Results ([ref]$results) -Condition ([string]$materialization.runtime_surface -eq "vco-native") -Message ("vco-native runtime surface enforced for {0}" -f $capabilityId)
+            $materializationMode = [string]$materialization.mode
+            $runtimeSurface = [string]$materialization.runtime_surface
+            $isRuntimeRecommendation = ($materializationMode -eq "runtime_recommendation" -and $runtimeSurface -eq "vco-native")
+            $isVibeStageMethod = ($materializationMode -eq "vibe_stage_method" -and $runtimeSurface.StartsWith("vibe."))
+            Add-Assertion -Results ([ref]$results) -Condition ($isRuntimeRecommendation -or $isVibeStageMethod) -Message ("productized materialization is supported for {0}" -f $capabilityId) -Details ("mode={0}; runtime_surface={1}" -f $materializationMode, $runtimeSurface)
         }
     }
 

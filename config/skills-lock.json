@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-29T21:07:13+08:00",
+  "generated_at": "2026-04-29T21:55:57+08:00",
   "source": "bundled/skills",
-  "skill_count": 316,
-  "total_bytes": 20860183.0,
+  "skill_count": 314,
+  "total_bytes": 20854715.0,
   "skills": [
     {
       "name": ".system",
@@ -412,22 +412,6 @@
       "bytes": 12546,
       "skill_md_hash": "61dbd539f0f9ba90aec588147d7ee44a9c54a4dcf148011aea9f000b2cd724a7",
       "dir_hash": "b15fdb51b6ec23e974bff5c50b0dd6870a9aa30b08e02905aa65671cd1fc614d"
-    },
-    {
-      "name": "deepagent-memory-fold",
-      "relative_path": "bundled/skills/deepagent-memory-fold",
-      "file_count": 1,
-      "bytes": 2177,
-      "skill_md_hash": "7b24995863bc60dae266073f42810340fc17a9e3f7fb8fb646dd115cf05e8b0b",
-      "dir_hash": "4a91f55a3a57a5bc5cf89135237bf7d621856860d975d7cf61cec16c740f9a0e"
-    },
-    {
-      "name": "deepagent-toolchain-plan",
-      "relative_path": "bundled/skills/deepagent-toolchain-plan",
-      "file_count": 1,
-      "bytes": 3291,
-      "skill_md_hash": "e862a0ab344340f4e111bf3e2a31e7cff88fa77706fd52bad0705d29ec9ac23c",
-      "dir_hash": "dea8d5209e018909dd6719718eb6a17a922d85ac5fb0ceb4f38403f26a874fc6"
     },
     {
       "name": "deepchem",

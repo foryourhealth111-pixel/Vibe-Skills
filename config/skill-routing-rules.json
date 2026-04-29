@@ -50,7 +50,7 @@
                                                            "planning"
                                                        ]
                             },
-                    "flashrag-evidence":  {
+                   "flashrag-evidence":  {
                                              "task_allow":  [
                                                                 "planning",
                                                                 "review",
@@ -59,26 +59,21 @@
                                                             ],
                                              "positive_keywords":  [
                                                                        "flashrag",
-                                                                       "evidence",
-                                                                       "evidence plane",
-                                                                       "citation",
-                                                                       "cite",
-                                                                       "source of truth",
+                                                                       "local evidence",
+                                                                       "repo evidence",
+                                                                       "repo config evidence",
+                                                                       "route rule evidence",
                                                                        "where is this defined",
-                                                                       "policy",
-                                                                       "protocol",
-                                                                       "config",
-                                                                       "router",
-                                                                       "vco config",
-                                                                       "vibe config",
-                                                                       "证据",
-                                                                       "引用",
-                                                                       "出处",
-                                                                       "在哪里定义",
-                                                                       "协议",
-                                                                       "策略",
-                                                                       "配置",
-                                                                       "路由器"
+                                                                       "source of truth",
+                                                                       "path and line",
+                                                                       "file and line",
+                                                                       "skill.md",
+                                                                       "本地证据",
+                                                                       "仓库依据",
+                                                                       "配置依据",
+                                                                       "路由规则在哪里",
+                                                                       "文件和行号",
+                                                                       "出处"
                                                                    ],
                                              "negative_keywords":  [
                                                                        "webthinker",
@@ -86,24 +81,23 @@
                                                                        "multi-hop",
                                                                        "trace.jsonl",
                                                                        "sources.json",
-                                                                       "toolchain",
-                                                                       "memory folding",
-                                                                       "记忆折叠",
-                                                                       "技能链",
-                                                                       "paper quality",
-                                                                       "research quality",
-                                                                       "methodology critique",
-                                                                       "evidence strength",
-                                                                       "bias",
-                                                                       "confounders",
-                                                                       "论文质量",
-                                                                       "证据强度",
-                                                                       "偏倚",
-                                                                       "混杂因素"
+                                                                       "web source chain",
+                                                                       "literature review",
+                                                                       "paper writing",
+                                                                       "pdf extraction",
+                                                                       "scientific visualization",
+                                                                       "model training",
+                                                                       "深度调研",
+                                                                       "多跳浏览",
+                                                                       "网页证据链",
+                                                                       "论文撰写",
+                                                                       "文献综述",
+                                                                       "模型训练",
+                                                                       "可视化"
                                                                    ],
                                              "equivalent_group":  "evidence-retrieval",
                                              "canonical_for_task":  [
-                                                                        "review"
+
                                                                     ]
                                          },
                    "webthinker-deep-research":  {
@@ -116,34 +110,38 @@
                                                                              "deep research",
                                                                              "deep research report",
                                                                              "multi-hop",
-                                                                             "browse",
-                                                                             "navigate",
-                                                                             "extract",
-                                                                             "trace",
+                                                                             "multi-hop browse",
                                                                              "trace.jsonl",
                                                                              "sources.json",
+                                                                             "web source chain",
+                                                                             "auditable web research",
                                                                              "深度调研",
-                                                                             "调研",
-                                                                             "调研报告",
-                                                                             "网页探索",
-                                                                             "可审计",
-                                                                             "证据链"
+                                                                             "多跳浏览",
+                                                                             "网页证据链",
+                                                                             "保留 trace",
+                                                                             "可审计调研"
                                                                          ],
                                                    "negative_keywords":  [
-                                                                             "tdd",
-                                                                             "unit test",
-                                                                             "bug fix",
-                                                                             "code review",
                                                                              "flashrag",
+                                                                             "local evidence",
+                                                                             "repo evidence",
+                                                                             "repo config evidence",
                                                                              "where is this defined",
-                                                                             "工具链",
-                                                                             "记忆折叠",
-                                                                             "quarto",
-                                                                             "rmarkdown",
-                                                                             "pdf report",
-                                                                             "html report",
-                                                                             "executive summary",
-                                                                             "appendix"
+                                                                             "path and line",
+                                                                             "skill.md",
+                                                                             "pdf extraction",
+                                                                             "latex build",
+                                                                             "scientific visualization",
+                                                                             "browser automation",
+                                                                             "web scraping",
+                                                                             "本地证据",
+                                                                             "仓库依据",
+                                                                             "文件和行号",
+                                                                             "PDF提取",
+                                                                             "LaTeX构建",
+                                                                             "科研绘图",
+                                                                             "浏览器自动化",
+                                                                             "网页抓取"
                                                                          ],
                                                    "equivalent_group":  "deep-research",
                                                    "canonical_for_task":  [
@@ -223,80 +221,6 @@
                                                               "research"
                                                           ]
                                 },
-                   "deepagent-toolchain-plan":  {
-                                                   "task_allow":  [
-                                                                      "planning",
-                                                                      "research",
-                                                                      "review"
-                                                                  ],
-                                                   "positive_keywords":  [
-                                                                             "deepagent",
-                                                                             "tool discovery",
-                                                                             "toolchain",
-                                                                             "skill chain",
-                                                                             "confirm_required",
-                                                                             "white-box menu",
-                                                                             "capability interview",
-                                                                             "route instability",
-                                                                             "工具发现",
-                                                                             "工具链",
-                                                                             "技能链",
-                                                                             "选技能",
-                                                                             "确认菜单",
-                                                                             "能力访谈",
-                                                                             "路由不确定"
-                                                                         ],
-                                                   "negative_keywords":  [
-                                                                             "webthinker",
-                                                                             "deep research",
-                                                                             "trace.jsonl",
-                                                                             "sources.json",
-                                                                             "memory folding",
-                                                                             "记忆折叠",
-                                                                             "上下文压缩"
-                                                                         ],
-                                                   "equivalent_group":  "orchestration-meta",
-                                                   "canonical_for_task":  [
-                                                                              "planning"
-                                                                          ]
-                                               },
-                   "deepagent-memory-fold":  {
-                                                "task_allow":  [
-                                                                   "planning",
-                                                                   "review",
-                                                                   "research"
-                                                               ],
-                                                "positive_keywords":  [
-                                                                          "deepagent",
-                                                                          "memory folding",
-                                                                          "fold",
-                                                                          "context compression",
-                                                                          "compress context",
-                                                                          "resume prompt",
-                                                                          "handoff",
-                                                                          "handover",
-                                                                          "long-running",
-                                                                          "上下文压缩",
-                                                                          "记忆折叠",
-                                                                          "续跑",
-                                                                          "交接",
-                                                                          "恢复提示"
-                                                                      ],
-                                                "negative_keywords":  [
-                                                                          "webthinker",
-                                                                          "deep research",
-                                                                          "trace.jsonl",
-                                                                          "sources.json",
-                                                                          "tool discovery",
-                                                                          "toolchain",
-                                                                          "技能链",
-                                                                          "工具链"
-                                                                      ],
-                                                "equivalent_group":  "memory-management",
-                                                "canonical_for_task":  [
-
-                                                                       ]
-                                            },
                    "create-plan":  {
                                        "task_allow":  [
                                                           "planning"

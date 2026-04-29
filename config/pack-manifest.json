@@ -215,40 +215,44 @@
                       "trigger_keywords":  [
                                                "flashrag",
                                                "webthinker",
-                                                "deepagent",
-                                                "ruc-nlpir",
                                                 "evidence plane",
+                                                "local evidence",
+                                                "repo evidence",
+                                                "repo config evidence",
+                                                "route rule evidence",
+                                                "where is this defined",
+                                                "skill.md",
+                                                "file and line",
+                                                "path and line",
                                                 "deep research",
+                                                "multi-hop browse",
                                                 "trace.jsonl",
                                                 "sources.json",
-                                                "toolchain",
-                                               "skill chain",
-                                               "memory folding",
+                                                "web source chain",
                                                "证据平面",
+                                               "本地证据",
+                                               "仓库依据",
+                                               "配置依据",
+                                               "路由规则在哪里",
+                                               "文件和行号",
                                                "深度调研",
-                                               "工具链",
-                                               "技能链",
-                                               "记忆折叠",
+                                               "多跳浏览",
+                                               "网页证据链",
+                                               "保留 trace",
                                                "可审计"
                                            ],
                       "skill_candidates":  [
                                                "flashrag-evidence",
-                                               "webthinker-deep-research",
-                                               "deepagent-toolchain-plan",
-                                               "deepagent-memory-fold"
+                                               "webthinker-deep-research"
                                            ],
                       "route_authority_candidates":  [
                                                        "flashrag-evidence",
                                                        "webthinker-deep-research"
                                                    ],
                       "stage_assistant_candidates":  [
-                                                       "deepagent-toolchain-plan",
-                                                       "deepagent-memory-fold"
+
                                                    ],
                       "defaults_by_task":  {
-                                               "planning":  "flashrag-evidence",
-                                               "review":  "flashrag-evidence",
-                                               "debug":  "flashrag-evidence",
                                                "research":  "webthinker-deep-research"
                                            }
                   },

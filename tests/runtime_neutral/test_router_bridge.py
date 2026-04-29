@@ -330,7 +330,7 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("science-literature-citations", result["selected"]["pack_id"])
         self.assertEqual("bgpt-paper-search", result["selected"]["skill"])
 
-    def test_deep_research_pack_records_deepagent_helpers_as_legacy_stage_assistants(self) -> None:
+    def test_deep_research_pack_has_no_legacy_stage_assistants(self) -> None:
         result = run_bridge(
             "我要做 deep research，多跳浏览网页并保留 trace.jsonl 和 sources.json 证据链",
             "L",
@@ -342,10 +342,10 @@ class RouterBridgeTests(unittest.TestCase):
 
         deep_research_row = next(row for row in result["ranked"] if row["pack_id"] == "ruc-nlpir-augmentation")
         ranking_by_skill = {row["skill"]: row for row in deep_research_row["candidate_ranking"]}
+        self.assertEqual({"flashrag-evidence", "webthinker-deep-research"}, set(ranking_by_skill))
         self.assertEqual("route_authority", ranking_by_skill["webthinker-deep-research"]["legacy_role"])
         self.assertEqual("route_authority", ranking_by_skill["flashrag-evidence"]["legacy_role"])
-        self.assertEqual("stage_assistant", ranking_by_skill["deepagent-toolchain-plan"]["legacy_role"])
-        self.assertEqual("stage_assistant", ranking_by_skill["deepagent-memory-fold"]["legacy_role"])
+        self.assertEqual([], deep_research_row["stage_assistant_candidates"])
 
     def test_data_leakage_audit_can_route_to_ml_data_leakage_guard(self) -> None:
         result = run_bridge(

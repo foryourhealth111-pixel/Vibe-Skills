@@ -288,24 +288,6 @@
       "license_spdx": "MIT"
     },
     {
-      "id": "RUC-NLPIR/DeepAgent",
-      "upstream_repo": "https://github.com/RUC-NLPIR/DeepAgent",
-      "upstream_ref": "d2bf7263c28e5c57f548ad9fe3b2fe9bfba9b310",
-      "integration_mode": "vendored-external",
-      "local_rewrite_required": false,
-      "vendored_paths": [
-        "~/.codex/_external/ruc-nlpir/DeepAgent"
-      ],
-      "notes": "Vendored upstream repo for toolchain planning + context folding patterns under VCO memory governance.",
-      "disclosure_required": true,
-      "shipped_by_default": false,
-      "distribution_tier": "external-optional",
-      "canonical_slug": "deepagent",
-      "redistribution_posture": "operator-local-vendor-not-shipped",
-      "local_retention_allowed": false,
-      "license_spdx": "MIT"
-    },
-    {
       "id": "mem0ai/mem0",
       "upstream_repo": "https://github.com/mem0ai/mem0",
       "upstream_ref": "main",

@@ -227,7 +227,6 @@
         "native"
       ],
       "dedup_with": [
-        "toolchain_planning",
         "architecture_design"
       ],
       "retirement_conditions": [
@@ -876,7 +875,6 @@
         "native"
       ],
       "dedup_with": [
-        "toolchain_planning",
         "vibe_workflow_discovery_corpus"
       ],
       "retirement_conditions": [
@@ -1040,146 +1038,6 @@
       ]
     },
     {
-      "id": "toolchain_planning",
-      "display_name": "工具链规划（DeepAgent-style）",
-      "summary": "Represents canonical toolchain selection and step sequencing guidance for VCO tasks.",
-      "catalog_kind": "productized_capability",
-      "task_allow": [
-        "planning",
-        "research",
-        "coding"
-      ],
-      "keywords": [
-        "toolchain",
-        "workflow",
-        "sequence",
-        "integration",
-        "工具链",
-        "工作流",
-        "顺序",
-        "集成"
-      ],
-      "skills": [
-        "deepagent-toolchain-plan",
-        "vibe",
-        "mcp-integration"
-      ],
-      "problem_domains": [
-        "tool selection",
-        "workflow sequencing",
-        "integration planning"
-      ],
-      "inputs": [
-        "tool requests",
-        "multi-tool tasks",
-        "integration requirements"
-      ],
-      "outputs": [
-        "toolchain plans",
-        "sequence recommendations",
-        "verification checkpoints"
-      ],
-      "applicable_planes": [
-        "control",
-        "capability"
-      ],
-      "upstream_sources": [
-        "native"
-      ],
-      "dedup_with": [
-        "brainstorm_planning",
-        "ai_tool_landscape_corpus",
-        "multi_agent_orchestration"
-      ],
-      "retirement_conditions": [
-        "Retire when toolchain planning is absorbed by a broader planning capability with preserved legacy fields.",
-        "Retire when tool selection logic moves fully outside the capability catalog."
-      ],
-      "materialization": {
-        "mode": "runtime_recommendation",
-        "canonical_owner": "config/pack-manifest.json",
-        "runtime_surface": "vco-native",
-        "promotion_stage": "soft"
-      },
-      "evaluation_hooks": [
-        "scripts/verify/vibe-capability-catalog-gate.ps1",
-        "scripts/verify/vibe-pack-routing-smoke.ps1"
-      ],
-      "evidence_artifacts": [
-        "references/capability-catalog.md",
-        "outputs/governance/capability-catalog-gate.json"
-      ]
-    },
-    {
-      "id": "memory_folding",
-      "display_name": "长程上下文压缩与交接（DeepAgent-style）",
-      "summary": "Represents canonical long-context compression and handoff guidance for VCO sessions.",
-      "catalog_kind": "productized_capability",
-      "task_allow": [
-        "planning",
-        "research",
-        "review"
-      ],
-      "keywords": [
-        "memory",
-        "context folding",
-        "handoff",
-        "compression",
-        "记忆",
-        "上下文压缩",
-        "交接",
-        "长程上下文"
-      ],
-      "skills": [
-        "deepagent-memory-fold",
-        "knowledge-steward"
-      ],
-      "problem_domains": [
-        "context management",
-        "handoff compression",
-        "memory summarization"
-      ],
-      "inputs": [
-        "long sessions",
-        "handoff needs",
-        "context budget pressure"
-      ],
-      "outputs": [
-        "compressed memory blocks",
-        "handoff summaries",
-        "session notes"
-      ],
-      "applicable_planes": [
-        "governance",
-        "capability"
-      ],
-      "upstream_sources": [
-        "native"
-      ],
-      "dedup_with": [
-        "local_evidence_retrieval",
-        "vibe_workflow_discovery_corpus"
-      ],
-      "retirement_conditions": [
-        "Retire when context compression is governed by a newer canonical memory contract with preserved compatibility fields.",
-        "Retire when handoff guidance is moved out of the capability catalog plane."
-      ],
-      "materialization": {
-        "mode": "runtime_recommendation",
-        "canonical_owner": "config/memory-governance.json",
-        "runtime_surface": "vco-native",
-        "promotion_stage": "soft"
-      },
-      "evaluation_hooks": [
-        "scripts/verify/vibe-capability-catalog-gate.ps1",
-        "scripts/verify/vibe-keyword-precision-audit.ps1"
-      ],
-      "evidence_artifacts": [
-        "references/capability-catalog.md",
-        "outputs/governance/capability-catalog-gate.json"
-      ]
-    },
-    {
       "id": "vibe_workflow_discovery_corpus",
       "display_name": "Vibe workflow discovery corpus",
       "summary": "Stores workflow heuristics and anti-pattern terminology distilled from awesome-vibe-coding as governed material only.",
@@ -1228,8 +1086,7 @@
       ],
       "dedup_with": [
         "brainstorm_planning",
-        "multi_agent_orchestration",
-        "memory_folding"
+        "multi_agent_orchestration"
       ],
       "retirement_conditions": [
         "Retire when workflow heuristics are either productized into existing canonical capabilities or demoted to reference-only evidence.",
@@ -1301,7 +1158,6 @@
         "awesome-ai-tools"
       ],
       "dedup_with": [
-        "toolchain_planning",
         "devops_delivery",
         "prompt_docs"
       ],
