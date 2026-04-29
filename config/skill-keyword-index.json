@@ -133,7 +133,16 @@
       "keywords": ["preprocess data", "data preprocessing", "data cleaning pipeline", "etl pipeline", "data transformation", "feature encoding", "standardize data", "normalize data", "数据预处理", "清洗数据", "ETL流水线", "数据转换"]
     },
     "scanpy": {
-      "keywords": ["scanpy", "single-cell", "single-cell clustering", "scRNA", "h5ad", "10x", "leiden", "marker genes", "单细胞聚类", "细胞注释", "marker基因"]
+      "keywords": ["scanpy", "single-cell", "single-cell clustering", "scRNA", "10x", "leiden", "marker genes", "单细胞聚类", "细胞注释", "marker基因"]
+    },
+    "anndata": {
+      "keywords": ["anndata", "AnnData", "h5ad", "obs", "var", "backed mode", "annotated data matrix", "sparse matrix", "zarr", "元数据", "稀疏矩阵"]
+    },
+    "scvi-tools": {
+      "keywords": ["scvi-tools", "scVI", "scANVI", "single-cell latent model", "batch correction", "cell type annotation", "multimodal single-cell", "spatial transcriptomics", "批次校正", "细胞类型注释"]
+    },
+    "cellxgene-census": {
+      "keywords": ["cellxgene census", "CZ CELLxGENE", "CELLxGENE Census", "census", "single-cell census", "cell type tissue disease", "expression data metadata", "细胞图谱", "单细胞参考"]
     },
     "pydeseq2": {
       "keywords": ["pydeseq2", "deseq2", "bulk RNA-seq", "differential expression", "volcano plot", "MA plot", "padj", "差异表达", "差异表达分析", "de分析", "rna-seq差异"]
@@ -141,14 +150,50 @@
     "pysam": {
       "keywords": ["pysam", "bam", "sam", "cram", "vcf", "pileup", "coverage", "测序比对文件", "变异文件", "变异文件解析", "覆盖度"]
     },
+    "deeptools": {
+      "keywords": ["deeptools", "deepTools", "bam to bigwig", "bigWig", "bamCoverage", "computeMatrix", "plotHeatmap", "TSS heatmap", "profile plot", "ChIP-seq heatmap", "ATAC-seq signal", "NGS track", "信号轨道", "热图"]
+    },
     "biopython": {
       "keywords": ["biopython", "seqio", "fasta", "genbank", "entrez", "sequence conversion", "序列格式转换", "序列解析", "生物序列处理"]
     },
     "gget": {
       "keywords": ["gget", "Ensembl lookup", "gene symbol", "transcript lookup", "quick BLAST", "快速生信查询", "基因symbol", "Ensembl ID"]
     },
+    "ensembl-database": {
+      "keywords": ["ensembl", "ensembl rest", "orthologs", "paralogs", "vep", "variant effect predictor", "coordinate conversion", "comparative genomics", "同源基因", "变异效应"]
+    },
+    "gene-database": {
+      "keywords": ["ncbi gene", "gene database", "gene symbol", "refseq", "go annotation", "gene metadata", "gene location", "基因数据库", "基因注释"]
+    },
+    "clinvar-database": {
+      "keywords": ["clinvar", "clinical significance", "pathogenic", "benign", "vus", "review stars", "variant interpretation", "clinical variant", "临床意义", "致病性"]
+    },
+    "cosmic-database": {
+      "keywords": ["cosmic", "cancer mutation", "cancer gene census", "mutational signatures", "somatic mutation", "gene fusion", "肿瘤突变", "癌症基因"]
+    },
+    "gwas-database": {
+      "keywords": ["gwas catalog", "gwas", "snp trait association", "rs id", "p-value", "summary statistics", "polygenic risk score", "遗传关联", "性状关联"]
+    },
     "bioservices": {
-      "keywords": ["bioservices", "cross database", "uniprot", "kegg", "chembl", "多数据库", "跨数据库查询"]
+      "keywords": ["bioservices", "cross database", "multi-database", "uniprot", "quickgo", "biomart", "id mapping", "多数据库", "跨数据库查询"]
+    },
+    "kegg-database": {
+      "keywords": ["kegg", "kegg rest", "kegg pathway", "pathway mapping", "id conversion", "metabolic pathway", "pathway database", "通路映射", "代谢通路"]
+    },
+    "reactome-database": {
+      "keywords": ["reactome", "reactome pathway", "pathway enrichment", "gene-pathway mapping", "disease pathway", "reaction", "通路富集", "疾病通路"]
+    },
+    "opentargets-database": {
+      "keywords": ["open targets", "opentargets", "target-disease association", "tractability", "safety", "known drugs", "target prioritization", "靶点疾病关联", "靶点优先级"]
+    },
+    "alphafold-database": {
+      "keywords": ["alphafold", "alphafold database", "uniprot id", "plddt", "pae", "predicted structure", "mmcif", "蛋白结构预测", "置信度"]
+    },
+    "pdb-database": {
+      "keywords": ["rcsb pdb", "pdb", "protein structure", "structure search", "sequence similarity", "mmcif", "coordinate file", "experimental structure", "蛋白结构"]
+    },
+    "string-database": {
+      "keywords": ["string database", "string api", "protein-protein interaction", "ppi network", "go enrichment", "hub proteins", "interaction partners", "蛋白互作", "互作网络"]
     },
     "docs-write": {
       "keywords": ["write docs", "documentation", "documentation page", "markdown docs", "mdx docs", "说明文档", "文档写作", "用户文档", "使用说明", "markdown文档"]

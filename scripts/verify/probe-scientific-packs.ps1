@@ -858,6 +858,96 @@ $cases = @(
         expected_pack = "bio-science"
         expected_skill = "geniml"
         requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_anndata_h5ad_container"
+        group = "bio-science"
+        prompt = "/vibe 用 AnnData 读写 h5ad，管理 obs/var 元数据和 backed mode 稀疏矩阵"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "anndata"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_scvi_latent_model"
+        group = "bio-science"
+        prompt = "/vibe 用 scVI 和 scANVI 做 single-cell batch correction、latent model 和 cell type annotation"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "scvi-tools"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_deeptools_tracks"
+        group = "bio-science"
+        prompt = "/vibe 用 deepTools 把 BAM 转 bigWig，并围绕 TSS 画 ChIP-seq heatmap profile"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "deeptools"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_clinvar_significance"
+        group = "bio-science"
+        prompt = "/vibe 查询 ClinVar 中 BRCA1 variant 的 clinical significance、VUS 和 review stars"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "clinvar-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_kegg_pathway_mapping"
+        group = "bio-science"
+        prompt = "/vibe 用 KEGG REST 做 pathway mapping、ID conversion 和 metabolic pathway 查询"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "kegg-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_reactome_enrichment"
+        group = "bio-science"
+        prompt = "/vibe 用 Reactome 做 pathway enrichment、gene-pathway mapping 和 disease pathway 分析"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "reactome-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_alphafold_structure"
+        group = "bio-science"
+        prompt = "/vibe 从 AlphaFold Database 按 UniProt ID 下载 mmCIF，并检查 pLDDT 和 PAE"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "alphafold-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_string_ppi"
+        group = "bio-science"
+        prompt = "/vibe 用 STRING API 查询 protein-protein interaction network、GO enrichment 和 hub proteins"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "string-database"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "bio_cellxgene_census"
+        group = "bio-science"
+        prompt = "/vibe 查询 CZ CELLxGENE Census 的 human lung epithelial cells expression data 和 metadata"
+        grade = "M"
+        task_type = "research"
+        expected_pack = "bio-science"
+        expected_skill = "cellxgene-census"
+        requested_skill = $null
     }
 )
 

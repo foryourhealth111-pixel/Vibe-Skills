@@ -49,6 +49,8 @@ BIO_SCIENCE_CANDIDATES = [
     "string-database",
 ]
 
+BIO_SCIENCE_DIRECT_ROUTE_OWNERS = BIO_SCIENCE_CANDIDATES
+
 
 class BioSciencePackConsolidationAuditTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -128,10 +130,12 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         rows = {row.skill_id: row for row in artifact.rows}
 
         self.assertEqual(set(BIO_SCIENCE_CANDIDATES), set(rows))
-        self.assertEqual(set(BIO_SCIENCE_ROUTE_AUTHORITIES), {row.skill_id for row in artifact.rows if row.target_role == "keep"})
-        self.assertEqual(set(BIO_SCIENCE_STAGE_ASSISTANTS), {row.skill_id for row in artifact.rows if row.target_role == "stage-assistant"})
-        self.assertEqual(10, artifact.to_dict()["summary"]["target_route_authority_count"])
-        self.assertEqual(16, artifact.to_dict()["summary"]["target_stage_assistant_count"])
+        self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, BIO_SCIENCE_ROUTE_AUTHORITIES)
+        self.assertEqual([], BIO_SCIENCE_STAGE_ASSISTANTS)
+        self.assertEqual(set(BIO_SCIENCE_DIRECT_ROUTE_OWNERS), {row.skill_id for row in artifact.rows if row.target_role == "keep"})
+        self.assertEqual(set(), {row.skill_id for row in artifact.rows if row.target_role == "stage-assistant"})
+        self.assertEqual(26, artifact.to_dict()["summary"]["target_route_authority_count"])
+        self.assertEqual(0, artifact.to_dict()["summary"]["target_stage_assistant_count"])
 
     def test_problem_map_records_primary_problem_owners(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
@@ -148,31 +152,15 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         self.assertEqual("gene_regulatory_networks", rows["arboreto"].primary_problem_id)
         self.assertEqual("genomic_ml_embeddings", rows["geniml"].primary_problem_id)
 
-    def test_database_and_data_structure_helpers_are_stage_assistants(self) -> None:
+    def test_database_and_data_structure_helpers_are_direct_route_owners(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
         rows = {row.skill_id: row for row in artifact.rows}
 
-        for skill_id in [
-            "alphafold-database",
-            "anndata",
-            "bioservices",
-            "cellxgene-census",
-            "clinvar-database",
-            "cosmic-database",
-            "deeptools",
-            "ensembl-database",
-            "gene-database",
-            "gwas-database",
-            "kegg-database",
-            "opentargets-database",
-            "pdb-database",
-            "reactome-database",
-            "scvi-tools",
-            "string-database",
-        ]:
-            self.assertEqual("stage-assistant", rows[skill_id].target_role)
+        for skill_id in BIO_SCIENCE_DIRECT_ROUTE_OWNERS:
+            self.assertEqual("keep", rows[skill_id].target_role)
+            self.assertEqual("", rows[skill_id].target_owner)
             self.assertFalse(rows[skill_id].delete_allowed_after_migration)
-            self.assertIn("not a broad route authority", rows[skill_id].routing_change)
+            self.assertIn("route authority", rows[skill_id].routing_change)
 
     def test_artifact_writer_outputs_json_csv_and_markdown(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
@@ -192,7 +180,8 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         markdown_text = written["markdown"].read_text(encoding="utf-8")
         self.assertIn("# Bio-Science Problem-First Consolidation", markdown_text)
         self.assertIn("## Route Authorities", markdown_text)
-        self.assertIn("## Stage Assistants", markdown_text)
+        self.assertIn("Stage assistants: 0", markdown_text)
+        self.assertNotIn("## Stage Assistants", markdown_text)
 
     def test_audit_and_writer_do_not_modify_live_config(self) -> None:
         config_paths = [
@@ -213,8 +202,8 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         bio_pack = next(pack for pack in manifest["packs"] if pack["id"] == "bio-science")
 
         self.assertEqual(BIO_SCIENCE_CANDIDATES, bio_pack["skill_candidates"])
-        self.assertEqual(BIO_SCIENCE_ROUTE_AUTHORITIES, bio_pack["route_authority_candidates"])
-        self.assertEqual(BIO_SCIENCE_STAGE_ASSISTANTS, bio_pack["stage_assistant_candidates"])
+        self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, bio_pack["route_authority_candidates"])
+        self.assertEqual([], bio_pack["stage_assistant_candidates"])
         self.assertEqual(
             {
                 "planning": "biopython",
