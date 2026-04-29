@@ -96,7 +96,8 @@ $cases = @(
     [pscustomobject]@{ Name = "slidev slides as code"; Prompt = "用Slidev做组会汇报：slides as code，要求可复现导出PDF"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "slides-as-code" },
 
     [pscustomobject]@{ Name = "scientific writing"; Prompt = "请按IMRAD结构写科研论文正文"; Grade = "L"; TaskType = "research"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "scientific-writing" },
-    [pscustomobject]@{ Name = "figma implementation"; Prompt = "把这个Figma设计稿还原为可运行代码"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "designing-experiments" },
+    [pscustomobject]@{ Name = "figma implementation planning"; Prompt = "把这个Figma设计稿还原为可运行代码"; Grade = "L"; TaskType = "planning"; ExpectedPack = "design-implementation"; ExpectedSkill = "figma-implement-design" },
+    [pscustomobject]@{ Name = "figma implementation coding"; Prompt = "把这个Figma设计稿还原为可运行代码"; Grade = "L"; TaskType = "coding"; ExpectedPack = "design-implementation"; ExpectedSkill = "figma-implement-design" },
     [pscustomobject]@{ Name = "experiment design"; Prompt = "帮我设计准实验方法，比较DiD和ITS"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "designing-experiments" }
 )
 
