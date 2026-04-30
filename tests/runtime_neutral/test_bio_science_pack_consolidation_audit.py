@@ -13,6 +13,7 @@ if str(VERIFICATION_CORE_SRC) not in sys.path:
     sys.path.insert(0, str(VERIFICATION_CORE_SRC))
 
 from vgo_verify.bio_science_pack_consolidation_audit import (
+    BIO_SCIENCE_MERGE_DELETE_SKILLS,
     BIO_SCIENCE_ROUTE_AUTHORITIES,
     BIO_SCIENCE_STAGE_ASSISTANTS,
     audit_bio_science_problem_map,
@@ -20,15 +21,28 @@ from vgo_verify.bio_science_pack_consolidation_audit import (
 )
 
 
-BIO_SCIENCE_CANDIDATES = [
-    "alphafold-database",
-    "anndata",
+BIO_SCIENCE_DIRECT_OWNERS = [
     "biopython",
+    "scanpy",
+    "anndata",
+    "scvi-tools",
+    "pydeseq2",
+    "pysam",
+    "deeptools",
+    "esm",
+    "cobrapy",
+    "geniml",
+    "arboreto",
+    "flowio",
+    "bio-database-evidence",
+]
+
+MERGED_DATABASE_SKILLS = [
+    "alphafold-database",
     "bioservices",
     "cellxgene-census",
     "clinvar-database",
     "cosmic-database",
-    "deeptools",
     "ensembl-database",
     "gene-database",
     "gget",
@@ -36,20 +50,11 @@ BIO_SCIENCE_CANDIDATES = [
     "kegg-database",
     "opentargets-database",
     "pdb-database",
-    "pydeseq2",
-    "pysam",
     "reactome-database",
-    "scanpy",
-    "scvi-tools",
-    "arboreto",
-    "cobrapy",
-    "esm",
-    "flowio",
-    "geniml",
     "string-database",
 ]
 
-BIO_SCIENCE_DIRECT_ROUTE_OWNERS = BIO_SCIENCE_CANDIDATES
+BIO_SCIENCE_DIRECT_ROUTE_OWNERS = BIO_SCIENCE_DIRECT_OWNERS
 
 
 class BioSciencePackConsolidationAuditTests(unittest.TestCase):
@@ -100,7 +105,9 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
                 "packs": [
                     {
                         "id": "bio-science",
-                        "skill_candidates": BIO_SCIENCE_CANDIDATES,
+                        "skill_candidates": BIO_SCIENCE_DIRECT_OWNERS,
+                        "route_authority_candidates": BIO_SCIENCE_DIRECT_ROUTE_OWNERS,
+                        "stage_assistant_candidates": [],
                         "defaults_by_task": {
                             "planning": "biopython",
                             "coding": "biopython",
@@ -117,11 +124,11 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         )
         self._write_json("config/skill-keyword-index.json", {"skills": {}})
         self._write_json("config/skill-routing-rules.json", {"skills": {}})
-        for skill_id in BIO_SCIENCE_CANDIDATES:
+        for skill_id in BIO_SCIENCE_DIRECT_OWNERS + MERGED_DATABASE_SKILLS:
             self._write_skill(
                 skill_id,
                 scripts=skill_id in {"scanpy", "pysam", "cobrapy", "flowio"},
-                references=skill_id.endswith("-database") or skill_id in {"biopython", "gget", "esm"},
+                references=skill_id.endswith("-database") or skill_id in {"biopython", "gget", "esm", "bio-database-evidence"},
                 assets=skill_id in {"cellxgene-census", "pdb-database"},
             )
 
@@ -129,13 +136,15 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         artifact = audit_bio_science_problem_map(self.root)
         rows = {row.skill_id: row for row in artifact.rows}
 
-        self.assertEqual(set(BIO_SCIENCE_CANDIDATES), set(rows))
+        self.assertEqual(set(BIO_SCIENCE_DIRECT_OWNERS + MERGED_DATABASE_SKILLS), set(rows))
         self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, BIO_SCIENCE_ROUTE_AUTHORITIES)
+        self.assertEqual(MERGED_DATABASE_SKILLS, BIO_SCIENCE_MERGE_DELETE_SKILLS)
         self.assertEqual([], BIO_SCIENCE_STAGE_ASSISTANTS)
         self.assertEqual(set(BIO_SCIENCE_DIRECT_ROUTE_OWNERS), {row.skill_id for row in artifact.rows if row.target_role == "keep"})
         self.assertEqual(set(), {row.skill_id for row in artifact.rows if row.target_role == "stage-assistant"})
-        self.assertEqual(26, artifact.to_dict()["summary"]["target_route_authority_count"])
+        self.assertEqual(13, artifact.to_dict()["summary"]["target_route_authority_count"])
         self.assertEqual(0, artifact.to_dict()["summary"]["target_stage_assistant_count"])
+        self.assertEqual(14, artifact.to_dict()["summary"]["target_merge_delete_count"])
 
     def test_problem_map_records_primary_problem_owners(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
@@ -145,22 +154,21 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         self.assertEqual("bulk_rnaseq_differential_expression", rows["pydeseq2"].primary_problem_id)
         self.assertEqual("alignment_variant_files", rows["pysam"].primary_problem_id)
         self.assertEqual("sequence_io_entrez", rows["biopython"].primary_problem_id)
-        self.assertEqual("gene_symbol_lookup", rows["gget"].primary_problem_id)
+        self.assertEqual("biological_database_evidence", rows["bio-database-evidence"].primary_problem_id)
         self.assertEqual("protein_language_models", rows["esm"].primary_problem_id)
         self.assertEqual("metabolic_flux_modeling", rows["cobrapy"].primary_problem_id)
         self.assertEqual("flow_cytometry_fcs_io", rows["flowio"].primary_problem_id)
         self.assertEqual("gene_regulatory_networks", rows["arboreto"].primary_problem_id)
         self.assertEqual("genomic_ml_embeddings", rows["geniml"].primary_problem_id)
 
-    def test_database_and_data_structure_helpers_are_direct_route_owners(self) -> None:
+    def test_database_wrappers_are_merge_delete_rows(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
         rows = {row.skill_id: row for row in artifact.rows}
 
-        for skill_id in BIO_SCIENCE_DIRECT_ROUTE_OWNERS:
-            self.assertEqual("keep", rows[skill_id].target_role)
-            self.assertEqual("", rows[skill_id].target_owner)
-            self.assertFalse(rows[skill_id].delete_allowed_after_migration)
-            self.assertIn("route authority", rows[skill_id].routing_change)
+        for skill_id in MERGED_DATABASE_SKILLS:
+            self.assertEqual("merge-delete-after-migration", rows[skill_id].target_role)
+            self.assertEqual("bio-database-evidence", rows[skill_id].target_owner)
+            self.assertTrue(rows[skill_id].delete_allowed_after_migration)
 
     def test_artifact_writer_outputs_json_csv_and_markdown(self) -> None:
         artifact = audit_bio_science_problem_map(self.root)
@@ -201,7 +209,7 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         manifest = json.loads((REPO_ROOT / "config" / "pack-manifest.json").read_text(encoding="utf-8-sig"))
         bio_pack = next(pack for pack in manifest["packs"] if pack["id"] == "bio-science")
 
-        self.assertEqual(BIO_SCIENCE_CANDIDATES, bio_pack["skill_candidates"])
+        self.assertEqual(BIO_SCIENCE_DIRECT_OWNERS, bio_pack["skill_candidates"])
         self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, bio_pack["route_authority_candidates"])
         self.assertEqual([], bio_pack["stage_assistant_candidates"])
         self.assertEqual(
