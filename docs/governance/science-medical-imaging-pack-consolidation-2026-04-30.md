@@ -62,11 +62,18 @@ No `bundled/skills/*` directory is deleted in this pass. The five medical-imagin
 
 ## Verification
 
-Focused checks already exercised the new boundaries during implementation:
+Final verification was run after the route config, bundled skill docs, verification scripts, governance note, and `skills-lock.json` were updated.
 
 ```powershell
 python -m pytest tests/runtime_neutral/test_science_medical_imaging_pack_consolidation.py -q
-# 9 passed
+# 9 passed in 3.27s
+
+.\scripts\verify\probe-scientific-packs.ps1
+# groups=19
+# cases=99
+# pack_match_false=0
+# skill_match_false=0
+# science-medical-imaging: case_count=8, pack_match_ratio=1.0, skill_match_text=100%, confirm_required_ratio=0.0, avg_confidence=0.6349
 
 .\scripts\verify\vibe-skill-index-routing-audit.ps1
 # Total assertions: 473
@@ -77,18 +84,19 @@ python -m pytest tests/runtime_neutral/test_science_medical_imaging_pack_consoli
 # Total assertions: 415
 # Passed: 415
 # Failed: 0
-```
 
-Full completion evidence must include these gates:
-
-```powershell
-python -m pytest tests/runtime_neutral/test_science_medical_imaging_pack_consolidation.py -q
-.\scripts\verify\probe-scientific-packs.ps1
-.\scripts\verify\vibe-skill-index-routing-audit.ps1
-.\scripts\verify\vibe-pack-regression-matrix.ps1
 .\scripts\verify\vibe-pack-routing-smoke.ps1
+# Total assertions: 958
+# Passed: 958
+# Failed: 0
+
 .\scripts\verify\vibe-offline-skills-gate.ps1
+# present_skills=296
+# lock_skills=296
+# [PASS] offline skill closure gate passed.
+
 git diff --check
+# no output
 ```
 
 ## Evidence Boundary
