@@ -81,8 +81,8 @@ class ScienceLiteraturePeerReviewConsolidationTests(unittest.TestCase):
             ],
             pack.get("skill_candidates"),
         )
-        self.assertEqual(pack.get("skill_candidates"), pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_peer_review_pack_has_explicit_route_authorities(self) -> None:
         pack = pack_by_id("science-peer-review")
@@ -90,8 +90,8 @@ class ScienceLiteraturePeerReviewConsolidationTests(unittest.TestCase):
             ["peer-review", "scientific-critical-thinking", "scholar-evaluation"],
             pack.get("skill_candidates"),
         )
-        self.assertEqual(pack.get("skill_candidates"), pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_open_notebook_skill_directory_is_removed(self) -> None:
         self.assertFalse((REPO_ROOT / "bundled" / "skills" / ("open" + "-notebook")).exists())

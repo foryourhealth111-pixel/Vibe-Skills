@@ -122,8 +122,8 @@ class ScholarlyPublishingPackConsolidationTests(unittest.TestCase):
     def test_manifest_is_publishing_workflow_only(self) -> None:
         pack = pack_by_id("scholarly-publishing-workflow")
         self.assertEqual(SCHOLARLY_PUBLISHING_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(SCHOLARLY_PUBLISHING_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual(
             {
                 "planning": "scholarly-publishing",

@@ -75,9 +75,10 @@ class ColdPlatformQuantumPackDeletionTests(unittest.TestCase):
         self.assertFalse(pack_ids & DELETED_PACKS, sorted(pack_ids & DELETED_PACKS))
 
         for pack in packs:
-            for field in ("skill_candidates", "route_authority_candidates", "stage_assistant_candidates"):
-                values = {str(value) for value in (pack.get(field) or [])}
-                self.assertFalse(values & DELETED_SKILLS, (pack["id"], field, sorted(values & DELETED_SKILLS)))
+            values = {str(value) for value in (pack.get("skill_candidates") or [])}
+            self.assertFalse(values & DELETED_SKILLS, (pack["id"], "skill_candidates", sorted(values & DELETED_SKILLS)))
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_bundled_skill_directories_are_deleted(self) -> None:
         remaining = {
@@ -140,18 +141,10 @@ class ColdPlatformQuantumPackDeletionTests(unittest.TestCase):
 
     def test_remaining_packs_keep_simple_route_shape(self) -> None:
         manifest = load_json("config/pack-manifest.json")
-        zero_route_authority = [
-            pack["id"]
-            for pack in manifest["packs"]
-            if pack.get("skill_candidates") and not pack.get("route_authority_candidates")
-        ]
-        stage_assistant_packs = {
-            pack["id"]: pack.get("stage_assistant_candidates")
-            for pack in manifest["packs"]
-            if pack.get("stage_assistant_candidates") or []
-        }
-        self.assertEqual([], zero_route_authority)
-        self.assertEqual({}, stage_assistant_packs)
+        for pack in manifest["packs"]:
+            self.assertTrue(pack.get("skill_candidates"), pack["id"])
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
 
 if __name__ == "__main__":

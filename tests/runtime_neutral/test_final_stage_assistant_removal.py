@@ -70,14 +70,11 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
         self.assertEqual((expected_pack, expected_skill), selected(result), ranked_summary(result))
         return result
 
-    def test_manifest_has_no_non_empty_stage_assistant_lists(self) -> None:
+    def test_manifest_has_no_legacy_candidate_fields(self) -> None:
         manifest = load_manifest()
-        non_empty = {
-            pack["id"]: pack.get("stage_assistant_candidates")
-            for pack in manifest["packs"]
-            if pack.get("stage_assistant_candidates")
-        }
-        self.assertEqual({}, non_empty)
+        for pack in manifest["packs"]:
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_code_quality_manifest_makes_requesting_review_direct_owner(self) -> None:
         pack = load_pack("code-quality")
@@ -94,8 +91,8 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
             "windows-hook-debugging",
         ]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_review_request_preparation_routes_to_requesting_code_review(self) -> None:
         result = self.assert_selected(
@@ -106,7 +103,7 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
         )
         row = pack_row(result, "code-quality")
         ranking_by_skill = {item["skill"]: item for item in row["candidate_ranking"]}
-        self.assertEqual("route_authority", ranking_by_skill["requesting-code-review"]["legacy_role"])
+        self.assertEqual("skill_candidate", ranking_by_skill["requesting-code-review"]["legacy_role"])
         self.assertEqual([], row["stage_assistant_candidates"])
 
     def test_actual_code_review_stays_with_code_reviewer(self) -> None:
@@ -138,8 +135,8 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
             "shap",
         ]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_preprocessing_pipeline_routes_directly_and_has_no_stage_metadata(self) -> None:
         result = self.assert_selected(
@@ -151,7 +148,7 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
         row = pack_row(result, "data-ml")
         ranking_by_skill = {item["skill"]: item for item in row["candidate_ranking"]}
         self.assertEqual(
-            "route_authority",
+            "skill_candidate",
             ranking_by_skill["preprocessing-data-with-automated-pipelines"]["legacy_role"],
         )
         self.assertEqual([], row["stage_assistant_candidates"])

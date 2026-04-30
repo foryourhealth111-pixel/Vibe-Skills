@@ -127,8 +127,8 @@ class BioScienceSecondPassConsolidationTests(unittest.TestCase):
         pack = pack_by_id("bio-science")
 
         self.assertEqual(BIO_SCIENCE_DIRECT_OWNERS, pack.get("skill_candidates"))
-        self.assertEqual(BIO_SCIENCE_DIRECT_OWNERS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates") or [])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual(
             {
                 "planning": "biopython",

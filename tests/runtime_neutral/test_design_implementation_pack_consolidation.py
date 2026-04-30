@@ -79,10 +79,9 @@ class DesignImplementationPackConsolidationTests(unittest.TestCase):
         pack = pack_by_id("design-implementation")
 
         self.assertEqual(DESIGN_IMPLEMENTATION_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(DESIGN_IMPLEMENTATION_SKILLS, pack.get("route_authority_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
         self.assertNotIn("figma", pack.get("skill_candidates") or [])
-        self.assertNotIn("figma", pack.get("route_authority_candidates") or [])
-        self.assertEqual([], pack.get("stage_assistant_candidates") or [])
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual("figma-implement-design", (pack.get("defaults_by_task") or {}).get("planning"))
         self.assertEqual("figma-implement-design", (pack.get("defaults_by_task") or {}).get("coding"))
 

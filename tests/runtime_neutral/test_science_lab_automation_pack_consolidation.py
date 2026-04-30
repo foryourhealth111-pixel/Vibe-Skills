@@ -77,10 +77,11 @@ def manifest_skill_ids() -> set[str]:
     skill_ids: set[str] = set()
     for pack in packs:
         assert isinstance(pack, dict), pack
-        for field in ("skill_candidates", "route_authority_candidates", "stage_assistant_candidates"):
-            values = pack.get(field) or []
-            assert isinstance(values, list), pack
-            skill_ids.update(str(value) for value in values)
+        values = pack.get("skill_candidates") or []
+        assert isinstance(values, list), pack
+        skill_ids.update(str(value) for value in values)
+        assert "route_authority_candidates" not in pack, pack
+        assert "stage_assistant_candidates" not in pack, pack
         defaults = pack.get("defaults_by_task") or {}
         assert isinstance(defaults, dict), pack
         skill_ids.update(str(value) for value in defaults.values())

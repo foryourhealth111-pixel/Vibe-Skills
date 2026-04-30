@@ -102,16 +102,16 @@ class ScienceChemDrugPackConsolidationTests(unittest.TestCase):
     def test_manifest_shrinks_to_three_route_owners(self) -> None:
         pack = pack_by_id("science-chem-drug")
         self.assertEqual(KEPT_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(KEPT_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_deleted_skills_removed_from_manifest_and_disk(self) -> None:
         pack = pack_by_id("science-chem-drug")
         candidates = set(pack.get("skill_candidates") or [])
-        route_authorities = set(pack.get("route_authority_candidates") or [])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         for skill in DELETED_SKILLS:
             self.assertNotIn(skill, candidates)
-            self.assertNotIn(skill, route_authorities)
             self.assertFalse((REPO_ROOT / "bundled" / "skills" / skill).exists(), skill)
 
     def test_defaults_match_kept_route_owners(self) -> None:

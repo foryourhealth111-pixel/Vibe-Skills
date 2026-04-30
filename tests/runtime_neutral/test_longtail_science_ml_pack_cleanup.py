@@ -353,8 +353,8 @@ class LongtailScienceMlPackCleanupTests(unittest.TestCase):
             with self.subTest(pack_id=pack_id):
                 pack = load_pack(pack_id)
                 self.assertEqual([skill_id], pack.get("skill_candidates"))
-                self.assertEqual([skill_id], pack.get("route_authority_candidates"))
-                self.assertEqual([], pack.get("stage_assistant_candidates"))
+                self.assertNotIn("route_authority_candidates", pack)
+                self.assertNotIn("stage_assistant_candidates", pack)
                 defaults = pack.get("defaults_by_task")
                 self.assertIsInstance(defaults, dict)
                 self.assertEqual(skill_id, defaults.get("planning"))

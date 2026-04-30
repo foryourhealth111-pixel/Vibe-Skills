@@ -109,8 +109,8 @@ class ScienceCommunicationSlidesPackConsolidationTests(unittest.TestCase):
     def test_manifest_shrinks_to_four_route_owners(self) -> None:
         pack = pack_by_id("science-communication-slides")
         self.assertEqual(KEPT_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(KEPT_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_manifest_removes_moved_out_skills(self) -> None:
         pack = pack_by_id("science-communication-slides")

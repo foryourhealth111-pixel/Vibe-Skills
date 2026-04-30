@@ -100,9 +100,10 @@ class AiosCoreHardRemovalTests(unittest.TestCase):
         packs = manifest["packs"]
         self.assertNotIn("aios-core", {pack["id"] for pack in packs})
         for pack in packs:
-            for field in ("skill_candidates", "route_authority_candidates", "stage_assistant_candidates"):
-                values = set(pack.get(field) or [])
-                self.assertFalse(values & AIOS_SKILLS, (pack["id"], field, sorted(values & AIOS_SKILLS)))
+            values = set(pack.get("skill_candidates") or [])
+            self.assertFalse(values & AIOS_SKILLS, (pack["id"], "skill_candidates", sorted(values & AIOS_SKILLS)))
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_bundled_aios_skill_directories_are_deleted(self) -> None:
         remaining = {

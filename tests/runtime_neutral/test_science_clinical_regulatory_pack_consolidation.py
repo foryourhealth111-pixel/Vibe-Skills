@@ -93,8 +93,8 @@ class ScienceClinicalRegulatoryPackConsolidationTests(unittest.TestCase):
     def test_manifest_keeps_seven_direct_route_owners(self) -> None:
         pack = pack_by_id("science-clinical-regulatory")
         self.assertEqual(KEPT_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(KEPT_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual(
             {
                 "planning": "clinical-decision-support",

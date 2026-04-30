@@ -61,8 +61,8 @@ class ZeroRouteAuthorityPackConsolidationTests(unittest.TestCase):
         pack = load_pack("science-medical-imaging")
         expected = ["pydicom", "imaging-data-commons", "histolab", "omero-integration", "pathml"]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_manifest_makes_finance_direct_owners(self) -> None:
         pack = load_pack("finance-edgar-macro")
@@ -76,31 +76,31 @@ class ZeroRouteAuthorityPackConsolidationTests(unittest.TestCase):
             "datacommons-client",
         ]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_manifest_removes_tiledbvcf_from_zarr_polars_and_assigns_single_owner(self) -> None:
         zarr_pack = load_pack("science-zarr-polars")
         tiledb_pack = load_pack("science-tiledbvcf")
         self.assertEqual(["polars", "vaex", "zarr-python"], zarr_pack["skill_candidates"])
-        self.assertEqual(["polars", "vaex", "zarr-python"], zarr_pack["route_authority_candidates"])
-        self.assertEqual([], zarr_pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", zarr_pack)
+        self.assertNotIn("stage_assistant_candidates", zarr_pack)
         self.assertEqual(["tiledbvcf"], tiledb_pack["skill_candidates"])
-        self.assertEqual(["tiledbvcf"], tiledb_pack["route_authority_candidates"])
-        self.assertEqual([], tiledb_pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", tiledb_pack)
+        self.assertNotIn("stage_assistant_candidates", tiledb_pack)
 
     def test_manifest_removes_geo_database_from_geospatial(self) -> None:
         pack = load_pack("science-geospatial")
         self.assertEqual(["geopandas", "geomaster"], pack["skill_candidates"])
-        self.assertEqual(["geopandas", "geomaster"], pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertNotEqual("geo-database", pack["defaults_by_task"]["research"])
 
     def test_manifest_makes_web_scraping_direct_owners(self) -> None:
         pack = load_pack("web-scraping")
         self.assertEqual(["scrapling", "playwright"], pack["skill_candidates"])
-        self.assertEqual(["scrapling", "playwright"], pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_medical_imaging_routes_to_direct_owners(self) -> None:
         self.assert_selected(

@@ -69,15 +69,15 @@ class FiguresReportingStageAssistantRemovalTests(unittest.TestCase):
         pack = load_pack("science-figures-visualization")
         expected = ["scientific-visualization", "scientific-schematics"]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_reporting_pack_has_only_direct_problem_owners(self) -> None:
         pack = load_pack("science-reporting")
         expected = ["scientific-reporting", "scientific-writing"]
         self.assertEqual(expected, pack["skill_candidates"])
-        self.assertEqual(expected, pack["route_authority_candidates"])
-        self.assertEqual([], pack["stage_assistant_candidates"])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_plotting_library_words_still_route_to_scientific_visualization(self) -> None:
         prompts = [

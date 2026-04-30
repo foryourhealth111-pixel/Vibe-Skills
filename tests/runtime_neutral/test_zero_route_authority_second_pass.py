@@ -70,15 +70,16 @@ class ZeroRouteAuthoritySecondPassTests(unittest.TestCase):
         pack_ids = {pack["id"] for pack in manifest["packs"]}
         self.assertFalse(pack_ids & REMOVED_SECOND_PASS_PACKS)
         for pack in manifest["packs"]:
-            for field in ("skill_candidates", "route_authority_candidates", "stage_assistant_candidates"):
-                values = set(pack.get(field) or [])
-                self.assertFalse(values & REMOVED_SECOND_PASS_SKILLS, (pack["id"], field))
+            values = set(pack.get("skill_candidates") or [])
+            self.assertFalse(values & REMOVED_SECOND_PASS_SKILLS, (pack["id"], "skill_candidates"))
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_ml_torch_geometric_has_one_canonical_owner(self) -> None:
         pack = load_pack("ml-torch-geometric")
         self.assertEqual(["torch-geometric"], pack["skill_candidates"])
-        self.assertEqual(["torch-geometric"], pack["route_authority_candidates"])
-        self.assertEqual([], pack.get("stage_assistant_candidates") or [])
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual("torch-geometric", pack["defaults_by_task"]["planning"])
         self.assertEqual("torch-geometric", pack["defaults_by_task"]["coding"])
         self.assertEqual("torch-geometric", pack["defaults_by_task"]["research"])
@@ -93,7 +94,9 @@ class ZeroRouteAuthoritySecondPassTests(unittest.TestCase):
         self.assertNotEqual(("ml-torch-geometric", "torch-geometric"), selected(result), ranked_summary(result))
 
     def test_selected_packs_do_not_reintroduce_stage_assistants(self) -> None:
-        self.assertEqual([], load_pack("ml-torch-geometric").get("stage_assistant_candidates") or [])
+        pack = load_pack("ml-torch-geometric")
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
 
 
 if __name__ == "__main__":

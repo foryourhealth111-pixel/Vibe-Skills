@@ -79,8 +79,8 @@ class IntegrationDevopsPackConsolidationTests(unittest.TestCase):
     def test_manifest_keeps_only_devops_route_authorities(self) -> None:
         pack = self.load_pack()
         self.assertEqual(KEEP_SKILLS, pack["skill_candidates"])
-        self.assertEqual(KEEP_SKILLS, pack["route_authority_candidates"])
-        self.assertEqual([], pack.get("stage_assistant_candidates", []))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertNotIn("review", pack["task_allow"])
         self.assertEqual(
             {

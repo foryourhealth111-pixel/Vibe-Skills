@@ -69,8 +69,8 @@ class RucNlpirAugmentationCleanupTests(unittest.TestCase):
     def test_manifest_keeps_only_explicit_tool_route_owners(self) -> None:
         pack = ruc_pack()
         self.assertEqual(KEEP_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(KEEP_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         self.assertEqual({"research": "webthinker-deep-research"}, pack.get("defaults_by_task"))
 
         trigger_keywords = {str(item).lower() for item in pack.get("trigger_keywords") or []}
@@ -93,9 +93,10 @@ class RucNlpirAugmentationCleanupTests(unittest.TestCase):
         for skill in DEEPAGENT_SKILLS:
             self.assertNotIn(skill, keyword_index)
             self.assertNotIn(skill, routing_skills)
-            self.assertNotIn(skill, ruc_pack().get("skill_candidates") or [])
-            self.assertNotIn(skill, ruc_pack().get("route_authority_candidates") or [])
-            self.assertNotIn(skill, ruc_pack().get("stage_assistant_candidates") or [])
+            pack = ruc_pack()
+            self.assertNotIn(skill, pack.get("skill_candidates") or [])
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
         serialized_catalog = json.dumps(capability_catalog, ensure_ascii=False).lower()
         self.assertNotIn("deepagent", serialized_catalog)

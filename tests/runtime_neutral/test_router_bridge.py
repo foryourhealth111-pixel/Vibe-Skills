@@ -286,7 +286,7 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("vibe-what-do-i-want", wrapped["alias"]["entry_intent_id"])
         self.assertIsNone(wrapped["alias"]["requested_input"])
 
-    def test_vibe_keeps_route_authority_while_plan_helpers_move_to_stage_assistants(self) -> None:
+    def test_vibe_keeps_selected_skill_while_plan_helpers_stay_bounded(self) -> None:
         result = run_bridge(
             "请持续更新 task_plan.md 和 progress.md，按阶段推进这个复杂任务",
             "L",
@@ -315,8 +315,8 @@ class RouterBridgeTests(unittest.TestCase):
             {"scientific-visualization", "scientific-schematics"},
             set(ranking_by_skill),
         )
-        self.assertEqual("route_authority", ranking_by_skill["scientific-visualization"]["legacy_role"])
-        self.assertEqual("route_authority", ranking_by_skill["scientific-schematics"]["legacy_role"])
+        self.assertEqual("skill_candidate", ranking_by_skill["scientific-visualization"]["legacy_role"])
+        self.assertEqual("skill_candidate", ranking_by_skill["scientific-schematics"]["legacy_role"])
         self.assertEqual([], figure_row["stage_assistant_candidates"])
 
     def test_full_text_evidence_table_is_absorbed_by_literature_review(self) -> None:
@@ -343,8 +343,8 @@ class RouterBridgeTests(unittest.TestCase):
         deep_research_row = next(row for row in result["ranked"] if row["pack_id"] == "ruc-nlpir-augmentation")
         ranking_by_skill = {row["skill"]: row for row in deep_research_row["candidate_ranking"]}
         self.assertEqual({"flashrag-evidence", "webthinker-deep-research"}, set(ranking_by_skill))
-        self.assertEqual("route_authority", ranking_by_skill["webthinker-deep-research"]["legacy_role"])
-        self.assertEqual("route_authority", ranking_by_skill["flashrag-evidence"]["legacy_role"])
+        self.assertEqual("skill_candidate", ranking_by_skill["webthinker-deep-research"]["legacy_role"])
+        self.assertEqual("skill_candidate", ranking_by_skill["flashrag-evidence"]["legacy_role"])
         self.assertEqual([], deep_research_row["stage_assistant_candidates"])
 
     def test_data_leakage_audit_can_route_to_ml_data_leakage_guard(self) -> None:
@@ -405,7 +405,7 @@ class RouterBridgeTests(unittest.TestCase):
         data_ml_row = next(row for row in result["ranked"] if row["pack_id"] == "data-ml")
         ranking_by_skill = {row["skill"]: row for row in data_ml_row["candidate_ranking"]}
         self.assertEqual(
-            "route_authority",
+            "skill_candidate",
             ranking_by_skill["preprocessing-data-with-automated-pipelines"]["legacy_role"],
         )
         self.assertEqual([], data_ml_row["stage_assistant_candidates"])

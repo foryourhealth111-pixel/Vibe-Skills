@@ -132,8 +132,8 @@ class ScienceMedicalImagingPackConsolidationTests(unittest.TestCase):
     def test_manifest_keeps_five_direct_owners_and_no_stage_assistants(self) -> None:
         pack = pack_by_id("science-medical-imaging")
         self.assertEqual(MEDICAL_IMAGING_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(MEDICAL_IMAGING_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         defaults = pack.get("defaults_by_task")
         self.assertIsInstance(defaults, dict)
         for task_name in ["planning", "coding", "research"]:

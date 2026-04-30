@@ -102,20 +102,18 @@ class ZeroRouteAuthorityThirdPassTests(unittest.TestCase):
             with self.subTest(pack_id=pack_id):
                 pack = load_pack(pack_id)
                 self.assertEqual([skill_id], pack["skill_candidates"])
-                self.assertEqual([skill_id], pack["route_authority_candidates"])
-                self.assertEqual([], pack["stage_assistant_candidates"])
+                self.assertNotIn("route_authority_candidates", pack)
+                self.assertNotIn("stage_assistant_candidates", pack)
                 self.assertEqual(skill_id, pack["defaults_by_task"]["planning"])
                 self.assertEqual(skill_id, pack["defaults_by_task"]["coding"])
                 self.assertEqual(skill_id, pack["defaults_by_task"]["research"])
 
-    def test_manifest_has_no_remaining_zero_route_authority_packs(self) -> None:
+    def test_manifest_has_no_empty_candidate_or_legacy_field_packs(self) -> None:
         manifest = load_manifest()
-        zero_route = [
-            pack["id"]
-            for pack in manifest["packs"]
-            if pack.get("skill_candidates") and not pack.get("route_authority_candidates")
-        ]
-        self.assertEqual([], zero_route)
+        for pack in manifest["packs"]:
+            self.assertTrue(pack.get("skill_candidates"), pack["id"])
+            self.assertNotIn("route_authority_candidates", pack)
+            self.assertNotIn("stage_assistant_candidates", pack)
 
     def test_third_pass_prompts_route_to_direct_owners(self) -> None:
         for prompt, expected_pack, expected_skill, task_type in PROMPT_CASES:

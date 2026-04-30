@@ -217,8 +217,9 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
         bio_pack = next(pack for pack in manifest["packs"] if pack["id"] == "bio-science")
 
         self.assertEqual(BIO_SCIENCE_DIRECT_OWNERS, bio_pack["skill_candidates"])
-        self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, bio_pack["route_authority_candidates"])
-        self.assertEqual([], bio_pack["stage_assistant_candidates"])
+        self.assertEqual(BIO_SCIENCE_DIRECT_ROUTE_OWNERS, bio_pack["skill_candidates"])
+        self.assertNotIn("route_authority_candidates", bio_pack)
+        self.assertNotIn("stage_assistant_candidates", bio_pack)
         self.assertEqual(
             {
                 "planning": "biopython",

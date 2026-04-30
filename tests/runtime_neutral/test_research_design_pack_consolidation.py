@@ -123,8 +123,8 @@ class ResearchDesignPackConsolidationTests(unittest.TestCase):
     def test_research_design_manifest_is_research_methods_only(self) -> None:
         pack = pack_by_id("research-design")
         self.assertEqual(RESEARCH_DESIGN_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(RESEARCH_DESIGN_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+        self.assertNotIn("route_authority_candidates", pack)
+        self.assertNotIn("stage_assistant_candidates", pack)
         for moved_skill in MOVED_OUT_SKILLS:
             self.assertNotIn(moved_skill, pack.get("skill_candidates") or [])
 
