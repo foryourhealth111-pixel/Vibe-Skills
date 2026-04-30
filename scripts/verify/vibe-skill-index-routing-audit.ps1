@@ -214,6 +214,11 @@ $cases = @(
     [pscustomobject]@{ Name = "causal analysis did synthetic control"; Prompt = "用 DID 和 synthetic control 做因果分析方案"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "performing-causal-analysis" },
     [pscustomobject]@{ Name = "regression coefficient confidence interval"; Prompt = "做回归分析并解释系数、置信区间和诊断结果"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "performing-regression-analysis" },
     [pscustomobject]@{ Name = "scientific brainstorming mechanisms"; Prompt = "围绕这个生物机制做科研头脑风暴，提出可能机制和实验方向"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "scientific-brainstorming" },
+    [pscustomobject]@{ Name = "experiment design no modeling"; Prompt = "帮我设计准实验方案，先决定 DiD 还是中断时间序列，不要开始建模"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "designing-experiments" },
+    [pscustomobject]@{ Name = "existing data causal effect"; Prompt = "我已有面板数据，请用 DiD 估计政策的因果效应并做稳健性检验"; Grade = "L"; TaskType = "research"; ExpectedPack = "research-design"; ExpectedSkill = "performing-causal-analysis" },
+    [pscustomobject]@{ Name = "plain hypothesis not hypogenic"; Prompt = "普通科研假设生成，没有提 HypoGeniC"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "hypothesis-generation" },
+    [pscustomobject]@{ Name = "open scientific ideation"; Prompt = "开放式科研构思：围绕这个机制发散研究方向，不要求形成可检验假设报告"; Grade = "L"; TaskType = "planning"; ExpectedPack = "research-design"; ExpectedSkill = "scientific-brainstorming" },
+    [pscustomobject]@{ Name = "latex paper build outside research design"; Prompt = "论文撰写、LaTeX 构建或 PDF 投稿"; Grade = "L"; TaskType = "coding"; ExpectedPack = "scholarly-publishing-workflow"; ExpectedSkill = "latex-submission-pipeline" },
 
     [pscustomobject]@{ Name = "top ppt deck"; Prompt = "顶级PPT制作：组会汇报slide deck，需要讲述结构与视觉规范"; Grade = "L"; TaskType = "planning"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "scientific-slides" },
     [pscustomobject]@{ Name = "slidev slides as code"; Prompt = "用Slidev做组会汇报：slides as code，要求可复现导出PDF"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-communication-slides"; ExpectedSkill = "slides-as-code" },

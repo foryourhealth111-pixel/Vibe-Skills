@@ -909,6 +909,36 @@ $cases = @(
         expected_skill = "research-grants"
         requested_skill = $null
     },
+    [pscustomobject]@{
+        name = "research_design_no_modeling_design"
+        group = "research-design"
+        prompt = "/vibe 帮我设计准实验方案，先决定 DiD 还是中断时间序列，不要开始建模"
+        grade = "L"
+        task_type = "planning"
+        expected_pack = "research-design"
+        expected_skill = "designing-experiments"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "research_existing_data_causal_effect"
+        group = "research-design"
+        prompt = "/vibe 我已有面板数据，请用 DiD 估计政策的因果效应并做稳健性检验"
+        grade = "L"
+        task_type = "research"
+        expected_pack = "research-design"
+        expected_skill = "performing-causal-analysis"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "research_open_scientific_ideation"
+        group = "research-design"
+        prompt = "/vibe 开放式科研构思：围绕这个机制发散研究方向，不要求形成可检验假设报告"
+        grade = "L"
+        task_type = "planning"
+        expected_pack = "research-design"
+        expected_skill = "scientific-brainstorming"
+        requested_skill = $null
+    },
 
     # bio-science extensions
     [pscustomobject]@{
