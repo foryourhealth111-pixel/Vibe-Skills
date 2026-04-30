@@ -189,46 +189,46 @@ CODE_QUALITY_DECISIONS: dict[str, dict[str, Any]] = {
     "code-review": {
         "problem_ids": ["code_review_general"],
         "primary_problem_id": "code_review_general",
-        "target_role": "move-out",
+        "target_role": "merge-delete-after-migration",
         "target_owner": "code-reviewer",
         "overlap_with": "code-reviewer; reviewing-code",
-        "routing_change": "remove from code-quality route surface; keep directory for asset migration",
+        "routing_change": "migrate style guide and checker into code-reviewer, then delete legacy directory",
         "delete_allowed_now": False,
         "risk_level": "medium",
-        "rationale": "与 code-reviewer 重叠，但有脚本和 reference，先迁移再决定删除。",
+        "rationale": "与 code-reviewer 重叠；style guide 和 check_style.py 先迁移到 code-reviewer 后再删除目录。",
     },
     "debugging-strategies": {
         "problem_ids": ["debug_root_cause"],
         "primary_problem_id": "debug_root_cause",
-        "target_role": "move-out",
+        "target_role": "delete",
         "target_owner": "systematic-debugging",
         "overlap_with": "systematic-debugging; error-resolver",
-        "routing_change": "remove from code-quality route surface; keep as explicit/deferred content",
-        "delete_allowed_now": False,
-        "risk_level": "medium",
-        "rationale": "和 systematic-debugging 重叠，内容较长，先退出主路由。",
+        "routing_change": "delete legacy debugging strategy wrapper after stale-reference cleanup",
+        "delete_allowed_now": True,
+        "risk_level": "low",
+        "rationale": "和 systematic-debugging 重叠，且只有 SKILL.md；不保留为独立路由专家。",
     },
     "error-resolver": {
         "problem_ids": ["debug_root_cause"],
         "primary_problem_id": "debug_root_cause",
-        "target_role": "move-out",
+        "target_role": "defer-migration",
         "target_owner": "systematic-debugging",
         "overlap_with": "systematic-debugging; debugging-strategies",
-        "routing_change": "remove from code-quality route surface; keep directory because assets are heavy",
+        "routing_change": "remove active routing hints but keep directory for a separate asset migration pass",
         "delete_allowed_now": False,
         "risk_level": "high",
-        "rationale": "资产重，不能第一刀删除；debug 主路由先交给 systematic-debugging。",
+        "rationale": "资产重，包含 analysis、patterns 和 replay 内容；本轮只清理活跃路由暗示，不物理删除。",
     },
     "code-review-excellence": {
         "problem_ids": ["review_training_standards"],
         "primary_problem_id": "review_training_standards",
-        "target_role": "move-out",
-        "target_owner": "explicit-review-training",
+        "target_role": "delete",
+        "target_owner": "code-reviewer",
         "overlap_with": "code-reviewer",
-        "routing_change": "remove from code-quality route surface; keep for explicit review culture/training use",
-        "delete_allowed_now": False,
-        "risk_level": "medium",
-        "rationale": "更像 review 文化、标准、教学，不应抢实际代码审查主入口。",
+        "routing_change": "delete broad review-culture wrapper after stale-reference cleanup",
+        "delete_allowed_now": True,
+        "risk_level": "low",
+        "rationale": "偏 review 文化、标准、教学，和 code-reviewer 的直接审查入口重叠，不保留独立专家。",
     },
 }
 
@@ -265,6 +265,10 @@ class ProblemMapArtifact:
                 "target_stage_assistant_count": len(TARGET_STAGE_ASSISTANTS),
                 "delete_now_count": sum(1 for row in self.rows if row.target_role == "delete"),
                 "move_out_count": sum(1 for row in self.rows if row.target_role == "move-out"),
+                "merge_delete_after_migration_count": sum(
+                    1 for row in self.rows if row.target_role == "merge-delete-after-migration"
+                ),
+                "defer_migration_count": sum(1 for row in self.rows if row.target_role == "defer-migration"),
             },
             "target_skill_candidates": TARGET_SKILL_CANDIDATES,
             "target_route_authorities": TARGET_ROUTE_AUTHORITIES,
@@ -387,8 +391,11 @@ def _markdown_table(rows: list[ProblemMapRow]) -> str:
 def _write_markdown(path: Path, artifact: ProblemMapArtifact) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     keep_rows = [row for row in artifact.rows if row.target_role == "keep-route-authority"]
-    stage_rows = [row for row in artifact.rows if row.target_role == "stage-assistant"]
     delete_rows = [row for row in artifact.rows if row.target_role == "delete"]
+    merge_delete_rows = [
+        row for row in artifact.rows if row.target_role == "merge-delete-after-migration"
+    ]
+    defer_rows = [row for row in artifact.rows if row.target_role == "defer-migration"]
     move_rows = [row for row in artifact.rows if row.target_role == "move-out"]
     text = "\n".join(
         [
@@ -396,19 +403,25 @@ def _write_markdown(path: Path, artifact: ProblemMapArtifact) -> None:
             "",
             f"generated_at: `{artifact.generated_at}`",
             "",
-            "## 保留主路由",
+            "Current routing model: `candidate skill -> selected skill -> used / unused`.",
+            "",
+            "## 保留直接路由",
             "",
             _markdown_table(keep_rows),
-            "",
-            "## 阶段助手",
-            "",
-            _markdown_table(stage_rows),
             "",
             "## 删除候选",
             "",
             _markdown_table(delete_rows),
             "",
-            "## 移出 code-quality 但保留目录",
+            "## 迁移后删除",
+            "",
+            _markdown_table(merge_delete_rows),
+            "",
+            "## 推迟迁移",
+            "",
+            _markdown_table(defer_rows),
+            "",
+            "## 已移出 code-quality 但保留目录",
             "",
             _markdown_table(move_rows),
             "",
