@@ -101,7 +101,13 @@ $deletedSkillIds = @(
     "qiskit",
     "cirq",
     "pennylane",
-    "qutip"
+    "qutip",
+    "opentrons-integration",
+    "pylabrobot",
+    "protocolsio-integration",
+    "benchling-integration",
+    "labarchive-integration",
+    "ginkgo-cloud-lab"
 )
 $deepDiscoveryPolicy = Get-Content -LiteralPath $deepDiscoveryPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $capabilityCatalog = Get-Content -LiteralPath $capabilityCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json

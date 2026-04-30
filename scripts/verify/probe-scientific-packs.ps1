@@ -499,87 +499,14 @@ $cases = @(
     [pscustomobject]@{ name = "longtail_blocks_sklearn_sb3"; group = "longtail-science-ml"; prompt = "/vibe 用 scikit-learn 训练 supervised classification 模型，不是 reinforcement learning 或 SB3"; grade = "M"; task_type = "coding"; blocked_pack = "ml-stable-baselines3"; blocked_skill = "stable-baselines3"; requested_skill = $null },
     [pscustomobject]@{ name = "longtail_blocks_generic_forecast_timesfm"; group = "longtail-science-ml"; prompt = "/vibe 做普通 business forecast、ARIMA baseline 和 tabular regression，不使用 TimesFM 或 foundation forecasting"; grade = "M"; task_type = "research"; blocked_pack = "science-timesfm-forecasting"; blocked_skill = "timesfm-forecasting"; requested_skill = $null },
 
-    # science-lab-automation
-    [pscustomobject]@{
-        name = "lab_opentrons_ot2_protocol"
-        group = "science-lab-automation"
-        prompt = "/vibe 写一个 Opentrons OT-2 protocol：96孔板分液 + 混匀，输出可运行脚本"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "opentrons-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_opentrons_flex_module"
-        group = "science-lab-automation"
-        prompt = "/vibe 用 Opentrons Flex 和 thermocycler module 写一个 PCR setup protocol"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "opentrons-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_pylabrobot_hamilton_tecan"
-        group = "science-lab-automation"
-        prompt = "/vibe 用 PyLabRobot 控制 Hamilton 和 Tecan 液体处理机器人，统一调度 plate reader"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "pylabrobot"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_protocolsio_pcr"
-        group = "science-lab-automation"
-        prompt = "/vibe 在 protocols.io 查找 PCR protocol，并总结关键步骤与关键试剂"
-        grade = "M"
-        task_type = "research"
-        expected_pack = "science-lab-automation"
-        expected_skill = "protocolsio-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_protocolsio_publish"
-        group = "science-lab-automation"
-        prompt = "/vibe 用 protocols.io API 创建并发布一个实验 protocol，包含 workspace 和文件附件"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "protocolsio-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_benchling_registry_inventory"
-        group = "science-lab-automation"
-        prompt = "/vibe 查询 Benchling registry 里的 DNA sequence 和 inventory containers，并导出样品表"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "benchling-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_labarchives_backup"
-        group = "science-lab-automation"
-        prompt = "/vibe 备份 LabArchives notebook，导出 entries、attachments 和 JSON metadata"
-        grade = "M"
-        task_type = "coding"
-        expected_pack = "science-lab-automation"
-        expected_skill = "labarchive-integration"
-        requested_skill = $null
-    },
-    [pscustomobject]@{
-        name = "lab_ginkgo_cloud_lab_order"
-        group = "science-lab-automation"
-        prompt = "/vibe 在 Ginkgo Cloud Lab / cloud.ginkgo.bio 准备下单输入并估算 protocol pricing"
-        grade = "M"
-        task_type = "planning"
-        expected_pack = "science-lab-automation"
-        expected_skill = "ginkgo-cloud-lab"
-        requested_skill = $null
-    },
+    # deleted science-lab-automation regressions
+    [pscustomobject]@{ name = "deleted_lab_opentrons_ot2_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 写一个 Opentrons OT-2 protocol：96孔板分液 + 混匀，输出可运行脚本"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "opentrons-integration"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_opentrons_flex_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 用 Opentrons Flex 和 thermocycler module 写一个 PCR setup protocol"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "opentrons-integration"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_pylabrobot_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 用 PyLabRobot 控制 Hamilton 和 Tecan 液体处理机器人，统一调度 plate reader"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "pylabrobot"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_protocolsio_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 用 protocols.io API 创建并发布一个实验 protocol，包含 workspace 和文件附件"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "protocolsio-integration"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_benchling_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 查询 Benchling registry 里的 DNA sequence 和 inventory containers，并导出样品表"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "benchling-integration"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_labarchives_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 备份 LabArchives notebook，导出 entries、attachments 和 JSON metadata"; grade = "M"; task_type = "coding"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "labarchive-integration"; requested_skill = $null },
+    [pscustomobject]@{ name = "deleted_lab_ginkgo_blocked"; group = "deleted-science-lab-automation"; prompt = "/vibe 在 Ginkgo Cloud Lab / cloud.ginkgo.bio 准备下单输入并估算 protocol pricing"; grade = "M"; task_type = "planning"; expected_pack = $null; expected_skill = $null; blocked_pack = "science-lab-automation"; blocked_skill = "ginkgo-cloud-lab"; requested_skill = $null },
     [pscustomobject]@{
         name = "lab_generic_eln_negated_vendors_not_lab_automation"
         group = "science-lab-automation"
