@@ -180,7 +180,7 @@ function Test-KeywordIsNegationPhrase {
     param([string]$Needle)
 
     if ([string]::IsNullOrWhiteSpace($Needle)) { return $false }
-    $pattern = "(不是|并非|不属于|不涉及|不做|不使用|不指定|不限定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)"
+    $pattern = "(不是|并非|不属于|不涉及|不做|不使用|不调用|不指定|不限定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)"
     return [Regex]::IsMatch($Needle, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
 }
 
@@ -200,7 +200,7 @@ function Test-KeywordMatchInNegatedScope {
         $prefix = $prefix.Substring($boundaries[$boundaries.Count - 1].Index + $boundaries[$boundaries.Count - 1].Length)
     }
 
-    $negationPattern = "(不是|并非|不属于|不涉及|不做|不使用|不指定|不限定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)"
+    $negationPattern = "(不是|并非|不属于|不涉及|不做|不使用|不调用|不指定|不限定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)"
     $negationMatches = [Regex]::Matches($prefix, $negationPattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
     if ($negationMatches.Count -eq 0) { return $false }
 

@@ -6219,7 +6219,8 @@
                        "equivalent_group": "simulation",
                        "canonical_for_task": [
                            "coding"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "fluidsim": {
                        "task_allow": [
@@ -6251,7 +6252,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "matchms": {
                        "task_allow": [
@@ -6284,7 +6286,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "matlab": {
                        "task_allow": [
@@ -6318,7 +6321,8 @@
                        "equivalent_group": "matlab-octave",
                        "canonical_for_task": [
                            "coding"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "neuropixels-analysis": {
                        "task_allow": [
@@ -6349,7 +6353,8 @@
                        "canonical_for_task": [
                            "research",
                            "coding"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "pymc": {
                        "task_allow": [
@@ -6382,7 +6387,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "pymoo": {
                        "task_allow": [
@@ -6414,7 +6420,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "rowan": {
                        "task_allow": [
@@ -6486,7 +6493,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "timesfm-forecasting": {
                        "task_allow": [
@@ -6517,7 +6525,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "torch-geometric": {
                        "task_allow": [
@@ -6556,7 +6565,8 @@
                        "canonical_for_task": [
                            "coding",
                            "research"
-                       ]
+                       ],
+                       "requires_positive_keyword_match": true
                    },
                    "geniml":  {
                                  "task_allow":  [
