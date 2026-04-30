@@ -1,35 +1,10 @@
 {
-  "version": 1,
-  "policy_id": "specialist-consultation-v1",
-  "updated_at": "2026-04-12",
-  "enabled": true,
+  "version": 2,
+  "policy_id": "specialist-consultation-legacy-compat-v2",
+  "updated_at": "2026-05-01",
+  "enabled": false,
   "mode": "direct_current_session_route",
-  "max_consults_per_window": 3,
-  "selection_mode": "bucketed_with_backfill",
-  "bucket_limits": {
-    "primary": 2,
-    "stage_assistant": 1
-  },
-  "allowed_windows": [
-    "discussion",
-    "planning"
-  ],
-  "require_contract_complete": true,
-  "require_native_workflow": true,
-  "require_native_usage_required": true,
-  "require_entrypoint_path": true,
-  "progressive_disclosure_enabled": true,
-  "defer_unapproved_to_execution": true,
-  "freeze_gate_enabled": true,
-  "require_outcome_coverage_for_approved_skills": true,
-  "require_disclosure_coverage_for_approved_skills": true,
-  "require_non_empty_summary_for_live_results": true,
-  "require_consultation_notes_for_live_results": true,
-  "require_adoption_notes_for_live_results": true,
-  "require_verification_notes_for_live_results": true,
-  "fail_freeze_on_live_degraded_results": true,
-  "window_prompts": {
-    "discussion": "Consult this specialist now to improve ambiguity handling, requirement framing, and early risk surfacing before the requirement doc is frozen.",
-    "planning": "Consult this specialist now to improve sequencing, verification coverage, rollback notes, and ownership boundaries before the execution plan is frozen."
-  }
+  "allowed_windows": [],
+  "legacy_compatibility_only": true,
+  "compatibility_note": "Old consultation receipts remain readable for historical artifacts. New runtime sessions use skill_routing.selected plus skill_usage.used and skill_usage.unused."
 }

@@ -3382,7 +3382,11 @@ function New-VibeSpecialistLifecycleDisclosureProjection {
 
     return [pscustomobject]@{
         enabled = [bool](@($layerArray).Count -gt 0)
-        truth_model = 'routing_consultation_execution_separated'
+        truth_model = if (@($layerArray | Where-Object { [string]$_.truth_layer -eq 'consultation' }).Count -gt 0) {
+            'legacy_routing_consultation_execution_separated'
+        } else {
+            'skill_routing_usage_evidence'
+        }
         layer_count = @($layerArray).Count
         skill_count = @($skillIds).Count
         skill_ids = @($skillIds)
@@ -3402,10 +3406,18 @@ function Get-VibeSpecialistLifecycleDisclosureMarkdownLines {
     }
 
     $allowedLayerIds = @($IncludeLayerIds | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
-    $lines = @(
-        '## Unified Specialist Lifecycle Disclosure',
-        'This unified disclosure keeps routing truth, consultation truth, and execution truth separate while showing one user-readable specialist timeline.'
-    )
+    $hasConsultationLayer = @($LifecycleDisclosure.layers | Where-Object { [string]$_.truth_layer -eq 'consultation' }).Count -gt 0
+    $lines = if ($hasConsultationLayer) {
+        @(
+            '## Legacy Specialist Lifecycle Disclosure',
+            'This legacy disclosure keeps old routing, consultation, and execution records readable. Usage claims still require `skill_usage.used` evidence.'
+        )
+    } else {
+        @(
+            '## Skill Routing And Usage Evidence',
+            'This disclosure records selected skills and execution evidence. Routing or dispatch alone is not a `used` claim; material use requires `skill_usage.used` evidence.'
+        )
+    }
     foreach ($layer in @($LifecycleDisclosure.layers)) {
         if ($allowedLayerIds.Count -gt 0 -and -not ($allowedLayerIds -contains [string]$layer.layer_id)) {
             continue
@@ -3511,7 +3523,7 @@ function New-VibeHostUserBriefingSegmentProjection {
                 $consultedCount = Get-VibeNestedPropertySafe -InputObject $summary -PropertyPath @('consulted_unit_count') -DefaultValue @($consultedUnits).Count
                 $routedCount = Get-VibeNestedPropertySafe -InputObject $summary -PropertyPath @('routed_unit_count') -DefaultValue @($routedUnits).Count
                 if ($routedCount -gt 0 -and $consultedCount -eq 0) {
-                    $segmentLines += ('Vibe routed these Skills for direct current-session consultation during {0}; freeze gate: {1}.' -f $windowId, $gateStatus)
+                    $segmentLines += ('Vibe routed these Skills for legacy consultation disclosure during {0}; freeze gate: {1}. Usage claims still require `skill_usage` evidence.' -f $windowId, $gateStatus)
                 } elseif ($consultedCount -gt 0 -and $routedCount -eq 0) {
                     $segmentLines += ('Vibe recorded these Skills in the {0} consultation audit chain; freeze gate: {1}. Usage claims still require `skill_usage` evidence.' -f $windowId, $gateStatus)
                 } else {

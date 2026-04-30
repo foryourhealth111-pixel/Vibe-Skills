@@ -566,9 +566,16 @@ if ($planningConsultation -and [bool]$planningConsultation.enabled) {
         }
     }
 }
+$currentLifecycleLayerIds = @('discussion_routing')
+if ($discussionConsultation) {
+    $currentLifecycleLayerIds += 'discussion_consultation'
+}
+if ($planningConsultation) {
+    $currentLifecycleLayerIds += 'planning_consultation'
+}
 $lifecycleLines = Get-VibeSpecialistLifecycleDisclosureMarkdownLines `
     -LifecycleDisclosure $stageLifecycleDisclosure `
-    -IncludeLayerIds @('discussion_routing', 'discussion_consultation', 'planning_consultation')
+    -IncludeLayerIds @($currentLifecycleLayerIds)
 if (@($lifecycleLines).Count -gt 0) {
     $lines += @('', @($lifecycleLines))
 }

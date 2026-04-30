@@ -804,19 +804,19 @@ if ($runtimeInputPacket) {
     # Compatibility variable name; authority is skill_routing.selected.
     $approvedSpecialistDispatch = @(Convert-VibeSkillRoutingSelectedToDispatch -RuntimeInputPacket $runtimeInputPacket)
     $legacySpecialistRecommendations = @(Get-VibeRuntimeSpecialistRecommendations -RuntimeInputPacket $runtimeInputPacket)
-    if (@($legacySpecialistRecommendations).Count -gt 0 -or @($approvedSpecialistDispatch).Count -gt 0) {
+    if (@($selectedSkillRouting).Count -gt 0 -or @($approvedSpecialistDispatch).Count -gt 0) {
         $lines += @(
             '',
-            '## Specialist Recommendations',
-            'Raw router candidates remain in `runtime-input-packet.json` for audit and are not frozen as user-facing requirements.',
-            'Only host-adopted or effective approved specialist dispatch is shown here; non-adopted candidates and stage assistants stay out of the requirement surface.'
+            '## Selected Skill',
+            'Router candidates remain in `runtime-input-packet.json` for audit. The current work surface records selected skills here and material use in `skill_usage.used` / `skill_usage.unused`.',
+            'Rejected candidates stay out of the requirement surface.'
         )
         if (@($approvedSpecialistDispatch).Count -eq 0) {
-            $lines += 'No specialist dispatch was adopted for user-facing execution in this run.'
+            $lines += 'No selected skill was adopted for user-facing execution in this run.'
         }
         foreach ($recommendation in $approvedSpecialistDispatch) {
             $lines += @(
-                "- Adopted Skill: $([string]$recommendation.skill_id)",
+                "- Selected Skill: $([string]$recommendation.skill_id)",
                 "  Role: $([string]$recommendation.bounded_role); native usage required: $([bool]$recommendation.native_usage_required); preserve workflow: $([bool]$recommendation.must_preserve_workflow)",
                 "  Binding: profile=$([string]$recommendation.binding_profile); phase=$([string]$recommendation.dispatch_phase); lane policy=$([string]$recommendation.lane_policy); parallel in XL=$([bool]$recommendation.parallelizable_in_root_xl)",
                 "  Write scope: $([string]$recommendation.write_scope); review mode: $([string]$recommendation.review_mode); execution priority: $([int]$recommendation.execution_priority)",
