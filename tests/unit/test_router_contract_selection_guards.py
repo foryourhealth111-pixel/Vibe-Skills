@@ -51,8 +51,6 @@ def _selection(prompt: str, *, requested: str | None = None) -> dict[str, object
         pack={
             "id": "synthetic-process-pack",
             "skill_candidates": ["subagent-driven-development"],
-            "route_authority_candidates": ["subagent-driven-development"],
-            "stage_assistant_candidates": [],
             "defaults_by_task": {},
         },
         candidate_selection_config={
@@ -96,7 +94,7 @@ def test_pack_skill_candidates_prefer_unified_field_over_legacy_roles() -> None:
     assert get_pack_skill_candidates(pack) == ["primary", "assistant"]
 
 
-def test_pack_skill_candidates_fall_back_to_legacy_role_union() -> None:
+def test_pack_skill_candidates_fall_back_to_legacy_role_union_for_old_fixtures() -> None:
     pack = {
         "route_authority_candidates": ["primary", "shared"],
         "stage_assistant_candidates": ["assistant", "shared"],
@@ -105,7 +103,7 @@ def test_pack_skill_candidates_fall_back_to_legacy_role_union() -> None:
     assert get_pack_skill_candidates(pack) == ["primary", "shared", "assistant"]
 
 
-def test_legacy_stage_role_does_not_block_selection_when_skill_candidate_matches() -> None:
+def test_active_skill_candidates_do_not_need_legacy_role_fields() -> None:
     selection = select_pack_candidate(
         prompt_lower="use helper for specialized cleanup",
         candidates=["primary", "helper"],
@@ -125,8 +123,6 @@ def test_legacy_stage_role_does_not_block_selection_when_skill_candidate_matches
         pack={
             "id": "synthetic-pack",
             "skill_candidates": ["primary", "helper"],
-            "route_authority_candidates": ["primary"],
-            "stage_assistant_candidates": ["helper"],
             "defaults_by_task": {},
         },
         candidate_selection_config={
@@ -137,5 +133,6 @@ def test_legacy_stage_role_does_not_block_selection_when_skill_candidate_matches
     )
 
     assert selection["selected"] == "helper"
-    assert selection["ranking"][0]["legacy_role"] == "stage_assistant"
+    assert selection["ranking"][0]["legacy_role"] == "skill_candidate"
+    assert selection["stage_assistant_candidates"] == []
     assert "routing_role" not in selection["ranking"][0]
