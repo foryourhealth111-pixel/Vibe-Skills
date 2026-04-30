@@ -349,25 +349,25 @@
       "keywords": ["ginkgo cloud lab", "cloud.ginkgo.bio", "ginkgo bioworks cloud lab", "cell-free protein expression", "protocol pricing", "cloud lab order", "ginkgo validation run", "云实验室下单"]
     },
     "edgartools": {
-      "keywords": ["edgar", "sec", "10-k", "10q", "8-k", "13f", "财报", "美国证监会", "EDGAR"]
+      "keywords": ["edgar", "sec", "sec filing", "10-k", "10-q", "10q", "8-k", "13f", "xbrl", "company filings", "annual report from sec", "财报", "美国证监会", "上市公司披露"]
     },
     "alpha-vantage": {
-      "keywords": ["alpha vantage", "alphavantage", "stock price", "market data", "美股行情", "股票数据"]
+      "keywords": ["alpha vantage", "alphavantage", "stock price", "ohlcv", "technical indicators", "daily price", "intraday", "market data", "美股行情", "股票数据", "股票时间序列"]
     },
     "fred-economic-data": {
-      "keywords": ["fred", "economic data", "macro", "interest rate", "inflation", "宏观数据", "经济数据"]
+      "keywords": ["fred", "federal reserve economic data", "cpi", "pce", "gdp", "unemployment", "fed funds rate", "interest rate time series", "inflation", "宏观数据", "宏观经济时间序列", "经济数据", "利率"]
     },
     "usfiscaldata": {
-      "keywords": ["us fiscal data", "treasury", "fiscal", "budget", "deficit", "财政数据", "美国财政", "国库"]
+      "keywords": ["u.s. treasury fiscal data", "us treasury fiscal data", "fiscaldata treasury", "us fiscal data", "national debt", "federal spending", "deficit", "treasury securities", "daily treasury statement", "monthly treasury statement", "财政数据", "美国财政", "国债", "美国财政支出"]
     },
     "hedgefundmonitor": {
-      "keywords": ["hedge fund monitor", "ofr", "hedge fund", "对冲基金", "OFR"]
+      "keywords": ["ofr hedge fund monitor", "hedge fund monitor", "form pf aggregate statistics", "form pf aggregated statistics", "ofr", "hedge fund", "对冲基金", "对冲基金监测"]
     },
     "market-research-reports": {
-      "keywords": ["market research", "industry report", "competitive analysis", "consulting-style market research report", "consulting report", "市场研究", "行业报告", "市场调研", "咨询式报告"]
+      "keywords": ["market research report", "market research", "industry report", "competitive analysis", "consulting-style report", "consulting-style market research report", "consulting report", "market sizing", "tam sam som", "市场研究", "行业报告", "市场调研", "竞争格局分析", "咨询式报告"]
     },
     "datacommons-client": {
-      "keywords": ["data commons", "datacommons", "public data", "public statistical data", "open data", "population indicators", "公共数据", "开放数据", "人口经济指标"]
+      "keywords": ["data commons", "datacommons", "public statistical data", "population indicators", "economic indicators", "statistical variables", "data commons statistical variables", "data commons population", "人口经济指标", "统计变量"]
     },
     "qiskit": {
       "keywords": ["qiskit", "quantum circuit", "ibm quantum", "quantum gates", "transpilation", "量子电路", "量子计算"]
