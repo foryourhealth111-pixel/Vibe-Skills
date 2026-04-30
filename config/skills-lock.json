@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-30T13:56:30+08:00",
+  "generated_at": "2026-04-30T14:54:58+08:00",
   "source": "bundled/skills",
   "skill_count": 296,
-  "total_bytes": 20165881.0,
+  "total_bytes": 20167847.0,
   "skills": [
     {
       "name": ".system",
@@ -785,9 +785,9 @@
       "name": "histolab",
       "relative_path": "bundled/skills/histolab",
       "file_count": 6,
-      "bytes": 70051,
-      "skill_md_hash": "6e2cf72fb7e1fec8ab57b9a088ee53d644040c7c8d8e924f6465b284100351e6",
-      "dir_hash": "f4c127216c96db3618d93935b8fc6ec0168cfa9f001eec457fd94aff0576b008"
+      "bytes": 70420,
+      "skill_md_hash": "a6acdb034be571cab7be1f9afe6ef710d2e067ce9674e831483c6af9ef9a6035",
+      "dir_hash": "3faa5d8bffc1e0e0dddc988f42f32f22551210cfd4cade799191a2038164cc82"
     },
     {
       "name": "hive-mind-advanced",
@@ -841,9 +841,9 @@
       "name": "imaging-data-commons",
       "relative_path": "bundled/skills/imaging-data-commons",
       "file_count": 10,
-      "bytes": 130631,
-      "skill_md_hash": "d82167b2af0fd3b4e91c63b606aa8b9bd27852f23d57a1421fa10071a578345e",
-      "dir_hash": "3fb91b9ed8c9946de398e7dd772d79bbfa69387292e8d436208e78e79b04030f"
+      "bytes": 131000,
+      "skill_md_hash": "2970eafcace7606f69e2b09fe6d07c4723b7da8873b90ba16399d991bd3aea2b",
+      "dir_hash": "2d8a8801aeea54e9a546d546026a67f02cf5849c9d18eded691934ffc7fce5c6"
     },
     {
       "name": "infographics",
@@ -1161,9 +1161,9 @@
       "name": "omero-integration",
       "relative_path": "bundled/skills/omero-integration",
       "file_count": 9,
-      "bytes": 126282,
-      "skill_md_hash": "1d021d13e4bb444ab5fff46468bd02f05744288fdbd252edff293dfa77932d9a",
-      "dir_hash": "48a43101e25284c2aa7a7ae77a86ccb32465ff18ef2e8a3ebccbc3956a19bdc7"
+      "bytes": 126694,
+      "skill_md_hash": "0468f97fbe5752c9bd9fdde213976cf16634c728ed9c4c9391af2925b875649c",
+      "dir_hash": "d97b8d1aa6ab1e54d479739643c1412c95a14a7eeea26c9361576bd8a00d9248"
     },
     {
       "name": "openai-docs",
@@ -1209,9 +1209,9 @@
       "name": "pathml",
       "relative_path": "bundled/skills/pathml",
       "file_count": 7,
-      "bytes": 111673,
-      "skill_md_hash": "c98b9d51c5a2f82afd1d32afffeb8f04e832ae494b12fb148223ed2e16555c80",
-      "dir_hash": "92f40063a6712b039aad447455e044e42eae3e4e051eef10f803ad54c15b0320"
+      "bytes": 112110,
+      "skill_md_hash": "ed445db5592f3887a290243fa1f8b399788a24d29dd320525b8fcdcb7c37b76e",
+      "dir_hash": "772d8d05fdbfddc8bcf17733c370f6d1ccb6a82f0dea3f8448374de905f409df"
     },
     {
       "name": "pdf",
@@ -1401,9 +1401,9 @@
       "name": "pydicom",
       "relative_path": "bundled/skills/pydicom",
       "file_count": 6,
-      "bytes": 50584,
-      "skill_md_hash": "4ff0bc8b41d1211db80f1dfa26bc2994742890fa4dfb735e7f9e42998c06881f",
-      "dir_hash": "e65108ca362e99f09f0d3ec1ca0aeb9fe09a49ee3eb457978698279a90c17cf5"
+      "bytes": 50963,
+      "skill_md_hash": "d40184a2ff38b4abcec777e05bb21f8156b8e99fbb0ca20e6770a2688041d33a",
+      "dir_hash": "2b50ae9c048179b82e6f915855e149796cd6988dcde6451211615fc22b8f8784"
     },
     {
       "name": "pyhealth",
