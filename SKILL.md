@@ -230,6 +230,6 @@ Read these references only after canonical launch or when maintaining the repo:
 
 - Runtime family: governed-runtime-first
 - Version: 3.1.0
-- Updated: 2026-04-26
+- Updated: 2026-04-25
 - Internal specialist recommendation router: `scripts/router/resolve-pack-route.ps1`
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`
