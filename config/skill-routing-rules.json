@@ -1238,13 +1238,20 @@
                                                            "single-cell",
                                                            "single cell",
                                                            "scRNA",
+                                                           "single-cell RNA-seq",
+                                                           "single cell RNA-seq",
+                                                           "scRNA-seq",
+                                                           "UMAP",
+                                                           "QC",
                                                            "h5ad",
                                                            "10x",
                                                            "leiden",
                                                            "marker genes",
                                                            "单细胞",
                                                            "单细胞聚类",
-                                                           "细胞注释"
+                                                           "细胞注释",
+                                                           "单细胞 RNA-seq",
+                                                           "单细胞RNA-seq"
                                                        ],
                                  "negative_keywords":  [
                                                            "bulk RNA-seq",
@@ -2827,7 +2834,13 @@
                                                                                 "相似度搜索"
                                                                             ],
                                                       "negative_keywords":  [
-                                                                                "release notes"
+                                                                                "release notes",
+                                                                                "genomic interval",
+                                                                                "genomic intervals",
+                                                                                "BED genomic intervals",
+                                                                                "regulatory region",
+                                                                                "geniml",
+                                                                                "基因组区间"
                                                                             ],
                                                       "equivalent_group":  null,
                                                       "canonical_for_task":  [
@@ -4614,7 +4627,13 @@
                                                            "nct",
                                                            "bulk RNA-seq",
                                                            "gene expression",
-                                                           "dicom"
+                                                           "dicom",
+                                                           "genomic interval",
+                                                           "genomic intervals",
+                                                           "BED genomic intervals",
+                                                           "regulatory region",
+                                                           "geniml",
+                                                           "基因组区间"
                                                        ],
                                  "equivalent_group":  "chem-toolkit",
                                  "canonical_for_task":  [
@@ -6699,23 +6718,46 @@
                                                            "genomic ML",
                                                            "genomic machine learning",
                                                            "genome embedding",
+                                                           "genome embeddings",
+                                                           "genomic interval",
+                                                           "genomic intervals",
+                                                           "BED genomic intervals",
+                                                           "regulatory region embedding",
+                                                           "regulatory region similarity",
                                                            "基因组机器学习",
-                                                           "基因组嵌入"
+                                                           "基因组嵌入",
+                                                           "基因组区间"
                                                        ],
                                  "negative_keywords":  [
                                                            "scanpy",
                                                            "single-cell",
+                                                           "single cell",
+                                                           "scRNA-seq",
                                                            "DESeq2",
+                                                           "bulk RNA-seq",
                                                            "BAM",
                                                            "VCF",
+                                                           "pysam",
                                                            "ESM",
                                                            "protein embedding",
                                                            "COBRApy",
                                                            "FBA",
                                                            "flow cytometry",
+                                                           "FCS",
                                                            "RDKit",
+                                                           "SMILES",
                                                            "DICOM",
-                                                           "patent"
+                                                           "patent",
+                                                           "ordinary clinical table",
+                                                           "ordinary tabular",
+                                                           "generic tabular",
+                                                           "random forest",
+                                                           "scikit-learn",
+                                                           "not genomic ML",
+                                                           "不是 genomic ML",
+                                                           "不是基因组机器学习",
+                                                           "不是 genome embedding",
+                                                           "不是基因组嵌入"
                                                        ],
                                  "equivalent_group":  "bio-ml",
                                  "canonical_for_task":  [

@@ -110,7 +110,7 @@ def normalize_keyword_list(values: list[Any] | None) -> list[str]:
 
 
 NEGATION_SCOPE_PATTERN = re.compile(
-    r"(不使用|不指定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)",
+    r"(不是|并非|不属于|不涉及|不做|不使用|不指定|不需要|不要|不用|无需|避免|排除|without\b|no\b|not\s+using\b|do\s+not\s+use\b|don't\s+use\b|not\b)",
     re.IGNORECASE,
 )
 NEGATION_SCOPE_BOUNDARY_PATTERN = re.compile(r"[，。；;,.!?！？\r\n]")

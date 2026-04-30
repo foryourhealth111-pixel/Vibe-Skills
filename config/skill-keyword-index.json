@@ -133,7 +133,7 @@
       "keywords": ["preprocess data", "data preprocessing", "preprocessing pipeline", "data cleaning pipeline", "etl pipeline", "data transformation", "feature encoding", "feature preprocessing", "standardize data", "normalize data", "validate input data", "reusable preprocessing pipeline", "数据预处理", "清洗数据", "数据清洗", "预处理流水线", "特征编码", "ETL流水线", "数据转换", "数据验证", "可复用预处理流水线"]
     },
     "scanpy": {
-      "keywords": ["scanpy", "single-cell", "single-cell clustering", "scRNA", "10x", "leiden", "marker genes", "单细胞聚类", "细胞注释", "marker基因"]
+      "keywords": ["scanpy", "single-cell", "single-cell clustering", "scRNA", "single-cell RNA-seq", "single cell RNA-seq", "scRNA-seq", "UMAP", "QC", "10x", "leiden", "marker genes", "单细胞聚类", "细胞注释", "marker基因", "单细胞 RNA-seq", "单细胞RNA-seq"]
     },
     "anndata": {
       "keywords": ["anndata", "AnnData", "h5ad", "obs", "var", "backed mode", "annotated data matrix", "sparse matrix", "zarr", "元数据", "稀疏矩阵"]
@@ -469,7 +469,7 @@
       "keywords": ["flowio", "flow cytometry", "fcs", "cytometry", "channel matrix", "流式细胞", "FCS"]
     },
     "geniml": {
-      "keywords": ["geniml", "genomic ml", "genomic machine learning", "genome embedding", "基因组机器学习", "基因组嵌入"]
+      "keywords": ["geniml", "genomic ml", "genomic machine learning", "genome embedding", "genome embeddings", "genomic interval", "genomic intervals", "BED genomic intervals", "regulatory region embedding", "regulatory region similarity", "基因组机器学习", "基因组嵌入", "基因组区间"]
     },
     "scientific-slides": {
       "keywords": ["scientific slides", "slide deck", "ppt", "pptx", "powerpoint", "presentation", "research talk", "seminar talk", "defense slides", "group meeting slides", "科研幻灯片", "学术幻灯片", "组会汇报", "答辩幻灯片", "路演PPT"]
