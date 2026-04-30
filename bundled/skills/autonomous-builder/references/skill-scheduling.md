@@ -49,9 +49,9 @@ def match_skills_to_task(task_description: str, task_category: str, skills_guide
         "documentation": ["docs-write", "writing-docs"],
         "debugging": ["debugging-strategies", "error-resolver"],
         "architecture": ["architecture-patterns"],
-        "bioinformatics": ["biopython", "bioservices", "gget"],
+        "bioinformatics": ["biopython", "bio-database-evidence"],
         "drug_discovery": ["torchdrug", "rdkit", "uniprot-database"],
-        "protein_analysis": ["uniprot-database", "alphafold-database"],
+        "protein_analysis": ["uniprot-database", "bio-database-evidence"],
         "testing": ["property-based-testing", "performance-testing"],
     }
 
@@ -86,9 +86,9 @@ def match_skills_to_task(task_description: str, task_category: str, skills_guide
 | **调试排错** | debugging-strategies, error-resolver | High |
 | **架构设计** | architecture-patterns | High |
 | **测试编写** | property-based-testing, performance-testing | Medium |
-| **生物信息学** | biopython, bioservices, gget | Domain-specific |
+| **生物信息学** | biopython, bio-database-evidence | Domain-specific |
 | **药物发现** | torchdrug, rdkit, uniprot-database | Domain-specific |
-| **蛋白质分析** | uniprot-database, alphafold-database | Domain-specific |
+| **蛋白质分析** | uniprot-database, bio-database-evidence | Domain-specific |
 
 ### By Feature Type
 

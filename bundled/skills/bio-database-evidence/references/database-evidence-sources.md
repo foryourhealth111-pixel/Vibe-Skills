@@ -4,8 +4,8 @@
 
 - Ensembl: gene, transcript, ortholog, coordinate, and VEP-style variant consequence lookup.
 - NCBI Gene: gene symbol, RefSeq, GO, genomic location, phenotype, and batch gene metadata.
-- gget-style quick lookup: fast gene symbol, Ensembl ID, transcript, BLAST-style lookup, and small evidence checks.
-- BioServices-style cross-database mapping: ID mapping across UniProt, KEGG, Reactome, and other biological resources.
+- Quick gene and transcript lookup: fast gene symbol, Ensembl ID, transcript, BLAST-style lookup, and small evidence checks.
+- Cross-database mapping: ID mapping across UniProt, KEGG, Reactome, and other biological resources.
 
 ## Variant, Cancer, And Trait Evidence
 

@@ -128,7 +128,7 @@ class BioSciencePackConsolidationAuditTests(unittest.TestCase):
             self._write_skill(
                 skill_id,
                 scripts=skill_id in {"scanpy", "pysam", "cobrapy", "flowio"},
-                references=skill_id.endswith("-database") or skill_id in {"biopython", "gget", "esm", "bio-database-evidence"},
+                references=skill_id.endswith("-database") or skill_id in {"biopython", "esm", "bio-database-evidence"},
                 assets=skill_id in {"cellxgene-census", "pdb-database"},
             )
 

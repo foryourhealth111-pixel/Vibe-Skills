@@ -7,14 +7,14 @@ This document provides comprehensive guidance for searching multiple literature 
 ### Biomedical & Life Sciences
 
 #### PubMed / PubMed Central
-- **Access**: Use `gget` skill or WebFetch tool
+- **Access**: Use `pubmed-database` or WebFetch tool
 - **Coverage**: 35M+ citations in biomedical literature
 - **Best for**: Clinical studies, biomedical research, genetics, molecular biology
 - **Search tips**: Use MeSH terms, Boolean operators (AND, OR, NOT), field tags [Title], [Author]
 - **Example**: `"CRISPR"[Title] AND "gene editing"[Title/Abstract] AND 2020:2024[Publication Date]`
 
 #### bioRxiv / medRxiv
-- **Access**: Use `gget` skill or direct API
+- **Access**: Use direct preprint API or WebFetch tool
 - **Coverage**: Preprints in biology and medicine
 - **Best for**: Latest unpublished research, cutting-edge findings
 - **Note**: Not peer-reviewed; verify findings with caution
@@ -46,35 +46,35 @@ This document provides comprehensive guidance for searching multiple literature 
 ### Specialized Databases
 
 #### ChEMBL / PubChem
-- **Access**: Use `gget` skill or `bioservices` skill
+- **Access**: Use the chemistry database owner or direct API
 - **Coverage**: Chemical compounds, bioactivity data, drug molecules
 - **Best for**: Drug discovery, chemical biology, medicinal chemistry
 - **ChEMBL**: 2M+ compounds, bioactivity data
 - **PubChem**: 110M+ compounds, assay data
 
 #### UniProt
-- **Access**: Use `gget` skill or `bioservices` skill
+- **Access**: Use `uniprot-database` or `bio-database-evidence`
 - **Coverage**: Protein sequence and functional information
 - **Best for**: Protein research, sequence analysis, functional annotations
 - **Search by**: Protein name, gene name, organism, function
 
 #### KEGG (Kyoto Encyclopedia of Genes and Genomes)
-- **Access**: Use `bioservices` skill
+- **Access**: Use `bio-database-evidence`
 - **Coverage**: Pathways, diseases, drugs, genes
 - **Best for**: Pathway analysis, systems biology, metabolic research
 
 #### COSMIC (Catalogue of Somatic Mutations in Cancer)
-- **Access**: Use `gget` skill or direct download
+- **Access**: Use `bio-database-evidence` or direct download
 - **Coverage**: Cancer genomics, somatic mutations
 - **Best for**: Cancer research, mutation analysis
 
 #### AlphaFold Database
-- **Access**: Use `gget` skill with `alphafold` command
+- **Access**: Use `bio-database-evidence`
 - **Coverage**: 200M+ protein structure predictions
 - **Best for**: Structural biology, protein modeling
 
 #### PDB (Protein Data Bank)
-- **Access**: Use `gget` or direct API
+- **Access**: Use `bio-database-evidence` or direct API
 - **Coverage**: Experimental 3D structures of proteins, nucleic acids
 - **Best for**: Structural biology, drug design, molecular modeling
 
@@ -414,12 +414,12 @@ Many databases suggest related articles:
 ```python
 # Example workflow using available skills
 
-# 1. Search PubMed via gget
+# 1. Search PubMed through the literature database owner
 search_term = "CRISPR AND sickle cell disease"
-# Use gget search pubmed search_term
+# Use PubMed/Entrez-compatible search for search_term
 
 # 2. Search bioRxiv
-# Use gget search biorxiv search_term
+# Use direct preprint API or WebFetch for search_term
 
 # 3. Search arXiv for computational papers
 # Search arXiv with: cat:q-bio AND "CRISPR" AND "sickle cell"

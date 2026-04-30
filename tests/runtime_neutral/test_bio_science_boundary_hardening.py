@@ -155,7 +155,7 @@ class BioScienceBoundaryHardeningTests(unittest.TestCase):
 
     def test_bio_database_evidence_owns_quick_lookup(self) -> None:
         self.assert_selected(
-            "用 gget 做 quick BLAST、gene symbol 和 transcript lookup",
+            "做 quick BLAST、gene symbol 和 transcript lookup",
             "bio-science",
             "bio-database-evidence",
         )
@@ -218,7 +218,7 @@ class BioScienceBoundaryHardeningTests(unittest.TestCase):
 
     def test_bio_database_evidence_owns_target_evidence(self) -> None:
         self.assert_selected(
-            "用 Open Targets 做 target-disease association、tractability 和 known drugs evidence，不使用 gget",
+            "用 Open Targets 做 target-disease association、tractability 和 known drugs evidence，不使用单独的快速查询工具",
             "bio-science",
             "bio-database-evidence",
         )

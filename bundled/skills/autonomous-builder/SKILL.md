@@ -282,7 +282,7 @@ DURING IMPLEMENTATION:
 | Debugging | `debugging-strategies`, `error-resolver` |
 | Documentation | `docs-write`, `writing-docs` |
 | Architecture | `architecture-patterns` |
-| Bioinformatics | `biopython`, `bioservices`, `gget` |
+| Bioinformatics | `biopython`, `bio-database-evidence` |
 | Drug discovery | `torchdrug`, `rdkit`, `uniprot-database` |
 
 **Feature with Skill Planning:**

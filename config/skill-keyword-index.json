@@ -154,7 +154,7 @@
       "keywords": ["biopython", "seqio", "fasta", "genbank", "entrez", "sequence conversion", "序列格式转换", "序列解析", "生物序列处理"]
     },
     "bio-database-evidence": {
-      "keywords": ["bio-database-evidence", "biological database evidence", "gene annotation", "variant clinical significance", "target-disease association", "pathway mapping", "protein structure lookup", "protein interaction network", "GWAS trait association", "reference single-cell census", "cross-database ID mapping", "生物数据库证据", "基因注释", "变异临床意义", "靶点疾病证据", "通路映射", "蛋白结构查询", "蛋白互作网络", "ClinVar", "COSMIC", "Ensembl", "NCBI Gene", "GWAS Catalog", "KEGG", "Reactome", "Open Targets", "AlphaFold", "RCSB PDB", "STRING", "CELLxGENE Census", "BioServices", "gget", "RefSeq", "scanpy"]
+      "keywords": ["bio-database-evidence", "biological database evidence", "gene annotation", "gene symbol", "transcript lookup", "quick BLAST", "variant clinical significance", "target-disease association", "pathway mapping", "protein structure lookup", "protein interaction network", "GWAS trait association", "reference single-cell census", "cross-database ID mapping", "生物数据库证据", "基因注释", "变异临床意义", "靶点疾病证据", "通路映射", "蛋白结构查询", "蛋白互作网络", "ClinVar", "COSMIC", "Ensembl", "NCBI Gene", "GWAS Catalog", "KEGG", "Reactome", "Open Targets", "AlphaFold", "RCSB PDB", "STRING", "CELLxGENE Census", "RefSeq", "scanpy"]
     },
     "docs-write": {
       "keywords": ["write docs", "documentation", "documentation page", "markdown docs", "mdx docs", "说明文档", "文档写作", "用户文档", "使用说明", "markdown文档"]

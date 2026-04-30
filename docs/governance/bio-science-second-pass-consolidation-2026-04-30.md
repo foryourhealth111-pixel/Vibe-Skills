@@ -58,9 +58,12 @@ candidate skill -> selected skill -> used / unused
 
 ## Verification
 
-Focused checks already run during implementation:
+Final closeout checks:
 
 ```text
+python -m pytest tests/runtime_neutral/test_bio_science_second_pass_consolidation.py tests/runtime_neutral/test_bio_science_boundary_hardening.py tests/runtime_neutral/test_bio_science_direct_owner_routing.py tests/runtime_neutral/test_bio_science_pack_consolidation_audit.py -q
+57 passed
+
 python -m pytest tests/runtime_neutral/test_bio_science_pack_consolidation_audit.py -q
 7 passed
 
@@ -72,23 +75,45 @@ Total assertions: 436
 Passed: 436
 Failed: 0
 Skill-index routing audit passed.
-```
 
-Final closeout verification should include:
+.\scripts\verify\vibe-pack-regression-matrix.ps1
+Total assertions: 317
+Passed: 317
+Failed: 0
+Pack regression matrix checks passed.
 
-```text
-python -m pytest tests/runtime_neutral/test_bio_science_second_pass_consolidation.py tests/runtime_neutral/test_bio_science_boundary_hardening.py tests/runtime_neutral/test_bio_science_direct_owner_routing.py tests/runtime_neutral/test_bio_science_pack_consolidation_audit.py -q
-.\scripts\verify\vibe-skill-index-routing-audit.ps1
 .\scripts\verify\vibe-pack-routing-smoke.ps1
+Total assertions: 958
+Passed: 958
+Failed: 0
+Pack routing smoke checks passed.
+
 .\scripts\verify\vibe-bio-science-pack-consolidation-audit-gate.ps1
+summary.target_route_authority_count = 13
+summary.target_stage_assistant_count = 0
+summary.target_merge_delete_count = 14
+[PASS] vibe-bio-science-pack-consolidation-audit-gate passed
+
 .\scripts\verify\vibe-global-pack-consolidation-audit-gate.ps1
+bio-science.skill_candidate_count = 13
+bio-science.route_authority_count = 13
+[PASS] vibe-global-pack-consolidation-audit-gate passed
+
 .\scripts\verify\vibe-offline-skills-gate.ps1
+[PASS] offline skill closure gate passed.
+
+.\scripts\verify\probe-scientific-packs.ps1
+bio-science case_count = 18
+bio-science pack_match_ratio = 1.0
+bio-science skill_match_ratio = 1.0
+
 git diff --check
+exit code 0
 ```
 
 ## Caveats
 
 - This is routing/config and bundled-skill cleanup, not proof that `bio-database-evidence` was materially used in a real task.
 - Old governance notes may mention deleted skill IDs as historical state.
-- Source aliases such as former database/library names may still appear as routing keywords or regression prompt text when they are needed to route old user phrasing into `bio-database-evidence`; they are not live skill IDs unless they appear as config skill keys, pack candidates, lock entries, or bundled skill directories.
+- Deleted skill IDs remain only in governance history, deletion assertions, and the pack-consolidation audit's merge/delete list. They should not appear as live config skill keys, pack candidates, lock entries, verification-script expected skills, or bundled skill directories.
 - Cross-pack boundaries for chemistry, literature, imaging, LaTeX submission, and scientific figures remain protected by regression tests.

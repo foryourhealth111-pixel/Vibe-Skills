@@ -1,6 +1,6 @@
 ---
 name: uniprot-database
-description: "Direct REST API access to UniProt. Protein searches, FASTA retrieval, ID mapping, Swiss-Prot/TrEMBL. For Python workflows with multiple databases, prefer bioservices (unified interface to 40+ services). Use this for direct HTTP/REST work or UniProt-specific control."
+description: "Direct REST API access to UniProt. Protein searches, FASTA retrieval, ID mapping, Swiss-Prot/TrEMBL. For broader biological evidence lookup across databases, use bio-database-evidence. Use this for direct HTTP/REST work or UniProt-specific control."
 ---
 
 # UniProt Database
@@ -125,7 +125,7 @@ For programmatic access, use the provided helper script `scripts/uniprot_client.
 
 **Alternative Python packages:**
 - **Unipressed**: Modern, typed Python client for UniProt REST API
-- **bioservices**: Comprehensive bioinformatics web services client
+- **bio-database-evidence**: Unified route owner for biological evidence lookup across multiple databases
 
 ## Query Syntax Examples
 

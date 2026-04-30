@@ -941,13 +941,13 @@ $cases = @(
         requested_skill = $null
     },
     [pscustomobject]@{
-        name = "bio_gget_gene_symbol"
+        name = "bio_quick_gene_symbol"
         group = "bio-science"
-        prompt = "/vibe 用 gget 快速查询 gene symbol 和 Ensembl ID"
+        prompt = "/vibe 快速查询 gene symbol 和 Ensembl ID"
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "gget"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1017,7 +1017,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "clinvar-database"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1027,7 +1027,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "kegg-database"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1037,7 +1037,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "reactome-database"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1047,7 +1047,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "alphafold-database"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1057,7 +1057,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "string-database"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     },
     [pscustomobject]@{
@@ -1067,7 +1067,7 @@ $cases = @(
         grade = "M"
         task_type = "research"
         expected_pack = "bio-science"
-        expected_skill = "cellxgene-census"
+        expected_skill = "bio-database-evidence"
         requested_skill = $null
     }
 )

@@ -13,7 +13,7 @@ metadata:
 
 Conduct systematic, comprehensive literature reviews following rigorous academic methodology. Search multiple literature databases, synthesize findings thematically, verify all citations for accuracy, and generate professional output documents in markdown and PDF formats.
 
-This skill integrates with multiple scientific skills for database access (gget, bioservices, datacommons-client) and provides specialized tools for citation verification, result aggregation, and document generation.
+This skill integrates with focused scientific skills for database access (`pubmed-database`, `bio-database-evidence`, `datacommons-client`) and provides specialized tools for citation verification, result aggregation, and document generation.
 
 ## When to Use This Skill
 
@@ -97,9 +97,9 @@ Literature reviews follow a structured, multi-phase workflow:
    Select databases appropriate for the domain:
 
    **Biomedical & Life Sciences:**
-   - Use `gget` skill: `gget search pubmed "search terms"` for PubMed/PMC
-   - Use `gget` skill: `gget search biorxiv "search terms"` for preprints
-   - Use `bioservices` skill for ChEMBL, KEGG, UniProt, etc.
+   - Use `pubmed-database` for PubMed/PMC literature retrieval
+   - Use direct preprint APIs or web evidence for bioRxiv/medRxiv
+   - Use `bio-database-evidence` for KEGG, UniProt, pathway, structure, and variant evidence
 
    **General Scientific Literature:**
    - Search arXiv via direct API (preprints in physics, math, CS, q-bio)
@@ -107,8 +107,8 @@ Literature reviews follow a structured, multi-phase workflow:
    - Use Google Scholar for comprehensive coverage (manual or careful scraping)
 
    **Specialized Databases:**
-   - Use `gget alphafold` for protein structures
-   - Use `gget cosmic` for cancer genomics
+   - Use `bio-database-evidence` for protein structure evidence
+   - Use `bio-database-evidence` for cancer genomics evidence
    - Use `datacommons-client` for demographic/statistical data
    - Use specialized databases as appropriate for the domain
 
@@ -301,14 +301,14 @@ Literature reviews follow a structured, multi-phase workflow:
 
 ### PubMed / PubMed Central
 
-Access via `gget` skill:
+Access via `pubmed-database` or Entrez-compatible APIs:
 ```bash
 # Search PubMed
-gget search pubmed "CRISPR gene editing" -l 100
+pubmed search "CRISPR gene editing" --limit 100
 
 # Search with filters
 # Use PubMed Advanced Search Builder to construct complex queries
-# Then execute via gget or direct Entrez API
+# Then execute via PubMed/Entrez-compatible access
 ```
 
 **Search tips**:
@@ -320,9 +320,9 @@ gget search pubmed "CRISPR gene editing" -l 100
 
 ### bioRxiv / medRxiv
 
-Access via `gget` skill:
+Access via direct preprint APIs or web evidence:
 ```bash
-gget search biorxiv "CRISPR sickle cell" -l 50
+search biorxiv "CRISPR sickle cell" --limit 50
 ```
 
 **Important considerations**:
@@ -357,12 +357,12 @@ Access via direct API (requires API key, or use free tier):
 ### Specialized Biomedical Databases
 
 Use appropriate skills:
-- **ChEMBL**: `bioservices` skill for chemical bioactivity
-- **UniProt**: `gget` or `bioservices` skill for protein information
-- **KEGG**: `bioservices` skill for pathways and genes
-- **COSMIC**: `gget` skill for cancer mutations
-- **AlphaFold**: `gget alphafold` for protein structures
-- **PDB**: `gget` or direct API for experimental structures
+- **ChEMBL**: chemistry database owner for chemical bioactivity
+- **UniProt**: `uniprot-database` or `bio-database-evidence` for protein information
+- **KEGG**: `bio-database-evidence` for pathways and genes
+- **COSMIC**: `bio-database-evidence` for cancer mutations
+- **AlphaFold**: `bio-database-evidence` for protein structures
+- **PDB**: `bio-database-evidence` or direct API for experimental structures
 
 ### Citation Chaining
 
@@ -499,7 +499,7 @@ Complete workflow for a biomedical literature review:
 cp assets/review_template.md crispr_sickle_cell_review.md
 
 # 2. Search multiple databases using appropriate skills
-# - Use gget skill for PubMed, bioRxiv
+# - Use pubmed-database for PubMed and direct preprint APIs for bioRxiv
 # - Use direct API access for arXiv, Semantic Scholar
 # - Export results in JSON format
 
@@ -547,8 +547,8 @@ python scripts/generate_pdf.py crispr_sickle_cell_review.md \
 This skill works seamlessly with other scientific skills:
 
 ### Database Access Skills
-- **gget**: PubMed, bioRxiv, COSMIC, AlphaFold, Ensembl, UniProt
-- **bioservices**: ChEMBL, KEGG, Reactome, UniProt, PubChem
+- **pubmed-database**: PubMed and biomedical literature retrieval
+- **bio-database-evidence**: COSMIC, AlphaFold, Ensembl, UniProt, KEGG, Reactome, pathway, structure, variant, and target evidence
 - **datacommons-client**: Demographics, economics, health statistics
 
 ### Analysis Skills

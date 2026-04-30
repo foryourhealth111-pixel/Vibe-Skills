@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-30T10:56:08+08:00",
+  "generated_at": "2026-04-30T11:03:19+08:00",
   "source": "bundled/skills",
   "skill_count": 299,
-  "total_bytes": 20210760.0,
+  "total_bytes": 20211256.0,
   "skills": [
     {
       "name": ".system",
@@ -81,9 +81,9 @@
       "name": "autonomous-builder",
       "relative_path": "bundled/skills/autonomous-builder",
       "file_count": 25,
-      "bytes": 249389,
-      "skill_md_hash": "37adcc0486afdaca2c699b7dcc1d8bd5eec90fc46ca75ae80adb038190e95aad",
-      "dir_hash": "9c9dc0702618e2e2b001e61433c30c0615480e2f28bfd6664ca8f5014d3e9e82"
+      "bytes": 249403,
+      "skill_md_hash": "fc74c3ab07c96cc719025cb9884401d80b52c60321efc03f21e8d742b27228d2",
+      "dir_hash": "da4f174edbbcd7f581e108ef4d060117b257b446f2cd5b34970e58d73f47a97d"
     },
     {
       "name": "benchling-integration",
@@ -105,17 +105,17 @@
       "name": "bio-database-evidence",
       "relative_path": "bundled/skills/bio-database-evidence",
       "file_count": 2,
-      "bytes": 5445,
+      "bytes": 5436,
       "skill_md_hash": "b11eb82e293d65fb1eff5fe84fe9d2d3eab084162195746e5f197540dffd1360",
-      "dir_hash": "924d2c447bd8166366075793379385d6ac4cf51467e2ede7b785f9165b3bc8f1"
+      "dir_hash": "b96c474900b3b139425f192f1f5248e5eac747a9d952b801fbfbc5a14a840acb"
     },
     {
       "name": "biopython",
       "relative_path": "bundled/skills/biopython",
       "file_count": 8,
-      "bytes": 94991,
-      "skill_md_hash": "690d7fd9216a582266a23e5d30b0b72570a971daab8ffb706d27718feb7b0282",
-      "dir_hash": "99b72d4941a2e2eb78f03165527e7624e21bdbf95894a481798a0c66cab2a07a"
+      "bytes": 95043,
+      "skill_md_hash": "a36f9af4bb58c763feca4c2ef73bc4668e1b7c2a24183e1de89d091f83c8a35f",
+      "dir_hash": "21b3356a496c78e8fdf507eacf976122a98d8750d17009654e5cc8b8594c903b"
     },
     {
       "name": "biorxiv-database",
@@ -953,9 +953,9 @@
       "name": "literature-review",
       "relative_path": "bundled/skills/literature-review",
       "file_count": 7,
-      "bytes": 80570,
-      "skill_md_hash": "d0ce8d57aaa82e99ba610b38930530cd43a810ab3e9c113c71d0acf61fcf4aed",
-      "dir_hash": "2d4b023350af9681213f3d9c8dd680404a08209b81479484008f745003049f13"
+      "bytes": 80981,
+      "skill_md_hash": "b5e3dd6b581c62a22c7bdd7d9f935384bd68631a01bd10b5644d99d9cd4e6aae",
+      "dir_hash": "d40402c0e98354d957f9e5557fca630a4d285e6aa4c467d24904688c0faea383"
     },
     {
       "name": "local-vco-roles",
@@ -2185,9 +2185,9 @@
       "name": "uniprot-database",
       "relative_path": "bundled/skills/uniprot-database",
       "file_count": 6,
-      "bytes": 48646,
-      "skill_md_hash": "813eea4b47a6c80bd6801d6b340dd62bfeb2d12bbc7949e53351d2c2b7150ae9",
-      "dir_hash": "e32dbb7b176e338ed2286b03ad2e55979b837f02454d00547b9790c3c35d3781"
+      "bytes": 48674,
+      "skill_md_hash": "c76786ee102d19f784f24998cd43f322f9090cf63439070e796e59fa1890b611",
+      "dir_hash": "19456d76ecb2ce2bee2cd2bb7dae37c0f10e0c8025da982a929412134ecca9b4"
     },
     {
       "name": "unsloth",

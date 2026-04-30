@@ -344,10 +344,8 @@
       ],
       "skills": [
         "biopython",
-        "bioservices",
-        "gene-database",
-        "uniprot-database",
-        "gget"
+        "bio-database-evidence",
+        "uniprot-database"
       ],
       "problem_domains": [
         "bio data retrieval",

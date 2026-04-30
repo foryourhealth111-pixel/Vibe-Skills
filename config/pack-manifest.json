@@ -574,9 +574,12 @@
                                          "research"
                                      ],
                       "trigger_keywords":  [
-                                               "bioinformatics",
-                                               "genomics",
-                                               "genomic interval",
+                                              "bioinformatics",
+                                              "genomics",
+                                              "gene symbol",
+                                              "transcript lookup",
+                                              "quick blast",
+                                              "genomic interval",
                                                "genomic intervals",
                                                "BED genomic intervals",
                                                "regulatory region",
