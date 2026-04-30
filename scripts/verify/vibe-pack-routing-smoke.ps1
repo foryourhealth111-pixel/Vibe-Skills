@@ -95,6 +95,14 @@ $aliasMap = Get-Content -LiteralPath $aliasMapPath -Raw -Encoding UTF8 | Convert
 $thresholds = Get-Content -LiteralPath $thresholdPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $skillKeywordIndex = Get-Content -LiteralPath $skillKeywordIndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $routingRules = Get-Content -LiteralPath $routingRulesPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$deletedSkillIds = @(
+    "modal",
+    "modal-labs",
+    "qiskit",
+    "cirq",
+    "pennylane",
+    "qutip"
+)
 $deepDiscoveryPolicy = Get-Content -LiteralPath $deepDiscoveryPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $capabilityCatalog = Get-Content -LiteralPath $capabilityCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $heartbeatPolicy = Get-Content -LiteralPath $heartbeatPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -120,11 +128,19 @@ $requiredPackIds = @(
 )
 
 $packIds = @($packManifest.packs | ForEach-Object { $_.id })
+$deletedPackIds = @(
+    "cloud-modalcom",
+    "science-quantum"
+)
 $results += Assert-True -Condition ($packIds.Count -ge 9) -Message "at least 9 packs defined"
 $results += Assert-True -Condition (($packIds | Sort-Object -Unique).Count -eq $packIds.Count) -Message "pack IDs are unique"
 
 foreach ($id in $requiredPackIds) {
     $results += Assert-True -Condition ($packIds -contains $id) -Message "required pack '$id' exists"
+}
+
+foreach ($id in $deletedPackIds) {
+    $results += Assert-True -Condition ($packIds -notcontains $id) -Message "deleted pack '$id' is absent"
 }
 
 $allowedGrades = @("M", "L", "XL")
@@ -182,6 +198,10 @@ $results += Assert-True -Condition ($skillKeywordIndex.selection.weights.name_ma
 $results += Assert-True -Condition ($skillKeywordIndex.selection.fallback_to_first_when_score_below -ne $null) -Message "skill index fallback threshold is configured"
 $results += Assert-True -Condition ((@($skillKeywordIndex.skills.PSObject.Properties).Count -gt 0)) -Message "skill index contains skill mappings"
 $results += Assert-True -Condition ((@($routingRules.skills.PSObject.Properties).Count -gt 0)) -Message "routing rules contain skill mappings"
+foreach ($skill in $deletedSkillIds) {
+    $results += Assert-True -Condition (-not ($skillKeywordIndex.skills.PSObject.Properties.Name -contains $skill)) -Message "deleted skill '$skill' absent from skill keyword index"
+    $results += Assert-True -Condition (-not ($routingRules.skills.PSObject.Properties.Name -contains $skill)) -Message "deleted skill '$skill' absent from routing rules"
+}
 $results += Assert-True -Condition ($deepDiscoveryPolicy.mode -ne $null) -Message "deep discovery mode configured"
 $results += Assert-True -Condition ((@($capabilityCatalog.capabilities).Count -gt 0)) -Message "capability catalog contains entries"
 $results += Assert-True -Condition ($heartbeatPolicy.mode -ne $null) -Message "heartbeat mode configured"
@@ -251,6 +271,10 @@ foreach ($root in @($skillRootCandidates | Select-Object -Unique)) {
     $topLevelSkillNames += $skillFiles | ForEach-Object { Split-Path (Split-Path $_ -Parent) -Leaf }
 }
 $topLevelSkillNames = @($topLevelSkillNames | Select-Object -Unique)
+
+foreach ($skill in $deletedSkillIds) {
+    $results += Assert-True -Condition ($topLevelSkillNames -notcontains $skill) -Message "deleted skill directory '$skill' is absent"
+}
 
 foreach ($pair in $aliasPairs) {
     $target = [string]$pair.Value

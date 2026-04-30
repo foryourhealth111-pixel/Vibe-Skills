@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-30T16:02:18+08:00",
+  "generated_at": "2026-04-30T17:14:01+08:00",
   "source": "bundled/skills",
-  "skill_count": 296,
-  "total_bytes": 20171574.0,
+  "skill_count": 290,
+  "total_bytes": 19805920.0,
   "skills": [
     {
       "name": ".system",
@@ -156,14 +156,6 @@
       "bytes": 24566,
       "skill_md_hash": "06f5e91f9d7ce14bcd6b46a784b51ce04bc4ab27b92718f4ecaadb033bfed103",
       "dir_hash": "8224040d71b872028c21c9166cbc58c13801873928138e5fc29a9d337eb7abb0"
-    },
-    {
-      "name": "cirq",
-      "relative_path": "bundled/skills/cirq",
-      "file_count": 7,
-      "bytes": 75310,
-      "skill_md_hash": "eab8268df2e61adc1d458fd236469cbb59de9aa80c8c99e9e04bdacf490b58a5",
-      "dir_hash": "dcc5c9c7471df8c7cc67ffba23b7f28156ed00a1b2416e1c95e35eebc5dc86bd"
     },
     {
       "name": "citation-management",
@@ -1086,22 +1078,6 @@
       "dir_hash": "6b51400c6860ac1a37b852c35c5ade8a46d1018cecef986610b11467b2ee3632"
     },
     {
-      "name": "modal",
-      "relative_path": "bundled/skills/modal",
-      "file_count": 13,
-      "bytes": 68050,
-      "skill_md_hash": "50a2c7b5902813668794fba493c6c9e0f454bdc5d3544d7dc02546c8e53a1584",
-      "dir_hash": "c9a7227f92ac725e1263c75780d7d4a1f0d8d61fe56b6664ec07cac371ef547d"
-    },
-    {
-      "name": "modal-labs",
-      "relative_path": "bundled/skills/modal-labs",
-      "file_count": 1,
-      "bytes": 1765,
-      "skill_md_hash": "8a5d60ebe9594583b8d9dc5b170221fe0d92d919f5109113252568b5b4b4f353",
-      "dir_hash": "908785ddfe4276e1958b7f3b01371a7566c69979dd7a422fe5166f8b28253cfa"
-    },
-    {
       "name": "molfeat",
       "relative_path": "bundled/skills/molfeat",
       "file_count": 4,
@@ -1228,14 +1204,6 @@
       "bytes": 52640,
       "skill_md_hash": "1a07d4a72406b484de66b8bba7abe9f3ddf4a2c2a4396ea2dd94f594c2ccc0ed",
       "dir_hash": "11211b74068817b45305187081b95f300d03c04577b06e6b80b92067f5eb6c88"
-    },
-    {
-      "name": "pennylane",
-      "relative_path": "bundled/skills/pennylane",
-      "file_count": 8,
-      "bytes": 95617,
-      "skill_md_hash": "7ad9eb1a8c8fb7203a818b13e7f3ab14c539e8666ce49c4d9559d0507efe0190",
-      "dir_hash": "0140cb507ccae63077203e57611910991fa0adfa9bcc409996821fe84c0c696c"
     },
     {
       "name": "performance-testing",
@@ -1492,22 +1460,6 @@
       "bytes": 36603,
       "skill_md_hash": "a8b4fd9a7788704c00757e50944c59410bf68015359152228f2a3ca925fec8a3",
       "dir_hash": "7732dc579885dc01678e4283a6443cce4890cd03ded67c267f7926c40b1cb6e4"
-    },
-    {
-      "name": "qiskit",
-      "relative_path": "bundled/skills/qiskit",
-      "file_count": 9,
-      "bytes": 73101,
-      "skill_md_hash": "21b8dc60d69b5efa22f70aba3a1fd5e44bd62e973d838c17d65c082187f71b2a",
-      "dir_hash": "38f06aa0684958321f3fd10b240c95daa6dcd9a0788192617b046aed9ba753e7"
-    },
-    {
-      "name": "qutip",
-      "relative_path": "bundled/skills/qutip",
-      "file_count": 6,
-      "bytes": 51811,
-      "skill_md_hash": "cdc96ef046bb053d6230a8140fa4bc6542b59aaeb9d8482e0b8b5df833ca01a0",
-      "dir_hash": "c4db5336ff84b8fda307b9681c81fe3e6d1ae8dd8d421caee4a03aa32dc1d89d"
     },
     {
       "name": "ralph-loop",

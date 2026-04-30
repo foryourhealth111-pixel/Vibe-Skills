@@ -176,6 +176,10 @@ $cases = @(
     [pscustomobject]@{ Name = "writing plan no orchestration core"; Prompt = "请输出实施计划并做任务拆解"; Grade = "L"; TaskType = "planning"; BlockedPack = "orchestration-core"; BlockedSkill = "writing-plans" },
     [pscustomobject]@{ Name = "subagent no orchestration core"; Prompt = "把任务拆成多个子代理并行执行"; Grade = "XL"; TaskType = "planning"; BlockedPack = "orchestration-core"; BlockedSkill = "subagent-driven-development" },
     [pscustomobject]@{ Name = "speckit explicit compatibility"; Prompt = "/speckit.plan 生成技术计划"; Grade = "L"; TaskType = "planning"; ExpectedPack = "workflow-compatibility"; ExpectedSkill = "spec-kit-vibe-compat" },
+    [pscustomobject]@{ Name = "deleted modal generic gpu"; Prompt = "把 Python 任务部署到云端 GPU，不指定 Modal，用普通容器也可以"; Grade = "M"; TaskType = "coding"; BlockedPack = "cloud-modalcom"; BlockedSkill = "modal-labs" },
+    [pscustomobject]@{ Name = "deleted modal explicit modal"; Prompt = "用 Modal.com 部署 serverless GPU Python function 和 batch job"; Grade = "M"; TaskType = "coding"; BlockedPack = "cloud-modalcom"; BlockedSkill = "modal-labs" },
+    [pscustomobject]@{ Name = "deleted quantum qiskit"; Prompt = "用 Qiskit 创建 Bell state quantum circuit 并 transpile"; Grade = "M"; TaskType = "coding"; BlockedPack = "science-quantum"; BlockedSkill = "qiskit" },
+    [pscustomobject]@{ Name = "deleted quantum chemistry"; Prompt = "调研 quantum chemistry 论文和 pKa 预测，不写量子电路"; Grade = "M"; TaskType = "research"; BlockedPack = "science-quantum"; BlockedSkill = "qiskit" },
 
     [pscustomobject]@{ Name = "top journal figures"; Prompt = "顶级期刊作图：多面板figure，导出TIFF 600dpi，色盲友好配色，误差棒和显著性标注"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-figures-visualization"; ExpectedSkill = "scientific-visualization" },
     [pscustomobject]@{ Name = "matplotlib library wording still visualizer"; Prompt = "用 matplotlib 绘制 publication-ready result figure，600dpi TIFF，带误差棒和显著性标注"; Grade = "L"; TaskType = "coding"; ExpectedPack = "science-figures-visualization"; ExpectedSkill = "scientific-visualization" },

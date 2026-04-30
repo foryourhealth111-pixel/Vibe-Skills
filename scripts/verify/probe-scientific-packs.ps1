@@ -812,25 +812,41 @@ $cases = @(
         requested_skill = $null
     },
 
-    # science-quantum
+    # deleted science-quantum regressions
     [pscustomobject]@{
-        name = "quantum_qiskit_bell"
-        group = "science-quantum"
+        name = "quantum_qiskit_deleted_pack_blocked"
+        group = "deleted-science-quantum"
         prompt = "/vibe 用 Qiskit 创建 Bell state quantum circuit，并在模拟器上运行"
         grade = "M"
         task_type = "coding"
-        expected_pack = "science-quantum"
-        expected_skill = "qiskit"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "science-quantum"
+        blocked_skill = "qiskit"
         requested_skill = $null
     },
     [pscustomobject]@{
-        name = "quantum_pennylane_qml"
-        group = "science-quantum"
+        name = "quantum_pennylane_deleted_pack_blocked"
+        group = "deleted-science-quantum"
         prompt = "/vibe 用 PennyLane 做 quantum machine learning 的最小示例（QML）"
         grade = "M"
         task_type = "coding"
-        expected_pack = "science-quantum"
-        expected_skill = "pennylane"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "science-quantum"
+        blocked_skill = "pennylane"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "quantum_chemistry_no_deleted_quantum_pack"
+        group = "deleted-science-quantum"
+        prompt = "/vibe 调研 quantum chemistry 论文和 pKa 预测，不写量子电路"
+        grade = "M"
+        task_type = "research"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "science-quantum"
+        blocked_skill = "qiskit"
         requested_skill = $null
     },
 

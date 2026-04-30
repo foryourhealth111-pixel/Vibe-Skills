@@ -1,2342 +1,2239 @@
 {
-    "version":  1,
-    "updated":  "2026-04-18",
-    "legacy_matrix_fallback":  true,
-    "packs":  [
-                  {
-                      "id":  "workflow-compatibility",
-                      "priority":  10,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "review",
-                                         "debug",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "/speckit",
-                                               "speckit",
-                                               "speckit.",
-                                               "spec-kit",
-                                               ".specify"
-                                           ],
-                      "skill_candidates":  [
-                                               "spec-kit-vibe-compat"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "spec-kit-vibe-compat"
-                                                   ],
-                      "stage_assistant_candidates":  [
-                                                    ],
-                      "defaults_by_task":  {
-                                                "planning":  "spec-kit-vibe-compat"
-                                            }
-                  },
-                  {
-                      "id":  "code-quality",
-                      "priority":  95,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "coding",
-                                         "review",
-                                         "debug"
-                                     ],
-                      "trigger_keywords":  [
-                                               "code review",
-                                               "lint",
-                                               "test",
-                                               "debug",
-                                               "fix",
-                                               "quality",
-                                               "security",
-                                               "代码审查",
-                                               "代码评审",
-                                               "测试",
-                                               "调试",
-                                               "修复",
-                                               "质量",
-                                               "安全检查",
-                                               "静态检查",
-                                               "review",
-                                               "maintainability",
-                                               "maintainable",
-                                               "bug",
-                                               "bugs",
-                                               "change review",
-                                               "code change",
-                                               "review feedback",
-                                               "review comments",
-                                               "coderabbit",
-                                               "completion verification",
-                                               "completion gate",
-                                               "acceptance evidence",
-                                               "test evidence",
-                                               "cleanup ai code",
-                                               "ai code cleanup",
-                                               "remove slop",
-                                               "compile error",
-                                               "build error",
-                                               "root cause",
-                                               "code cleanup",
-                                               "request review",
-                                               "code review request",
-                                               "before merge",
-                                               "review code change",
-                                               "代码改动",
-                                               "代码变更",
-                                               "发起代码审查",
-                                               "请求代码审查",
-                                               "提交评审",
-                                               "评审意见",
-                                               "评审反馈",
-                                               "逐条判断",
-                                               "收尾",
-                                               "验收证据",
-                                               "确认测试",
-                                               "测试通过",
-                                               "清理ai生成代码",
-                                               "废话注释",
-                                               "防御式检查",
-                                               "构建失败",
-                                               "编译错误",
-                                               "根因定位"
-                                           ],
-                      "skill_candidates":  [
-                                               "code-reviewer",
-                                               "deslop",
-                                               "generating-test-reports",
-                                               "receiving-code-review",
-                                               "requesting-code-review",
-                                               "security-reviewer",
-                                               "systematic-debugging",
-                                               "tdd-guide",
-                                               "verification-before-completion",
-                                               "windows-hook-debugging"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "code-reviewer",
-                                                       "deslop",
-                                                       "generating-test-reports",
-                                                       "receiving-code-review",
-                                                       "requesting-code-review",
-                                                       "security-reviewer",
-                                                       "systematic-debugging",
-                                                       "tdd-guide",
-                                                       "verification-before-completion",
-                                                       "windows-hook-debugging"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "debug":  "systematic-debugging",
-                                               "coding":  "tdd-guide",
-                                               "review":  "code-reviewer"
-                                           }
-                  },
-                  {
-                      "id":  "science-literature-citations",
-                      "priority":  92,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "review",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "pubmed",
-                                               "pmid",
-                                               "mesh",
-                                               "medline",
-                                               "ncbi",
-                                               "zotero",
-                                               "bibtex",
-                                               "citation",
-                                               "references",
-                                               "bibliography",
-                                               "openalex",
-                                               "biorxiv",
-                                               "systematic review",
-                                               "meta-analysis",
-                                               "文献",
-                                               "参考文献",
-                                               "引用",
-                                               "文献管理",
-                                               "系统综述",
-                                               "荟萃分析",
-                                               "预印本"
-                                           ],
-                      "skill_candidates":  [
-                                               "pubmed-database",
-                                               "openalex-database",
-                                               "biorxiv-database",
-                                               "bgpt-paper-search",
-                                               "pyzotero",
-                                               "citation-management",
-                                               "literature-review"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "pubmed-database",
-                                                       "openalex-database",
-                                                       "biorxiv-database",
-                                                       "bgpt-paper-search",
-                                                       "pyzotero",
-                                                       "citation-management",
-                                                       "literature-review"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                                   ],
-                      "defaults_by_task":  {
-                                               "planning":  "literature-review",
-                                               "coding":  "pubmed-database",
-                                               "review":  "literature-review",
-                                               "research":  "pubmed-database"
-                                           }
-                  },
-                  {
-                      "id":  "ruc-nlpir-augmentation",
-                      "priority":  91,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "review",
-                                         "debug",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "flashrag",
-                                               "webthinker",
-                                                "evidence plane",
-                                                "local evidence",
-                                                "repo evidence",
-                                                "repo config evidence",
-                                                "route rule evidence",
-                                                "where is this defined",
-                                                "skill.md",
-                                                "file and line",
-                                                "path and line",
-                                                "deep research",
-                                                "multi-hop browse",
-                                                "trace.jsonl",
-                                                "sources.json",
-                                                "web source chain",
-                                               "证据平面",
-                                               "本地证据",
-                                               "仓库依据",
-                                               "配置依据",
-                                               "路由规则在哪里",
-                                               "文件和行号",
-                                               "深度调研",
-                                               "多跳浏览",
-                                               "网页证据链",
-                                               "保留 trace",
-                                               "可审计"
-                                           ],
-                      "skill_candidates":  [
-                                               "flashrag-evidence",
-                                               "webthinker-deep-research"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "flashrag-evidence",
-                                                       "webthinker-deep-research"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                                   ],
-                      "defaults_by_task":  {
-                                               "research":  "webthinker-deep-research"
-                                           }
-                  },
-                  {
-                      "id":  "science-peer-review",
-                      "priority":  96,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "review",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "peer review",
-                                               "manuscript review",
-                                               "paper quality",
-                                               "research quality",
-                                               "scholareval",
-                                               "rubric",
-                                               "methodology critique",
-                                               "evidence strength",
-                                               "bias",
-                                               "confounders",
-                                               "审稿",
-                                               "论文评审",
-                                               "论文质量",
-                                               "学术评估",
-                                               "证据强度",
-                                               "偏倚",
-                                               "混杂因素"
-                                           ],
-                      "skill_candidates":  [
-                                               "peer-review",
-                                               "scientific-critical-thinking",
-                                               "scholar-evaluation"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "peer-review",
-                                                       "scientific-critical-thinking",
-                                                       "scholar-evaluation"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                                   ],
-                      "defaults_by_task":  {
-                                               "planning":  "scientific-critical-thinking",
-                                               "review":  "peer-review",
-                                               "research":  "peer-review"
-                                           }
-                  },
-                  {
-                      "id":  "science-chem-drug",
-                      "priority":  91,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research",
-                                         "review"
-                                     ],
-                      "trigger_keywords":  [
-                                               "chembl",
-                                               "drugbank",
-                                               "pubchem",
-                                               "brenda",
-                                               "hmdb",
-                                               "zinc",
-                                               "rdkit",
-                                               "smiles",
-                                               "inchi",
-                                               "admet",
-                                               "ic50",
-                                               "ki",
-                                               "kd",
-                                               "docking",
-                                               "binding pose",
-                                               "virtual screening",
-                                               "ligand",
-                                               "molecule",
-                                               "cheminformatics",
-                                               "therapeutics data commons",
-                                               "药化",
-                                               "化合物",
-                                               "小分子",
-                                               "分子对接",
-                                               "结合构象",
-                                               "虚拟筛选",
-                                               "药物相互作用",
-                                               "酶动力学",
-                                               "代谢物鉴定"
-                                           ],
-                      "skill_candidates":  [
-                                               "chembl-database",
-                                               "drugbank-database",
-                                               "pubchem-database",
-                                               "brenda-database",
-                                               "hmdb-database",
-                                               "zinc-database",
-                                               "deepchem",
-                                               "medchem",
-                                               "rdkit",
-                                               "diffdock",
-                                               "pytdc"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "chembl-database",
-                                                       "drugbank-database",
-                                                       "pubchem-database",
-                                                       "brenda-database",
-                                                       "hmdb-database",
-                                                       "zinc-database",
-                                                       "deepchem",
-                                                       "medchem",
-                                                       "rdkit",
-                                                       "diffdock",
-                                                       "pytdc"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "medchem",
-                                               "coding":  "rdkit",
-                                               "research":  "chembl-database"
-                                           }
-                  },
-                  {
-                      "id":  "data-ml",
-                      "priority":  90,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "review",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "machine learning",
-                                               "model",
-                                               "dataset",
-                                               "regression",
-                                               "classification",
-                                               "clustering",
-                                               "feature",
-                                               "training",
-                                               "机器学习",
-                                               "模型",
-                                               "数据集",
-                                               "回归",
-                                               "分类",
-                                               "聚类",
-                                               "特征工程",
-                                               "训练",
-                                               "预测",
-                                               "评估",
-                                               "降维",
-                                               "可解释性",
-                                               "机器学习可视化",
-                                               "cuda kernel",
-                                               "gpu kernel",
-                                               "ptx",
-                                               "wmma",
-                                               "tensor core",
-                                               "cuda优化",
-                                               "gpu优化",
-                                               "核函数优化",
-                                               "共享内存优化",
-                                               "occupancy",
-                                               "data preprocessing",
-                                               "preprocessing pipeline",
-                                               "data cleaning pipeline",
-                                               "feature encoding",
-                                               "standardize data",
-                                               "validate input data",
-                                               "数据预处理",
-                                               "数据清洗",
-                                               "预处理流水线",
-                                               "特征编码",
-                                               "数据验证"
-                                           ],
-                      "skill_candidates":  [
-                                               "aeon",
-                                               "evaluating-machine-learning-models",
-                                               "exploratory-data-analysis",
-                                               "ml-data-leakage-guard",
-                                               "ml-pipeline-workflow",
-                                               "preprocessing-data-with-automated-pipelines",
-                                               "scikit-learn",
-                                               "shap"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "aeon",
-                                                       "evaluating-machine-learning-models",
-                                                       "exploratory-data-analysis",
-                                                       "ml-data-leakage-guard",
-                                                       "ml-pipeline-workflow",
-                                                       "preprocessing-data-with-automated-pipelines",
-                                                       "scikit-learn",
-                                                       "shap"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "ml-pipeline-workflow",
-                                               "research":  "scikit-learn",
-                                               "coding":  "scikit-learn",
-                                               "review":  "evaluating-machine-learning-models"
-                                           }
-                  },
-                  {
-                      "id":  "science-clinical-regulatory",
-                      "priority":  89,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research",
-                                         "review"
-                                     ],
-                      "trigger_keywords":  [
-                                               "clinicaltrials",
-                                               "nct",
-                                               "trial phase",
-                                               "eligibility",
-                                               "fda",
-                                               "drug label",
-                                               "clinical guideline",
-                                               "treatment guideline",
-                                               "fda guidance",
-                                               "pharmacogenomics",
-                                               "cpic",
-                                               "clinical report",
-                                               "case report",
-                                               "clinical study report",
-                                               "hipaa",
-                                               "de-identification",
-                                               "treatment plan",
-                                               "care plan",
-                                               "clinical decision support",
-                                               "cds",
-                                               "grade evidence",
-                                               "qms",
-                                               "medical device",
-                                               "临床试验",
-                                               "入排标准",
-                                               "试验阶段",
-                                               "药品说明书",
-                                               "用药指南",
-                                               "药物基因组",
-                                               "临床报告",
-                                               "病例报告",
-                                               "去标识化",
-                                               "治疗方案",
-                                               "随访计划",
-                                               "临床决策支持",
-                                               "循证",
-                                               "医疗器械",
-                                               "质量体系",
-                                               "iso 13485"
-                                           ],
-                      "skill_candidates":  [
-                                               "clinicaltrials-database",
-                                               "fda-database",
-                                               "clinpgx-database",
-                                               "clinical-reports",
-                                               "treatment-plans",
-                                               "iso-13485-certification",
-                                               "clinical-decision-support"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "clinicaltrials-database",
-                                                       "fda-database",
-                                                       "clinpgx-database",
-                                                       "clinical-reports",
-                                                       "treatment-plans",
-                                                       "iso-13485-certification",
-                                                       "clinical-decision-support"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "clinical-decision-support",
-                                               "coding":  "clinicaltrials-database",
-                                               "review":  "clinical-reports",
-                                               "research":  "clinicaltrials-database"
-                                           }
-                  },
-                  {
-                      "id":  "bio-science",
-                      "priority":  88,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                              "bioinformatics",
-                                              "genomics",
-                                              "gene symbol",
-                                              "transcript lookup",
-                                              "quick blast",
-                                              "genomic interval",
-                                               "genomic intervals",
-                                               "BED genomic intervals",
-                                               "regulatory region",
-                                               "genomic ML",
-                                               "genome embedding",
-                                               "protein",
-                                               "rna",
-                                               "single-cell",
-                                               "pathway",
-                                               "sequencing",
-                                               "生物信息",
-                                               "基因组",
-                                               "基因组区间",
-                                               "基因组嵌入",
-                                               "蛋白",
-                                               "dna",
-                                               "单细胞",
-                                               "通路",
-                                               "测序",
-                                               "变异",
-                                               "转录组",
-                                               "差异表达",
-                                               "bam",
-                                               "vcf",
-                                               "覆盖度",
-                                               "anndata",
-                                               "scvi",
-                                               "cellxgene",
-                                               "deeptools",
-                                               "clinvar",
-                                               "cosmic",
-                                               "ensembl",
-                                               "ncbi gene",
-                                               "gwas",
-                                               "kegg",
-                                               "reactome",
-                                               "alphafold",
-                                               "pdb",
-                                               "string api",
-                                               "open targets"
-                                           ],
-                      "skill_candidates":  [
-                                               "biopython",
-                                               "scanpy",
-                                               "anndata",
-                                               "scvi-tools",
-                                               "pydeseq2",
-                                               "pysam",
-                                               "deeptools",
-                                               "esm",
-                                               "cobrapy",
-                                               "geniml",
-                                               "arboreto",
-                                               "flowio",
-                                               "bio-database-evidence"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "biopython",
-                                                       "scanpy",
-                                                       "anndata",
-                                                       "scvi-tools",
-                                                       "pydeseq2",
-                                                       "pysam",
-                                                       "deeptools",
-                                                       "esm",
-                                                       "cobrapy",
-                                                       "geniml",
-                                                       "arboreto",
-                                                       "flowio",
-                                                       "bio-database-evidence"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "biopython",
-                                               "coding":  "biopython",
-                                               "research":  "scanpy"
-                                           }
-                  },
-                  {
-                      "id":  "science-medical-imaging",
-                      "priority":  87,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "dicom",
-                                               "pydicom",
-                                               "radiology",
-                                               "pathology",
-                                               "wsi",
-                                               "whole slide",
-                                               "imaging data commons",
-                                               "omero",
-                                               "ct",
-                                               "mri",
-                                               "影像",
-                                               "医学影像",
-                                               "dicom文件",
-                                               "病理切片",
-                                               "全视野切片",
-                                               "数字病理"
-                                           ],
-                      "skill_candidates":  [
-                                               "pydicom",
-                                               "imaging-data-commons",
-                                               "histolab",
-                                               "omero-integration",
-                                               "pathml"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "pydicom",
-                                                       "imaging-data-commons",
-                                                       "histolab",
-                                                       "omero-integration",
-                                                       "pathml"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "pathml",
-                                               "coding":  "pydicom",
-                                               "research":  "imaging-data-commons"
-                                           }
-                  },
-                  {
-                      "id":  "science-lab-automation",
-                      "priority":  86,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "opentrons",
-                                               "ot-2",
-                                               "ot2",
-                                               "opentrons flex",
-                                               "pylabrobot",
-                                               "hamilton",
-                                               "tecan",
-                                               "protocols.io",
-                                               "protocolsio",
-                                               "benchling",
-                                               "labarchives",
-                                               "labarchive",
-                                               "ginkgo cloud lab",
-                                               "cloud.ginkgo.bio",
-                                               "ginkgo bioworks cloud lab"
-                                           ],
-                      "skill_candidates":  [
-                                               "opentrons-integration",
-                                               "pylabrobot",
-                                               "protocolsio-integration",
-                                               "benchling-integration",
-                                               "labarchive-integration",
-                                               "ginkgo-cloud-lab"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "opentrons-integration",
-                                                       "pylabrobot",
-                                                       "protocolsio-integration",
-                                                       "benchling-integration",
-                                                       "labarchive-integration",
-                                                       "ginkgo-cloud-lab"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                                   ],
-                      "defaults_by_task":  {
-                                               "planning":  "protocolsio-integration",
-                                               "coding":  "opentrons-integration",
-                                               "research":  "protocolsio-integration"
-                                           }
-                  },
-                  {
-                      "id":  "science-communication-slides",
-                      "priority":  85,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "slides",
-                                               "slide deck",
-                                               "ppt",
-                                               "pptx",
-                                               "powerpoint",
-                                               "presentation",
-                                               "talk",
-                                               "seminar",
-                                               "defense",
-                                               "slidev",
-                                               "marp",
-                                               "reveal.js",
-                                               "quarto slides",
-                                               "slides as code",
-                                               "幻灯片",
-                                               "演示文稿",
-                                               "组会汇报",
-                                               "答辩",
-                                               "路演",
-                                               "学术报告"
-                                           ],
-                      "skill_candidates":  [
-                                               "scientific-slides",
-                                               "slides-as-code",
-                                               "pptx-posters",
-                                               "infographics"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "scientific-slides",
-                                                       "slides-as-code",
-                                                       "pptx-posters",
-                                                       "infographics"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "scientific-slides",
-                                               "coding":  "slides-as-code",
-                                               "research":  "scientific-slides"
-                                           }
-                  },
-                  {
-                      "id":  "web-scraping",
-                      "priority":  86,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "coding",
-                                         "research",
-                                         "debug"
-                                     ],
-                      "trigger_keywords":  [
-                                               "scrapling",
-                                               "scrape",
-                                               "scraping",
-                                               "web scraping",
-                                               "scraper",
-                                               "crawl",
-                                               "crawler",
-                                               "spider",
-                                               "html parse",
-                                               "parse html",
-                                               "css selector",
-                                               "xpath",
-                                               "cloudflare",
-                                               "turnstile",
-                                               "captcha",
-                                               "anti-bot",
-                                               "headless browser",
-                                               "playwright",
-                                               "browser automation",
-                                               "browser test",
-                                               "form filling",
-                                               "login flow",
-                                               "dynamic page",
-                                               "screenshot flow",
-                                               "爬虫",
-                                               "抓取",
-                                               "采集",
-                                               "网页抓取",
-                                               "网页采集",
-                                               "反爬",
-                                               "验证码",
-                                               "无头浏览器",
-                                               "浏览器自动化",
-                                               "登录表单",
-                                               "动态页面",
-                                               "截图调试",
-                                               "解析html",
-                                               "选择器"
-                                           ],
-                      "skill_candidates":  [
-                                               "scrapling",
-                                               "playwright"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "scrapling",
-                                                       "playwright"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "coding":  "scrapling",
-                                               "research":  "scrapling",
-                                               "debug":  "playwright"
-                                           }
-                  },
-                    {
-                        "id":  "docs-media",
-                        "priority":  85,
-                        "grade_allow":  [
-                                            "M",
-                                            "L",
-                                            "XL"
-                                        ],
-                        "task_allow":  [
-                                           "planning",
-                                           "coding",
-                                          "review",
-                                          "research"
-                                      ],
-                       "trigger_keywords":  [
-                                                "document",
-                                                "pdf extract",
-                                                "pdf extraction",
-                                                "extract text",
-                                                "读取pdf",
-                                                "读取 PDF",
-                                                "提取pdf文本",
-                                                "提取 PDF 文本",
-                                                "提取正文",
-                                                "PDF 正文",
-                                                "spreadsheet",
-                                                "excel",
-                                               "文档",
-                                               "说明文档",
-                                               "表格",
-                                               "电子表格",
-                                                "批注",
-                                                "回复批注",
-                                                 "word批注",
-                                                 "评论线程",
-                                                 "comments.xml",
-                                                 "commentsextended.xml"
-                                             ],
-                        "skill_candidates":  [
-                                                 "docs-write",
-                                                 "docs-review",
-                                                 "docx",
-                                                 "docx-comment-reply",
-                                                 "pdf",
-                                                 "spreadsheet",
-                                                 "xlsx",
-                                                 "xan"
-                                           ],
-                        "route_authority_candidates":  [
-                                                           "docs-write",
-                                                           "docs-review",
-                                                           "docx",
-                                                           "docx-comment-reply",
-                                                           "pdf",
-                                                           "spreadsheet",
-                                                           "xlsx",
-                                                           "xan"
-                                                       ],
-                       "defaults_by_task":  {
-                                                "planning":  "docs-write",
-                                                "coding":  "spreadsheet",
-                                                "review":  "docs-review",
-                                                "research":  "pdf"
-                                            }
-                  },
-                  {
-                      "id":  "screen-capture",
-                      "priority":  84,
-                      "grade_allow":  [
-                                          "M",
-                                          "L"
-                                      ],
-                      "task_allow":  [
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "screenshot",
-                                               "screen capture",
-                                               "capture screen",
-                                               "desktop screenshot",
-                                               "window screenshot",
-                                               "截屏",
-                                               "截图",
-                                               "桌面截图",
-                                               "窗口截图",
-                                               "屏幕快照"
-                                           ],
-                      "skill_candidates":  [
-                                               "screenshot"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "screenshot"
-                                                   ],
-                      "defaults_by_task":  {
-                                               "coding":  "screenshot",
-                                               "research":  "screenshot"
-                                           }
-                  },
-                  {
-                      "id":  "media-video",
-                      "priority":  86,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "debug",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "video",
-                                               "videos",
-                                               "video editing",
-                                               "edit video",
-                                               "clip",
-                                               "clips",
-                                               "highlight reel",
-                                               "b-roll",
-                                               "subtitle",
-                                               "subtitles",
-                                               "caption",
-                                               "captions",
-                                               "transition",
-                                               "transitions",
-                                               "fade",
-                                               "montage",
-                                               "ffmpeg",
-                                               "ffprobe",
-                                               "remotion",
-                                               "capcut",
-                                               "剪映",
-                                               "视频",
-                                               "做视频",
-                                               "视频制作",
-                                               "视频剪辑",
-                                               "剪辑",
-                                               "混剪",
-                                               "字幕",
-                                               "转场",
-                                               "片头",
-                                               "片尾",
-                                               "配音",
-                                               "口播",
-                                               "bgm",
-                                               "去静音",
-                                               "去掉静音",
-                                               "音量标准化",
-                                               "画面节奏",
-                                               "jumpcut",
-                                               "jump cut",
-                                               "jump-cut",
-                                               "remove silence",
-                                               "silence removal",
-                                               "silencedetect",
-                                               "srt",
-                                               "burn subtitles",
-                                               "去停顿",
-                                               "剪掉停顿",
-                                               "口播剪辑",
-                                               "audio",
-                                               "speech",
-                                               "transcribe",
-                                               "text to speech",
-                                               "tts",
-                                               "voiceover",
-                                               "meeting transcript",
-                                               "语音",
-                                               "转录",
-                                               "录音",
-                                               "会议录音",
-                                               "说话人",
-                                               "文字转录",
-                                               "语音合成",
-                                               "文本转语音"
-                                           ],
-                      "skill_candidates":  [
-                                               "video-studio",
-                                               "transcribe",
-                                               "speech"
-                                           ],
-                      "route_authority_candidates":  [
-                                                         "video-studio",
-                                                         "transcribe",
-                                                         "speech"
-                                           ],
-                      "defaults_by_task":  {
-                                               "planning":  "video-studio",
-                                               "coding":  "video-studio",
-                                               "debug":  "video-studio",
-                                               "research":  "video-studio"
-                                           }
-                  },
-                  {
-                      "id": "docs-markitdown-conversion",
-                      "priority": 94,
-                      "grade_allow": [
-                          "M",
-                          "L"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "markitdown",
-                          "convert to markdown",
-                          "pdf to markdown",
-                          "docx to markdown",
-                          "转成 markdown",
-                          "转成markdown",
-                          "markdown转换"
-                      ],
-                      "skill_candidates": [
-                          "markitdown"
-                      ],
-                      "route_authority_candidates": [
-                          "markitdown"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "markitdown",
-                          "coding": "markitdown",
-                          "research": "markitdown"
-                      }
-                  },
-                  {
-                      "id":  "finance-edgar-macro",
-                      "priority":  84,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "edgar",
-                                               "sec",
-                                               "10-k",
-                                               "10q",
-                                               "13f",
-                                               "alpha vantage",
-                                               "fred",
-                                               "treasury",
-                                               "us fiscal",
-                                               "ofr",
-                                               "hedge fund",
-                                               "data commons",
-                                               "datacommons",
-                                               "public statistical data",
-                                               "财报",
-                                               "美国证监会",
-                                               "宏观数据",
-                                               "人口经济指标",
-                                               "国债",
-                                               "财政数据",
-                                               "fomc"
-                                           ],
-                      "skill_candidates":  [
-                                               "edgartools",
-                                               "alpha-vantage",
-                                               "fred-economic-data",
-                                               "usfiscaldata",
-                                               "hedgefundmonitor",
-                                               "market-research-reports",
-                                               "datacommons-client"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "edgartools",
-                                                       "alpha-vantage",
-                                                       "fred-economic-data",
-                                                       "usfiscaldata",
-                                                       "hedgefundmonitor",
-                                                       "market-research-reports",
-                                                       "datacommons-client"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "market-research-reports",
-                                               "coding":  "edgartools",
-                                               "research":  "edgartools"
-                                           }
-                  },
-                  {
-                      "id":  "integration-devops",
-                      "priority":  83,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "debug"
-                                     ],
-                      "trigger_keywords":  [
-                                               "deploy",
-                                               "ci",
-                                               "cd",
-                                               "mcp",
-                                               "sentry",
-                                               "vercel",
-                                               "netlify",
-                                               "node zombie",
-                                               "zombie node",
-                                               "orphan node",
-                                               "devops",
-                                               "部署",
-                                               "流水线",
-                                               "持续集成",
-                                               "持续交付",
-                                               "僵尸node",
-                                               "僵尸进程",
-                                               "github actions",
-                                               "日志排查",
-                                               "线上告警"
-                                           ],
-                      "skill_candidates":  [
-                                               "gh-fix-ci",
-                                               "mcp-integration",
-                                               "sentry",
-                                               "vercel-deploy",
-                                               "netlify-deploy",
-                                               "node-zombie-guardian"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "gh-fix-ci",
-                                                       "mcp-integration",
-                                                       "sentry",
-                                                       "vercel-deploy",
-                                                       "netlify-deploy",
-                                                       "node-zombie-guardian"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                           ],
-                      "defaults_by_task":  {
-                                               "debug":  "gh-fix-ci",
-                                               "planning":  "mcp-integration",
-                                               "coding":  "vercel-deploy"
-                                           }
-                  },
-                  {
-                      "id":  "ai-llm",
-                      "priority":  82,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research",
-                                         "review"
-                                     ],
-                      "trigger_keywords":  [
-                                               "llm",
-                                                "prompt",
-                                                "prompts.chat",
-                                                "openai",
-                                               "model eval",
-                                               "rag",
-                                               "embedding",
-                                               "大模型",
-                                                "提示词",
-                                                "system prompt",
-                                                "模型评测",
-                                               "向量检索",
-                                               "嵌入",
-                                               "responses api",
-                                               "openai文档",
-                                               "提示词模板",
-                                               "vector search",
-                                               "vector database",
-                                               "nearest neighbor",
-                                               "similarity search",
-                                               "semantic retrieval",
-                                               "chunking",
-                                               "embedding策略",
-                                               "分块",
-                                               "向量搜索",
-                                               "向量数据库",
-                                               "相似度搜索",
-                                                "embedding pipeline",
-                                                "improve prompt",
-                                                "optimize prompt",
-                                                "提示词优化",
-                                                "改进提示词"
-                                            ],
-                      "skill_candidates":  [
-                                               "openai-docs",
-                                               "prompt-lookup",
-                                               "embedding-strategies",
-                                               "similarity-search-patterns",
-                                               "evaluating-llms-harness"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "openai-docs",
-                                                       "prompt-lookup",
-                                                       "embedding-strategies",
-                                                       "similarity-search-patterns",
-                                                       "evaluating-llms-harness"
-                                                   ],
-                      "stage_assistant_candidates":  [
-
-                                                   ],
-                      "defaults_by_task":  {
-                                               "planning":  "embedding-strategies",
-                                               "review":  "evaluating-llms-harness",
-                                               "coding":  "openai-docs",
-                                               "research":  "openai-docs"
-                                           }
-                  },
-                  {
-                      "id":  "science-quantum",
-                      "priority":  82,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "qiskit",
-                                               "cirq",
-                                               "pennylane",
-                                               "qutip",
-                                               "quantum",
-                                               "量子",
-                                               "量子计算",
-                                               "量子电路"
-                                           ],
-                      "skill_candidates":  [
-                                               "qiskit",
-                                               "cirq",
-                                               "pennylane",
-                                               "qutip"
-                                           ],
-                      "route_authority_candidates":  [
-                                                         "qiskit",
-                                                         "cirq",
-                                                         "pennylane",
-                                                         "qutip"
-                                                     ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "qiskit",
-                                               "coding":  "qiskit",
-                                               "research":  "qiskit"
-                                           }
-                  },
-                  {
-                      "id": "ip-uspto-patents",
-                      "priority": 81,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "uspto",
-                          "patent",
-                          "patents",
-                          "专利",
-                          "专利检索",
-                          "claims",
-                          "patent metadata"
-                      ],
-                      "skill_candidates": [
-                          "uspto-database"
-                      ],
-                      "route_authority_candidates": [
-                          "uspto-database"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "uspto-database",
-                          "coding": "uspto-database",
-                          "research": "uspto-database"
-                      }
-                  },
-                  {
-                      "id": "science-astropy",
-                      "priority": 81,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "astropy",
-                          "astronomy",
-                          "fits",
-                          "天文",
-                          "天球坐标",
-                          "赤经",
-                          "赤纬",
-                          "wcs",
-                          "天文数据"
-                      ],
-                      "skill_candidates": [
-                          "astropy"
-                      ],
-                      "route_authority_candidates": [
-                          "astropy"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "astropy",
-                          "coding": "astropy",
-                          "research": "astropy"
-                      }
-                  },
-                  {
-                      "id": "science-pymatgen",
-                      "priority": 81,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "pymatgen",
-                          "materials",
-                          "crystal",
-                          "phase diagram",
-                          "材料",
-                          "晶体",
-                          "相图",
-                          "cif",
-                          "crystal structure",
-                          "晶体结构"
-                      ],
-                      "skill_candidates": [
-                          "pymatgen"
-                      ],
-                      "route_authority_candidates": [
-                          "pymatgen"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "pymatgen",
-                          "coding": "pymatgen",
-                          "research": "pymatgen"
-                      }
-                  },
-                  {
-                      "id":  "science-geospatial",
-                      "priority":  80,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "geopandas",
-                                               "geojson",
-                                               "shapefile",
-                                               "gis",
-                                               "geospatial",
-                                               "地图",
-                                               "地理",
-                                               "经纬度"
-                                           ],
-                      "skill_candidates":  [
-                                               "geopandas",
-                                               "geomaster"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "geopandas",
-                                                       "geomaster"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "geopandas",
-                                               "coding":  "geopandas",
-                                               "research":  "geomaster"
-                                            }
-                  },
-                  {
-                      "id":  "science-tiledbvcf",
-                      "priority":  93,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "tiledb-vcf",
-                                               "tiledb vcf",
-                                               "tiledbvcf"
-                                           ],
-                      "skill_candidates":  [
-                                               "tiledbvcf"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "tiledbvcf"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "tiledbvcf",
-                                               "coding":  "tiledbvcf",
-                                               "research":  "tiledbvcf"
-                                           }
-                  },
-                  {
-                      "id": "science-simpy-simulation",
-                      "priority": 82,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "simpy",
-                          "discrete event simulation",
-                          "queue simulation",
-                          "resource process",
-                          "离散事件仿真"
-                      ],
-                      "skill_candidates": [
-                          "simpy"
-                      ],
-                      "route_authority_candidates": [
-                          "simpy"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "simpy",
-                          "coding": "simpy",
-                          "research": "simpy"
-                      }
-                  },
-                  {
-                      "id": "science-fluidsim-cfd",
-                      "priority": 81,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "fluidsim",
-                          "cfd",
-                          "navier-stokes",
-                          "turbulence",
-                          "流体仿真"
-                      ],
-                      "skill_candidates": [
-                          "fluidsim"
-                      ],
-                      "route_authority_candidates": [
-                          "fluidsim"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "fluidsim",
-                          "coding": "fluidsim",
-                          "research": "fluidsim"
-                      }
-                  },
-                  {
-                      "id": "science-matchms-spectra",
-                      "priority": 82,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "matchms",
-                          "mass spectra",
-                          "ms/ms",
-                          "spectral similarity",
-                          "质谱"
-                      ],
-                      "skill_candidates": [
-                          "matchms"
-                      ],
-                      "route_authority_candidates": [
-                          "matchms"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "matchms",
-                          "coding": "matchms",
-                          "research": "matchms"
-                      }
-                  },
-                  {
-                      "id": "science-matlab-octave",
-                      "priority": 80,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "matlab",
-                          "octave",
-                          ".m script",
-                          "simulink",
-                          "矩阵计算"
-                      ],
-                      "skill_candidates": [
-                          "matlab"
-                      ],
-                      "route_authority_candidates": [
-                          "matlab"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "matlab",
-                          "coding": "matlab",
-                          "research": "matlab"
-                      }
-                  },
-                  {
-                      "id":  "cloud-modalcom",
-                      "priority":  60,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "modal.com",
-                                               "modal labs",
-                                               "modallabs",
-                                               "modal run",
-                                               "modal deploy",
-                                               "modal 部署",
-                                               "部署到 modal",
-                                               "modal 而不是 vercel",
-                                               "serverless gpu",
-                                               "gpu function",
-                                               "python gpu function",
-                                               "batch job",
-                                               "gpu container",
-                                               "云端运行",
-                                               "云端作业",
-                                               "云端 gpu",
-                                               "gpu 容器",
-                                               "gpu 函数"
-                                           ],
-                      "skill_candidates":  [
-                                               "modal-labs"
-                                           ],
-                      "route_authority_candidates":  [
-                                                         "modal-labs"
-                                                     ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "modal-labs",
-                                               "coding":  "modal-labs",
-                                               "research":  "modal-labs"
-                                           }
-                  },
-                  {
-                      "id": "science-neuropixels",
-                      "priority": 86,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "neuropixels",
-                          "kilosort",
-                          "spike sorting",
-                          "spikeglx",
-                          "electrophysiology",
-                          "神经电生理"
-                      ],
-                      "skill_candidates": [
-                          "neuropixels-analysis"
-                      ],
-                      "route_authority_candidates": [
-                          "neuropixels-analysis"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "neuropixels-analysis",
-                          "coding": "neuropixels-analysis",
-                          "research": "neuropixels-analysis"
-                      }
-                  },
-                  {
-                      "id": "science-pymc-bayesian",
-                      "priority": 85,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "pymc",
-                          "bayesian",
-                          "mcmc",
-                          "nuts",
-                          "贝叶斯"
-                      ],
-                      "skill_candidates": [
-                          "pymc"
-                      ],
-                      "route_authority_candidates": [
-                          "pymc"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "pymc",
-                          "coding": "pymc",
-                          "research": "pymc"
-                      }
-                  },
-                  {
-                      "id": "science-pymoo-optimization",
-                      "priority": 85,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "pymoo",
-                          "multi-objective",
-                          "nsga-ii",
-                          "pareto",
-                          "多目标优化"
-                      ],
-                      "skill_candidates": [
-                          "pymoo"
-                      ],
-                      "route_authority_candidates": [
-                          "pymoo"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "pymoo",
-                          "coding": "pymoo",
-                          "research": "pymoo"
-                      }
-                  },
-                  {
-                      "id": "science-rowan-chemistry",
-                      "priority": 82,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "rowan api",
-                          "quantum chemistry",
-                          "autodock vina",
-                          "pka prediction",
-                          "geometry optimization",
-                          "量子化学",
-                          "分子对接",
-                          "rowan",
-                          "rowan chemistry",
-                          "conformer search"
-                      ],
-                      "skill_candidates": [
-                          "rowan"
-                      ],
-                      "route_authority_candidates": [
-                          "rowan"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "rowan",
-                          "coding": "rowan",
-                          "research": "rowan"
-                      }
-                  },
-                  {
-                      "id": "ml-stable-baselines3",
-                      "priority": 84,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "stable-baselines3",
-                          "sb3",
-                          "ppo",
-                          "sac",
-                          "dqn",
-                          "reinforcement learning",
-                          "强化学习"
-                      ],
-                      "skill_candidates": [
-                          "stable-baselines3"
-                      ],
-                      "route_authority_candidates": [
-                          "stable-baselines3"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "stable-baselines3",
-                          "coding": "stable-baselines3",
-                          "research": "stable-baselines3"
-                      }
-                  },
-                  {
-                      "id": "science-timesfm-forecasting",
-                      "priority": 84,
-                      "grade_allow": [
-                          "M",
-                          "L",
-                          "XL"
-                      ],
-                      "task_allow": [
-                          "planning",
-                          "coding",
-                          "research"
-                      ],
-                      "trigger_keywords": [
-                          "timesfm",
-                          "time series forecasting",
-                          "zero-shot forecasting",
-                          "prediction intervals",
-                          "时间序列预测"
-                      ],
-                      "skill_candidates": [
-                          "timesfm-forecasting"
-                      ],
-                      "route_authority_candidates": [
-                          "timesfm-forecasting"
-                      ],
-                      "stage_assistant_candidates": [],
-                      "defaults_by_task": {
-                          "planning": "timesfm-forecasting",
-                          "coding": "timesfm-forecasting",
-                          "research": "timesfm-forecasting"
-                      }
-                  },
-                  {
-                      "id":  "ml-torch-geometric",
-                      "priority":  83,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "torch-geometric",
-                                               "torch_geometric",
-                                               "pyg",
-                                               "pytorch geometric",
-                                               "graph neural network",
-                                               "gnn",
-                                               "图神经网络"
-                                           ],
-                      "skill_candidates":  [
-                                               "torch-geometric"
-                                           ],
-                      "route_authority_candidates":  [
-                                                         "torch-geometric"
-                                                     ],
-                      "stage_assistant_candidates":  [
-
-                                           ],
-                      "defaults_by_task":  {
-                                               "planning":  "torch-geometric",
-                                               "coding":  "torch-geometric",
-                                               "research":  "torch-geometric"
-                                           }
-                  },
-                  {
-                      "id":  "science-zarr-polars",
-                      "priority":  80,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "polars",
-                                               "vaex",
-                                               "zarr",
-                                               "parquet"
-                                           ],
-                      "skill_candidates":  [
-                                               "polars",
-                                               "vaex",
-                                               "zarr-python"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "polars",
-                                                       "vaex",
-                                                       "zarr-python"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "zarr-python",
-                                               "coding":  "polars",
-                                               "research":  "vaex"
-                                           }
-                  },
-                  {
-                      "id":  "design-implementation",
-                      "priority":  98,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding"
-                                     ],
-                      "trigger_keywords":  [
-                                               "figma",
-                                               "figma to code",
-                                               "implement design",
-                                               "design implementation",
-                                               "design to code",
-                                               "frontend implementation",
-                                               "Figma 设计稿",
-                                               "figma设计稿",
-                                               "设计稿还原",
-                                               "还原为可运行代码",
-                                               "设计转代码",
-                                               "按 Figma 开发",
-                                               "按figma开发",
-                                               "UI 还原",
-                                               "UI还原"
-                                           ],
-                      "skill_candidates":  [
-                                               "figma-implement-design"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "figma-implement-design"
-                                                   ],
-                      "defaults_by_task":  {
-                                               "planning":  "figma-implement-design",
-                                               "coding":  "figma-implement-design"
-                                           }
-                  },
-                  {
-                      "id":  "research-design",
-                      "priority":  80,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "research",
-                                         "review"
-                                     ],
-                      "trigger_keywords":  [
-                                               "research design",
-                                               "research methodology",
-                                               "methodology",
-                                               "experimental design",
-                                               "experiment design",
-                                               "quasi-experimental",
-                                               "difference-in-differences",
-                                               "difference in differences",
-                                               "did",
-                                               "interrupted time series",
-                                               "its",
-                                               "synthetic control",
-                                               "causal analysis",
-                                               "causal inference",
-                                               "regression analysis",
-                                               "scientific hypothesis",
-                                               "hypothesis generation",
-                                               "hypogenic",
-                                               "research grant",
-                                               "grant proposal",
-                                               "research proposal",
-                                               "scientific brainstorming",
-                                               "literature matrix",
-                                               "研究设计",
-                                               "研究方法",
-                                               "方法学",
-                                               "实验设计",
-                                               "准实验",
-                                               "差分中的差分",
-                                               "中断时间序列",
-                                               "合成控制",
-                                               "因果分析",
-                                               "因果推断",
-                                               "回归分析",
-                                               "科研假设",
-                                               "假设生成",
-                                               "科研基金",
-                                               "基金申请",
-                                               "研究创新点",
-                                               "科研头脑风暴",
-                                               "实验失败"
-                                           ],
-                      "skill_candidates":  [
-                                               "designing-experiments",
-                                               "experiment-failure-analysis",
-                                               "hypogenic",
-                                               "hypothesis-generation",
-                                               "literature-matrix",
-                                               "performing-causal-analysis",
-                                               "performing-regression-analysis",
-                                               "research-grants",
-                                               "scientific-brainstorming"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "designing-experiments",
-                                                       "experiment-failure-analysis",
-                                                       "hypogenic",
-                                                       "hypothesis-generation",
-                                                       "literature-matrix",
-                                                       "performing-causal-analysis",
-                                                       "performing-regression-analysis",
-                                                       "research-grants",
-                                                       "scientific-brainstorming"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "designing-experiments",
-                                               "review":  "experiment-failure-analysis",
-                                               "research":  "hypothesis-generation"
-                                           }
-                  },
-                  {
-                      "id":  "scholarly-publishing-workflow",
-                      "priority":  97,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "scholarly publishing",
-                                               "publishing workflow",
-                                               "journal submission workflow",
-                                               "submission",
-                                               "rebuttal",
-                                               "revision",
-                                               "resubmission",
-                                               "camera-ready",
-                                               "proof",
-                                               "cover letter",
-                                               "response to reviewers",
-                                               "submission checklist",
-                                               "submission package",
-                                               "manuscript as code",
-                                               "paper as code",
-                                               "reproducible manuscript",
-                                               "venue template",
-                                               "submission guidelines",
-                                               "formatting requirements",
-                                               "anonymous submission",
-                                               "page limit",
-                                               "latexmk",
-                                               "latexindent",
-                                               "chktex",
-                                               "latex",
-                                               "latex paper",
-                                               "latex manuscript",
-                                               "latex pdf",
-                                               "paper pdf build",
-                                               "manuscript pdf build",
-                                               "compile paper",
-                                               "submission zip",
-                                               "beamerposter",
-                                               "paper2web",
-                                               "paper2poster",
-                                               "paper2video",
-                                               "scientific writing",
-                                               "imrad",
-                                               "manuscript prose",
-                                               "投稿",
-                                               "投稿流程",
-                                               "期刊投稿",
-                                               "投稿包",
-                                               "投稿清单",
-                                               "返修",
-                                               "回复审稿意见",
-                                               "相机就绪",
-                                               "校样",
-                                               "论文工程化",
-                                               "可复现写作",
-                                               "投稿模板",
-                                               "格式要求",
-                                               "匿名投稿",
-                                               "页数限制",
-                                               "LaTeX 论文",
-                                               "LaTeX 写论文",
-                                               "LaTeX 论文 PDF",
-                                               "写成论文 PDF",
-                                               "论文 PDF",
-                                               "PDF 构建",
-                                               "生成论文 PDF",
-                                               "编译论文",
-                                               "论文编译",
-                                               "可投稿 PDF",
-                                               "学术海报",
-                                               "论文转网站",
-                                               "科研写作",
-                                               "论文正文"
-                                           ],
-                      "skill_candidates":  [
-                                               "scholarly-publishing",
-                                               "submission-checklist",
-                                               "manuscript-as-code",
-                                               "latex-submission-pipeline",
-                                               "scientific-writing",
-                                               "venue-templates",
-                                               "latex-posters",
-                                               "paper-2-web"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "scholarly-publishing",
-                                                       "submission-checklist",
-                                                       "manuscript-as-code",
-                                                       "latex-submission-pipeline",
-                                                       "scientific-writing",
-                                                       "venue-templates",
-                                                       "latex-posters",
-                                                       "paper-2-web"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "scholarly-publishing",
-                                               "coding":  "latex-submission-pipeline",
-                                               "research":  "scientific-writing"
-                                           }
-                  },
-                  {
-                      "id":  "science-figures-visualization",
-                      "priority":  91,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "作图",
-                                               "画图",
-                                               "科研绘图",
-                                               "顶刊作图",
-                                               "投稿图",
-                                               "figure",
-                                               "subplot",
-                                               "multi-panel",
-                                               "panel",
-                                               "matplotlib",
-                                               "seaborn",
-                                               "plotly",
-                                               "tiff",
-                                               "dpi",
-                                               "600dpi",
-                                               "vector",
-                                               "eps",
-                                               "svg",
-                                               "colorblind",
-                                               "data visualization",
-                                               "result visualization",
-                                               "result figure",
-                                               "result figures",
-                                               "analysis figure",
-                                               "model result figure",
-                                               "model evaluation plot",
-                                               "色盲",
-                                               "配色",
-                                               "误差棒",
-                                               "显著性",
-                                               "数据可视化",
-                                               "结果图",
-                                               "结果可视化",
-                                               "模型结果图",
-                                               "模型评估图",
-                                               "评估结果图"
-                                           ],
-                      "skill_candidates":  [
-                                               "scientific-visualization",
-                                               "scientific-schematics"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "scientific-visualization",
-                                                       "scientific-schematics"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "scientific-visualization",
-                                               "coding":  "scientific-visualization",
-                                               "research":  "scientific-visualization"
-                                           }
-                  },
-                  {
-                      "id":  "science-reporting",
-                      "priority":  88,
-                      "grade_allow":  [
-                                          "M",
-                                          "L",
-                                          "XL"
-                                      ],
-                      "task_allow":  [
-                                         "planning",
-                                         "coding",
-                                         "research"
-                                     ],
-                      "trigger_keywords":  [
-                                               "科研报告",
-                                               "技术报告",
-                                               "项目报告",
-                                               "实验报告",
-                                               "分析报告",
-                                               "html报告",
-                                               "pdf报告",
-                                               "执行摘要",
-                                               "附录",
-                                               "复现",
-                                               "technical report",
-                                               "research report",
-                                               "analysis report",
-                                               "executive summary",
-                                               "appendix",
-                                               "reproducible",
-                                               "quarto",
-                                               "rmarkdown",
-                                               "whitepaper"
-                                           ],
-                      "skill_candidates":  [
-                                               "scientific-reporting",
-                                               "scientific-writing"
-                                           ],
-                      "route_authority_candidates":  [
-                                                       "scientific-reporting",
-                                                       "scientific-writing"
-                                                   ],
-                      "stage_assistant_candidates":  [],
-                      "defaults_by_task":  {
-                                               "planning":  "scientific-reporting",
-                                               "coding":  "scientific-reporting",
-                                               "research":  "scientific-reporting"
-                                           }
-                  }
-              ]
+  "version": 1,
+  "updated": "2026-04-18",
+  "legacy_matrix_fallback": true,
+  "packs": [
+    {
+      "id": "workflow-compatibility",
+      "priority": 10,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "debug",
+        "research"
+      ],
+      "trigger_keywords": [
+        "/speckit",
+        "speckit",
+        "speckit.",
+        "spec-kit",
+        ".specify"
+      ],
+      "skill_candidates": [
+        "spec-kit-vibe-compat"
+      ],
+      "route_authority_candidates": [
+        "spec-kit-vibe-compat"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "spec-kit-vibe-compat"
+      }
+    },
+    {
+      "id": "code-quality",
+      "priority": 95,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "coding",
+        "review",
+        "debug"
+      ],
+      "trigger_keywords": [
+        "code review",
+        "lint",
+        "test",
+        "debug",
+        "fix",
+        "quality",
+        "security",
+        "代码审查",
+        "代码评审",
+        "测试",
+        "调试",
+        "修复",
+        "质量",
+        "安全检查",
+        "静态检查",
+        "review",
+        "maintainability",
+        "maintainable",
+        "bug",
+        "bugs",
+        "change review",
+        "code change",
+        "review feedback",
+        "review comments",
+        "coderabbit",
+        "completion verification",
+        "completion gate",
+        "acceptance evidence",
+        "test evidence",
+        "cleanup ai code",
+        "ai code cleanup",
+        "remove slop",
+        "compile error",
+        "build error",
+        "root cause",
+        "code cleanup",
+        "request review",
+        "code review request",
+        "before merge",
+        "review code change",
+        "代码改动",
+        "代码变更",
+        "发起代码审查",
+        "请求代码审查",
+        "提交评审",
+        "评审意见",
+        "评审反馈",
+        "逐条判断",
+        "收尾",
+        "验收证据",
+        "确认测试",
+        "测试通过",
+        "清理ai生成代码",
+        "废话注释",
+        "防御式检查",
+        "构建失败",
+        "编译错误",
+        "根因定位"
+      ],
+      "skill_candidates": [
+        "code-reviewer",
+        "deslop",
+        "generating-test-reports",
+        "receiving-code-review",
+        "requesting-code-review",
+        "security-reviewer",
+        "systematic-debugging",
+        "tdd-guide",
+        "verification-before-completion",
+        "windows-hook-debugging"
+      ],
+      "route_authority_candidates": [
+        "code-reviewer",
+        "deslop",
+        "generating-test-reports",
+        "receiving-code-review",
+        "requesting-code-review",
+        "security-reviewer",
+        "systematic-debugging",
+        "tdd-guide",
+        "verification-before-completion",
+        "windows-hook-debugging"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "debug": "systematic-debugging",
+        "coding": "tdd-guide",
+        "review": "code-reviewer"
+      }
+    },
+    {
+      "id": "science-literature-citations",
+      "priority": 92,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "research"
+      ],
+      "trigger_keywords": [
+        "pubmed",
+        "pmid",
+        "mesh",
+        "medline",
+        "ncbi",
+        "zotero",
+        "bibtex",
+        "citation",
+        "references",
+        "bibliography",
+        "openalex",
+        "biorxiv",
+        "systematic review",
+        "meta-analysis",
+        "文献",
+        "参考文献",
+        "引用",
+        "文献管理",
+        "系统综述",
+        "荟萃分析",
+        "预印本"
+      ],
+      "skill_candidates": [
+        "pubmed-database",
+        "openalex-database",
+        "biorxiv-database",
+        "bgpt-paper-search",
+        "pyzotero",
+        "citation-management",
+        "literature-review"
+      ],
+      "route_authority_candidates": [
+        "pubmed-database",
+        "openalex-database",
+        "biorxiv-database",
+        "bgpt-paper-search",
+        "pyzotero",
+        "citation-management",
+        "literature-review"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "literature-review",
+        "coding": "pubmed-database",
+        "review": "literature-review",
+        "research": "pubmed-database"
+      }
+    },
+    {
+      "id": "ruc-nlpir-augmentation",
+      "priority": 91,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "review",
+        "debug",
+        "research"
+      ],
+      "trigger_keywords": [
+        "flashrag",
+        "webthinker",
+        "evidence plane",
+        "local evidence",
+        "repo evidence",
+        "repo config evidence",
+        "route rule evidence",
+        "where is this defined",
+        "skill.md",
+        "file and line",
+        "path and line",
+        "deep research",
+        "multi-hop browse",
+        "trace.jsonl",
+        "sources.json",
+        "web source chain",
+        "证据平面",
+        "本地证据",
+        "仓库依据",
+        "配置依据",
+        "路由规则在哪里",
+        "文件和行号",
+        "深度调研",
+        "多跳浏览",
+        "网页证据链",
+        "保留 trace",
+        "可审计"
+      ],
+      "skill_candidates": [
+        "flashrag-evidence",
+        "webthinker-deep-research"
+      ],
+      "route_authority_candidates": [
+        "flashrag-evidence",
+        "webthinker-deep-research"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "research": "webthinker-deep-research"
+      }
+    },
+    {
+      "id": "science-peer-review",
+      "priority": 96,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "review",
+        "research"
+      ],
+      "trigger_keywords": [
+        "peer review",
+        "manuscript review",
+        "paper quality",
+        "research quality",
+        "scholareval",
+        "rubric",
+        "methodology critique",
+        "evidence strength",
+        "bias",
+        "confounders",
+        "审稿",
+        "论文评审",
+        "论文质量",
+        "学术评估",
+        "证据强度",
+        "偏倚",
+        "混杂因素"
+      ],
+      "skill_candidates": [
+        "peer-review",
+        "scientific-critical-thinking",
+        "scholar-evaluation"
+      ],
+      "route_authority_candidates": [
+        "peer-review",
+        "scientific-critical-thinking",
+        "scholar-evaluation"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "scientific-critical-thinking",
+        "review": "peer-review",
+        "research": "peer-review"
+      }
+    },
+    {
+      "id": "science-chem-drug",
+      "priority": 91,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research",
+        "review"
+      ],
+      "trigger_keywords": [
+        "chembl",
+        "drugbank",
+        "pubchem",
+        "brenda",
+        "hmdb",
+        "zinc",
+        "rdkit",
+        "smiles",
+        "inchi",
+        "admet",
+        "ic50",
+        "ki",
+        "kd",
+        "docking",
+        "binding pose",
+        "virtual screening",
+        "ligand",
+        "molecule",
+        "cheminformatics",
+        "therapeutics data commons",
+        "药化",
+        "化合物",
+        "小分子",
+        "分子对接",
+        "结合构象",
+        "虚拟筛选",
+        "药物相互作用",
+        "酶动力学",
+        "代谢物鉴定"
+      ],
+      "skill_candidates": [
+        "chembl-database",
+        "drugbank-database",
+        "pubchem-database",
+        "brenda-database",
+        "hmdb-database",
+        "zinc-database",
+        "deepchem",
+        "medchem",
+        "rdkit",
+        "diffdock",
+        "pytdc"
+      ],
+      "route_authority_candidates": [
+        "chembl-database",
+        "drugbank-database",
+        "pubchem-database",
+        "brenda-database",
+        "hmdb-database",
+        "zinc-database",
+        "deepchem",
+        "medchem",
+        "rdkit",
+        "diffdock",
+        "pytdc"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "medchem",
+        "coding": "rdkit",
+        "research": "chembl-database"
+      }
+    },
+    {
+      "id": "data-ml",
+      "priority": 90,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "research"
+      ],
+      "trigger_keywords": [
+        "machine learning",
+        "model",
+        "dataset",
+        "regression",
+        "classification",
+        "clustering",
+        "feature",
+        "training",
+        "机器学习",
+        "模型",
+        "数据集",
+        "回归",
+        "分类",
+        "聚类",
+        "特征工程",
+        "训练",
+        "预测",
+        "评估",
+        "降维",
+        "可解释性",
+        "机器学习可视化",
+        "cuda kernel",
+        "gpu kernel",
+        "ptx",
+        "wmma",
+        "tensor core",
+        "cuda优化",
+        "gpu优化",
+        "核函数优化",
+        "共享内存优化",
+        "occupancy",
+        "data preprocessing",
+        "preprocessing pipeline",
+        "data cleaning pipeline",
+        "feature encoding",
+        "standardize data",
+        "validate input data",
+        "数据预处理",
+        "数据清洗",
+        "预处理流水线",
+        "特征编码",
+        "数据验证"
+      ],
+      "skill_candidates": [
+        "aeon",
+        "evaluating-machine-learning-models",
+        "exploratory-data-analysis",
+        "ml-data-leakage-guard",
+        "ml-pipeline-workflow",
+        "preprocessing-data-with-automated-pipelines",
+        "scikit-learn",
+        "shap"
+      ],
+      "route_authority_candidates": [
+        "aeon",
+        "evaluating-machine-learning-models",
+        "exploratory-data-analysis",
+        "ml-data-leakage-guard",
+        "ml-pipeline-workflow",
+        "preprocessing-data-with-automated-pipelines",
+        "scikit-learn",
+        "shap"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "ml-pipeline-workflow",
+        "research": "scikit-learn",
+        "coding": "scikit-learn",
+        "review": "evaluating-machine-learning-models"
+      }
+    },
+    {
+      "id": "science-clinical-regulatory",
+      "priority": 89,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research",
+        "review"
+      ],
+      "trigger_keywords": [
+        "clinicaltrials",
+        "nct",
+        "trial phase",
+        "eligibility",
+        "fda",
+        "drug label",
+        "clinical guideline",
+        "treatment guideline",
+        "fda guidance",
+        "pharmacogenomics",
+        "cpic",
+        "clinical report",
+        "case report",
+        "clinical study report",
+        "hipaa",
+        "de-identification",
+        "treatment plan",
+        "care plan",
+        "clinical decision support",
+        "cds",
+        "grade evidence",
+        "qms",
+        "medical device",
+        "临床试验",
+        "入排标准",
+        "试验阶段",
+        "药品说明书",
+        "用药指南",
+        "药物基因组",
+        "临床报告",
+        "病例报告",
+        "去标识化",
+        "治疗方案",
+        "随访计划",
+        "临床决策支持",
+        "循证",
+        "医疗器械",
+        "质量体系",
+        "iso 13485"
+      ],
+      "skill_candidates": [
+        "clinicaltrials-database",
+        "fda-database",
+        "clinpgx-database",
+        "clinical-reports",
+        "treatment-plans",
+        "iso-13485-certification",
+        "clinical-decision-support"
+      ],
+      "route_authority_candidates": [
+        "clinicaltrials-database",
+        "fda-database",
+        "clinpgx-database",
+        "clinical-reports",
+        "treatment-plans",
+        "iso-13485-certification",
+        "clinical-decision-support"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "clinical-decision-support",
+        "coding": "clinicaltrials-database",
+        "review": "clinical-reports",
+        "research": "clinicaltrials-database"
+      }
+    },
+    {
+      "id": "bio-science",
+      "priority": 88,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "bioinformatics",
+        "genomics",
+        "gene symbol",
+        "transcript lookup",
+        "quick blast",
+        "genomic interval",
+        "genomic intervals",
+        "BED genomic intervals",
+        "regulatory region",
+        "genomic ML",
+        "genome embedding",
+        "protein",
+        "rna",
+        "single-cell",
+        "pathway",
+        "sequencing",
+        "生物信息",
+        "基因组",
+        "基因组区间",
+        "基因组嵌入",
+        "蛋白",
+        "dna",
+        "单细胞",
+        "通路",
+        "测序",
+        "变异",
+        "转录组",
+        "差异表达",
+        "bam",
+        "vcf",
+        "覆盖度",
+        "anndata",
+        "scvi",
+        "cellxgene",
+        "deeptools",
+        "clinvar",
+        "cosmic",
+        "ensembl",
+        "ncbi gene",
+        "gwas",
+        "kegg",
+        "reactome",
+        "alphafold",
+        "pdb",
+        "string api",
+        "open targets"
+      ],
+      "skill_candidates": [
+        "biopython",
+        "scanpy",
+        "anndata",
+        "scvi-tools",
+        "pydeseq2",
+        "pysam",
+        "deeptools",
+        "esm",
+        "cobrapy",
+        "geniml",
+        "arboreto",
+        "flowio",
+        "bio-database-evidence"
+      ],
+      "route_authority_candidates": [
+        "biopython",
+        "scanpy",
+        "anndata",
+        "scvi-tools",
+        "pydeseq2",
+        "pysam",
+        "deeptools",
+        "esm",
+        "cobrapy",
+        "geniml",
+        "arboreto",
+        "flowio",
+        "bio-database-evidence"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "biopython",
+        "coding": "biopython",
+        "research": "scanpy"
+      }
+    },
+    {
+      "id": "science-medical-imaging",
+      "priority": 87,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "dicom",
+        "pydicom",
+        "radiology",
+        "pathology",
+        "wsi",
+        "whole slide",
+        "imaging data commons",
+        "omero",
+        "ct",
+        "mri",
+        "影像",
+        "医学影像",
+        "dicom文件",
+        "病理切片",
+        "全视野切片",
+        "数字病理"
+      ],
+      "skill_candidates": [
+        "pydicom",
+        "imaging-data-commons",
+        "histolab",
+        "omero-integration",
+        "pathml"
+      ],
+      "route_authority_candidates": [
+        "pydicom",
+        "imaging-data-commons",
+        "histolab",
+        "omero-integration",
+        "pathml"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "pathml",
+        "coding": "pydicom",
+        "research": "imaging-data-commons"
+      }
+    },
+    {
+      "id": "science-lab-automation",
+      "priority": 86,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "opentrons",
+        "ot-2",
+        "ot2",
+        "opentrons flex",
+        "pylabrobot",
+        "hamilton",
+        "tecan",
+        "protocols.io",
+        "protocolsio",
+        "benchling",
+        "labarchives",
+        "labarchive",
+        "ginkgo cloud lab",
+        "cloud.ginkgo.bio",
+        "ginkgo bioworks cloud lab"
+      ],
+      "skill_candidates": [
+        "opentrons-integration",
+        "pylabrobot",
+        "protocolsio-integration",
+        "benchling-integration",
+        "labarchive-integration",
+        "ginkgo-cloud-lab"
+      ],
+      "route_authority_candidates": [
+        "opentrons-integration",
+        "pylabrobot",
+        "protocolsio-integration",
+        "benchling-integration",
+        "labarchive-integration",
+        "ginkgo-cloud-lab"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "protocolsio-integration",
+        "coding": "opentrons-integration",
+        "research": "protocolsio-integration"
+      }
+    },
+    {
+      "id": "science-communication-slides",
+      "priority": 85,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "slides",
+        "slide deck",
+        "ppt",
+        "pptx",
+        "powerpoint",
+        "presentation",
+        "talk",
+        "seminar",
+        "defense",
+        "slidev",
+        "marp",
+        "reveal.js",
+        "quarto slides",
+        "slides as code",
+        "幻灯片",
+        "演示文稿",
+        "组会汇报",
+        "答辩",
+        "路演",
+        "学术报告"
+      ],
+      "skill_candidates": [
+        "scientific-slides",
+        "slides-as-code",
+        "pptx-posters",
+        "infographics"
+      ],
+      "route_authority_candidates": [
+        "scientific-slides",
+        "slides-as-code",
+        "pptx-posters",
+        "infographics"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "scientific-slides",
+        "coding": "slides-as-code",
+        "research": "scientific-slides"
+      }
+    },
+    {
+      "id": "web-scraping",
+      "priority": 86,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "coding",
+        "research",
+        "debug"
+      ],
+      "trigger_keywords": [
+        "scrapling",
+        "scrape",
+        "scraping",
+        "web scraping",
+        "scraper",
+        "crawl",
+        "crawler",
+        "spider",
+        "html parse",
+        "parse html",
+        "css selector",
+        "xpath",
+        "cloudflare",
+        "turnstile",
+        "captcha",
+        "anti-bot",
+        "headless browser",
+        "playwright",
+        "browser automation",
+        "browser test",
+        "form filling",
+        "login flow",
+        "dynamic page",
+        "screenshot flow",
+        "爬虫",
+        "抓取",
+        "采集",
+        "网页抓取",
+        "网页采集",
+        "反爬",
+        "验证码",
+        "无头浏览器",
+        "浏览器自动化",
+        "登录表单",
+        "动态页面",
+        "截图调试",
+        "解析html",
+        "选择器"
+      ],
+      "skill_candidates": [
+        "scrapling",
+        "playwright"
+      ],
+      "route_authority_candidates": [
+        "scrapling",
+        "playwright"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "coding": "scrapling",
+        "research": "scrapling",
+        "debug": "playwright"
+      }
+    },
+    {
+      "id": "docs-media",
+      "priority": 85,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "review",
+        "research"
+      ],
+      "trigger_keywords": [
+        "document",
+        "pdf extract",
+        "pdf extraction",
+        "extract text",
+        "读取pdf",
+        "读取 PDF",
+        "提取pdf文本",
+        "提取 PDF 文本",
+        "提取正文",
+        "PDF 正文",
+        "spreadsheet",
+        "excel",
+        "文档",
+        "说明文档",
+        "表格",
+        "电子表格",
+        "批注",
+        "回复批注",
+        "word批注",
+        "评论线程",
+        "comments.xml",
+        "commentsextended.xml"
+      ],
+      "skill_candidates": [
+        "docs-write",
+        "docs-review",
+        "docx",
+        "docx-comment-reply",
+        "pdf",
+        "spreadsheet",
+        "xlsx",
+        "xan"
+      ],
+      "route_authority_candidates": [
+        "docs-write",
+        "docs-review",
+        "docx",
+        "docx-comment-reply",
+        "pdf",
+        "spreadsheet",
+        "xlsx",
+        "xan"
+      ],
+      "defaults_by_task": {
+        "planning": "docs-write",
+        "coding": "spreadsheet",
+        "review": "docs-review",
+        "research": "pdf"
+      }
+    },
+    {
+      "id": "screen-capture",
+      "priority": 84,
+      "grade_allow": [
+        "M",
+        "L"
+      ],
+      "task_allow": [
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "screenshot",
+        "screen capture",
+        "capture screen",
+        "desktop screenshot",
+        "window screenshot",
+        "截屏",
+        "截图",
+        "桌面截图",
+        "窗口截图",
+        "屏幕快照"
+      ],
+      "skill_candidates": [
+        "screenshot"
+      ],
+      "route_authority_candidates": [
+        "screenshot"
+      ],
+      "defaults_by_task": {
+        "coding": "screenshot",
+        "research": "screenshot"
+      }
+    },
+    {
+      "id": "media-video",
+      "priority": 86,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "debug",
+        "research"
+      ],
+      "trigger_keywords": [
+        "video",
+        "videos",
+        "video editing",
+        "edit video",
+        "clip",
+        "clips",
+        "highlight reel",
+        "b-roll",
+        "subtitle",
+        "subtitles",
+        "caption",
+        "captions",
+        "transition",
+        "transitions",
+        "fade",
+        "montage",
+        "ffmpeg",
+        "ffprobe",
+        "remotion",
+        "capcut",
+        "剪映",
+        "视频",
+        "做视频",
+        "视频制作",
+        "视频剪辑",
+        "剪辑",
+        "混剪",
+        "字幕",
+        "转场",
+        "片头",
+        "片尾",
+        "配音",
+        "口播",
+        "bgm",
+        "去静音",
+        "去掉静音",
+        "音量标准化",
+        "画面节奏",
+        "jumpcut",
+        "jump cut",
+        "jump-cut",
+        "remove silence",
+        "silence removal",
+        "silencedetect",
+        "srt",
+        "burn subtitles",
+        "去停顿",
+        "剪掉停顿",
+        "口播剪辑",
+        "audio",
+        "speech",
+        "transcribe",
+        "text to speech",
+        "tts",
+        "voiceover",
+        "meeting transcript",
+        "语音",
+        "转录",
+        "录音",
+        "会议录音",
+        "说话人",
+        "文字转录",
+        "语音合成",
+        "文本转语音"
+      ],
+      "skill_candidates": [
+        "video-studio",
+        "transcribe",
+        "speech"
+      ],
+      "route_authority_candidates": [
+        "video-studio",
+        "transcribe",
+        "speech"
+      ],
+      "defaults_by_task": {
+        "planning": "video-studio",
+        "coding": "video-studio",
+        "debug": "video-studio",
+        "research": "video-studio"
+      }
+    },
+    {
+      "id": "docs-markitdown-conversion",
+      "priority": 94,
+      "grade_allow": [
+        "M",
+        "L"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "markitdown",
+        "convert to markdown",
+        "pdf to markdown",
+        "docx to markdown",
+        "转成 markdown",
+        "转成markdown",
+        "markdown转换"
+      ],
+      "skill_candidates": [
+        "markitdown"
+      ],
+      "route_authority_candidates": [
+        "markitdown"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "markitdown",
+        "coding": "markitdown",
+        "research": "markitdown"
+      }
+    },
+    {
+      "id": "finance-edgar-macro",
+      "priority": 84,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "edgar",
+        "sec",
+        "10-k",
+        "10q",
+        "13f",
+        "alpha vantage",
+        "fred",
+        "treasury",
+        "us fiscal",
+        "ofr",
+        "hedge fund",
+        "data commons",
+        "datacommons",
+        "public statistical data",
+        "财报",
+        "美国证监会",
+        "宏观数据",
+        "人口经济指标",
+        "国债",
+        "财政数据",
+        "fomc"
+      ],
+      "skill_candidates": [
+        "edgartools",
+        "alpha-vantage",
+        "fred-economic-data",
+        "usfiscaldata",
+        "hedgefundmonitor",
+        "market-research-reports",
+        "datacommons-client"
+      ],
+      "route_authority_candidates": [
+        "edgartools",
+        "alpha-vantage",
+        "fred-economic-data",
+        "usfiscaldata",
+        "hedgefundmonitor",
+        "market-research-reports",
+        "datacommons-client"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "market-research-reports",
+        "coding": "edgartools",
+        "research": "edgartools"
+      }
+    },
+    {
+      "id": "integration-devops",
+      "priority": 83,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "debug"
+      ],
+      "trigger_keywords": [
+        "deploy",
+        "ci",
+        "cd",
+        "mcp",
+        "sentry",
+        "vercel",
+        "netlify",
+        "node zombie",
+        "zombie node",
+        "orphan node",
+        "devops",
+        "部署",
+        "流水线",
+        "持续集成",
+        "持续交付",
+        "僵尸node",
+        "僵尸进程",
+        "github actions",
+        "日志排查",
+        "线上告警"
+      ],
+      "skill_candidates": [
+        "gh-fix-ci",
+        "mcp-integration",
+        "sentry",
+        "vercel-deploy",
+        "netlify-deploy",
+        "node-zombie-guardian"
+      ],
+      "route_authority_candidates": [
+        "gh-fix-ci",
+        "mcp-integration",
+        "sentry",
+        "vercel-deploy",
+        "netlify-deploy",
+        "node-zombie-guardian"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "debug": "gh-fix-ci",
+        "planning": "mcp-integration",
+        "coding": "vercel-deploy"
+      }
+    },
+    {
+      "id": "ai-llm",
+      "priority": 82,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research",
+        "review"
+      ],
+      "trigger_keywords": [
+        "llm",
+        "prompt",
+        "prompts.chat",
+        "openai",
+        "model eval",
+        "rag",
+        "embedding",
+        "大模型",
+        "提示词",
+        "system prompt",
+        "模型评测",
+        "向量检索",
+        "嵌入",
+        "responses api",
+        "openai文档",
+        "提示词模板",
+        "vector search",
+        "vector database",
+        "nearest neighbor",
+        "similarity search",
+        "semantic retrieval",
+        "chunking",
+        "embedding策略",
+        "分块",
+        "向量搜索",
+        "向量数据库",
+        "相似度搜索",
+        "embedding pipeline",
+        "improve prompt",
+        "optimize prompt",
+        "提示词优化",
+        "改进提示词"
+      ],
+      "skill_candidates": [
+        "openai-docs",
+        "prompt-lookup",
+        "embedding-strategies",
+        "similarity-search-patterns",
+        "evaluating-llms-harness"
+      ],
+      "route_authority_candidates": [
+        "openai-docs",
+        "prompt-lookup",
+        "embedding-strategies",
+        "similarity-search-patterns",
+        "evaluating-llms-harness"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "embedding-strategies",
+        "review": "evaluating-llms-harness",
+        "coding": "openai-docs",
+        "research": "openai-docs"
+      }
+    },
+    {
+      "id": "ip-uspto-patents",
+      "priority": 81,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "uspto",
+        "patent",
+        "patents",
+        "专利",
+        "专利检索",
+        "claims",
+        "patent metadata"
+      ],
+      "skill_candidates": [
+        "uspto-database"
+      ],
+      "route_authority_candidates": [
+        "uspto-database"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "uspto-database",
+        "coding": "uspto-database",
+        "research": "uspto-database"
+      }
+    },
+    {
+      "id": "science-astropy",
+      "priority": 81,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "astropy",
+        "astronomy",
+        "fits",
+        "天文",
+        "天球坐标",
+        "赤经",
+        "赤纬",
+        "wcs",
+        "天文数据"
+      ],
+      "skill_candidates": [
+        "astropy"
+      ],
+      "route_authority_candidates": [
+        "astropy"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "astropy",
+        "coding": "astropy",
+        "research": "astropy"
+      }
+    },
+    {
+      "id": "science-pymatgen",
+      "priority": 81,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "pymatgen",
+        "materials",
+        "crystal",
+        "phase diagram",
+        "材料",
+        "晶体",
+        "相图",
+        "cif",
+        "crystal structure",
+        "晶体结构"
+      ],
+      "skill_candidates": [
+        "pymatgen"
+      ],
+      "route_authority_candidates": [
+        "pymatgen"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "pymatgen",
+        "coding": "pymatgen",
+        "research": "pymatgen"
+      }
+    },
+    {
+      "id": "science-geospatial",
+      "priority": 80,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "geopandas",
+        "geojson",
+        "shapefile",
+        "gis",
+        "geospatial",
+        "地图",
+        "地理",
+        "经纬度"
+      ],
+      "skill_candidates": [
+        "geopandas",
+        "geomaster"
+      ],
+      "route_authority_candidates": [
+        "geopandas",
+        "geomaster"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "geopandas",
+        "coding": "geopandas",
+        "research": "geomaster"
+      }
+    },
+    {
+      "id": "science-tiledbvcf",
+      "priority": 93,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "tiledb-vcf",
+        "tiledb vcf",
+        "tiledbvcf"
+      ],
+      "skill_candidates": [
+        "tiledbvcf"
+      ],
+      "route_authority_candidates": [
+        "tiledbvcf"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "tiledbvcf",
+        "coding": "tiledbvcf",
+        "research": "tiledbvcf"
+      }
+    },
+    {
+      "id": "science-simpy-simulation",
+      "priority": 82,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "simpy",
+        "discrete event simulation",
+        "queue simulation",
+        "resource process",
+        "离散事件仿真"
+      ],
+      "skill_candidates": [
+        "simpy"
+      ],
+      "route_authority_candidates": [
+        "simpy"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "simpy",
+        "coding": "simpy",
+        "research": "simpy"
+      }
+    },
+    {
+      "id": "science-fluidsim-cfd",
+      "priority": 81,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "fluidsim",
+        "cfd",
+        "navier-stokes",
+        "turbulence",
+        "流体仿真"
+      ],
+      "skill_candidates": [
+        "fluidsim"
+      ],
+      "route_authority_candidates": [
+        "fluidsim"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "fluidsim",
+        "coding": "fluidsim",
+        "research": "fluidsim"
+      }
+    },
+    {
+      "id": "science-matchms-spectra",
+      "priority": 82,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "matchms",
+        "mass spectra",
+        "ms/ms",
+        "spectral similarity",
+        "质谱"
+      ],
+      "skill_candidates": [
+        "matchms"
+      ],
+      "route_authority_candidates": [
+        "matchms"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "matchms",
+        "coding": "matchms",
+        "research": "matchms"
+      }
+    },
+    {
+      "id": "science-matlab-octave",
+      "priority": 80,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "matlab",
+        "octave",
+        ".m script",
+        "simulink",
+        "矩阵计算"
+      ],
+      "skill_candidates": [
+        "matlab"
+      ],
+      "route_authority_candidates": [
+        "matlab"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "matlab",
+        "coding": "matlab",
+        "research": "matlab"
+      }
+    },
+    {
+      "id": "science-neuropixels",
+      "priority": 86,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "neuropixels",
+        "kilosort",
+        "spike sorting",
+        "spikeglx",
+        "electrophysiology",
+        "神经电生理"
+      ],
+      "skill_candidates": [
+        "neuropixels-analysis"
+      ],
+      "route_authority_candidates": [
+        "neuropixels-analysis"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "neuropixels-analysis",
+        "coding": "neuropixels-analysis",
+        "research": "neuropixels-analysis"
+      }
+    },
+    {
+      "id": "science-pymc-bayesian",
+      "priority": 85,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "pymc",
+        "bayesian",
+        "mcmc",
+        "nuts",
+        "贝叶斯"
+      ],
+      "skill_candidates": [
+        "pymc"
+      ],
+      "route_authority_candidates": [
+        "pymc"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "pymc",
+        "coding": "pymc",
+        "research": "pymc"
+      }
+    },
+    {
+      "id": "science-pymoo-optimization",
+      "priority": 85,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "pymoo",
+        "multi-objective",
+        "nsga-ii",
+        "pareto",
+        "多目标优化"
+      ],
+      "skill_candidates": [
+        "pymoo"
+      ],
+      "route_authority_candidates": [
+        "pymoo"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "pymoo",
+        "coding": "pymoo",
+        "research": "pymoo"
+      }
+    },
+    {
+      "id": "science-rowan-chemistry",
+      "priority": 82,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "rowan api",
+        "quantum chemistry",
+        "autodock vina",
+        "pka prediction",
+        "geometry optimization",
+        "量子化学",
+        "分子对接",
+        "rowan",
+        "rowan chemistry",
+        "conformer search"
+      ],
+      "skill_candidates": [
+        "rowan"
+      ],
+      "route_authority_candidates": [
+        "rowan"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "rowan",
+        "coding": "rowan",
+        "research": "rowan"
+      }
+    },
+    {
+      "id": "ml-stable-baselines3",
+      "priority": 84,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "stable-baselines3",
+        "sb3",
+        "ppo",
+        "sac",
+        "dqn",
+        "reinforcement learning",
+        "强化学习"
+      ],
+      "skill_candidates": [
+        "stable-baselines3"
+      ],
+      "route_authority_candidates": [
+        "stable-baselines3"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "stable-baselines3",
+        "coding": "stable-baselines3",
+        "research": "stable-baselines3"
+      }
+    },
+    {
+      "id": "science-timesfm-forecasting",
+      "priority": 84,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "timesfm",
+        "time series forecasting",
+        "zero-shot forecasting",
+        "prediction intervals",
+        "时间序列预测"
+      ],
+      "skill_candidates": [
+        "timesfm-forecasting"
+      ],
+      "route_authority_candidates": [
+        "timesfm-forecasting"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "timesfm-forecasting",
+        "coding": "timesfm-forecasting",
+        "research": "timesfm-forecasting"
+      }
+    },
+    {
+      "id": "ml-torch-geometric",
+      "priority": 83,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "torch-geometric",
+        "torch_geometric",
+        "pyg",
+        "pytorch geometric",
+        "graph neural network",
+        "gnn",
+        "图神经网络"
+      ],
+      "skill_candidates": [
+        "torch-geometric"
+      ],
+      "route_authority_candidates": [
+        "torch-geometric"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "torch-geometric",
+        "coding": "torch-geometric",
+        "research": "torch-geometric"
+      }
+    },
+    {
+      "id": "science-zarr-polars",
+      "priority": 80,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "polars",
+        "vaex",
+        "zarr",
+        "parquet"
+      ],
+      "skill_candidates": [
+        "polars",
+        "vaex",
+        "zarr-python"
+      ],
+      "route_authority_candidates": [
+        "polars",
+        "vaex",
+        "zarr-python"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "zarr-python",
+        "coding": "polars",
+        "research": "vaex"
+      }
+    },
+    {
+      "id": "design-implementation",
+      "priority": 98,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding"
+      ],
+      "trigger_keywords": [
+        "figma",
+        "figma to code",
+        "implement design",
+        "design implementation",
+        "design to code",
+        "frontend implementation",
+        "Figma 设计稿",
+        "figma设计稿",
+        "设计稿还原",
+        "还原为可运行代码",
+        "设计转代码",
+        "按 Figma 开发",
+        "按figma开发",
+        "UI 还原",
+        "UI还原"
+      ],
+      "skill_candidates": [
+        "figma-implement-design"
+      ],
+      "route_authority_candidates": [
+        "figma-implement-design"
+      ],
+      "defaults_by_task": {
+        "planning": "figma-implement-design",
+        "coding": "figma-implement-design"
+      }
+    },
+    {
+      "id": "research-design",
+      "priority": 80,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "research",
+        "review"
+      ],
+      "trigger_keywords": [
+        "research design",
+        "research methodology",
+        "methodology",
+        "experimental design",
+        "experiment design",
+        "quasi-experimental",
+        "difference-in-differences",
+        "difference in differences",
+        "did",
+        "interrupted time series",
+        "its",
+        "synthetic control",
+        "causal analysis",
+        "causal inference",
+        "regression analysis",
+        "scientific hypothesis",
+        "hypothesis generation",
+        "hypogenic",
+        "research grant",
+        "grant proposal",
+        "research proposal",
+        "scientific brainstorming",
+        "literature matrix",
+        "研究设计",
+        "研究方法",
+        "方法学",
+        "实验设计",
+        "准实验",
+        "差分中的差分",
+        "中断时间序列",
+        "合成控制",
+        "因果分析",
+        "因果推断",
+        "回归分析",
+        "科研假设",
+        "假设生成",
+        "科研基金",
+        "基金申请",
+        "研究创新点",
+        "科研头脑风暴",
+        "实验失败"
+      ],
+      "skill_candidates": [
+        "designing-experiments",
+        "experiment-failure-analysis",
+        "hypogenic",
+        "hypothesis-generation",
+        "literature-matrix",
+        "performing-causal-analysis",
+        "performing-regression-analysis",
+        "research-grants",
+        "scientific-brainstorming"
+      ],
+      "route_authority_candidates": [
+        "designing-experiments",
+        "experiment-failure-analysis",
+        "hypogenic",
+        "hypothesis-generation",
+        "literature-matrix",
+        "performing-causal-analysis",
+        "performing-regression-analysis",
+        "research-grants",
+        "scientific-brainstorming"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "designing-experiments",
+        "review": "experiment-failure-analysis",
+        "research": "hypothesis-generation"
+      }
+    },
+    {
+      "id": "scholarly-publishing-workflow",
+      "priority": 97,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "scholarly publishing",
+        "publishing workflow",
+        "journal submission workflow",
+        "submission",
+        "rebuttal",
+        "revision",
+        "resubmission",
+        "camera-ready",
+        "proof",
+        "cover letter",
+        "response to reviewers",
+        "submission checklist",
+        "submission package",
+        "manuscript as code",
+        "paper as code",
+        "reproducible manuscript",
+        "venue template",
+        "submission guidelines",
+        "formatting requirements",
+        "anonymous submission",
+        "page limit",
+        "latexmk",
+        "latexindent",
+        "chktex",
+        "latex",
+        "latex paper",
+        "latex manuscript",
+        "latex pdf",
+        "paper pdf build",
+        "manuscript pdf build",
+        "compile paper",
+        "submission zip",
+        "beamerposter",
+        "paper2web",
+        "paper2poster",
+        "paper2video",
+        "scientific writing",
+        "imrad",
+        "manuscript prose",
+        "投稿",
+        "投稿流程",
+        "期刊投稿",
+        "投稿包",
+        "投稿清单",
+        "返修",
+        "回复审稿意见",
+        "相机就绪",
+        "校样",
+        "论文工程化",
+        "可复现写作",
+        "投稿模板",
+        "格式要求",
+        "匿名投稿",
+        "页数限制",
+        "LaTeX 论文",
+        "LaTeX 写论文",
+        "LaTeX 论文 PDF",
+        "写成论文 PDF",
+        "论文 PDF",
+        "PDF 构建",
+        "生成论文 PDF",
+        "编译论文",
+        "论文编译",
+        "可投稿 PDF",
+        "学术海报",
+        "论文转网站",
+        "科研写作",
+        "论文正文"
+      ],
+      "skill_candidates": [
+        "scholarly-publishing",
+        "submission-checklist",
+        "manuscript-as-code",
+        "latex-submission-pipeline",
+        "scientific-writing",
+        "venue-templates",
+        "latex-posters",
+        "paper-2-web"
+      ],
+      "route_authority_candidates": [
+        "scholarly-publishing",
+        "submission-checklist",
+        "manuscript-as-code",
+        "latex-submission-pipeline",
+        "scientific-writing",
+        "venue-templates",
+        "latex-posters",
+        "paper-2-web"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "scholarly-publishing",
+        "coding": "latex-submission-pipeline",
+        "research": "scientific-writing"
+      }
+    },
+    {
+      "id": "science-figures-visualization",
+      "priority": 91,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "作图",
+        "画图",
+        "科研绘图",
+        "顶刊作图",
+        "投稿图",
+        "figure",
+        "subplot",
+        "multi-panel",
+        "panel",
+        "matplotlib",
+        "seaborn",
+        "plotly",
+        "tiff",
+        "dpi",
+        "600dpi",
+        "vector",
+        "eps",
+        "svg",
+        "colorblind",
+        "data visualization",
+        "result visualization",
+        "result figure",
+        "result figures",
+        "analysis figure",
+        "model result figure",
+        "model evaluation plot",
+        "色盲",
+        "配色",
+        "误差棒",
+        "显著性",
+        "数据可视化",
+        "结果图",
+        "结果可视化",
+        "模型结果图",
+        "模型评估图",
+        "评估结果图"
+      ],
+      "skill_candidates": [
+        "scientific-visualization",
+        "scientific-schematics"
+      ],
+      "route_authority_candidates": [
+        "scientific-visualization",
+        "scientific-schematics"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "scientific-visualization",
+        "coding": "scientific-visualization",
+        "research": "scientific-visualization"
+      }
+    },
+    {
+      "id": "science-reporting",
+      "priority": 88,
+      "grade_allow": [
+        "M",
+        "L",
+        "XL"
+      ],
+      "task_allow": [
+        "planning",
+        "coding",
+        "research"
+      ],
+      "trigger_keywords": [
+        "科研报告",
+        "技术报告",
+        "项目报告",
+        "实验报告",
+        "分析报告",
+        "html报告",
+        "pdf报告",
+        "执行摘要",
+        "附录",
+        "复现",
+        "technical report",
+        "research report",
+        "analysis report",
+        "executive summary",
+        "appendix",
+        "reproducible",
+        "quarto",
+        "rmarkdown",
+        "whitepaper"
+      ],
+      "skill_candidates": [
+        "scientific-reporting",
+        "scientific-writing"
+      ],
+      "route_authority_candidates": [
+        "scientific-reporting",
+        "scientific-writing"
+      ],
+      "stage_assistant_candidates": [],
+      "defaults_by_task": {
+        "planning": "scientific-reporting",
+        "coding": "scientific-reporting",
+        "research": "scientific-reporting"
+      }
+    }
+  ]
 }
