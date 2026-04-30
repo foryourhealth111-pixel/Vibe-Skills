@@ -1643,77 +1643,6 @@
         "空间病理"
       ]
     },
-    "opentrons-integration": {
-      "keywords": [
-        "opentrons",
-        "ot-2",
-        "ot2",
-        "opentrons flex",
-        "opentrons protocol",
-        "opentrons thermocycler",
-        "opentrons module",
-        "opentrons api",
-        "opentrons pipetting robot",
-        "opentrons 移液机器人"
-      ]
-    },
-    "pylabrobot": {
-      "keywords": [
-        "pylabrobot",
-        "hamilton",
-        "tecan",
-        "multi-vendor lab automation",
-        "liquid handling workflow",
-        "deck layout",
-        "resource simulation",
-        "plate reader",
-        "液体处理机器人"
-      ]
-    },
-    "protocolsio-integration": {
-      "keywords": [
-        "protocolsio",
-        "protocols.io api",
-        "protocols.io search",
-        "protocols.io publish",
-        "protocols.io workspace",
-        "protocols.io file attachment",
-        "protocols.io protocol",
-        "protocols.io 查找",
-        "publish to protocols.io",
-        "protocol to protocols.io",
-        "attachments to protocols.io"
-      ]
-    },
-    "benchling-integration": {
-      "keywords": [
-        "benchling",
-        "benchling registry",
-        "benchling inventory",
-        "benchling eln",
-        "benchling data warehouse",
-        "benchling workflow",
-        "benchling app",
-        "benchling entry",
-        "benchling sample management",
-        "benchling 样品管理"
-      ]
-    },
-    "labarchive-integration": {
-      "keywords": [
-        "labarchives",
-        "labarchives api",
-        "labarchives notebook",
-        "labarchives entry",
-        "labarchives backup",
-        "labarchives entries",
-        "labarchives attachments",
-        "labarchives entry attachment",
-        "labarchives csv attachment",
-        "备份 LabArchives",
-        "LabArchives 附件"
-      ]
-    },
     "latchbio-integration": {
       "keywords": [
         "latchbio",
@@ -1727,18 +1656,6 @@
         "nextflow workflow",
         "bioinformatics workflow platform",
         "生信工作流平台"
-      ]
-    },
-    "ginkgo-cloud-lab": {
-      "keywords": [
-        "ginkgo cloud lab",
-        "cloud.ginkgo.bio",
-        "ginkgo bioworks cloud lab",
-        "cell-free protein expression",
-        "protocol pricing",
-        "cloud lab order",
-        "ginkgo validation run",
-        "云实验室下单"
       ]
     },
     "edgartools": {

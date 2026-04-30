@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-30T17:14:01+08:00",
+  "generated_at": "2026-04-30T18:32:24+08:00",
   "source": "bundled/skills",
-  "skill_count": 290,
-  "total_bytes": 19805920.0,
+  "skill_count": 284,
+  "total_bytes": 19488821.0,
   "skills": [
     {
       "name": ".system",
@@ -84,14 +84,6 @@
       "bytes": 249280,
       "skill_md_hash": "627a7475e7c15ea3e42494e85485de832535f511a7d49c81fd8ceb1588c90397",
       "dir_hash": "2357a9bec1b80287ca9325b572c3e365b2100dfc7484d6d6c8bf55c2bb78a7b6"
-    },
-    {
-      "name": "benchling-integration",
-      "relative_path": "bundled/skills/benchling-integration",
-      "file_count": 4,
-      "bytes": 55036,
-      "skill_md_hash": "4305f084ed93ac4efc47a74e31331adeabda692851d087eabe056605ca84cdea",
-      "dir_hash": "ec5be60a336b3d6b0b440147086cd03211f497c7a3ab5ee4a22648688f4f6e9f"
     },
     {
       "name": "bgpt-paper-search",
@@ -742,14 +734,6 @@
       "dir_hash": "0236ac399e18ed8258c7960ee7402e2200277d66374a17448f2f8f72b8bd2a33"
     },
     {
-      "name": "ginkgo-cloud-lab",
-      "relative_path": "bundled/skills/ginkgo-cloud-lab",
-      "file_count": 4,
-      "bytes": 10906,
-      "skill_md_hash": "cb52652c0d44f34d1752d642093836227dea0a159c43edf9707d2bbd9bd7522d",
-      "dir_hash": "e69299411befabf35a0a78401d829197037fa0f9c29d22bc9a9374b716763bd3"
-    },
-    {
       "name": "gradient-methods",
       "relative_path": "bundled/skills/gradient-methods",
       "file_count": 1,
@@ -868,14 +852,6 @@
       "bytes": 96245,
       "skill_md_hash": "3af4332f30a45b65410ad7dd61b6e4fe1e3ab1de0e69c8bfbb64d4adb10274c7",
       "dir_hash": "103b38f72dd2dfd522cde05a81b0a88e3910263d01f4847c3921064a37a9a7fb"
-    },
-    {
-      "name": "labarchive-integration",
-      "relative_path": "bundled/skills/labarchive-integration",
-      "file_count": 7,
-      "bytes": 68281,
-      "skill_md_hash": "6c68dca6355d46e2ff55c313b3166ceef6b5c6c9fbfa57e0ae03c0405b4ccc05",
-      "dir_hash": "f27876a6888565c8a2d94d7128a0ed3dce6e43b3b064a487dd5797b03dcac031"
     },
     {
       "name": "lamindb",
@@ -1166,14 +1142,6 @@
       "dir_hash": "e759bb9c1b32cc001500d412a3fb0c7a03e52adc497e036ad9d18c22c3d64229"
     },
     {
-      "name": "opentrons-integration",
-      "relative_path": "bundled/skills/opentrons-integration",
-      "file_count": 5,
-      "bytes": 37400,
-      "skill_md_hash": "27c87a247fa230f82c994bfd5e6bdb4cad6d07ec8a22314218e0b9ac9d615c0e",
-      "dir_hash": "d9b7f780a7d8153b995cf7d6c2ffb3af13c4fddc94955740b42b012e36ba111b"
-    },
-    {
       "name": "paper-2-web",
       "relative_path": "bundled/skills/paper-2-web",
       "file_count": 6,
@@ -1310,14 +1278,6 @@
       "dir_hash": "b16994d72a2efff72b4edb0ccd31b1117913f4976e40950ab52c607436a1d6ac"
     },
     {
-      "name": "protocolsio-integration",
-      "relative_path": "bundled/skills/protocolsio-integration",
-      "file_count": 7,
-      "bytes": 62378,
-      "skill_md_hash": "f7d45c56cce49276a26814e387245bdf1ff0f976d251d544f444517660632402",
-      "dir_hash": "9e82040600fb192f0433d767a52c0879f792ccc1f3374682cf3fe1a195cbc21a"
-    },
-    {
       "name": "providing-performance-optimization-advice",
       "relative_path": "bundled/skills/providing-performance-optimization-advice",
       "file_count": 7,
@@ -1380,14 +1340,6 @@
       "bytes": 88084,
       "skill_md_hash": "782127318c0c5f3581ae274f2ffa18a7ab229c3e218ec6da00fc639c631c8a9f",
       "dir_hash": "237cec218d3af4f9c2af8dad8a82d26ca0303b03c7ca759c5d60b379ba6690e7"
-    },
-    {
-      "name": "pylabrobot",
-      "relative_path": "bundled/skills/pylabrobot",
-      "file_count": 7,
-      "bytes": 83098,
-      "skill_md_hash": "d78a82ad4c0d2d3ce529aad6225ea210be8d69d11cdf9761d7ceb60adecd40ec",
-      "dir_hash": "4933f429172e012d2358ae9150e582dbe8c83c4c1a2ad6571a93629ccec0d7ab"
     },
     {
       "name": "pymatgen",

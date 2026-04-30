@@ -704,59 +704,6 @@
       }
     },
     {
-      "id": "science-lab-automation",
-      "priority": 86,
-      "grade_allow": [
-        "M",
-        "L",
-        "XL"
-      ],
-      "task_allow": [
-        "planning",
-        "coding",
-        "research"
-      ],
-      "trigger_keywords": [
-        "opentrons",
-        "ot-2",
-        "ot2",
-        "opentrons flex",
-        "pylabrobot",
-        "hamilton",
-        "tecan",
-        "protocols.io",
-        "protocolsio",
-        "benchling",
-        "labarchives",
-        "labarchive",
-        "ginkgo cloud lab",
-        "cloud.ginkgo.bio",
-        "ginkgo bioworks cloud lab"
-      ],
-      "skill_candidates": [
-        "opentrons-integration",
-        "pylabrobot",
-        "protocolsio-integration",
-        "benchling-integration",
-        "labarchive-integration",
-        "ginkgo-cloud-lab"
-      ],
-      "route_authority_candidates": [
-        "opentrons-integration",
-        "pylabrobot",
-        "protocolsio-integration",
-        "benchling-integration",
-        "labarchive-integration",
-        "ginkgo-cloud-lab"
-      ],
-      "stage_assistant_candidates": [],
-      "defaults_by_task": {
-        "planning": "protocolsio-integration",
-        "coding": "opentrons-integration",
-        "research": "protocolsio-integration"
-      }
-    },
-    {
       "id": "science-communication-slides",
       "priority": 85,
       "grade_allow": [

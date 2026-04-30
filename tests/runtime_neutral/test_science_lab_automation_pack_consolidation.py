@@ -12,7 +12,8 @@ sys.path.insert(0, str(REPO_ROOT / "packages" / "runtime-core" / "src"))
 from vgo_runtime.router_contract_runtime import route_prompt  # noqa: E402
 
 
-KEPT_SKILLS = [
+DELETED_PACK = "science-lab-automation"
+DELETED_SKILLS = [
     "opentrons-integration",
     "pylabrobot",
     "protocolsio-integration",
@@ -21,9 +22,13 @@ KEPT_SKILLS = [
     "ginkgo-cloud-lab",
 ]
 
-MOVED_OUT_SKILLS = [
+OUT_OF_SCOPE_SKILLS = [
     "latchbio-integration",
 ]
+
+
+def load_json(path: Path) -> dict[str, object]:
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def route(prompt: str, task_type: str = "research", grade: str = "L") -> dict[str, object]:
@@ -58,206 +63,126 @@ def ranked_summary(result: dict[str, object]) -> list[tuple[str, str, float, str
     return rows
 
 
-def pack_by_id(pack_id: str) -> dict[str, object]:
-    manifest_path = REPO_ROOT / "config" / "pack-manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+def manifest_pack_ids() -> set[str]:
+    manifest = load_json(REPO_ROOT / "config" / "pack-manifest.json")
     packs = manifest.get("packs")
     assert isinstance(packs, list), manifest
+    return {str(pack.get("id")) for pack in packs if isinstance(pack, dict)}
+
+
+def manifest_skill_ids() -> set[str]:
+    manifest = load_json(REPO_ROOT / "config" / "pack-manifest.json")
+    packs = manifest.get("packs")
+    assert isinstance(packs, list), manifest
+    skill_ids: set[str] = set()
     for pack in packs:
         assert isinstance(pack, dict), pack
-        if pack.get("id") == pack_id:
-            return pack
-    raise AssertionError(f"pack missing: {pack_id}")
+        for field in ("skill_candidates", "route_authority_candidates", "stage_assistant_candidates"):
+            values = pack.get(field) or []
+            assert isinstance(values, list), pack
+            skill_ids.update(str(value) for value in values)
+        defaults = pack.get("defaults_by_task") or {}
+        assert isinstance(defaults, dict), pack
+        skill_ids.update(str(value) for value in defaults.values())
+    return skill_ids
 
 
-class ScienceLabAutomationPackConsolidationTests(unittest.TestCase):
-    def assert_selected(
+def skill_index_ids() -> set[str]:
+    payload = load_json(REPO_ROOT / "config" / "skill-keyword-index.json")
+    skills = payload.get("skills")
+    assert isinstance(skills, dict), payload
+    return {str(key) for key in skills.keys()}
+
+
+def routing_rule_ids() -> set[str]:
+    payload = load_json(REPO_ROOT / "config" / "skill-routing-rules.json")
+    skills = payload.get("skills")
+    assert isinstance(skills, dict), payload
+    return {str(key) for key in skills.keys()}
+
+
+def lock_skill_ids() -> set[str]:
+    payload = load_json(REPO_ROOT / "config" / "skills-lock.json")
+    skills = payload.get("skills")
+    assert isinstance(skills, list), payload
+    return {str(row.get("name")) for row in skills if isinstance(row, dict)}
+
+
+class ScienceLabAutomationPackDeletionTests(unittest.TestCase):
+    def assert_deleted_pack_not_selected(
         self,
         prompt: str,
-        expected_pack: str,
-        expected_skill: str,
         *,
         task_type: str = "research",
         grade: str = "L",
     ) -> None:
         result = route(prompt, task_type=task_type, grade=grade)
-        self.assertEqual((expected_pack, expected_skill), selected(result), ranked_summary(result))
+        pack_id, skill_id = selected(result)
+        self.assertNotEqual(DELETED_PACK, pack_id, ranked_summary(result))
+        self.assertNotIn(skill_id, DELETED_SKILLS, ranked_summary(result))
 
-    def assert_not_science_lab_automation(
-        self,
-        prompt: str,
-        *,
-        task_type: str = "research",
-        grade: str = "L",
-    ) -> None:
-        result = route(prompt, task_type=task_type, grade=grade)
-        self.assertNotEqual("science-lab-automation", selected(result)[0], ranked_summary(result))
+    def test_pack_manifest_removes_deleted_pack(self) -> None:
+        self.assertNotIn(DELETED_PACK, manifest_pack_ids())
 
-    def test_manifest_shrinks_to_six_route_owners(self) -> None:
-        pack = pack_by_id("science-lab-automation")
-        self.assertEqual(KEPT_SKILLS, pack.get("skill_candidates"))
-        self.assertEqual(KEPT_SKILLS, pack.get("route_authority_candidates"))
-        self.assertEqual([], pack.get("stage_assistant_candidates"))
+    def test_deleted_skills_removed_from_manifest_surfaces(self) -> None:
+        remaining_manifest_skills = manifest_skill_ids()
+        for skill_id in DELETED_SKILLS:
+            with self.subTest(skill_id=skill_id):
+                self.assertNotIn(skill_id, remaining_manifest_skills)
 
-    def test_manifest_removes_latchbio_from_lab_automation(self) -> None:
-        pack = pack_by_id("science-lab-automation")
-        candidates = set(pack.get("skill_candidates") or [])
-        for skill in MOVED_OUT_SKILLS:
-            self.assertNotIn(skill, candidates)
+    def test_deleted_skills_removed_from_keyword_index_and_routing_rules(self) -> None:
+        keyword_ids = skill_index_ids()
+        rule_ids = routing_rule_ids()
+        for skill_id in DELETED_SKILLS:
+            with self.subTest(skill_id=skill_id):
+                self.assertNotIn(skill_id, keyword_ids)
+                self.assertNotIn(skill_id, rule_ids)
 
-    def test_defaults_match_kept_route_owners(self) -> None:
-        pack = pack_by_id("science-lab-automation")
-        self.assertEqual(
-            {
-                "planning": "protocolsio-integration",
-                "coding": "opentrons-integration",
-                "research": "protocolsio-integration",
-            },
-            pack.get("defaults_by_task"),
-        )
+    def test_deleted_skills_removed_from_skills_lock(self) -> None:
+        lock_ids = lock_skill_ids()
+        for skill_id in DELETED_SKILLS:
+            with self.subTest(skill_id=skill_id):
+                self.assertNotIn(skill_id, lock_ids)
 
-    def test_opentrons_ot2_protocol_routes_to_opentrons(self) -> None:
-        self.assert_selected(
-            "写一个 Opentrons OT-2 protocol：96孔板分液 + 混匀，输出可运行脚本",
-            "science-lab-automation",
-            "opentrons-integration",
-            task_type="coding",
-            grade="M",
-        )
+    def test_deleted_skill_directories_are_absent(self) -> None:
+        for skill_id in DELETED_SKILLS:
+            with self.subTest(skill_id=skill_id):
+                self.assertFalse((REPO_ROOT / "bundled" / "skills" / skill_id).exists())
 
-    def test_opentrons_flex_module_routes_to_opentrons(self) -> None:
-        self.assert_selected(
-            "用 Opentrons Flex 和 thermocycler module 写一个 PCR setup protocol",
-            "science-lab-automation",
-            "opentrons-integration",
-            task_type="coding",
-            grade="M",
-        )
+    def test_out_of_scope_latchbio_is_not_deleted_by_this_pass(self) -> None:
+        for skill_id in OUT_OF_SCOPE_SKILLS:
+            with self.subTest(skill_id=skill_id):
+                self.assertTrue((REPO_ROOT / "bundled" / "skills" / skill_id / "SKILL.md").is_file())
 
-    def test_pylabrobot_hamilton_tecan_routes_to_pylabrobot(self) -> None:
-        self.assert_selected(
-            "用 PyLabRobot 控制 Hamilton 和 Tecan 液体处理机器人，统一调度 plate reader",
-            "science-lab-automation",
-            "pylabrobot",
-            task_type="coding",
-            grade="M",
-        )
+    def test_deleted_product_prompts_do_not_route_to_deleted_pack(self) -> None:
+        cases = [
+            ("写一个 Opentrons OT-2 protocol：96孔板分液 + 混匀，输出可运行脚本", "coding", "M"),
+            ("用 Opentrons Flex 和 thermocycler module 写一个 PCR setup protocol", "coding", "M"),
+            ("用 PyLabRobot 控制 Hamilton 和 Tecan 液体处理机器人，统一调度 plate reader", "coding", "M"),
+            ("在 protocols.io 查找 PCR protocol，并总结关键步骤与关键试剂", "research", "M"),
+            ("用 protocols.io API 创建并发布一个实验 protocol，包含 workspace 和文件附件", "coding", "M"),
+            ("查询 Benchling registry 里的 DNA sequence 和 inventory containers，并导出样品表", "coding", "M"),
+            ("备份 LabArchives notebook，导出 entries、attachments 和 JSON metadata", "coding", "M"),
+            ("在 Ginkgo Cloud Lab / cloud.ginkgo.bio 准备下单输入并估算 protocol pricing", "planning", "M"),
+        ]
+        for prompt, task_type, grade in cases:
+            with self.subTest(prompt=prompt):
+                self.assert_deleted_pack_not_selected(prompt, task_type=task_type, grade=grade)
 
-    def test_pylabrobot_simulation_routes_to_pylabrobot(self) -> None:
-        self.assert_selected(
-            "用 pylabrobot resources 模拟 liquid handling workflow 和 deck layout",
-            "science-lab-automation",
-            "pylabrobot",
-            task_type="coding",
-            grade="M",
-        )
+    def test_existing_negative_boundaries_still_do_not_route_to_deleted_pack(self) -> None:
+        cases = [
+            ("用 LatchBio / Latch SDK 部署 Nextflow RNA-seq workflow，管理 LatchFile 和 LatchDir", "coding", "M"),
+            ("帮我整理电子实验记录 ELN 模板，不指定 Benchling 或 LabArchives", "planning", "M"),
+            ("把实验图片和 CSV 附件整理到实验记录里，不使用 LabArchives 或 Benchling", "planning", "M"),
+            ("写一个普通 wet-lab protocol 的 Markdown 文档，不使用 protocols.io 或机器人", "planning", "M"),
+        ]
+        for prompt, task_type, grade in cases:
+            with self.subTest(prompt=prompt):
+                self.assert_deleted_pack_not_selected(prompt, task_type=task_type, grade=grade)
 
-    def test_protocolsio_pcr_routes_to_protocolsio(self) -> None:
-        self.assert_selected(
-            "在 protocols.io 查找 PCR protocol，并总结关键步骤与关键试剂",
-            "science-lab-automation",
-            "protocolsio-integration",
-            grade="M",
-        )
-
-    def test_protocolsio_publish_routes_to_protocolsio(self) -> None:
-        self.assert_selected(
-            "用 protocols.io API 创建并发布一个实验 protocol，包含 workspace 和文件附件",
-            "science-lab-automation",
-            "protocolsio-integration",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_benchling_registry_inventory_routes_to_benchling(self) -> None:
-        self.assert_selected(
-            "查询 Benchling registry 里的 DNA sequence 和 inventory containers，并导出样品表",
-            "science-lab-automation",
-            "benchling-integration",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_benchling_eln_export_routes_to_benchling(self) -> None:
-        self.assert_selected(
-            "自动化 Benchling ELN entry 和 Data Warehouse export，把 workflow tasks 同步到表格",
-            "science-lab-automation",
-            "benchling-integration",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_labarchives_backup_routes_to_labarchive(self) -> None:
-        self.assert_selected(
-            "备份 LabArchives notebook，导出 entries、attachments 和 JSON metadata",
-            "science-lab-automation",
-            "labarchive-integration",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_labarchives_upload_routes_to_labarchive(self) -> None:
-        self.assert_selected(
-            "把自动化实验输出上传到 LabArchives entry，并附加 CSV 和图片附件",
-            "science-lab-automation",
-            "labarchive-integration",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_ginkgo_cloud_lab_order_routes_to_ginkgo(self) -> None:
-        self.assert_selected(
-            "在 Ginkgo Cloud Lab / cloud.ginkgo.bio 准备下单输入并估算 protocol pricing",
-            "science-lab-automation",
-            "ginkgo-cloud-lab",
-            task_type="planning",
-            grade="M",
-        )
-
-    def test_ginkgo_cell_free_expression_routes_to_ginkgo(self) -> None:
-        self.assert_selected(
-            "提交 Ginkgo Cloud Lab cell-free protein expression validation run",
-            "science-lab-automation",
-            "ginkgo-cloud-lab",
-            task_type="planning",
-            grade="M",
-        )
-
-    def test_latchbio_nextflow_does_not_route_to_lab_automation(self) -> None:
-        self.assert_not_science_lab_automation(
-            "用 LatchBio / Latch SDK 部署 Nextflow RNA-seq workflow，管理 LatchFile 和 LatchDir",
-            task_type="coding",
-            grade="M",
-        )
-
-    def test_generic_eln_with_negated_vendors_does_not_route_to_lab_automation(self) -> None:
-        self.assert_not_science_lab_automation(
-            "帮我整理电子实验记录 ELN 模板，不指定 Benchling 或 LabArchives",
-            task_type="planning",
-            grade="M",
-        )
-
-    def test_generic_attachments_with_negated_vendors_does_not_route_to_lab_automation(self) -> None:
-        self.assert_not_science_lab_automation(
-            "把实验图片和 CSV 附件整理到实验记录里，不使用 LabArchives 或 Benchling",
-            task_type="planning",
-            grade="M",
-        )
-
-    def test_generic_markdown_protocol_does_not_route_to_protocolsio(self) -> None:
-        self.assert_not_science_lab_automation(
-            "写一个普通 wet-lab protocol 的 Markdown 文档，不使用 protocols.io 或机器人",
-            task_type="planning",
-            grade="M",
-        )
-
-    def test_pubmed_methods_does_not_route_to_lab_automation(self) -> None:
-        self.assert_selected(
-            "在 PubMed 检索 wet-lab methods papers 并导出 BibTeX",
-            "science-literature-citations",
-            "pubmed-database",
-            grade="M",
-        )
+    def test_pubmed_methods_still_route_to_literature_owner(self) -> None:
+        result = route("在 PubMed 检索 wet-lab methods papers 并导出 BibTeX", task_type="research", grade="M")
+        self.assertEqual(("science-literature-citations", "pubmed-database"), selected(result), ranked_summary(result))
 
 
 if __name__ == "__main__":
