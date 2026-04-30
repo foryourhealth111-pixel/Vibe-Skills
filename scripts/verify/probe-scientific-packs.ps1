@@ -437,7 +437,7 @@ $cases = @(
     [pscustomobject]@{
         name = "imaging_pathml_wsi"
         group = "science-medical-imaging"
-        prompt = "/vibe 用 PathML 做 WSI patch extraction，并准备一个最小可复现实验脚本"
+        prompt = "/vibe 用 PathML 构建 computational pathology WSI pipeline，包含 nucleus segmentation、spatial graph 和 multiplex pathology，并准备最小可复现实验脚本"
         grade = "L"
         task_type = "coding"
         expected_pack = "science-medical-imaging"
