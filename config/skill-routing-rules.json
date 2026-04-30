@@ -1368,30 +1368,6 @@
 
                                                        ]
                             },
-                   "bioservices":  {
-                                       "task_allow":  [
-                                                          "research",
-                                                          "coding"
-                                                      ],
-                                       "positive_keywords":  [
-                                                                 "uniprot",
-                                                                 "bioservices",
-                                                                 "BioServices",
-                                                                 "cross database",
-                                                                 "multi-database",
-                                                                 "quickgo",
-                                                                 "biomart",
-                                                                 "id mapping",
-                                                                 "多数据库"
-                                                             ],
-                                       "negative_keywords":  [
-                                                                 "build pipeline failure"
-                                                             ],
-                                       "equivalent_group":  null,
-                                       "canonical_for_task":  [
-
-                                                              ]
-                                   },
                   "anndata":  {
                                   "task_allow":  [
                                                      "research",
