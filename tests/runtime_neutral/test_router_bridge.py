@@ -319,7 +319,7 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("route_authority", ranking_by_skill["scientific-schematics"]["legacy_role"])
         self.assertEqual([], figure_row["stage_assistant_candidates"])
 
-    def test_full_text_evidence_table_prefers_bgpt_structured_paper_search(self) -> None:
+    def test_full_text_evidence_table_is_absorbed_by_literature_review(self) -> None:
         result = run_bridge(
             "请帮我做 full-text 文献检索，提取样本量、effect size、方法学细节，做系统综述证据表",
             "L",
@@ -328,7 +328,7 @@ class RouterBridgeTests(unittest.TestCase):
 
         self.assertIn(result["route_mode"], {"pack_overlay", "confirm_required"})
         self.assertEqual("science-literature-citations", result["selected"]["pack_id"])
-        self.assertEqual("bgpt-paper-search", result["selected"]["skill"])
+        self.assertEqual("literature-review", result["selected"]["skill"])
 
     def test_deep_research_pack_has_no_legacy_stage_assistants(self) -> None:
         result = run_bridge(

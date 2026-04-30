@@ -75,8 +75,6 @@ class ScienceLiteraturePeerReviewConsolidationTests(unittest.TestCase):
             [
                 "pubmed-database",
                 "openalex-database",
-                "biorxiv-database",
-                "bgpt-paper-search",
                 "pyzotero",
                 "citation-management",
                 "literature-review",
@@ -97,6 +95,16 @@ class ScienceLiteraturePeerReviewConsolidationTests(unittest.TestCase):
 
     def test_open_notebook_skill_directory_is_removed(self) -> None:
         self.assertFalse((REPO_ROOT / "bundled" / "skills" / ("open" + "-notebook")).exists())
+
+    def test_low_value_literature_tool_directories_are_removed(self) -> None:
+        self.assertFalse((REPO_ROOT / "bundled" / "skills" / "biorxiv-database").exists())
+        self.assertFalse((REPO_ROOT / "bundled" / "skills" / "bgpt-paper-search").exists())
+
+    def test_retained_literature_skills_do_not_require_helper_experts(self) -> None:
+        for skill_id in ("literature-review", "citation-management"):
+            text = (REPO_ROOT / "bundled" / "skills" / skill_id / "SKILL.md").read_text(encoding="utf-8-sig")
+            self.assertNotIn("scientific-schematics", text)
+            self.assertNotIn("MANDATORY", text)
 
     def test_pubmed_bibtex_stays_in_literature_pack(self) -> None:
         self.assert_selected(
@@ -134,7 +142,14 @@ class ScienceLiteraturePeerReviewConsolidationTests(unittest.TestCase):
         self.assert_selected(
             "做 full-text 文献检索，提取样本量、effect size、方法学细节，生成系统综述证据表",
             "science-literature-citations",
-            "bgpt-paper-search",
+            "literature-review",
+        )
+
+    def test_biorxiv_preprint_search_is_absorbed_by_literature_review(self) -> None:
+        self.assert_selected(
+            "把 bioRxiv 预印本纳入文献综述，检索最近两年的 life sciences preprints",
+            "science-literature-citations",
+            "literature-review",
         )
 
     def test_formal_peer_review_routes_to_peer_review_pack(self) -> None:

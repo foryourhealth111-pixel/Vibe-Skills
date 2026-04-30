@@ -180,8 +180,6 @@
       "skill_candidates": [
         "pubmed-database",
         "openalex-database",
-        "biorxiv-database",
-        "bgpt-paper-search",
         "pyzotero",
         "citation-management",
         "literature-review"
@@ -189,8 +187,6 @@
       "route_authority_candidates": [
         "pubmed-database",
         "openalex-database",
-        "biorxiv-database",
-        "bgpt-paper-search",
         "pyzotero",
         "citation-management",
         "literature-review"

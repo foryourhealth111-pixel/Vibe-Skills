@@ -3362,59 +3362,6 @@
       "equivalent_group": "literature-search",
       "canonical_for_task": []
     },
-    "biorxiv-database": {
-      "task_allow": [
-        "research",
-        "coding"
-      ],
-      "positive_keywords": [
-        "biorxiv",
-        "preprint",
-        "rxiv",
-        "预印本",
-        "bioRxiv"
-      ],
-      "negative_keywords": [
-        "clinical trial",
-        "nct"
-      ],
-      "equivalent_group": "literature-search",
-      "canonical_for_task": [
-        "research"
-      ]
-    },
-    "bgpt-paper-search": {
-      "task_allow": [
-        "planning",
-        "research"
-      ],
-      "positive_keywords": [
-        "bgpt",
-        "full-text",
-        "full-text paper",
-        "structured data",
-        "effect size",
-        "sample size",
-        "evidence table",
-        "systematic review evidence table",
-        "structured extraction",
-        "实验数据",
-        "方法学",
-        "证据表"
-      ],
-      "negative_keywords": [
-        "zotero",
-        "bibtex",
-        "quick overview",
-        "background research",
-        "citation source",
-        "recent developments"
-      ],
-      "equivalent_group": "literature-search",
-      "canonical_for_task": [
-        "research"
-      ]
-    },
     "paper-2-web": {
       "task_allow": [
         "planning",
@@ -3511,20 +3458,29 @@
         "literature review",
         "systematic review",
         "meta-analysis",
-        "文献综述",
-        "系统综述",
-        "荟萃分析"
-      ],
-      "negative_keywords": [
-        "smiles",
-        "docking",
+        "biorxiv",
+        "preprint",
+        "rxiv",
         "full-text",
+        "full-text paper",
         "structured data",
         "effect size",
         "sample size",
         "evidence table",
+        "systematic review evidence table",
+        "structured extraction",
+        "文献综述",
+        "系统综述",
+        "荟萃分析",
+        "预印本",
+        "bioRxiv",
+        "实验数据",
         "方法学",
         "证据表"
+      ],
+      "negative_keywords": [
+        "smiles",
+        "docking"
       ],
       "equivalent_group": "literature-synthesis",
       "canonical_for_task": [

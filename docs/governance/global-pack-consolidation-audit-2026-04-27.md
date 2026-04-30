@@ -10,15 +10,15 @@
 - P0：6
 - P1：10
 - P2：25
-- 当前最高风险 pack：`science-literature-citations`
+- 当前最高风险 pack：`code-quality`
 
 ## 全局排序
 
 | priority | pack | score | skills | route authority | stage assistant | rationale |
 |---|---|---:|---:|---:|---:|---|
-| P0 | `science-literature-citations` | 42.70 | 7 | 7 | 0 | 7 route authorities; 5 shared broad keywords; 6 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P0 | `code-quality` | 39.20 | 10 | 10 | 0 | 10 route authorities; 3 suspected overlap pairs; 2 candidates with scripts/references/assets |
 | P0 | `docs-media` | 37.00 | 8 | 8 | 0 | 8 route authorities; 1 suspected overlap pairs; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
+| P0 | `science-literature-citations` | 34.50 | 5 | 5 | 0 | 5 route authorities; 5 shared broad keywords; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P0 | `scholarly-publishing-workflow` | 34.20 | 8 | 8 | 0 | 8 route authorities; 1 shared broad keywords; 3 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P0 | `finance-edgar-macro` | 33.30 | 7 | 7 | 0 | 7 route authorities; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P0 | `science-clinical-regulatory` | 33.30 | 7 | 7 | 0 | 7 route authorities; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
@@ -62,9 +62,9 @@
 
 | priority | pack | score | skills | route authority | stage assistant | rationale |
 |---|---|---:|---:|---:|---:|---|
-| P0 | `science-literature-citations` | 42.70 | 7 | 7 | 0 | 7 route authorities; 5 shared broad keywords; 6 tool-like primary candidates; 6 candidates with scripts/references/assets |
 | P0 | `code-quality` | 39.20 | 10 | 10 | 0 | 10 route authorities; 3 suspected overlap pairs; 2 candidates with scripts/references/assets |
 | P0 | `docs-media` | 37.00 | 8 | 8 | 0 | 8 route authorities; 1 suspected overlap pairs; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
+| P0 | `science-literature-citations` | 34.50 | 5 | 5 | 0 | 5 route authorities; 5 shared broad keywords; 5 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P0 | `scholarly-publishing-workflow` | 34.20 | 8 | 8 | 0 | 8 route authorities; 1 shared broad keywords; 3 tool-like primary candidates; 5 candidates with scripts/references/assets |
 | P0 | `finance-edgar-macro` | 33.30 | 7 | 7 | 0 | 7 route authorities; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |
 | P0 | `science-clinical-regulatory` | 33.30 | 7 | 7 | 0 | 7 route authorities; 5 tool-like primary candidates; 7 candidates with scripts/references/assets |

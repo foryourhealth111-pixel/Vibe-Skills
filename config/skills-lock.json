@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated_at": "2026-04-30T22:29:13+08:00",
+  "generated_at": "2026-04-30T23:04:27+08:00",
   "source": "bundled/skills",
-  "skill_count": 261,
-  "total_bytes": 18181821.0,
+  "skill_count": 259,
+  "total_bytes": 18140127.0,
   "skills": [
     {
       "name": ".system",
@@ -70,14 +70,6 @@
       "dir_hash": "2357a9bec1b80287ca9325b572c3e365b2100dfc7484d6d6c8bf55c2bb78a7b6"
     },
     {
-      "name": "bgpt-paper-search",
-      "relative_path": "bundled/skills/bgpt-paper-search",
-      "file_count": 1,
-      "bytes": 2872,
-      "skill_md_hash": "d66c242901733ddd3504284437f936c8953a5ac66592289bfff6f5d676323055",
-      "dir_hash": "dfa1e4ad04c815a6eec714242d0faa126aac4710ac942b158f5d3420dd4e5822"
-    },
-    {
       "name": "bio-database-evidence",
       "relative_path": "bundled/skills/bio-database-evidence",
       "file_count": 2,
@@ -92,14 +84,6 @@
       "bytes": 95430,
       "skill_md_hash": "b0ee0eb8b344ade9b36e1b6d276e1891e015b07cb43171eb81e52f0de7606bd4",
       "dir_hash": "b5a69a99c2386d956f47705c929255967e6c433867ea9cf179032b493e7dcdfe"
-    },
-    {
-      "name": "biorxiv-database",
-      "relative_path": "bundled/skills/biorxiv-database",
-      "file_count": 3,
-      "bytes": 34264,
-      "skill_md_hash": "807105bfd42a7633965700f045c8d4f21d404a9f1355deab5a869a6b53513045",
-      "dir_hash": "94333a28c268dad48e830dc877646fa459a81cc312c29a749710c8f43c27e51f"
     },
     {
       "name": "brainstorming",
@@ -129,9 +113,9 @@
       "name": "citation-management",
       "relative_path": "bundled/skills/citation-management",
       "file_count": 14,
-      "bytes": 221863,
-      "skill_md_hash": "3f5d395175c985a7014c9e98d61b650221b3bc4677d3dc39e34755f4fe78b890",
-      "dir_hash": "2231682014cbd853e05105fd0a5f52eb5aef459d73cec6d86c68df22ed9d652a"
+      "bytes": 219638,
+      "skill_md_hash": "03c0dfe077b5871925aad71b7304dd3833dd40219717cbb5a64d847ab899f235",
+      "dir_hash": "83ea822e8157cd6618aa04d7c68af18ae5d50a26461720f8a9c107e9bd39e8fe"
     },
     {
       "name": "claude-skills",
@@ -769,9 +753,9 @@
       "name": "literature-review",
       "relative_path": "bundled/skills/literature-review",
       "file_count": 7,
-      "bytes": 80981,
-      "skill_md_hash": "b5e3dd6b581c62a22c7bdd7d9f935384bd68631a01bd10b5644d99d9cd4e6aae",
-      "dir_hash": "d40402c0e98354d957f9e5557fca630a4d285e6aa4c467d24904688c0faea383"
+      "bytes": 78648,
+      "skill_md_hash": "eb3eb94062bb7c88a769f3f6aecbe347138a610cfc203446761493d3aaf33354",
+      "dir_hash": "25fd2965c3b9522a2148361cac1fb0e65299691b178611394c99b2d3eb333744"
     },
     {
       "name": "local-vco-roles",

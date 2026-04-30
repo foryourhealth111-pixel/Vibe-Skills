@@ -1105,28 +1105,6 @@
         "文献元数据"
       ]
     },
-    "biorxiv-database": {
-      "keywords": [
-        "biorxiv",
-        "bioRxiv",
-        "preprint",
-        "预印本",
-        "生物预印本"
-      ]
-    },
-    "bgpt-paper-search": {
-      "keywords": [
-        "bgpt",
-        "full-text paper",
-        "structured paper data",
-        "sample size extraction",
-        "effect size extraction",
-        "systematic review evidence table",
-        "论文全文提取",
-        "结构化证据表",
-        "实验数据抽取"
-      ]
-    },
     "paper-2-web": {
       "keywords": [
         "paper2web",
@@ -1176,9 +1154,22 @@
         "literature review",
         "systematic review",
         "meta-analysis",
+        "biorxiv",
+        "bioRxiv",
+        "preprint",
+        "full-text paper",
+        "structured paper data",
+        "sample size extraction",
+        "effect size extraction",
+        "systematic review evidence table",
         "文献综述",
         "系统综述",
-        "荟萃分析"
+        "荟萃分析",
+        "预印本",
+        "生物预印本",
+        "论文全文提取",
+        "结构化证据表",
+        "实验数据抽取"
       ]
     },
     "peer-review": {

@@ -145,7 +145,17 @@ $cases = @(
         grade = "L"
         task_type = "research"
         expected_pack = "science-literature-citations"
-        expected_skill = "bgpt-paper-search"
+        expected_skill = "literature-review"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "lit_biorxiv_preprint_review"
+        group = "science-literature-citations"
+        prompt = "/vibe 把 bioRxiv 预印本纳入文献综述，检索最近两年的 life sciences preprints"
+        grade = "L"
+        task_type = "research"
+        expected_pack = "science-literature-citations"
+        expected_skill = "literature-review"
         requested_skill = $null
     },
     [pscustomobject]@{

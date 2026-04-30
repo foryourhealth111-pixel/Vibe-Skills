@@ -130,7 +130,9 @@ $deletedSkillIds = @(
     "experiment-failure-analysis",
     "hypogenic",
     "literature-matrix",
-    "performing-regression-analysis"
+    "performing-regression-analysis",
+    "biorxiv-database",
+    "bgpt-paper-search"
 )
 $deepDiscoveryPolicy = Get-Content -LiteralPath $deepDiscoveryPolicyPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $capabilityCatalog = Get-Content -LiteralPath $capabilityCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
