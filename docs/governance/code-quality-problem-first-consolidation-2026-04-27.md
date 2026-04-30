@@ -2,18 +2,20 @@
 
 日期：2026-04-27
 
+> Historical note: this document records the 2026-04-27 first-pass state. The current 2026-04-30 second-pass state has `stage_assistant_candidates = 0`, and `requesting-code-review` is a direct route owner for review-request preparation. See `docs/governance/code-quality-second-pass-consolidation-2026-04-30.md`.
+
 ## 一句话结论
 
 这次治理不是按 skill 名字保留，而是按“用户到底在问什么问题”来分工。`code-quality` 从 16 个候选收敛到 10 个候选，并新增主路由/阶段助手分层，避免旧别名和宽泛 review/debug skill 抢路由。
 
 ## 调整前后
 
-| 项目 | 调整前 | 调整后 |
-|---|---:|---:|
-| `skill_candidates` | 16 | 10 |
-| `route_authority_candidates` | 0 | 9 |
-| `stage_assistant_candidates` | 0 | 1 |
-| 物理删除目录 | 0 | 2 |
+| 项目 | 2026-04-27 调整前 | 2026-04-27 调整后 | 2026-04-30 当前状态 |
+|---|---:|---:|---:|
+| `skill_candidates` | 16 | 10 | 10 |
+| `route_authority_candidates` | 0 | 9 | 10 |
+| `stage_assistant_candidates` | 0 | 1 | 0 |
+| 物理删除目录 | 0 | 2 | 3 second-pass deletions; 1 deferred migration |
 
 ## 保留为主路由的 skill
 
@@ -29,11 +31,11 @@
 | `receiving-code-review` | 处理 CodeRabbit 或人工评审意见，逐条判断是否要改 |
 | `verification-before-completion` | 收尾前确认测试、验收证据、完成声明前验证 |
 
-## 阶段助手
+## 2026-04-30 更新：不再使用阶段助手
 
-| skill | 为什么不是主路由 |
-|---|---|
-| `requesting-code-review` | 它适合“提交前请求 review”这种流程节点，不应抢普通代码审查入口。 |
+`requesting-code-review` 已经改为直接 route owner，负责准备发起 code review、整理 review 请求材料、明确 base/head 范围和 reviewer prompt。
+
+当前 `code-quality.stage_assistant_candidates = []`。这不是辅助专家模型，也不是主/次技能模型。
 
 ## 移出 code-quality 路由面但保留目录
 
@@ -72,7 +74,7 @@
 | `code review and security audit` 里 `code-reviewer` 和 `security-reviewer` 打平，容易因为排序让普通 review 抢安全审计。 | 给 `code-reviewer` 增加安全审计负向词，给 `security-reviewer` 增加 security review、secret leak、auth bypass、injection、安全审计等正向词。 |
 | `write failing tests first for this feature` 被 `systematic-debugging` 的 `failing tests` 吸走。 | 给 `tdd-guide` 增加 `write failing tests first`、`test first`、`先写失败测试` 等正向词，并给 `systematic-debugging` 增加 test-first/TDD 负向词。 |
 
-同时补充了各主路由 skill 的 `SKILL.md` 边界说明：`code-reviewer` 不再自称主做安全扫描，`systematic-debugging` 明确只处理已经坏掉的问题，`tdd-guide` 明确接管测试先行开发，`requesting-code-review` 明确是阶段助手。
+同时补充了各直接 route owner 的 `SKILL.md` 边界说明：`code-reviewer` 不再自称主做安全扫描，`systematic-debugging` 明确只处理已经坏掉的问题，`tdd-guide` 明确接管测试先行开发，`requesting-code-review` 明确接管 review request 准备。
 
 ## 验证方法
 
