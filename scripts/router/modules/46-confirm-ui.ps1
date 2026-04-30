@@ -379,9 +379,6 @@ function Build-ConfirmSkillOptions {
     $selectedRow = $null
     if ($selectedSkill) {
         $selectedRow = @($ranking | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
-        if (-not $selectedRow -and $packRow -and $packRow.stage_assistant_candidates) {
-            $selectedRow = @($packRow.stage_assistant_candidates | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
-        }
         if (-not $selectedRow -and $packRow -and $packRow.candidate_ranking) {
             $selectedRow = @($packRow.candidate_ranking | Where-Object { [string]$_.skill -eq $selectedSkill } | Select-Object -First 1)
         }
