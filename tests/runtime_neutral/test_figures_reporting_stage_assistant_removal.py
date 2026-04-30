@@ -105,7 +105,8 @@ class FiguresReportingStageAssistantRemovalTests(unittest.TestCase):
         assert isinstance(ranking, list), row
         ranking_skills = {str(item.get("skill") or "") for item in ranking if isinstance(item, dict)}
         self.assertEqual({"scientific-visualization", "scientific-schematics"}, ranking_skills)
-        self.assertEqual([], row.get("stage_assistant_candidates"))
+        self.assertNotIn("stage_assistant_candidates", row)
+        self.assertNotIn("route_authority_eligible", row)
 
     def test_schematics_route_to_scientific_schematics(self) -> None:
         self.assert_selected(
@@ -136,7 +137,8 @@ class FiguresReportingStageAssistantRemovalTests(unittest.TestCase):
         assert isinstance(ranking, list), row
         ranking_skills = {str(item.get("skill") or "") for item in ranking if isinstance(item, dict)}
         self.assertEqual({"scientific-reporting", "scientific-writing"}, ranking_skills)
-        self.assertEqual([], row.get("stage_assistant_candidates"))
+        self.assertNotIn("stage_assistant_candidates", row)
+        self.assertNotIn("route_authority_eligible", row)
 
     def test_manuscript_prose_still_selects_scientific_writing(self) -> None:
         result = route("请按 IMRAD 结构写科研论文正文", task_type="research", grade="L")

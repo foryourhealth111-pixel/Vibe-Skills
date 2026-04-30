@@ -84,13 +84,6 @@ def ranked_candidate_skills(result: dict[str, object]) -> set[str]:
                 for item in ranking
                 if isinstance(item, dict)
             )
-        stage_candidates = row.get("stage_assistant_candidates")
-        if isinstance(stage_candidates, list):
-            skills.update(
-                str(item.get("skill") or "")
-                for item in stage_candidates
-                if isinstance(item, dict)
-            )
     return skills
 
 

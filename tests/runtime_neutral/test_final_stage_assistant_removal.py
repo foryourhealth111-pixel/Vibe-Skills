@@ -103,8 +103,10 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
         )
         row = pack_row(result, "code-quality")
         ranking_by_skill = {item["skill"]: item for item in row["candidate_ranking"]}
-        self.assertEqual("skill_candidate", ranking_by_skill["requesting-code-review"]["legacy_role"])
-        self.assertEqual([], row["stage_assistant_candidates"])
+        self.assertNotIn("legacy_role", ranking_by_skill["requesting-code-review"])
+        self.assertNotIn("route_authority_eligible", ranking_by_skill["requesting-code-review"])
+        self.assertNotIn("stage_assistant_candidates", row)
+        self.assertNotIn("route_authority_eligible", row)
 
     def test_actual_code_review_stays_with_code_reviewer(self) -> None:
         self.assert_selected(
@@ -147,11 +149,10 @@ class FinalStageAssistantRemovalTests(unittest.TestCase):
         )
         row = pack_row(result, "data-ml")
         ranking_by_skill = {item["skill"]: item for item in row["candidate_ranking"]}
-        self.assertEqual(
-            "skill_candidate",
-            ranking_by_skill["preprocessing-data-with-automated-pipelines"]["legacy_role"],
-        )
-        self.assertEqual([], row["stage_assistant_candidates"])
+        self.assertNotIn("legacy_role", ranking_by_skill["preprocessing-data-with-automated-pipelines"])
+        self.assertNotIn("route_authority_eligible", ranking_by_skill["preprocessing-data-with-automated-pipelines"])
+        self.assertNotIn("stage_assistant_candidates", row)
+        self.assertNotIn("route_authority_eligible", row)
 
     def test_broad_ml_workflow_does_not_route_to_preprocessing(self) -> None:
         result = self.assert_selected(

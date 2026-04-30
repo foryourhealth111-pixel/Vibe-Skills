@@ -252,7 +252,7 @@ def ranked_summary(result: dict[str, object]) -> list[tuple[str, str, float, str
                 str(row.get("pack_id") or ""),
                 str(row.get("selected_candidate") or ""),
                 float(row.get("score") or 0.0),
-                str(row.get("candidate_selection_reason") or row.get("legacy_role") or ""),
+                str(row.get("candidate_selection_reason") or ""),
             )
         )
     return rows
