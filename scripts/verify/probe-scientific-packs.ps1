@@ -733,6 +733,30 @@ $cases = @(
         expected_skill = "datacommons-client"
         requested_skill = $null
     },
+    [pscustomobject]@{
+        name = "finance_generic_public_data_blocked"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 搜索公共数据集和 open dataset 下载链接，不限定 Data Commons 或人口经济指标"
+        grade = "M"
+        task_type = "research"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "finance-edgar-macro"
+        blocked_skill = "datacommons-client"
+        requested_skill = $null
+    },
+    [pscustomobject]@{
+        name = "finance_scientific_report_pdf_blocked"
+        group = "finance-edgar-macro"
+        prompt = "/vibe 写一篇科研报告，包含 methods results discussion 并导出 PDF"
+        grade = "L"
+        task_type = "planning"
+        expected_pack = $null
+        expected_skill = $null
+        blocked_pack = "finance-edgar-macro"
+        blocked_skill = "market-research-reports"
+        requested_skill = $null
+    },
 
     # science-quantum
     [pscustomobject]@{
