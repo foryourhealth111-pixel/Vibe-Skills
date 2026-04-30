@@ -341,14 +341,14 @@ VibeSkills is for people who want AI agents to be easy to start, useful across m
 
 The core point is simple: the Skills are not the product by themselves. The harness is what turns them into a usable working system.
 
-`vibe` owns the workflow. It decides when the agent should clarify, when it should plan, which specialist Skills should help, when tests or checks should run, and when delivery can be claimed. The user gets one simple entry instead of a pile of decisions.
+`vibe` owns the workflow. It decides when the agent should clarify, when it should plan, which Skills are selected for the current task or stage, when tests or checks should run, and when delivery can be claimed. The user gets one simple entry instead of a pile of decisions.
 
 <div align="center">
 
 | Common worry | What actually happens |
 |:---|:---|
 | "There are too many Skills." | You do not manually choose from the whole list. The harness routes intelligently by task, phase, and constraints. |
-| "Similar Skills might conflict." | The router picks bounded roles, and specialist Skills stay scoped to the current phase or work unit. |
+| "Similar Skills might conflict." | The router selects Skills with bounded scope, and selected Skills stay scoped to the current phase or work unit. |
 | "Multi-agent work will get chaotic." | Larger work is split into bounded units, with explicit ownership, verification, and coordinator approval. |
 
 </div>
@@ -374,7 +374,7 @@ The core point is simple: the Skills are not the product by themselves. The harn
 
 ### M / L / XL Execution Levels
 
-After selecting the primary route, the runtime also chooses the execution grade based on task complexity:
+After selecting the route, the runtime also chooses the execution grade based on task complexity:
 
 <div align="center">
 
@@ -386,7 +386,7 @@ After selecting the primary route, the runtime also chooses the execution grade 
 
 </div>
 
-> Even in XL, this is not a free-for-all. The system decides the main route first, then assigns skills to each bounded unit under the same governed coordinator.
+> Even in XL, this is not a free-for-all. The system selects the route first, then selects Skills for each bounded unit under the same governed coordinator.
 
 ---
 
@@ -400,8 +400,8 @@ After selecting the primary route, the runtime also chooses the execution grade 
 - `vibe-upgrade` runs the governed upgrade path.
 - Compatibility stage IDs such as `vibe-what-do-i-want`, `vibe-how-do-we-do`, and `vibe-do-it` are disabled as public host entries. They may remain in runtime metadata for continuity, but installers must not materialize them as host-visible command or skill wrappers.
 - The only lightweight public grade overrides are `--l` and `--xl`. Aliases like `vibe-l`, `vibe-xl`, or stage-plus-grade combinations are intentionally unsupported.
-- When specialist skills such as `tdd-guide` or `code-review` are called, they assist a phase or a bounded unit. They do not take over global coordination.
-- In XL multi-agent work, worker lanes can suggest specialist help, but the coordinator approves the final assignment.
+- When Skills such as `tdd-guide` or `code-review` are selected, they work only inside the current phase or bounded unit. They do not take over global coordination.
+- In XL multi-agent work, worker lanes can surface candidate Skills, but the coordinator confirms the selected Skills.
 
 </details>
 
