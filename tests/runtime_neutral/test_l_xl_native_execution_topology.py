@@ -1068,6 +1068,21 @@ class NativeExecutionTopologyTests(unittest.TestCase):
 
             self.assertIn("specialist_accounting", execution_manifest)
             specialist_accounting = execution_manifest["specialist_accounting"]
+            self.assertIn("skill_execution_unit_count", specialist_accounting)
+            self.assertIn("execution_skill_outcome_count", specialist_accounting)
+            self.assertIn("execution_skill_outcomes", specialist_accounting)
+            self.assertEqual(
+                int(specialist_accounting["dispatch_unit_count"]),
+                int(specialist_accounting["skill_execution_unit_count"]),
+            )
+            self.assertEqual(
+                len(list(specialist_accounting["specialist_dispatch_outcomes"])),
+                len(list(specialist_accounting["execution_skill_outcomes"])),
+            )
+            self.assertEqual(
+                int(specialist_accounting["execution_skill_outcome_count"]),
+                len(list(specialist_accounting["execution_skill_outcomes"])),
+            )
             self.assertEqual("native_bounded_units", specialist_accounting["execution_mode"])
             self.assertEqual("direct_current_session_routed", specialist_accounting["effective_execution_status"])
             self.assertEqual(0, int(specialist_accounting["executed_specialist_unit_count"]))
