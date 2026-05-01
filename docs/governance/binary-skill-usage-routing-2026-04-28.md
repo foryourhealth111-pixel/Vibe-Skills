@@ -1,43 +1,24 @@
-# Binary Skill Usage Routing Governance Note
+# Binary Skill Usage Routing
 
-> Historical / Retired Note: This document records a previous routing design or
-> migration state. Current routing authority is defined by
-> `docs/governance/current-routing-contract.md` and
-> `docs/governance/current-runtime-field-contract.md`.
+> Historical / Retired Note: This document records the older cleanup step that separated routing from usage proof. The current routing model is `skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage`.
 
-Date: 2026-04-28
+Current readers should use:
 
-## Decision
+- `docs/governance/current-routing-contract.md`
+- `docs/governance/current-runtime-field-contract.md`
+- `docs/governance/historical-routing-terminology.md`
 
-Skill usage has only two user-facing states:
+## Preserved Decision
 
-- `used`
-- `unused`
+The durable decision from this document is that route selection, old
+recommendation fields, consultation records, and old dispatch records do not
+prove skill use.
 
-Only `skill_usage` can support a usage claim.
+Current usage proof must come from `skill_usage.used` with evidence. A selected
+skill is not counted as used unless the runtime writes usage evidence.
 
-## Used Standard
+## Retired Context
 
-A skill is `used` only when:
-
-1. the full `SKILL.md` was loaded,
-2. load evidence records `skill_md_path`, `skill_md_sha256`, and `load_status = loaded_full_skill_md`,
-3. at least one six-stage artifact impact record exists in `skill_usage.evidence`.
-
-## Non-Authoritative Fields
-
-These fields remain audit data and do not prove usage:
-
-- `specialist_recommendations`
-- `stage_assistant_hints`
-- `specialist_dispatch.approved_dispatch`
-- consultation receipts
-- `native_skill_description`
-
-## Runtime Contract
-
-The public six-stage runtime remains unchanged. Binary usage is an internal truth layer written through `skill-usage.json` and surfaced in final delivery acceptance.
-
-## Completion Language
-
-Completion reports may say a skill was used only when `skill_usage.used_skills` contains it and `skill_usage.evidence` supports it.
+Older wording in this area included `specialist_recommendations`,
+`stage_assistant_hints`, consultation receipts, and dispatch records. Those names
+remain historical audit vocabulary only.
