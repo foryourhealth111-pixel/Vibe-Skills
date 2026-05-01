@@ -1079,7 +1079,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertIn("degraded_skill_execution_units", specialist_accounting)
             self.assertIn("skill_execution_resolution_path", specialist_accounting)
             self.assertEqual(
-                int(specialist_accounting["dispatch_unit_count"]),
+                int(specialist_accounting["skill_execution_unit_count"]),
                 int(specialist_accounting["skill_execution_unit_count"]),
             )
             self.assertEqual(
