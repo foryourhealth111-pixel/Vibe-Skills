@@ -65,12 +65,14 @@ Install VibeSkills, type `vibe`, and let the harness handle the busy work: under
 
 🧠 Planning · 🛠️ Engineering · 🤖 AI · 🔬 Research · 🎨 Creation
 
-<br/>
+<br/><br/>
 
 <a href="docs/install/one-click-install-release-copy.en.md">
-  <img src="https://img.shields.io/badge/⚡_Get_Started-7B61FF?style=for-the-badge" alt="Install">
+  <img src="https://img.shields.io/badge/⚡_Click_to_Install-7B61FF?style=for-the-badge" height="56" alt="Click to Install">
 </a>
-&nbsp;
+
+<br/><br/>
+
 <a href="docs/quick-start.en.md">
   <img src="https://img.shields.io/badge/📖_Quick_Start-2d3748?style=for-the-badge" alt="Docs">
 </a>
