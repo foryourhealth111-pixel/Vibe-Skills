@@ -1071,9 +1071,28 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertIn("skill_execution_unit_count", specialist_accounting)
             self.assertIn("execution_skill_outcome_count", specialist_accounting)
             self.assertIn("execution_skill_outcomes", specialist_accounting)
+            self.assertIn("selected_skill_execution_count", specialist_accounting)
+            self.assertIn("selected_skill_execution", specialist_accounting)
+            self.assertIn("blocked_skill_execution_unit_count", specialist_accounting)
+            self.assertIn("blocked_skill_execution_units", specialist_accounting)
+            self.assertIn("degraded_skill_execution_unit_count", specialist_accounting)
+            self.assertIn("degraded_skill_execution_units", specialist_accounting)
+            self.assertIn("skill_execution_resolution_path", specialist_accounting)
             self.assertEqual(
                 int(specialist_accounting["dispatch_unit_count"]),
                 int(specialist_accounting["skill_execution_unit_count"]),
+            )
+            self.assertEqual(
+                int(specialist_accounting["selected_skill_execution_count"]),
+                len(list(specialist_accounting["selected_skill_execution"])),
+            )
+            self.assertEqual(
+                int(specialist_accounting["blocked_skill_execution_unit_count"]),
+                len(list(specialist_accounting["blocked_skill_execution_units"])),
+            )
+            self.assertEqual(
+                int(specialist_accounting["degraded_skill_execution_unit_count"]),
+                len(list(specialist_accounting["degraded_skill_execution_units"])),
             )
             self.assertEqual(
                 len(list(specialist_accounting["specialist_dispatch_outcomes"])),

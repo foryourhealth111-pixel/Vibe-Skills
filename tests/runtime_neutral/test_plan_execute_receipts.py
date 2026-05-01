@@ -295,6 +295,29 @@ def set_directory_writable(path: Path) -> None:
 
 
 class PlanExecuteReceiptTests(unittest.TestCase):
+    def test_plan_execute_receipt_and_proof_manifest_expose_current_execution_fields(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Invoke-PlanExecute.ps1"
+        text = script_path.read_text(encoding="utf-8")
+        proof_block = text.split("$proofManifest = [pscustomobject]@{", 1)[1].split(
+            "$proofManifestPath =",
+            1,
+        )[0]
+        receipt_block = text.split("$receipt = [pscustomobject]@{", 1)[1].split(
+            "$receiptPath =",
+            1,
+        )[0]
+
+        for field in [
+            "skill_execution_unit_count",
+            "selected_skill_execution_count",
+            "blocked_skill_execution_unit_count",
+            "degraded_skill_execution_unit_count",
+            "execution_skill_outcome_count",
+            "skill_execution_resolution_path",
+        ]:
+            self.assertIn(field, proof_block)
+            self.assertIn(field, receipt_block)
+
     def test_native_specialist_prompt_references_declared_entrypoint_rule(self) -> None:
         powershell = resolve_powershell()
         if powershell is None:
