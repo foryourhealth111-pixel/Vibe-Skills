@@ -130,7 +130,7 @@ class RetiredOldRoutingCompatibilityTests(unittest.TestCase):
             "} "
             "}; "
             "$ids = Get-VibeSkillRoutingSelectedSkillIds -RuntimeInputPacket $packet; "
-            "$projection = Get-VibeRuntimeSpecialistDispatchProjection -RuntimeInputPacket $packet; "
+            "$projection = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $packet; "
             "$recommendations = @(Get-VibeRuntimeSpecialistRecommendations -RuntimeInputPacket $packet); "
             "$hints = @(Get-VibeRuntimeStageAssistantHints -RuntimeInputPacket $packet); "
             "[pscustomobject]@{ "

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import unittest
 from pathlib import Path
 
@@ -49,13 +48,10 @@ class CurrentRoutingVocabularyFinalCleanupTests(unittest.TestCase):
         self.assertNotIn("RuntimeInputPacket.specialist_dispatch", text)
         self.assertNotIn("PropertyName 'specialist_dispatch'", text)
 
-        helper_match = re.search(
-            r"function Get-VibeRuntimeSelectedSkillExecutionProjection\s*\{(?P<body>.*?)\n\}",
-            text,
-            flags=re.DOTALL,
-        )
-        self.assertIsNotNone(helper_match)
-        helper_body = helper_match.group("body")
+        helper_body = text.split("function Get-VibeRuntimeSelectedSkillExecutionProjection", 1)[1].split(
+            "function Get-VibeRuntimeSpecialistRecommendations",
+            1,
+        )[0]
         for field in [
             "selected_skill_execution",
             "blocked_skill_execution",

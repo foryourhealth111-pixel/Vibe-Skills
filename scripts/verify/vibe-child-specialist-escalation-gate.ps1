@@ -94,9 +94,9 @@ if ($hasRootSummary) {
     Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.governance_scope -eq 'root') -Message 'root specialist escalation probe is in root scope'
     Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'root specialist escalation probe keeps vibe authority'
 
-    $rootSpecialistDispatch = Get-VibeRuntimeSpecialistDispatchProjection -RuntimeInputPacket $rootRuntimeInputPacket
-    $rootApprovedDispatch = if ($null -ne $rootSpecialistDispatch -and $rootSpecialistDispatch.PSObject.Properties.Name -contains 'approved_dispatch') {
-        @($rootSpecialistDispatch.approved_dispatch)
+    $rootSelectedSkillExecution = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $rootRuntimeInputPacket
+    $rootApprovedDispatch = if ($null -ne $rootSelectedSkillExecution -and $rootSelectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_execution') {
+        @($rootSelectedSkillExecution.selected_skill_execution)
     } elseif ($rootRuntimeInputPacket.PSObject.Properties.Name -contains 'approved_specialist_dispatch') {
         @($rootRuntimeInputPacket.approved_specialist_dispatch)
     } else {
@@ -141,19 +141,17 @@ if ($hasChildSummary) {
     $executionManifest = Get-Content -LiteralPath $childSummary.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
     $delegationValidation = Get-Content -LiteralPath $childSummary.summary.artifacts.delegation_validation_receipt -Raw -Encoding UTF8 | ConvertFrom-Json
 
-    $specialistDispatch = Get-VibeRuntimeSpecialistDispatchProjection -RuntimeInputPacket $runtimeInputPacket
+    $selectedSkillExecution = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $runtimeInputPacket
 
-    $approvedDispatch = if ($null -ne $specialistDispatch -and $specialistDispatch.PSObject.Properties.Name -contains 'approved_dispatch') {
-        @($specialistDispatch.approved_dispatch)
+    $approvedDispatch = if ($null -ne $selectedSkillExecution -and $selectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_execution') {
+        @($selectedSkillExecution.selected_skill_execution)
     } elseif ($runtimeInputPacket.PSObject.Properties.Name -contains 'approved_specialist_dispatch') {
         @($runtimeInputPacket.approved_specialist_dispatch)
     } else {
         @()
     }
 
-    $localSuggestions = if ($null -ne $specialistDispatch -and $specialistDispatch.PSObject.Properties.Name -contains 'local_specialist_suggestions') {
-        @($specialistDispatch.local_specialist_suggestions)
-    } elseif ($runtimeInputPacket.PSObject.Properties.Name -contains 'local_specialist_suggestions') {
+    $localSuggestions = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'local_specialist_suggestions') {
         @($runtimeInputPacket.local_specialist_suggestions)
     } else {
         @()

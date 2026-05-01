@@ -183,9 +183,9 @@ try {
         -ArtifactRoot $artifactRoot `
         -RuntimeConfig $context.runtimeConfig
     $rootRuntimeInput = Get-Content -LiteralPath $root.summary.artifacts.runtime_input_packet -Raw -Encoding UTF8 | ConvertFrom-Json
-    $rootSpecialistDispatch = Get-VibeRuntimeSpecialistDispatchProjection -RuntimeInputPacket $rootRuntimeInput
-    $rootApprovedDispatch = if ($null -ne $rootSpecialistDispatch -and $rootSpecialistDispatch.PSObject.Properties.Name -contains 'approved_dispatch') {
-        @($rootSpecialistDispatch.approved_dispatch)
+    $rootSelectedSkillExecution = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $rootRuntimeInput
+    $rootApprovedDispatch = if ($null -ne $rootSelectedSkillExecution -and $rootSelectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_execution') {
+        @($rootSelectedSkillExecution.selected_skill_execution)
     } else {
         @()
     }
