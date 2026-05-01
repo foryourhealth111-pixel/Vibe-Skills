@@ -701,7 +701,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             )
             execution_plan = Path(plan_payload["execution_plan_path"]).read_text(encoding="utf-8")
 
-            self.assertIn("### Phase `ungrouped`: fallback specialist dispatch", execution_plan)
+            self.assertIn("### Phase `ungrouped`: fallback skill execution", execution_plan)
             self.assertIn(f"- Dispatch {unknown_dispatch_skill_id} as", execution_plan)
             self.assertNotIn("- Suggest pytest-ungrouped-suggestion.", execution_plan)
 
@@ -874,7 +874,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             runtime_input_packet_path = Path(summary["artifacts"]["runtime_input_packet"])
 
             execution_plan = execution_plan_path.read_text(encoding="utf-8")
-            self.assertIn("## Specialist Skill Dispatch Plan", execution_plan)
+            self.assertIn("## Selected Skill Execution Plan", execution_plan)
             self.assertNotIn("## Specialist Consultation", execution_plan)
             self.assertIn("## Binary Skill Usage Plan", execution_plan)
             self.assertIn("## Skill Routing And Usage Evidence", execution_plan)
@@ -885,13 +885,13 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                     1,
                 )
                 .replace(
-                    "## Specialist Skill Dispatch Plan",
+                    "## Selected Skill Execution Plan",
                     "## Skill Routing And Usage Evidence",
                     1,
                 )
             )
             self.assertEqual(1, rewritten_plan.count("## Skill Routing And Usage Evidence"))
-            self.assertNotIn("## Specialist Skill Dispatch Plan", rewritten_plan)
+            self.assertNotIn("## Selected Skill Execution Plan", rewritten_plan)
             self.assertNotIn("## Specialist Consultation", rewritten_plan)
             execution_plan_path.write_text(
                 rewritten_plan,
@@ -1311,7 +1311,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 if str(item.get("skill_id", "")).strip()
             ]
             if not approved_skill_ids:
-                self.skipTest("Root run did not expose approved specialist dispatch skill ids")
+                self.skipTest("Root run did not expose selected skill execution ids")
 
             parent_unit_id = "pytest-child-topology-unit"
             child_run_id = "pytest-topology-" + uuid.uuid4().hex[:10]
@@ -1393,7 +1393,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 if str(item.get("skill_id", "")).strip()
             ]
             if len(approved_skill_ids) < 1:
-                self.skipTest("Root run did not expose approved specialist dispatch skill ids")
+                self.skipTest("Root run did not expose selected skill execution ids")
 
             parent_unit_id = "pytest-child-topology-fallback-unit"
             child_run_id = "pytest-topology-" + uuid.uuid4().hex[:10]
@@ -1449,7 +1449,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 if str(item.get("skill_id", "")).strip()
             ]
             if len(approved_skill_ids) < 1:
-                self.skipTest("Root run did not expose approved specialist dispatch skill ids")
+                self.skipTest("Root run did not expose selected skill execution ids")
 
             parent_unit_id = "pytest-child-topology-live-native-unit"
             child_run_id = "pytest-topology-" + uuid.uuid4().hex[:10]

@@ -181,11 +181,11 @@ Add-Assertion -Results ([ref]$results) -Condition ($runtimeAuthoritySkill -eq 'v
 Add-Assertion -Results ([ref]$results) -Condition ((-not [bool]$runtimeInputPacket.divergence_shadow.skill_mismatch) -or $intentionalSelectedSkillSplit -or $noSpecialistResolved) -Message 'runtime smoke permits router/runtime split only for selected bounded skills'
 Add-Assertion -Results ([ref]$results) -Condition ((@($selectedSkillIds).Count -ge 1) -or (@($specialistRecommendationIds).Count -ge 1) -or $noSpecialistResolved) -Message 'runtime smoke freezes selected skills, legacy specialist recommendations, or no-specialist resolution'
 Add-Assertion -Results ([ref]$results) -Condition ((@($selectedSkillIds) -contains 'systematic-debugging') -or (@($specialistRecommendationIds) -contains 'systematic-debugging') -or $noSpecialistResolved) -Message 'runtime smoke preserves systematic-debugging as selected or legacy recommended skill, or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Specialist Decision')) -Message 'runtime smoke requirement doc includes specialist decision section'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Specialist Skill Dispatch Plan')) -Message 'runtime smoke execution plan includes specialist dispatch section'
-Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke execution manifest carries specialist accounting or no-specialist resolution'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Skill Execution Decision')) -Message 'runtime smoke requirement doc includes skill execution decision section'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Selected Skill Execution Plan')) -Message 'runtime smoke execution plan includes selected skill execution section'
+Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke execution manifest carries skill execution accounting or no-specialist resolution'
 Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.plan_shadow) -and (([int]$executionManifest.plan_shadow.skill_execution_unit_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke plan shadow counts skill execution units or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'runtime smoke specialist dispatch integrity proof passes'
+Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'runtime smoke skill execution integrity proof passes'
 
 $failureCount = @($results | Where-Object { -not $_.passed }).Count
 $gatePassed = ($failureCount -eq 0)

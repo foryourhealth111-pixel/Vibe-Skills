@@ -742,8 +742,8 @@ if ($runtimeInputPacket) {
     if ($specialistDecision) {
         $lines += @(
             '',
-            '## Specialist Decision',
-            '- Governed `vibe` must explicitly record whether specialist execution is happening, stayed advisory, or remained unresolved before closeout.',
+            '## Skill Execution Decision',
+            '- Governed `vibe` must explicitly record whether selected skill execution is happening, stayed advisory, or remained unresolved before closeout.',
             ('- Decision state: {0}' -f [string]$specialistDecision.decision_state),
             ('- Resolution mode: {0}' -f [string]$specialistDecision.resolution_mode),
             ('- Notes: {0}' -f [string]$specialistDecision.notes)
@@ -757,7 +757,7 @@ if ($runtimeInputPacket) {
                 ('- Repo-asset fallback traceability basis: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.traceability_basis)))
             )
         } elseif ([string]$specialistDecision.resolution_mode -eq 'pending_resolution') {
-            $lines += '- If execution later relies on repo-local assets instead of a dedicated specialist skill, phase execute must record `specialist-decision.json` with the asset paths, fallback reason, legal basis, and traceability basis before closure.'
+            $lines += '- If execution later relies on repo-local assets instead of a dedicated selected skill, phase execute must record the skill execution decision payload with the asset paths, fallback reason, legal basis, and traceability basis before closure.'
         }
     }
 

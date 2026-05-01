@@ -412,14 +412,14 @@ foreach ($topologyWave in @($executionTopology.waves)) {
 if ($specialistDecision) {
     $lines += @(
         '',
-        '## Specialist Decision Plan',
-        '- The governed runtime must keep one explicit specialist decision surface from freeze through delivery acceptance.',
+        '## Skill Execution Decision Plan',
+        '- The governed runtime must keep one explicit skill execution decision surface from freeze through delivery acceptance.',
         ('- Frozen decision state: {0}' -f [string]$specialistDecision.decision_state),
         ('- Frozen resolution mode: {0}' -f [string]$specialistDecision.resolution_mode),
         ('- Frozen decision notes: {0}' -f [string]$specialistDecision.notes)
     )
     if ([string]$specialistDecision.resolution_mode -eq 'pending_resolution') {
-        $lines += '- If no dedicated specialist is available but execution relies on repo-local assets instead, write `specialist-decision.json` in the session root with asset paths, fallback reason, legal basis, and traceability basis before closeout.'
+        $lines += '- If no dedicated selected skill is available but execution relies on repo-local assets instead, record the skill execution decision payload with asset paths, fallback reason, legal basis, and traceability basis before closeout.'
     } elseif ([string]$specialistDecision.resolution_mode -eq 'repo_asset_fallback') {
         $lines += ('- Repo-asset fallback assets: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.asset_paths)))
     }
@@ -434,12 +434,12 @@ if ($hostSkillExecutionDecision) {
 if (@($approvedDispatch).Count -gt 0) {
     $lines += @(
         '',
-        '## Specialist Skill Dispatch Plan',
-        '- Specialist routing is mandatory and bounded inside governed `vibe`; it does not transfer runtime authority away from vibe.',
+        '## Selected Skill Execution Plan',
+        '- Selected skill execution is mandatory and bounded inside governed `vibe`; it does not transfer runtime authority away from vibe.',
         '- This section lists only skills selected into the six-stage work through `skill_routing.selected`.',
         '- Before specialist execution starts, governed `vibe` emits one unified disclosure for selected skills using each skill''s real `skill_md_path` or `native_skill_entrypoint`.',
-        '- Each specialist must be invoked through its native workflow, input contract, and validation style.',
-        '- Specialist outputs remain subordinate to the frozen requirement and the governed plan.'
+        '- Each selected skill must be invoked through its native workflow, input contract, and validation style.',
+        '- Selected skill outputs remain subordinate to the frozen requirement and the governed plan.'
     )
     if ($executionPhaseDecomposition -and @($executionPhaseDecomposition.phases).Count -gt 0) {
         $declaredPhaseIds = @($executionPhaseDecomposition.phases | ForEach-Object { [string]$_.phase_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
@@ -464,7 +464,7 @@ if (@($approvedDispatch).Count -gt 0) {
         if (@($ungroupedApprovedDispatch).Count -gt 0) {
             $lines += @(
                 '',
-                '### Phase `ungrouped`: fallback specialist dispatch'
+                '### Phase `ungrouped`: fallback skill execution'
             )
             $lines += @(Get-VibeDispatchPlanLines -Recommendations @($ungroupedApprovedDispatch))
         }
@@ -475,8 +475,8 @@ if (@($approvedDispatch).Count -gt 0) {
 if (@($localSuggestions).Count -gt 0) {
     $lines += @(
         '',
-        '## Specialist Dispatch Audit',
-        ('Local specialist suggestion count: {0}. These suggestions remain audit-only until a host decision adopts them; do not ask the user to delete or manually prune them from the plan.' -f @($localSuggestions).Count)
+        '## Skill Execution Audit',
+        ('Local skill suggestion count: {0}. These suggestions remain audit-only until a host decision adopts them; do not ask the user to delete or manually prune them from the plan.' -f @($localSuggestions).Count)
     )
 }
 $currentLifecycleLayerIds = @('discussion_routing')

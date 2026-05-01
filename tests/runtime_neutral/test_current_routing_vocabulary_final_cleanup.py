@@ -13,6 +13,19 @@ PLAN_EXECUTE = REPO_ROOT / "scripts" / "runtime" / "Invoke-PlanExecute.ps1"
 WRITE_REQUIREMENT_DOC = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
 WRITE_XL_PLAN = REPO_ROOT / "scripts" / "runtime" / "Write-XlPlan.ps1"
 CURRENT_FIELD_DOC = REPO_ROOT / "docs" / "governance" / "current-runtime-field-contract.md"
+ENTRY_PROTOCOL_FILES = [
+    REPO_ROOT / "SKILL.md",
+    REPO_ROOT / "protocols" / "runtime.md",
+    REPO_ROOT / "protocols" / "team.md",
+]
+CURRENT_USER_VISIBLE_RUNTIME_FILES = [
+    WRITE_REQUIREMENT_DOC,
+    WRITE_XL_PLAN,
+    PLAN_EXECUTE,
+    REPO_ROOT / "scripts" / "verify" / "vibe-governed-runtime-contract-gate.ps1",
+    REPO_ROOT / "scripts" / "verify" / "vibe-runtime-execution-proof-gate.ps1",
+]
+RUNTIME_EXECUTION_PROOF_GATE = REPO_ROOT / "scripts" / "verify" / "vibe-runtime-execution-proof-gate.ps1"
 
 
 def read(path: Path) -> str:
@@ -95,6 +108,31 @@ class CurrentRoutingVocabularyFinalCleanupTests(unittest.TestCase):
         self.assertNotIn("approved_specialist_dispatch_count", combined)
         self.assertNotRegex(combined, r"(?m)^\s*dispatch_unit_count\s*=")
 
+    def test_current_user_visible_surfaces_use_skill_execution_wording(self) -> None:
+        combined = "\n".join(read(path) for path in ENTRY_PROTOCOL_FILES + CURRENT_USER_VISIBLE_RUNTIME_FILES)
+
+        for forbidden in [
+            "## Specialist Dispatch",
+            "## Native Specialist Dispatch",
+            "## Specialist Decision",
+            "## Specialist Decision Plan",
+            "## Specialist Skill Dispatch Plan",
+            "## Specialist Dispatch Audit",
+            "specialist dispatch section",
+            "specialist dispatch integrity proof",
+            "specialist dispatch accounting",
+            "fallback specialist dispatch",
+        ]:
+            self.assertNotIn(forbidden, combined)
+
+        for required in [
+            "Skill Execution",
+            "Skill Execution Decision",
+            "Selected Skill Execution Plan",
+            "selected_skill_execution",
+        ]:
+            self.assertIn(required, combined)
+
     def test_current_runtime_field_doc_uses_selected_skill_execution_anchor(self) -> None:
         text = read(CURRENT_FIELD_DOC)
         current_section = text.split("## Retired Layer", 1)[0]
@@ -104,6 +142,16 @@ class CurrentRoutingVocabularyFinalCleanupTests(unittest.TestCase):
         self.assertIn("execution_skill_outcomes", current_section)
         self.assertNotIn("approved_skill_execution", current_section)
         self.assertNotIn("specialist_dispatch as root routing packet field", current_section)
+
+    def test_runtime_execution_proof_gate_reads_current_skill_execution_counts(self) -> None:
+        text = read(RUNTIME_EXECUTION_PROOF_GATE)
+
+        self.assertIn("executeReceipt.skill_execution_unit_count", text)
+        self.assertIn("executionManifest.specialist_accounting.skill_execution_unit_count", text)
+        self.assertIn("proofManifest.skill_execution_unit_count", text)
+        self.assertNotIn("executeReceipt.specialist_dispatch_unit_count", text)
+        self.assertNotIn("executionManifest.specialist_accounting.dispatch_unit_count", text)
+        self.assertNotIn("proofManifest.specialist_dispatch_unit_count", text)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@
 > - **Root/Child lane**: One coordinator (root lane) and multiple workers (child lanes). Only root makes the final completion claim for the whole task.
 > - **Wave-sequential execution**: Large tasks are split into sequential "waves." Within a wave, independent sub-tasks may run in parallel.
 > - **Scatter-gather**: Fan-out (assign task variants to multiple agents in parallel) then fan-in (collect all results and synthesize one output).
-> - **Specialist dispatch**: Using a specific skill (e.g. `tdd-guide`, `code-review`) for a bounded sub-task. Must be approved by root in the frozen plan before execution.
+> - **Skill execution**: Using a specific skill (e.g. `tdd-guide`, `code-review`) for a bounded sub-task. Must be selected by root in the frozen plan before execution.
 > - **Dialectic mode**: A structured design analysis where two groups of agents argue different perspectives, then a coordinator synthesizes the best ideas from both.
 > - **ruflo**: An optional memory and workflow orchestration component for vector memory, session persistence, and formal consensus.
 > - **spawn_agent / send_input / wait / close_agent**: Internal XL orchestration API calls. Users do not call these directly.
@@ -74,7 +74,7 @@ Child-governed lanes must not:
 - create a second canonical requirement surface
 - create a second canonical execution-plan surface
 - emit final completion claims for the full root task
-- self-approve new global specialist dispatch
+- self-approve new global selected skill execution
 
 ## Execution Topology Truth
 
@@ -82,8 +82,8 @@ Child-governed lanes must not:
 - `XL` execution is wave-sequential by dependency.
 - Parallel work in `XL` is step-scoped and bounded to independent units only.
 - Specialist recommendations are expected on governed runs, but process methods such as brainstorming, planning, and child-lane decomposition are owned by `vibe` stages rather than external route authorities.
-- Specialist dispatch is phase-bound: `pre_execution`, `in_execution`, `post_execution`, `verification`.
-- In `XL`, specialist lanes may join bounded parallel windows only when their write scopes are disjoint and their lane policy allows it.
+- Selected skill execution is phase-bound: `pre_execution`, `in_execution`, `post_execution`, `verification`.
+- In `XL`, selected skill execution lanes may join bounded parallel windows only when their write scopes are disjoint and their lane policy allows it.
 
 ### Role Division
 
@@ -112,33 +112,33 @@ Lead-agent rules:
 - subagents may surface report-only warnings, but must not invent a new hard gate,
 - if an existing approved policy or failed gate truly blocks progress, cite that exact surface,
 - aggregation must not flatten bounded-specialization outputs into generalized completion claims.
-- when a specialist skill is dispatched, keep its native workflow intact instead of rewriting it into generic lead-agent prose.
+- when a skill is selected for execution, keep its native workflow intact instead of rewriting it into generic lead-agent prose.
 - only root-governed aggregation may publish final completion claims for the full task.
 
-## Native Specialist Dispatch
+## Native Skill Execution
 
-Within XL execution, a specialist skill is a bounded helper, not a replacement runtime.
+Within XL execution, a selected skill is a bounded helper, not a replacement runtime.
 
 Rules:
 
 - `vibe` keeps final control of stage order, plan authority, and completion claims
-- specialist recommendations should always be surfaced in governed runtime output, and safe bounded recommendations should aggressively promote into effective dispatch
-- when effective dispatch exists, root-governed execution must emit one unified pre-execution disclosure that names only the actually executing specialist Skills and their real `native_skill_entrypoint`
-- each specialist receives a bounded subtask contract plus the frozen requirement context
-- specialist outputs must stay in the native format or workflow expected by that specialist skill
-- each approved specialist also carries phase binding, lane policy, write scope, and review mode
-- lead aggregation may summarize specialist output, but must not erase specialist-specific verification notes
-- a specialist recommendation is advisory until the governed plan chooses to dispatch it
+- skill execution candidates should always be surfaced in governed runtime output, and safe bounded candidates should aggressively promote into selected skill execution
+- when selected skill execution exists, root-governed execution must emit one unified pre-execution disclosure that names only the actually executing Skills and their real `native_skill_entrypoint`
+- each selected skill receives a bounded subtask contract plus the frozen requirement context
+- skill outputs must stay in the native format or workflow expected by that selected skill
+- each selected skill also carries phase binding, lane policy, write scope, and review mode
+- lead aggregation may summarize skill output, but must not erase skill-specific verification notes
+- a skill execution candidate is advisory until the governed plan selects it for execution
 
-Hierarchy-specific dispatch semantics:
+Hierarchy-specific skill execution semantics:
 
-- `approved_dispatch`: specialist usage approved by root and frozen in plan; child lanes may execute directly
-- `local_suggestion`: residual child-lane specialist suggestion that remains advisory only after safe same-round auto-promotion has been exhausted or blocked
+- `selected_skill_execution`: skill usage selected by root and frozen in plan; child lanes may execute directly
+- `local_suggestion`: residual child-lane skill suggestion that remains advisory only after safe same-round auto-promotion has been exhausted or blocked
 
 Escalation rule:
 
-- child lanes needing non-approved specialists must emit explicit escalation evidence to root
-- no silent specialist activation is allowed in child lanes
+- child lanes needing non-approved skill execution must emit explicit escalation evidence to root
+- no silent skill activation is allowed in child lanes
 
 ## Orchestration Options
 

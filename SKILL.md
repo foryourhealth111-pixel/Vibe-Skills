@@ -181,21 +181,20 @@ host-visible command or skill wrappers:
 - `vibe-how-do-we-do` -> `xl_plan`
 - `vibe-do-it` -> `phase_cleanup`
 
-## Specialist Dispatch
+## Skill Execution
 
-The router may surface specialist recommendations, but `vibe` remains the
-runtime-selected skill and runtime authority.
+The router may surface selected skill execution candidates, but `vibe` remains
+the runtime-selected skill and runtime authority.
 
-The host must inspect surfaced specialist recommendations and make a structured
-dispatch decision when curation is needed. It may approve, defer, or reject only
-surfaced recommendation ids. Unsuitable or noisy specialists should be rejected
-or deferred with a reason rather than forced into execution.
+The host must inspect surfaced candidates and make a structured skill execution
+decision when curation is needed. It may approve, defer, or reject only surfaced
+candidate ids. Unsuitable or noisy candidates should be rejected or deferred
+with a reason rather than forced into execution.
 
-Only approved specialists become execution units. The host must not invent
-unsurfaced specialists, bypass runtime validation, create hidden specialist
-sub-sessions, or open a second requirement/plan/runtime surface. Specialist work
-must preserve the specialist skill's own workflow, inputs, outputs, and
-validation style.
+Only selected skills become execution units. The host must not invent unsurfaced
+skills, bypass runtime validation, create hidden skill sub-sessions, or open a
+second requirement/plan/runtime surface. Selected skill work must preserve the
+skill's own workflow, inputs, outputs, and validation style.
 
 For XL delegation, root/child hierarchy remains governed: only `root_governed`
 may freeze canonical requirements/plans or make final completion claims.

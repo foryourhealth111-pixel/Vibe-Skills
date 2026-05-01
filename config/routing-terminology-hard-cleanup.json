@@ -2,6 +2,8 @@
   "current_docs": [
     "README.md",
     "SKILL.md",
+    "protocols/runtime.md",
+    "protocols/team.md",
     "docs/governance/current-routing-contract.md",
     "docs/governance/current-runtime-field-contract.md"
   ],
@@ -65,6 +67,14 @@
     "specialist_dispatch_decision",
     "approved_specialist_dispatch_count",
     "Host Specialist Dispatch Decision",
+    "## Specialist Decision",
+    "## Specialist Decision Plan",
+    "## Specialist Skill Dispatch Plan",
+    "## Specialist Dispatch Audit",
+    "fallback specialist dispatch",
+    "specialist dispatch section",
+    "specialist dispatch accounting",
+    "specialist dispatch integrity proof",
     "approved_dispatch_only",
     "dispatch_unit_count ="
   ],
@@ -78,7 +88,9 @@
     "route owner",
     "consultation expert",
     "auxiliary expert",
-    "stage assistant"
+    "stage assistant",
+    "Specialist Dispatch",
+    "specialist dispatch"
   ],
   "current_behavior_test_forbidden_patterns": [
     "[\"specialist_dispatch\"]",
