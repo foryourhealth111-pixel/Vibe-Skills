@@ -623,14 +623,14 @@ function Resolve-VibeHostPhaseDecomposition {
     }
 }
 
-function Get-VibeHostSpecialistDispatchContract {
+function Get-VibeHostSkillExecutionContract {
     param(
         [AllowNull()] [object]$Policy = $null
     )
 
     $dispatchPolicy = $null
-    if ($null -ne $Policy -and (Test-VibeObjectHasProperty -InputObject $Policy -PropertyName 'host_specialist_dispatch_contract')) {
-        $dispatchPolicy = $Policy.host_specialist_dispatch_contract
+    if ($null -ne $Policy -and (Test-VibeObjectHasProperty -InputObject $Policy -PropertyName 'host_skill_execution_contract')) {
+        $dispatchPolicy = $Policy.host_skill_execution_contract
     }
 
     $selectionModes = if (
@@ -675,7 +675,7 @@ function Resolve-VibeHostSpecialistDispatchDecision {
         [AllowNull()] [object]$Policy = $null
     )
 
-    $contract = Get-VibeHostSpecialistDispatchContract -Policy $Policy
+    $contract = Get-VibeHostSkillExecutionContract -Policy $Policy
     if (-not [bool]$contract.enabled) {
         return $null
     }
@@ -2971,27 +2971,27 @@ function Get-VibeStageLineageTerminalStage {
     return $null
 }
 
-function Get-VibeInteractiveSpecialistDisclosurePolicy {
+function Get-VibeInteractiveSkillExecutionDisclosurePolicy {
     param(
         [AllowNull()] [object]$RuntimeInputPacketPolicy
     )
 
     $policy = $null
-    if ($null -ne $RuntimeInputPacketPolicy -and (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacketPolicy -PropertyName 'interactive_specialist_disclosure')) {
-        $policy = $RuntimeInputPacketPolicy.interactive_specialist_disclosure
+    if ($null -ne $RuntimeInputPacketPolicy -and (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacketPolicy -PropertyName 'interactive_skill_execution_disclosure')) {
+        $policy = $RuntimeInputPacketPolicy.interactive_skill_execution_disclosure
     }
 
     return [pscustomobject]@{
         enabled = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'enabled')) { [bool]$policy.enabled } else { $false }
         stage = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$policy.stage)) { [string]$policy.stage } else { 'plan_execute' }
-        mode = 'approved_dispatch_pre_execution_unified_once'
+        mode = 'selected_skill_execution_pre_execution_unified_once'
         timing = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'timing') -and -not [string]::IsNullOrWhiteSpace([string]$policy.timing)) { [string]$policy.timing } else { 'before_execution' }
-        scope = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'scope') -and -not [string]::IsNullOrWhiteSpace([string]$policy.scope)) { [string]$policy.scope } else { 'approved_dispatch_only' }
+        scope = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'scope') -and -not [string]::IsNullOrWhiteSpace([string]$policy.scope)) { [string]$policy.scope } else { 'selected_skill_execution_only' }
         aggregation = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'aggregation') -and -not [string]::IsNullOrWhiteSpace([string]$policy.aggregation)) { [string]$policy.aggregation } else { 'unified_once' }
         path_source = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'path_source') -and -not [string]::IsNullOrWhiteSpace([string]$policy.path_source)) { [string]$policy.path_source } else { 'native_skill_entrypoint' }
         require_entrypoint_path = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'require_entrypoint_path')) { [bool]$policy.require_entrypoint_path } else { $true }
         include_description = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'include_description')) { [bool]$policy.include_description } else { $true }
-        header = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'header') -and -not [string]::IsNullOrWhiteSpace([string]$policy.header)) { [string]$policy.header } else { 'Pre-dispatch specialist disclosure:' }
+        header = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'header') -and -not [string]::IsNullOrWhiteSpace([string]$policy.header)) { [string]$policy.header } else { 'Pre-execution skill disclosure:' }
     }
 }
 
@@ -3001,7 +3001,7 @@ function New-VibeSpecialistUserDisclosureProjection {
         [AllowNull()] [object]$Policy = $null
     )
 
-    $resolvedPolicy = if ($null -ne $Policy) { $Policy } else { Get-VibeInteractiveSpecialistDisclosurePolicy }
+    $resolvedPolicy = if ($null -ne $Policy) { $Policy } else { Get-VibeInteractiveSkillExecutionDisclosurePolicy }
     if (-not [bool]$resolvedPolicy.enabled) {
         return $null
     }

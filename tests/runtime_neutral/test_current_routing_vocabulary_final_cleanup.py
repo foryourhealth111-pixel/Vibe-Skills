@@ -74,12 +74,15 @@ class CurrentRoutingVocabularyFinalCleanupTests(unittest.TestCase):
             self.assertNotIn(field, helper_body)
 
     def test_active_policy_readers_use_current_contract_names(self) -> None:
-        for path in [FREEZE_SCRIPT, RUNTIME_COMMON]:
-            text = read(path)
-            self.assertIn("skill_execution_contract", text, path)
-            self.assertNotIn("specialist_dispatch_contract", text, path)
-            self.assertIn("host_skill_execution_contract", text, path)
-            self.assertNotIn("host_specialist_dispatch_contract", text, path)
+        freeze_text = read(FREEZE_SCRIPT)
+        self.assertIn("skill_execution_contract", freeze_text)
+        self.assertNotIn("specialist_dispatch_contract", freeze_text)
+
+        runtime_text = read(RUNTIME_COMMON)
+        self.assertIn("host_skill_execution_contract", runtime_text)
+        self.assertIn("interactive_skill_execution_disclosure", runtime_text)
+        self.assertNotIn("host_specialist_dispatch_contract", runtime_text)
+        self.assertNotIn("interactive_specialist_disclosure", runtime_text)
 
     def test_generated_current_artifacts_do_not_use_dispatch_headings_or_counts(self) -> None:
         combined = "\n".join(

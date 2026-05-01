@@ -469,8 +469,8 @@ function Get-VibeStageAssistantHints {
     if ($Policy.PSObject.Properties.Name -contains 'specialist_recommendation_limit' -and $Policy.specialist_recommendation_limit -ne $null) {
         $limit = [int]$Policy.specialist_recommendation_limit
     }
-    $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'specialist_dispatch_contract' -and $null -ne $Policy.specialist_dispatch_contract) {
-        $Policy.specialist_dispatch_contract
+    $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'skill_execution_contract' -and $null -ne $Policy.skill_execution_contract) {
+        $Policy.skill_execution_contract
     } else {
         [pscustomobject]@{
             bounded_role = 'specialist_assist'
@@ -537,8 +537,8 @@ function Get-VibeSpecialistRecommendations {
     if ($Policy.PSObject.Properties.Name -contains 'minimum_specialist_recommendation_confidence' -and $Policy.minimum_specialist_recommendation_confidence -ne $null) {
         $minimumRecommendationConfidence = [double]$Policy.minimum_specialist_recommendation_confidence
     }
-    $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'specialist_dispatch_contract' -and $null -ne $Policy.specialist_dispatch_contract) {
-        $Policy.specialist_dispatch_contract
+    $dispatchContract = if ($Policy.PSObject.Properties.Name -contains 'skill_execution_contract' -and $null -ne $Policy.skill_execution_contract) {
+        $Policy.skill_execution_contract
     } else {
         [pscustomobject]@{
             bounded_role = 'specialist_assist'

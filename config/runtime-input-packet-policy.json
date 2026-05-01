@@ -17,9 +17,8 @@
     "internal_grade",
     "canonical_router",
     "route_snapshot",
-    "specialist_recommendations",
+    "skill_routing",
     "skill_usage",
-    "specialist_dispatch",
     "overlay_decisions",
     "authority_flags",
     "divergence_shadow",
@@ -50,7 +49,7 @@
       "allow_completion_claim": false
     }
   },
-  "specialist_dispatch_contract": {
+  "skill_execution_contract": {
     "bounded_role": "specialist_assist",
     "native_usage_required": true,
     "must_preserve_workflow": true,
@@ -90,16 +89,16 @@
       "force_escalation_env": "VGO_FORCE_CHILD_SPECIALIST_ESCALATION"
     }
   },
-  "interactive_specialist_disclosure": {
+  "interactive_skill_execution_disclosure": {
     "enabled": true,
     "stage": "plan_execute",
-    "scope": "approved_dispatch_only",
+    "scope": "selected_skill_execution_only",
     "timing": "before_execution",
     "aggregation": "unified_once",
     "path_source": "native_skill_entrypoint",
     "require_entrypoint_path": true,
     "include_description": true,
-    "header": "Pre-dispatch specialist disclosure:"
+    "header": "Pre-execution skill disclosure:"
   },
   "host_phase_decomposition_contract": {
     "enabled": true,
@@ -128,7 +127,7 @@
       }
     }
   },
-  "host_specialist_dispatch_contract": {
+  "host_skill_execution_contract": {
     "enabled": true,
     "scope": "root_only",
     "selection_modes": [
