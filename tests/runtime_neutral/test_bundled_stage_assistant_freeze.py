@@ -59,23 +59,14 @@ class BundledStageAssistantFreezeTests(unittest.TestCase):
             self.assertEqual("vibe", packet["divergence_shadow"]["runtime_selected_skill"])
             self.assertEqual("science-figures-visualization", packet["route_snapshot"]["selected_pack"])
             self.assertEqual("scientific-visualization", packet["route_snapshot"]["selected_skill"])
-            legacy = packet["legacy_skill_routing"]
+            self.assertNotIn("legacy_skill_routing", packet)
+            self.assertNotIn("specialist_recommendations", packet)
+            self.assertNotIn("stage_assistant_hints", packet)
 
-            recommendation_pairs = [
-                (item["skill_id"], item["source"])
-                for item in legacy["specialist_recommendations"]
-            ]
-            self.assertNotIn(("matplotlib", "route_stage_assistant"), recommendation_pairs)
-            self.assertNotIn(("seaborn", "route_stage_assistant"), recommendation_pairs)
-            self.assertNotIn(("plotly", "route_stage_assistant"), recommendation_pairs)
-
-            hint_pairs = [
-                (item["skill_id"], item["source"])
-                for item in legacy["stage_assistant_hints"]
-            ]
-            self.assertNotIn(("matplotlib", "route_stage_assistant"), hint_pairs)
-            self.assertNotIn(("seaborn", "route_stage_assistant"), hint_pairs)
-            self.assertNotIn(("plotly", "route_stage_assistant"), hint_pairs)
+            candidate_ids = [item["skill_id"] for item in packet["skill_routing"]["candidates"]]
+            self.assertNotIn("matplotlib", candidate_ids)
+            self.assertNotIn("seaborn", candidate_ids)
+            self.assertNotIn("plotly", candidate_ids)
 
             selected_ids = [
                 item["skill_id"]

@@ -134,26 +134,16 @@ class SkillPromotionFreezeContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             payload = freeze_runtime_packet(ML_PROMPT, Path(tempdir))
             packet = load_json(payload["packet_path"])
-            dispatch = packet["legacy_skill_routing"]["specialist_dispatch"]
+            selected = as_list(packet["skill_routing"]["selected"])
+            selected_ids = [item["skill_id"] for item in selected]
+            decision = packet["specialist_decision"]
 
-            self.assertIn("scikit-learn", as_list(dispatch["matched_skill_ids"]))
-            self.assertIn("scikit-learn", list(dispatch["approved_skill_ids"]))
-            self.assertGreaterEqual(len(as_list(dispatch["surfaced_skill_ids"])), len(as_list(dispatch["matched_skill_ids"])))
-            self.assertEqual([], as_list(dispatch["blocked_skill_ids"]))
-            self.assertEqual([], as_list(dispatch["degraded_skill_ids"]))
-            self.assertEqual([], as_list(dispatch["ghost_match_skill_ids"]))
+            self.assertIn("scikit-learn", selected_ids)
+            self.assertIn("scikit-learn", as_list(decision["matched_skill_ids"]))
+            self.assertIn("scikit-learn", as_list(decision["approved_dispatch_skill_ids"]))
+            self.assertGreaterEqual(len(as_list(decision["surfaced_skill_ids"])), len(as_list(decision["matched_skill_ids"])))
 
-            promotion_outcomes = list(dispatch["promotion_outcomes"])
-            scikit_learn_outcome = next(
-                item for item in promotion_outcomes if item["skill_id"] == "scikit-learn"
-            )
-            self.assertEqual("approved_dispatch", scikit_learn_outcome["promotion_state"])
-            self.assertFalse(scikit_learn_outcome["destructive"])
-            self.assertTrue(scikit_learn_outcome["contract_complete"])
-
-            scikit_dispatch = next(
-                item for item in as_list(dispatch["approved_dispatch"]) if item["skill_id"] == "scikit-learn"
-            )
+            scikit_dispatch = next(item for item in selected if item["skill_id"] == "scikit-learn")
             self.assertIsNotNone(
                 scikit_dispatch["native_skill_entrypoint"],
                 "scikit-learn dispatch should have native_skill_entrypoint populated before path checks",
@@ -165,25 +155,27 @@ class SkillPromotionFreezeContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             payload = freeze_runtime_packet(ML_PROMPT, Path(tempdir))
             packet = load_json(payload["packet_path"])
-            dispatch = packet["legacy_skill_routing"]["specialist_dispatch"]
 
-            surfaced = {str(skill_id) for skill_id in as_list(dispatch["surfaced_skill_ids"])}
-            outcome_ids = {str(item["skill_id"]) for item in list(dispatch["promotion_outcomes"])}
+            routing_rows = (
+                as_list(packet["skill_routing"]["candidates"])
+                + as_list(packet["skill_routing"]["selected"])
+                + as_list(packet["skill_routing"]["rejected"])
+            )
+            surfaced = {str(item["skill_id"]) for item in routing_rows if str(item["skill_id"])}
+            states = {str(item["state"]) for item in routing_rows if str(item["skill_id"])}
 
             self.assertTrue(surfaced)
-            self.assertEqual(surfaced, outcome_ids)
+            self.assertTrue(states.issubset({"candidate", "selected", "rejected"}))
 
     def test_freeze_keeps_consultation_truth_out_of_execution_dispatch_surface(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = freeze_runtime_packet(ML_PROMPT, Path(tempdir))
             packet = load_json(payload["packet_path"])
-            dispatch = packet["legacy_skill_routing"]["specialist_dispatch"]
 
             self.assertNotIn("specialist_consultation", packet)
-            self.assertNotIn("consulted_units", dispatch)
-            self.assertNotIn("user_disclosures", dispatch)
-            self.assertGreaterEqual(len(as_list(packet["legacy_skill_routing"]["specialist_recommendations"])), 1)
-            self.assertGreaterEqual(len(as_list(dispatch["approved_dispatch"])), 1)
+            self.assertNotIn("legacy_skill_routing", packet)
+            self.assertGreaterEqual(len(as_list(packet["skill_routing"]["candidates"])), 1)
+            self.assertGreaterEqual(len(as_list(packet["skill_routing"]["selected"])), 1)
 
     def test_policy_can_allow_incomplete_contract_without_forced_freeze_degrade(self) -> None:
         split_function = extract_split_specialist_dispatch_function()

@@ -328,10 +328,25 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
         cleanup = load_json(artifacts["cleanup_receipt"])
         execution_manifest = load_json(artifacts["execution_manifest"])
 
-        self.assertEqual("vibe", runtime_input["authority_flags"]["explicit_runtime_skill"], host_id)
-        self.assertEqual("vibe", runtime_input["route_snapshot"]["selected_skill"], host_id)
         self.assertIn("route_snapshot", runtime_input, host_id)
-        self.assertIn("specialist_dispatch", runtime_input, host_id)
+        self.assertEqual("vibe", runtime_input["authority_flags"]["explicit_runtime_skill"], host_id)
+        self.assertEqual("vibe", runtime_input["divergence_shadow"]["runtime_selected_skill"], host_id)
+        route_selected_skill = str(runtime_input["route_snapshot"].get("selected_skill") or "")
+        self.assertTrue(route_selected_skill, host_id)
+        self.assertIn("skill_routing", runtime_input, host_id)
+        self.assertIn("skill_usage", runtime_input, host_id)
+        self.assertIn("specialist_decision", runtime_input, host_id)
+        self.assertNotIn("legacy_skill_routing", runtime_input, host_id)
+        self.assertNotIn("specialist_recommendations", runtime_input, host_id)
+        self.assertNotIn("stage_assistant_hints", runtime_input, host_id)
+        self.assertNotIn("specialist_dispatch", runtime_input, host_id)
+        selected_skill_ids = [
+            item["skill_id"]
+            for item in list(runtime_input["skill_routing"]["selected"])
+            if item.get("skill_id")
+        ]
+        if route_selected_skill != "vibe":
+            self.assertIn(route_selected_skill, selected_skill_ids, host_id)
         self.assertTrue(Path(artifacts["requirement_doc"]).exists(), host_id)
         self.assertTrue(Path(artifacts["execution_plan"]).exists(), host_id)
         self.assertTrue(Path(artifacts["cleanup_receipt"]).exists(), host_id)
@@ -395,7 +410,7 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                     env=runtime_env,
                 )
                 debug_state = self._assert_common_governed_outputs(debug, host_id=host_id)
-                specialist_ids = [item["skill_id"] for item in debug_state["runtime_input"]["specialist_recommendations"]]
+                specialist_ids = [item["skill_id"] for item in debug_state["runtime_input"]["skill_routing"]["selected"]]
                 self.assertIn("systematic-debugging", specialist_ids, host_id)
                 self.assertGreaterEqual(
                     debug_state["execution_manifest"]["specialist_accounting"]["recommendation_count"],
@@ -429,7 +444,7 @@ class InstalledHostRuntimeSimulationTests(unittest.TestCase):
                     host_id,
                 )
                 self.assertIn(
-                    "approved specialist execution has not been performed inside the governed runtime yet.",
+                    "approved specialist execution has not been formally resolved inside the governed runtime yet.",
                     host_user_briefing,
                     host_id,
                 )

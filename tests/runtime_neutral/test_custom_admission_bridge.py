@@ -316,9 +316,8 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             self.assertEqual("admitted", packet["custom_admission"]["status"])
             self.assertIn("genomics-qc-flow", packet["custom_admission"]["admitted_skill_ids"])
 
-            legacy_routing = packet["legacy_skill_routing"]
             custom_recommendation = next(
-                item for item in legacy_routing["specialist_recommendations"] if item["skill_id"] == "genomics-qc-flow"
+                item for item in packet["skill_routing"]["selected"] if item["skill_id"] == "genomics-qc-flow"
             )
             self.assertEqual("workflow", custom_recommendation["binding_profile"])
             self.assertEqual("in_execution", custom_recommendation["dispatch_phase"])
@@ -332,8 +331,8 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
                 )
             )
 
-            approved_dispatch = legacy_routing["specialist_dispatch"]["approved_dispatch"]
-            self.assertIn("genomics-qc-flow", [item["skill_id"] for item in approved_dispatch])
+            self.assertNotIn("legacy_skill_routing", packet)
+            self.assertIn("genomics-qc-flow", [item["skill_id"] for item in packet["skill_routing"]["selected"]])
 
     def test_runtime_freeze_uses_resolved_runtime_mirror_entrypoint_in_progressive_load_policy(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -354,9 +353,8 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
                 artifact_root=artifact_root,
             )
             packet = payload["packet"]
-            legacy_routing = packet["legacy_skill_routing"]
             custom_recommendation = next(
-                item for item in legacy_routing["specialist_recommendations"] if item["skill_id"] == "genomics-qc-flow"
+                item for item in packet["skill_routing"]["selected"] if item["skill_id"] == "genomics-qc-flow"
             )
 
             self.assertTrue(
