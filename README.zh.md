@@ -64,12 +64,14 @@
 
 🧠 规划 · 🛠️ 工程 · 🤖 AI · 🔬 科研 · 🎨 创作
 
-<br/>
+<br/><br/>
 
 <a href="docs/install/one-click-install-release-copy.md">
-  <img src="https://img.shields.io/badge/⚡_立即安装-7B61FF?style=for-the-badge" alt="安装">
+  <img src="https://img.shields.io/badge/⚡_点击立即安装-7B61FF?style=for-the-badge" height="56" alt="点击立即安装">
 </a>
-&nbsp;
+
+<br/><br/>
+
 <a href="docs/quick-start.md">
   <img src="https://img.shields.io/badge/📖_快速上手-2d3748?style=for-the-badge" alt="文档">
 </a>
