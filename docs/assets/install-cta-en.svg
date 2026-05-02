@@ -1,0 +1,19 @@
+<svg width="327" height="56" viewBox="0 0 327 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Click to Install</title>
+  <desc id="desc">VibeSkills install call to action button</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="4" x2="305" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6E56CF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <filter id="shadow" x="-8" y="-4" width="343" height="70" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#3B1F8F" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="1" y="1" width="325" height="54" rx="10" fill="url(#bg)"/>
+    <rect x="1.5" y="1.5" width="324" height="53" rx="9.5" stroke="#C4B5FD" stroke-opacity="0.48"/>
+  </g>
+  <path d="M91.9 15L80.8 30.1H90L86.4 42L99.7 24.9H90.3L91.9 15Z" fill="#FFF8CC"/>
+  <text x="179" y="36" text-anchor="middle" fill="#FFFFFF" font-size="22" font-weight="650" letter-spacing="0" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif">Click to Install</text>
+</svg>

@@ -68,7 +68,7 @@ Install VibeSkills, type `vibe`, and let the harness handle the busy work: under
 <br/><br/>
 
 <a href="docs/install/one-click-install-release-copy.en.md">
-  <img src="https://img.shields.io/badge/⚡_Click_to_Install-7B61FF?style=for-the-badge" width="327" height="56" alt="Click to Install">
+  <img src="docs/assets/install-cta-en.svg" width="327" height="56" alt="Click to Install">
 </a>
 
 <br/><br/>
