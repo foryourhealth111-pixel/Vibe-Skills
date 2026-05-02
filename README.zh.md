@@ -67,7 +67,7 @@
 <br/><br/>
 
 <a href="docs/install/one-click-install-release-copy.md">
-  <img src="https://img.shields.io/badge/⚡_点击立即安装-7B61FF?style=for-the-badge" height="56" alt="点击立即安装">
+  <img src="https://img.shields.io/badge/⚡_点击立即安装-7B61FF?style=for-the-badge" width="214" height="56" alt="点击立即安装">
 </a>
 
 <br/><br/>
