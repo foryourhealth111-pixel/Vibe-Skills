@@ -4,7 +4,7 @@
 > retired routing terminology as cleanup targets. The current routing model is
 > `skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage`;
 > old terms here are debt targets, not current runtime states.
-
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an executable current-routing debt audit and cleanup pass that removes retired routing fields from current paths and keeps any old-field support isolated as retired compatibility.
@@ -15,7 +15,7 @@
 
 ---
 
-### Task 1: Add The Current Routing Debt Policy
+## Task 1: Add The Current Routing Debt Policy
 
 **Files:**
 - Create: `config/current-routing-debt-erasure.json`
@@ -265,7 +265,7 @@ git add config/current-routing-debt-erasure.json tests/runtime_neutral/test_curr
 git commit -m "test: define current routing debt policy"
 ```
 
-### Task 2: Add The Debt Gate Tests
+## Task 2: Add The Debt Gate Tests
 
 **Files:**
 - Create: `tests/runtime_neutral/test_current_routing_debt_gate.py`
@@ -384,7 +384,7 @@ git add tests/runtime_neutral/test_current_routing_debt_gate.py
 git commit -m "test: require current routing debt gate"
 ```
 
-### Task 3: Implement The Current Routing Debt Gate
+## Task 3: Implement The Current Routing Debt Gate
 
 **Files:**
 - Create: `scripts/verify/vibe-current-routing-debt-gate.ps1`
@@ -755,7 +755,7 @@ git commit -m "feat: add current routing debt gate"
 
 If Step 2 fails with P1 findings, leave the script uncommitted and continue to Task 4 so the first passing commit contains the gate plus the cleanup that makes it true.
 
-### Task 4: Move Retired Consultation Readers Out Of Current Runtime
+## Task 4: Move Retired Consultation Readers Out Of Current Runtime
 
 **Files:**
 - Create: `scripts/runtime/legacy/VibeRetiredConsultation.Common.ps1`
@@ -879,7 +879,7 @@ git add scripts/runtime/VibeRuntime.Common.ps1 scripts/runtime/legacy/VibeRetire
 git commit -m "refactor: isolate retired consultation runtime readers"
 ```
 
-### Task 5: Clean Current Test Fixtures That Still Emit Retired Fields
+## Task 5: Clean Current Test Fixtures That Still Emit Retired Fields
 
 **Files:**
 - Modify: `tests/unit/test_canonical_vibe_entry_launcher.py`
@@ -1063,7 +1063,7 @@ git add tests/unit/test_canonical_vibe_entry_launcher.py tests/integration/test_
 git commit -m "test: retire old routing fields from current fixtures"
 ```
 
-### Task 6: Wire The Gate Into Verify Documentation
+## Task 6: Wire The Gate Into Verify Documentation
 
 **Files:**
 - Modify: `scripts/verify/README.md`
@@ -1119,13 +1119,13 @@ In `scripts/verify/README.md`, add this command to the Common Verify Sequence af
 
 Add this note under High-Frequency Quick Starts:
 
-```markdown
+````markdown
 Current routing debt:
 
 ```powershell
 & ".\vibe-current-routing-debt-gate.ps1" -WriteArtifacts
 ```
-```
+````
 
 - [ ] **Step 4: Update gate family index**
 
@@ -1154,7 +1154,7 @@ git add scripts/verify/README.md scripts/verify/gate-family-index.md tests/runti
 git commit -m "docs: add current routing debt gate to verify flow"
 ```
 
-### Task 7: Run The Gate, Review The Audit, And Commit Generated Evidence Policy
+## Task 7: Run The Gate, Review The Audit, And Commit Generated Evidence Policy
 
 **Files:**
 - Produces untracked or modified generated outputs under `outputs/verify/`
@@ -1237,7 +1237,7 @@ git commit -m "docs: add current routing debt audit"
 
 If `docs/audits` has no tracked audit reports, leave the generated Markdown uncommitted and mention its path in the implementation closeout.
 
-### Task 8: Full Verification
+## Task 8: Full Verification
 
 **Files:**
 - No file edits expected.
@@ -1293,7 +1293,7 @@ git status --short
 
 Expected: only intentionally generated `outputs/verify/*` files may remain uncommitted. Source, tests, docs, and policy changes are committed.
 
-### Task 9: Closeout Commit And Evidence Summary
+## Task 9: Closeout Commit And Evidence Summary
 
 **Files:**
 - No new files unless Task 7 tracks the Markdown audit.

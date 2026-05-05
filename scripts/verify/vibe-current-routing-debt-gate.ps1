@@ -1,8 +1,8 @@
 param(
     [switch]$Json,
     [switch]$WriteArtifacts,
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
-    [string]$ArtifactRoot = $RepoRoot
+    [AllowEmptyString()] [string]$RepoRoot = '',
+    [AllowEmptyString()] [string]$ArtifactRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -139,10 +139,6 @@ function Get-LineCommentAndStringFragments {
 function Test-LineIsGuardAssertion {
     param([Parameter(Mandatory)] [string]$Line)
 
-    $trimmed = $Line.TrimStart()
-    if ($trimmed.StartsWith('assert ', [System.StringComparison]::OrdinalIgnoreCase) -and $Line.IndexOf(' not in ', [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-        return $true
-    }
     foreach ($needle in @('assertNotIn', 'self.assertNotIn', 'assertNotRegex')) {
         if ($Line.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
             return $true
@@ -150,7 +146,7 @@ function Test-LineIsGuardAssertion {
     }
     foreach ($fragment in @(Get-LineCommentAndStringFragments -Line $Line)) {
         $fragmentText = [string]$fragment.text
-        foreach ($needle in @('assert "not in"', ' not in ', 'NotIn')) {
+        foreach ($needle in @('assert "not in"', 'NotIn')) {
             if ($fragmentText.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 return $true
             }
@@ -235,7 +231,16 @@ function New-DebtFinding {
 }
 
 $context = Get-VgoGovernanceContext -ScriptPath $PSCommandPath -EnforceExecutionContext
-$RepoRoot = $context.repoRoot
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = [string]$context.repoRoot
+}
+$RepoRoot = [System.IO.Path]::GetFullPath($RepoRoot)
+if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
+    $ArtifactRoot = $RepoRoot
+}
+else {
+    $ArtifactRoot = [System.IO.Path]::GetFullPath($ArtifactRoot)
+}
 $policyPath = Join-Path $RepoRoot 'config\current-routing-debt-erasure.json'
 if (-not (Test-Path -LiteralPath $policyPath -PathType Leaf)) {
     throw "current routing debt policy not found: $policyPath"

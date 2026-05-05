@@ -74,9 +74,33 @@ def copy_debt_gate_fixture(tmp_path: Path, *, current_paths: list[str]) -> Path:
     return verify_dir / GATE.name
 
 
+def copy_debt_gate_policy_fixture(repo_root: Path, *, current_paths: list[str]) -> None:
+    config_dir = repo_root / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (repo_root / ".git").mkdir(exist_ok=True)
+
+    policy_payload = json.loads(POLICY.read_text(encoding="utf-8"))
+    policy_payload["scan_scopes"]["current_paths"] = current_paths
+    policy_payload["scan_scopes"]["legacy_allowed_paths"] = []
+    (config_dir / POLICY.name).write_text(json.dumps(policy_payload, indent=2) + "\n", encoding="utf-8")
+    shutil.copy2(REPO_ROOT / "config" / "version-governance.json", config_dir / "version-governance.json")
+    shutil.copy2(REPO_ROOT / "config" / "runtime-script-manifest.json", config_dir / "runtime-script-manifest.json")
+    shutil.copy2(REPO_ROOT / "config" / "runtime-config-manifest.json", config_dir / "runtime-config-manifest.json")
+
+
 def run_fixture_gate(gate: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [powershell(), "-NoLogo", "-NoProfile", "-File", str(gate), "-Json"],
+        cwd=gate.parents[2],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+
+def run_fixture_gate_with_args(gate: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [powershell(), "-NoLogo", "-NoProfile", "-File", str(gate), *args],
         cwd=gate.parents[2],
         capture_output=True,
         text=True,
@@ -173,6 +197,8 @@ def test_gate_scopes_retired_explanation_and_not_in_allowance_to_comments_or_str
     assert "$Line.IndexOf($needle" not in retired_body
     assert "Get-LineCommentAndStringFragments -Line $Line" in guard_body
     assert "foreach ($needle in @('assertNotIn', 'self.assertNotIn', 'assertNotRegex', 'assert \"not in\"', ' not in ', 'NotIn'))" not in guard_body
+    assert "StartsWith('assert '" not in guard_body
+    assert "$Line.IndexOf(' not in '" not in guard_body
 
 
 def test_gate_does_not_treat_legacy_identifier_as_retired_explanation(tmp_path: Path) -> None:
@@ -203,6 +229,51 @@ def test_gate_does_not_treat_non_assert_not_in_code_as_guard_assertion(tmp_path:
     assert payload["status"] == "fail"
     assert payload["summary"]["P1"] == 1
     assert payload["findings"][0]["term"] == "legacy_skill_routing"
+
+
+def test_gate_treats_assert_not_in_retired_string_as_current_test_dependency(tmp_path: Path) -> None:
+    gate = copy_debt_gate_fixture(tmp_path, current_paths=["tests/runtime_neutral"])
+    test_dir = tmp_path / "tests" / "runtime_neutral"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "test_example.py").write_text('assert "stage_assistant_hints" not in payload\n', encoding="utf-8")
+
+    result = run_fixture_gate(gate)
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 1
+    assert payload["status"] == "fail"
+    assert payload["summary"]["P1"] == 1
+    assert payload["findings"][0]["term"] == "stage_assistant_hints"
+
+
+def test_gate_honors_explicit_repo_root_when_script_lives_elsewhere(tmp_path: Path) -> None:
+    gate = copy_debt_gate_fixture(tmp_path / "script_repo", current_paths=["scripts/runtime"])
+    scan_root = tmp_path / "scan_repo"
+    copy_debt_gate_policy_fixture(scan_root, current_paths=["scripts/runtime"])
+    runtime_dir = scan_root / "scripts" / "runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    (runtime_dir / "example.ps1").write_text("$payload = @{ stage_assistant_hints = 'legacy' }\n", encoding="utf-8")
+
+    result = run_fixture_gate_with_args(gate, "-Json", "-RepoRoot", str(scan_root))
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 1
+    assert payload["status"] == "fail"
+    assert payload["repo_root"].replace("\\", "/") == scan_root.as_posix()
+    assert payload["summary"]["P1"] == 1
+    assert payload["findings"][0]["path"] == "scripts/runtime/example.ps1"
+    assert payload["findings"][0]["term"] == "stage_assistant_hints"
+
+
+def test_current_routing_debt_plan_uses_markdownlint_safe_structure() -> None:
+    text = (REPO_ROOT / "docs" / "superpowers" / "plans" / "2026-05-02-current-routing-debt-erasure.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "\n### Task " not in text
+    assert "> old terms here are debt targets, not current runtime states.\n>\n> **For agentic workers:**" in text
+    assert "````markdown\nCurrent routing debt:" in text
+    assert "\n```markdown\nCurrent routing debt:" not in text
 
 
 def test_gate_fails_when_configured_current_path_is_missing(tmp_path: Path) -> None:

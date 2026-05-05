@@ -25,6 +25,7 @@ DELETED_SKILLS = [
 OUT_OF_SCOPE_SKILLS = [
     "latchbio-integration",
 ]
+ASSERTIONS = unittest.TestCase()
 
 
 def load_json(path: Path) -> dict[str, object]:
@@ -80,8 +81,8 @@ def manifest_skill_ids() -> set[str]:
         values = pack.get("skill_candidates") or []
         assert isinstance(values, list), pack
         skill_ids.update(str(value) for value in values)
-        assert "route_authority_candidates" not in pack, pack
-        assert "stage_assistant_candidates" not in pack, pack
+        ASSERTIONS.assertNotIn("route_authority_candidates", pack, str(pack))
+        ASSERTIONS.assertNotIn("stage_assistant_candidates", pack, str(pack))
         defaults = pack.get("defaults_by_task") or {}
         assert isinstance(defaults, dict), pack
         skill_ids.update(str(value) for value in defaults.values())
