@@ -1209,7 +1209,14 @@ $skillRouting = if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Proper
 } else {
     $null
 }
-$selectedSkills = @(Convert-VibeSkillRoutingSelectedToDispatch -RuntimeInputPacket $runtimeInputPacket -SkillRouting $skillRouting)
+$skillExecutionLock = Get-VibeSkillExecutionLockFromRuntimeInputPacket -RuntimeInputPacket $runtimeInputPacket
+$lockSelectedSkills = @(Convert-VibeSkillExecutionLockToDispatch -SkillExecutionLock $skillExecutionLock)
+$hasActiveSkillExecutionLock = Test-VibeSkillExecutionLockActive -SkillExecutionLock $skillExecutionLock
+$selectedSkills = if ($hasActiveSkillExecutionLock -and @($lockSelectedSkills).Count -gt 0) {
+    @($lockSelectedSkills)
+} else {
+    @(Convert-VibeSkillRoutingSelectedToDispatch -RuntimeInputPacket $runtimeInputPacket -SkillRouting $skillRouting)
+}
 $frozenApprovedDispatch = @($selectedSkills)
 $frozenLocalSuggestions = @()
 $frozenBlockedDispatch = if ($runtimeSelectedSkillExecution -and $runtimeSelectedSkillExecution.PSObject.Properties.Name -contains 'blocked_skill_execution' -and $null -ne $runtimeSelectedSkillExecution.blocked_skill_execution) { @($runtimeSelectedSkillExecution.blocked_skill_execution) } else { @() }
@@ -1257,7 +1264,10 @@ if (@($nonExecutableSelectedSkillIds).Count -gt 0) {
         })
     $frozenApprovedDispatch = @($selectedSkills)
 }
-$hasCanonicalSelectedSkills = $null -ne $skillRouting -and $skillRouting.PSObject.Properties.Name -contains 'selected' -and @($skillRouting.selected).Count -gt 0
+$hasCanonicalSelectedSkills = (
+    ($hasActiveSkillExecutionLock -and @($selectedSkills).Count -gt 0) -or
+    ($null -ne $skillRouting -and $skillRouting.PSObject.Properties.Name -contains 'selected' -and @($skillRouting.selected).Count -gt 0)
+)
 if ($hasCanonicalSelectedSkills) {
     $specialistDispatchResolution = [pscustomobject]@{
         selected_skill_execution = @($selectedSkills)
@@ -1266,7 +1276,7 @@ if ($hasCanonicalSelectedSkills) {
         auto_absorb_gate = [pscustomobject]@{
             enabled = $false
             receipt_path = $null
-            reason = 'skill_routing_selected_is_authority'
+            reason = if ($hasActiveSkillExecutionLock) { 'skill_execution_lock_is_authority' } else { 'skill_routing_selected_is_authority' }
         }
         escalation_required = $false
         approval_owner = 'root'
@@ -1946,6 +1956,25 @@ $skillExecutionResolutionPath = if ($specialistDispatchResolution.auto_absorb_ga
 } else {
     $null
 }
+$lockedSkillIds = if ($hasActiveSkillExecutionLock -and $skillExecutionLock.PSObject.Properties.Name -contains 'locked_skill_ids') { @($skillExecutionLock.locked_skill_ids) } else { @() }
+$executedLockedSkillIds = @($verifiedSpecialistUnits | ForEach-Object {
+    if ($_.PSObject.Properties.Name -contains 'skill_id') { [string]$_.skill_id } else { '' }
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -in @($lockedSkillIds) } | Select-Object -Unique)
+$failedLockedSkillIds = @($failedLiveSpecialistUnits | ForEach-Object {
+    if ($_.PSObject.Properties.Name -contains 'skill_id') { [string]$_.skill_id } else { '' }
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -in @($lockedSkillIds) } | Select-Object -Unique)
+$resolvedLockedSkillIds = @(@($executedLockedSkillIds) + @($failedLockedSkillIds) | Select-Object -Unique)
+$unresolvedLockedSkillIds = @($lockedSkillIds | Where-Object { $_ -notin @($resolvedLockedSkillIds) })
+$specialistLockResolution = [pscustomobject]@{
+    active = [bool]$hasActiveSkillExecutionLock
+    locked_skill_ids = @($lockedSkillIds)
+    executed_skill_ids = @($executedLockedSkillIds)
+    not_applicable_skill_ids = @()
+    deferred_skill_ids = @()
+    failed_skill_ids = @($failedLockedSkillIds)
+    unresolved_skill_ids = @($unresolvedLockedSkillIds)
+    delivery_blocking = [bool](@($unresolvedLockedSkillIds).Count -gt 0 -or @($failedLockedSkillIds).Count -gt 0)
+}
 $executionManifest = [pscustomobject]@{
     stage = 'plan_execute'
     run_id = $RunId
@@ -1961,6 +1990,8 @@ $executionManifest = [pscustomobject]@{
     skill_usage = $skillUsage
     skill_routing_path = $runtimeInputPath
     skill_routing_summary = New-VibeSkillRoutingSummary -SkillRouting $skillRouting -SkillUsage $skillUsage
+    skill_execution_lock = $skillExecutionLock
+    specialist_lock_resolution = $specialistLockResolution
     selected_skill_ids = @(Get-VibeSkillRoutingSelectedSkillIds -RuntimeInputPacket $runtimeInputPacket -SkillRouting $skillRouting)
     execution_memory_context_path = if ([string]::IsNullOrWhiteSpace($ExecutionMemoryContextPath)) { $null } else { $ExecutionMemoryContextPath }
     generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -2030,6 +2061,10 @@ $executionManifest = [pscustomobject]@{
         frozen_selected_skill_execution = @($frozenSelectedSkillExecution)
         auto_selected_skill_execution_count = [int]$autoSelectedSkillExecutionCount
         auto_selected_skill_execution = @($autoSelectedSkillExecution)
+        skill_execution_lock = $skillExecutionLock
+        skill_execution_lock_active = [bool]$hasActiveSkillExecutionLock
+        skill_execution_lock_summary = New-VibeSkillExecutionLockSummaryProjection -SkillExecutionLock $skillExecutionLock
+        specialist_lock_resolution = $specialistLockResolution
         requested_host_adapter_id = $runtimePacketHostAdapterIdentity.requested_host_id
         effective_host_adapter_id = $runtimePacketHostAdapterIdentity.effective_host_id
         phase_binding_counts = [pscustomobject]@{

@@ -251,3 +251,29 @@ class SkillExecutionLockContractTests(unittest.TestCase):
         self.assertEqual("active", lock["state"])
         self.assertIn("scientific-reporting", as_list(lock["locked_skill_ids"]))
         self.assertTrue(lock["resolution_required"])
+
+    def test_lock_dispatch_is_preferred_over_current_router_selection_projection(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {ps_quote(str(RUNTIME_COMMON))}; "
+            f". {ps_quote(str(SKILL_ROUTING_COMMON))}; "
+            "$runtimePacket = [pscustomobject]@{ "
+            "  skill_execution_lock = [pscustomobject]@{ "
+            "    schema_version = 'v1'; state = 'active'; resolution_required = $true; "
+            "    locked_dispatch = @([pscustomobject]@{ "
+            "      skill_id = 'scientific-reporting'; task_slice = 'locked report'; dispatch_phase = 'post_execution'; "
+            "      write_scope = 'specialist:scientific-reporting'; verification_expectation = 'report evidence' "
+            "    }) "
+            "  }; "
+            "  skill_routing = [pscustomobject]@{ "
+            "    selected = @([pscustomobject]@{ skill_id = 'latex-submission-pipeline'; task_slice = 'current pdf'; dispatch_phase = 'post_execution' }) "
+            "  } "
+            "}; "
+            "$lockDispatch = Convert-VibeSkillExecutionLockToDispatch -SkillExecutionLock $runtimePacket.skill_execution_lock; "
+            "$currentDispatch = Convert-VibeSkillRoutingSelectedToDispatch -RuntimeInputPacket $runtimePacket -SkillRouting $runtimePacket.skill_routing; "
+            "[pscustomobject]@{ lock_dispatch = $lockDispatch; current_dispatch = $currentDispatch } | ConvertTo-Json -Depth 20 "
+            "}"
+        )
+
+        self.assertEqual(["scientific-reporting"], [item["skill_id"] for item in as_list(payload["lock_dispatch"])])
+        self.assertEqual(["latex-submission-pipeline"], [item["skill_id"] for item in as_list(payload["current_dispatch"])])
