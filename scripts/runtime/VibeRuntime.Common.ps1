@@ -2217,6 +2217,7 @@ function New-VibeRuntimeInputPacketProjection {
         [AllowNull()] [object[]]$StageAssistantHints = @(),
         [AllowNull()] [object]$SkillUsage = $null,
         [AllowNull()] [object]$SkillRouting = $null,
+        [AllowNull()] [object]$SkillExecutionLock = $null,
         [Parameter(Mandatory)] [object]$SpecialistDispatch,
         [AllowNull()] [object[]]$OverlayDecisions = @(),
         [Parameter(Mandatory)] [object]$Policy
@@ -2360,6 +2361,8 @@ function New-VibeRuntimeInputPacketProjection {
         execution_phase_decomposition = $ExecutionPhaseDecomposition
         code_task_tdd_decision = $CodeTaskTddDecision
         host_skill_execution_decision = $HostSpecialistDispatchDecision
+        skill_execution_lock = if ($null -ne $SkillExecutionLock) { $SkillExecutionLock } else { $null }
+        skill_execution_lock_summary = New-VibeSkillExecutionLockSummaryProjection -SkillExecutionLock $SkillExecutionLock
         skill_routing = if ($null -ne $SkillRouting) {
             $SkillRouting
         } else {
