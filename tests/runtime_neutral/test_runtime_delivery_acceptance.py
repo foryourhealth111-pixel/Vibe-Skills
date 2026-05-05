@@ -64,6 +64,8 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         omit_default_specialist_decision: bool = False,
         skill_usage: dict[str, object] | None = None,
         skill_routing: dict[str, object] | None = None,
+        skill_execution_lock: dict[str, object] | None = None,
+        specialist_lock_resolution: dict[str, object] | None = None,
     ) -> Path:
         tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(tempdir.cleanup)
@@ -163,6 +165,8 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
             "failed_unit_count": failed_unit_count,
             "timed_out_unit_count": 0,
         }
+        if specialist_lock_resolution is not None:
+            execution_manifest_payload["specialist_lock_resolution"] = specialist_lock_resolution
         selected_skill_execution_payload = list(approved_dispatch or [])
         if approved_dispatch is not None or specialist_accounting is not None:
             default_specialist_accounting = {
@@ -186,6 +190,8 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 "explicit_runtime_skill": "vibe",
             }
         }
+        if skill_execution_lock is not None:
+            runtime_input_packet_payload["skill_execution_lock"] = skill_execution_lock
         if skill_routing is not None:
             runtime_input_packet_payload["skill_routing"] = skill_routing
         if approved_dispatch is not None:
@@ -793,6 +799,142 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
             str(session_root / "specialist-execution.json"),
             report["truth_results"]["workflow_completion_truth"]["evidence"],
         )
+
+    def test_runtime_delivery_acceptance_fails_when_locked_specialist_is_unresolved(self) -> None:
+        skill_path = "/tmp/scientific-reporting/SKILL.md"
+        session_root = self._build_session(
+            approved_dispatch=[
+                {
+                    "skill_id": "scientific-reporting",
+                    "native_skill_entrypoint": skill_path,
+                }
+            ],
+            phase_execute_specialist_user_disclosure={
+                "scope": "selected_skill_execution_only",
+                "timing": "before_execution",
+                "path_source": "native_skill_entrypoint",
+                "routed_skills": [
+                    {
+                        "skill_id": "scientific-reporting",
+                        "native_skill_entrypoint": skill_path,
+                        "entrypoint_requirement_satisfied": True,
+                    }
+                ],
+            },
+            skill_execution_lock={
+                "schema_version": "v1",
+                "state": "active",
+                "locked_skill_ids": ["scientific-reporting"],
+                "locked_dispatch": [{"skill_id": "scientific-reporting", "native_skill_entrypoint": skill_path}],
+                "resolution_required": True,
+            },
+            specialist_lock_resolution={
+                "active": True,
+                "locked_skill_ids": ["scientific-reporting"],
+                "executed_skill_ids": [],
+                "not_applicable_skill_ids": [],
+                "deferred_skill_ids": [],
+                "failed_skill_ids": [],
+                "unresolved_skill_ids": ["scientific-reporting"],
+                "delivery_blocking": True,
+            },
+            phase_execute_specialist_decision={
+                "decision_state": "approved_dispatch",
+                "resolution_mode": "approved_dispatch",
+                "approved_dispatch_skill_ids": ["scientific-reporting"],
+            },
+        )
+
+        report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("FAIL", report["summary"]["gate_result"])
+        self.assertIn("specialist_lock_resolution_truth", report["truth_results"])
+        self.assertEqual("failing", report["truth_results"]["specialist_lock_resolution_truth"]["state"])
+        self.assertIn("scientific-reporting", report["execution_context"]["specialist_lock_unresolved_skill_ids"])
+
+    def test_runtime_delivery_acceptance_passes_when_locked_specialist_is_executed(self) -> None:
+        skill_path = "/tmp/scientific-reporting/SKILL.md"
+        session_root = self._build_session(
+            run_id="pytest-specialist-lock-pass",
+            approved_dispatch=[
+                {
+                    "skill_id": "scientific-reporting",
+                    "native_skill_entrypoint": skill_path,
+                }
+            ],
+            phase_execute_specialist_user_disclosure={
+                "scope": "selected_skill_execution_only",
+                "timing": "before_execution",
+                "path_source": "native_skill_entrypoint",
+                "routed_skills": [
+                    {
+                        "skill_id": "scientific-reporting",
+                        "native_skill_entrypoint": skill_path,
+                        "entrypoint_requirement_satisfied": True,
+                    }
+                ],
+            },
+            specialist_accounting={
+                "selected_skill_execution": [
+                    {
+                        "skill_id": "scientific-reporting",
+                        "native_skill_entrypoint": skill_path,
+                    }
+                ],
+                "selected_skill_execution_count": 1,
+                "effective_execution_status": "direct_current_session_routed",
+                "direct_routed_skill_execution_units": [
+                    {
+                        "unit_id": "unit-1",
+                        "skill_id": "scientific-reporting",
+                        "result_path": "specialist-results/scientific-reporting.json",
+                    }
+                ],
+            },
+            skill_execution_lock={
+                "schema_version": "v1",
+                "state": "active",
+                "locked_skill_ids": ["scientific-reporting"],
+                "locked_dispatch": [{"skill_id": "scientific-reporting", "native_skill_entrypoint": skill_path}],
+                "resolution_required": True,
+            },
+            specialist_lock_resolution={
+                "active": True,
+                "locked_skill_ids": ["scientific-reporting"],
+                "executed_skill_ids": ["scientific-reporting"],
+                "not_applicable_skill_ids": [],
+                "deferred_skill_ids": [],
+                "failed_skill_ids": [],
+                "unresolved_skill_ids": [],
+                "delivery_blocking": False,
+            },
+            phase_execute_specialist_decision={
+                "decision_state": "approved_dispatch",
+                "resolution_mode": "approved_dispatch",
+                "approved_dispatch_skill_ids": ["scientific-reporting"],
+            },
+            sidecar_specialist_execution={
+                "protocol_version": "v1",
+                "source_run_id": "pytest-specialist-lock-pass",
+                "resolution_mode": "current_session_host_execution",
+                "evidence_paths": ["/tmp/pytest-specialist-lock-pass.md"],
+                "units": [
+                    {
+                        "unit_id": "unit-1",
+                        "skill_id": "scientific-reporting",
+                        "resolution_state": "executed",
+                        "native_skill_entrypoint": skill_path,
+                        "evidence_paths": ["/tmp/pytest-scientific-reporting.txt"],
+                    }
+                ],
+            },
+        )
+
+        report = evaluate(REPO_ROOT, session_root)
+
+        self.assertEqual("PASS", report["summary"]["gate_result"])
+        self.assertEqual("passing", report["truth_results"]["specialist_lock_resolution_truth"]["state"])
+        self.assertEqual([], report["execution_context"]["specialist_lock_unresolved_skill_ids"])
 
     def test_runtime_delivery_acceptance_does_not_pass_incomplete_workflow_with_executed_sidecar(self) -> None:
         approved_dispatch = [

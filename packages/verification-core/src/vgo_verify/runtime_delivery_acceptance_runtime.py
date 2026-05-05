@@ -164,6 +164,90 @@ def _evaluate_skill_usage_truth(
     }
 
 
+def _normalize_unique_string_list(value: object) -> list[str]:
+    result: list[str] = []
+    for item in _normalize_string_list(value):
+        if item not in result:
+            result.append(item)
+    return result
+
+
+def _load_skill_execution_lock(
+    runtime_packet: dict[str, Any],
+    execution_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    manifest_lock = execution_manifest.get("skill_execution_lock")
+    if isinstance(manifest_lock, dict):
+        return manifest_lock
+    accounting = execution_manifest.get("specialist_accounting")
+    if isinstance(accounting, dict):
+        accounting_lock = accounting.get("skill_execution_lock")
+        if isinstance(accounting_lock, dict):
+            return accounting_lock
+    packet_lock = runtime_packet.get("skill_execution_lock")
+    if isinstance(packet_lock, dict):
+        return packet_lock
+    return {}
+
+
+def _load_specialist_lock_resolution(execution_manifest: dict[str, Any]) -> dict[str, Any]:
+    manifest_resolution = execution_manifest.get("specialist_lock_resolution")
+    if isinstance(manifest_resolution, dict):
+        return manifest_resolution
+    accounting = execution_manifest.get("specialist_accounting")
+    if isinstance(accounting, dict):
+        accounting_resolution = accounting.get("specialist_lock_resolution")
+        if isinstance(accounting_resolution, dict):
+            return accounting_resolution
+    return {}
+
+
+def _evaluate_specialist_lock_resolution(
+    skill_execution_lock: dict[str, Any],
+    specialist_lock_resolution: dict[str, Any],
+) -> tuple[str, list[str], dict[str, list[str]]]:
+    state = str(skill_execution_lock.get("state") or "").strip().lower()
+    locked_skill_ids = _normalize_unique_string_list(skill_execution_lock.get("locked_skill_ids"))
+    active = state == "active" and bool(locked_skill_ids)
+    empty_lists = {
+        "locked": [],
+        "executed": [],
+        "not_applicable": [],
+        "deferred": [],
+        "failed": [],
+        "unresolved": [],
+    }
+    if not active:
+        return "passing", ["No active specialist execution lock was present."], empty_lists
+
+    executed = _normalize_unique_string_list(specialist_lock_resolution.get("executed_skill_ids"))
+    not_applicable = _normalize_unique_string_list(specialist_lock_resolution.get("not_applicable_skill_ids"))
+    deferred = _normalize_unique_string_list(specialist_lock_resolution.get("deferred_skill_ids"))
+    failed = _normalize_unique_string_list(specialist_lock_resolution.get("failed_skill_ids"))
+    explicitly_unresolved = _normalize_unique_string_list(specialist_lock_resolution.get("unresolved_skill_ids"))
+    resolved = set(executed) | set(not_applicable) | set(deferred) | set(failed)
+    unresolved = [skill_id for skill_id in locked_skill_ids if skill_id not in resolved]
+    for skill_id in explicitly_unresolved:
+        if skill_id not in unresolved:
+            unresolved.append(skill_id)
+
+    lock_lists = {
+        "locked": locked_skill_ids,
+        "executed": executed,
+        "not_applicable": not_applicable,
+        "deferred": deferred,
+        "failed": failed,
+        "unresolved": unresolved,
+    }
+    if failed:
+        return "failing", [f"Locked specialist execution failed for: {', '.join(failed)}."], lock_lists
+    if unresolved:
+        return "failing", [f"Locked specialist execution is unresolved for: {', '.join(unresolved)}."], lock_lists
+    if deferred:
+        return "manual_review_required", [f"Locked specialist execution was deferred for: {', '.join(deferred)}."], lock_lists
+    return "passing", ["All locked specialist execution obligations were resolved."], lock_lists
+
+
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
     contract = load_json(repo_root / "config" / "project-delivery-acceptance-contract.json")
     execute_receipt_path = session_root / "phase-execute.json"
@@ -184,6 +268,12 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     skill_routing = runtime_input_packet.get("skill_routing") or {}
     specialist_accounting = execution_manifest.get("specialist_accounting") or {}
     skill_usage = _load_skill_usage(session_root, runtime_input_packet, execution_manifest, execute_receipt)
+    skill_execution_lock = _load_skill_execution_lock(runtime_input_packet, execution_manifest)
+    specialist_lock_resolution = _load_specialist_lock_resolution(execution_manifest)
+    specialist_lock_state, specialist_lock_notes, specialist_lock_lists = _evaluate_specialist_lock_resolution(
+        skill_execution_lock,
+        specialist_lock_resolution,
+    )
 
     product_acceptance_criteria = _extract_bullets(requirement_text, "Product Acceptance Criteria")
     manual_spot_checks, manual_section_missing = _manual_spot_checks_from_requirement(requirement_text)
@@ -998,6 +1088,15 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "evidence": specialist_decision_evidence,
             "notes": " ".join(specialist_decision_notes).strip(),
         },
+        "specialist_lock_resolution_truth": {
+            "state": _normalize_truth_state(specialist_lock_state),
+            "evidence": [
+                str(path)
+                for path in (runtime_input_packet_path, execution_manifest_path)
+                if path.exists()
+            ],
+            "notes": " ".join(specialist_lock_notes).strip(),
+        },
         "skill_usage_truth": {
             "state": str(skill_usage_truth.get("truth_state") or "passing"),
             "evidence": list(skill_usage_truth.get("evidence_paths") or []),
@@ -1089,6 +1188,12 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         residual_risks.append("Specialist decision truth is missing required fallback or dispatch detail.")
     if specialist_decision_state == "degraded":
         residual_risks.append("Specialist decision recorded a traceable but non-green specialist fallback path.")
+    if specialist_lock_lists["failed"]:
+        residual_risks.append("Locked specialist execution failed for: " + ", ".join(specialist_lock_lists["failed"]) + ".")
+    if specialist_lock_lists["unresolved"]:
+        residual_risks.append("Locked specialist execution remains unresolved for: " + ", ".join(specialist_lock_lists["unresolved"]) + ".")
+    if specialist_lock_lists["deferred"]:
+        residual_risks.append("Locked specialist execution was deferred for: " + ", ".join(specialist_lock_lists["deferred"]) + ".")
     if str(skill_usage_truth.get("state") or "") == "FAIL":
         residual_risks.append("Binary skill usage truth is missing full-load or artifact-impact evidence.")
     if specialist_host_continuation_pending:
@@ -1208,6 +1313,13 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "direct_routed_skill_execution_unit_ids": direct_routed_unit_ids,
             "direct_routed_skill_execution_skill_ids": direct_routed_skill_ids,
             "direct_routed_skill_execution_units": direct_routed_skill_execution_units,
+            "specialist_lock_active": bool(specialist_lock_lists["locked"]),
+            "specialist_lock_skill_ids": specialist_lock_lists["locked"],
+            "specialist_lock_executed_skill_ids": specialist_lock_lists["executed"],
+            "specialist_lock_not_applicable_skill_ids": specialist_lock_lists["not_applicable"],
+            "specialist_lock_deferred_skill_ids": specialist_lock_lists["deferred"],
+            "specialist_lock_failed_skill_ids": specialist_lock_lists["failed"],
+            "specialist_lock_unresolved_skill_ids": specialist_lock_lists["unresolved"],
             "specialist_host_resolution_state": specialist_host_resolution_state,
             "specialist_host_executed_unit_count": specialist_host_executed_unit_count,
             "specialist_host_degraded_unit_count": specialist_host_degraded_unit_count,

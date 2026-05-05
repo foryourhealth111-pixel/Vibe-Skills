@@ -1146,6 +1146,18 @@ $hostSpecialistDispatchDecision = Resolve-VibeHostSkillExecutionDecision `
     -Recommendations @($specialistRecommendations) `
     -GovernanceScope ([string]$hierarchyState.governance_scope) `
     -Policy $policy
+$lockSourceRunId = if (
+    $null -ne $continuationContext -and
+    (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'source_run_id') -and
+    -not [string]::IsNullOrWhiteSpace([string]$continuationContext.source_run_id)
+) {
+    [string]$continuationContext.source_run_id
+} else {
+    ''
+}
+$previousRuntimeInputPacket = Get-VibeRuntimeInputPacketFromSessionRunId `
+    -ArtifactRoot $ArtifactRoot `
+    -SourceRunId $lockSourceRunId
 $codeTaskTddDecision = Resolve-VibeCodeTaskTddDecision `
     -HostDecision $hostDecision `
     -Task $Task `
@@ -1168,6 +1180,17 @@ $skillRouting = New-VibeSkillRoutingFromLegacy `
     -Recommendations @($specialistRecommendations) `
     -StageAssistantHints @($stageAssistantHints) `
     -SpecialistDispatch $specialistDispatch
+$lockSource = if (-not [string]::IsNullOrWhiteSpace($lockSourceRunId)) {
+    'approved_plan_reentry'
+} else {
+    'current_skill_routing_selected'
+}
+$skillExecutionLock = New-VibeSkillExecutionLockProjection `
+    -PreviousRuntimeInputPacket $previousRuntimeInputPacket `
+    -CurrentSkillRouting $skillRouting `
+    -HostSpecialistDispatchDecision $hostSpecialistDispatchDecision `
+    -SourceRunId $lockSourceRunId `
+    -Source $lockSource
 $selectedSkillLoads = @()
 foreach ($selectedSkill in @(Get-VibeSkillRoutingSelected -SkillRouting $skillRouting)) {
     $selectedSkillId = [string]$selectedSkill.skill_id
@@ -1225,6 +1248,7 @@ $packet = New-VibeRuntimeInputPacketProjection `
     -StageAssistantHints @($stageAssistantHints) `
     -SkillUsage $skillUsage `
     -SkillRouting $skillRouting `
+    -SkillExecutionLock $skillExecutionLock `
     -SpecialistDispatch $specialistDispatch `
     -OverlayDecisions @($overlayDecisions) `
     -Policy $policy
