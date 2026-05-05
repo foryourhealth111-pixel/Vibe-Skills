@@ -14,22 +14,25 @@ enter the six-stage work and become a real usage claim?
 The current Vibe-Skills routing model is:
 
 ```text
-skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage.used / skill_usage.unused
+skill_candidates -> skill_routing.selected -> skill_execution_lock -> selected_skill_execution -> skill_usage.used / skill_usage.unused
 ```
 
 This is the only model current user-facing docs and generated runtime outputs
 should teach.
 
-The model has no extra current states between selection and usage. A skill is
-either selected into the work, then later recorded as used or unused.
+The model separates selection, approved-plan execution obligation, execution,
+and material-use evidence. A skill can be selected and locked for execution
+without being materially used yet.
 
 ## Operating Rules
 
 1. Routing may list possible skills in `skill_candidates`.
 2. The plan may choose skills through `skill_routing.selected`.
-3. Execution may only treat selected skills as work inputs through
+3. Plan approval may preserve selected skills across bounded re-entry through
+   `skill_execution_lock`.
+4. Execution may only treat selected or locked skills as work inputs through
    `selected_skill_execution`.
-4. Completion may only claim a skill was used through `skill_usage.used` with
+5. Completion may only claim a skill was used through `skill_usage.used` with
    matching `skill_usage.evidence`.
 
 For compound tasks, split the work into bounded task segments and select the
@@ -43,11 +46,18 @@ states.
 | --- | --- |
 | `candidate` | A skill was considered by routing. This is not a use claim. |
 | `selected` | A skill was chosen into the work surface through `skill_routing.selected`. This is not a use claim. |
+| `skill_execution_lock` | The approved-plan execution lock that preserves selected specialists across bounded re-entry. It is not a use claim. |
 | `selected_skill_execution` | The selected skill list frozen into execution. This connects routing to actual work; it is still not a use claim. |
 | `used` | A selected or loaded skill shaped an artifact and appears in `skill_usage.used` with evidence. |
 | `unused` | A selected or loaded skill did not shape an artifact and appears in `skill_usage.unused`. |
 | `evidence` | A stage, artifact reference, and impact summary proving material skill use. |
 | `retired old-format fields` | Old routing, consultation, and dispatch fields are not current inputs, current outputs, or maintained compatibility targets. |
+
+`skill_execution_lock` exists because bounded re-entry reruns the router. Once
+a plan is approved, selected specialists become execution obligations and must
+be executed, marked not applicable, deferred, or failed before delivery
+acceptance can pass. The lock does not prove material skill use;
+`skill_usage.used` remains the only material-use truth.
 
 ## Usage Proof
 
@@ -57,8 +67,8 @@ A skill may be reported as used only when all of these are true:
 2. The skill has at least one `skill_usage.evidence` record.
 3. The evidence names a concrete stage and artifact impact.
 
-Routing, selection, old consultation receipts, and old dispatch records are not
-usage proof.
+Routing, selection, execution locks, old consultation receipts, and old dispatch
+records are not usage proof.
 
 ## Current Output Rules
 
@@ -67,6 +77,7 @@ Current runtime outputs should use these names:
 ```text
 skill_candidates
 skill_routing.selected
+skill_execution_lock
 selected_skill_execution
 skill_usage.used
 skill_usage.unused
@@ -95,8 +106,8 @@ planning_consultation
 ```
 
 When current and retired fields are both present in an old artifact, current
-runtime code should prefer `skill_routing` and `skill_usage` and ignore retired
-fields for current behavior.
+runtime code should prefer `skill_routing`, `skill_execution_lock`, and
+`skill_usage` and ignore retired fields for current behavior.
 
 ## Non-Goals
 

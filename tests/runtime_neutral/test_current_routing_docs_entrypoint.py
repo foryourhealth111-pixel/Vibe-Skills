@@ -15,10 +15,11 @@ def test_current_routing_contract_teaches_selection_execution_usage_chain() -> N
     text = read_doc("current-routing-contract.md")
 
     assert (
-        "skill_candidates -> skill_routing.selected -> selected_skill_execution -> "
+        "skill_candidates -> skill_routing.selected -> skill_execution_lock -> "
+        "selected_skill_execution -> "
         "skill_usage.used / skill_usage.unused"
     ) in text
-    assert "`selected_skill_execution` | The selected skill list frozen into execution." in text
+    assert "`skill_execution_lock` | The approved-plan execution lock that preserves selected specialists across bounded re-entry. It is not a use claim." in text
     assert "skill_routing.selected -> skill_usage.used" not in text
 
 
@@ -26,10 +27,11 @@ def test_runtime_field_contract_matches_current_routing_contract_chain() -> None
     text = read_doc("current-runtime-field-contract.md")
 
     assert (
-        "skill_candidates -> skill_routing.selected -> selected_skill_execution -> "
+        "skill_candidates -> skill_routing.selected -> skill_execution_lock -> "
+        "selected_skill_execution -> "
         "skill_usage.used / skill_usage.unused"
     ) in text
-    assert "`selected_skill_execution` is the execution-side copy of" in text
+    assert "`skill_execution_lock` records specialists that crossed the approved-plan boundary" in text
     assert "skill_routing.selected -> skill_usage.used" not in text
 
 

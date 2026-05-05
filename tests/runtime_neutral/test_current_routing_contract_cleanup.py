@@ -312,7 +312,7 @@ class CurrentRoutingContractCleanupTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
 
         self.assertIn(
-            "skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage.used / skill_usage.unused",
+            "skill_candidates -> skill_routing.selected -> skill_execution_lock -> selected_skill_execution -> skill_usage.used / skill_usage.unused",
             text,
         )
         for required in [
