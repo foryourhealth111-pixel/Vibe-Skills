@@ -347,6 +347,8 @@ if ($WriteArtifacts) {
     New-Item -ItemType Directory -Force -Path $verifyDir | Out-Null
     New-Item -ItemType Directory -Force -Path $auditDir | Out-Null
 
+    # Keep both filenames: gate consumers read the gate report, while audit
+    # consumers use the historical audit JSON path for generated evidence.
     Write-VgoUtf8NoBomText -Path (Join-Path $verifyDir 'current-routing-debt-gate.json') -Content ($report | ConvertTo-Json -Depth 50)
     Write-VgoUtf8NoBomText -Path (Join-Path $verifyDir 'current-routing-debt-audit.json') -Content ($report | ConvertTo-Json -Depth 50)
 
