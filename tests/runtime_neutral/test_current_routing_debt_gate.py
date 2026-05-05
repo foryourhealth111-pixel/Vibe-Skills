@@ -108,6 +108,10 @@ def run_fixture_gate_with_args(gate: Path, *args: str) -> subprocess.CompletedPr
     )
 
 
+def powershell_single_quoted(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
 def test_gate_reports_json_and_clean_current_surfaces() -> None:
     result = run_gate("-Json")
     assert result.returncode == 0, result.stdout + result.stderr
@@ -244,6 +248,54 @@ def test_gate_treats_assert_not_in_retired_string_as_current_test_dependency(tmp
     assert payload["status"] == "fail"
     assert payload["summary"]["P1"] == 1
     assert payload["findings"][0]["term"] == "stage_assistant_hints"
+
+
+def test_gate_does_not_treat_generic_notin_text_as_guard_assertion(tmp_path: Path) -> None:
+    gate = copy_debt_gate_fixture(tmp_path, current_paths=["tests/runtime_neutral"])
+    test_dir = tmp_path / "tests" / "runtime_neutral"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "test_example.py").write_text('VALUE = "stage_assistant_hints NotInitialized"\n', encoding="utf-8")
+
+    result = run_fixture_gate(gate)
+    payload = json.loads(result.stdout)
+
+    assert result.returncode == 1
+    assert payload["status"] == "fail"
+    assert payload["summary"]["P1"] == 1
+    assert payload["findings"][0]["term"] == "stage_assistant_hints"
+
+
+def test_repo_relative_path_requires_path_segment_boundary(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    sibling_file = tmp_path / "repo-tools" / "example.txt"
+    sibling_file.parent.mkdir(parents=True, exist_ok=True)
+    sibling_file.write_text("outside sibling\n", encoding="utf-8")
+
+    function_source = function_body(GATE.read_text(encoding="utf-8"), "ConvertTo-RepoRelativePath")
+    expected = str(sibling_file).replace("\\", "/")
+    script = tmp_path / "check_repo_relative_boundary.ps1"
+    script.write_text(
+        "\n".join(
+            [
+                function_source,
+                f"$result = ConvertTo-RepoRelativePath -Path {powershell_single_quoted(str(sibling_file))} -Root {powershell_single_quoted(str(root))}",
+                f"$expected = {powershell_single_quoted(expected)}",
+                'if ($result -ne $expected) { throw "Expected $expected but got $result" }',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [powershell(), "-NoLogo", "-NoProfile", "-File", str(script)],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_gate_honors_explicit_repo_root_when_script_lives_elsewhere(tmp_path: Path) -> None:

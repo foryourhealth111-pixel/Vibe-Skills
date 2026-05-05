@@ -17,7 +17,13 @@ function ConvertTo-RepoRelativePath {
     $rootFull = [System.IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
     $pathFull = [System.IO.Path]::GetFullPath($Path)
     if ($pathFull.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return $pathFull.Substring($rootFull.Length).TrimStart('\', '/').Replace('\', '/')
+        if ($pathFull.Length -eq $rootFull.Length) {
+            return ''
+        }
+        $boundary = $pathFull[$rootFull.Length]
+        if ($boundary -eq [System.IO.Path]::DirectorySeparatorChar -or $boundary -eq [System.IO.Path]::AltDirectorySeparatorChar) {
+            return $pathFull.Substring($rootFull.Length).TrimStart('\', '/').Replace('\', '/')
+        }
     }
     return $pathFull.Replace('\', '/')
 }
@@ -146,7 +152,7 @@ function Test-LineIsGuardAssertion {
     }
     foreach ($fragment in @(Get-LineCommentAndStringFragments -Line $Line)) {
         $fragmentText = [string]$fragment.text
-        foreach ($needle in @('assert "not in"', 'NotIn')) {
+        foreach ($needle in @('assert "not in"', 'assertNotIn', 'self.assertNotIn', 'assertNotRegex', 'assert.NotIn')) {
             if ($fragmentText.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 return $true
             }
