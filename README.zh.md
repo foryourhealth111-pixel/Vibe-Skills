@@ -7,7 +7,7 @@
 <div align="center">
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&pause=1000&color=7B61FF&center=true&vCenter=true&width=700&height=100&lines=Vibe+Skills;One+Entry+for+Agent+Work;Local+Skills+With+Evidence" alt="VibeSkills Typing Logo" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&pause=1000&color=7B61FF&center=true&vCenter=true&width=700&height=100&lines=Vibe+Skills;Coordinate+Local+Skills;For+Composite+Tasks" alt="VibeSkills Typing Logo" />
 </a>
 
 <br/>
@@ -16,32 +16,30 @@
 
 <br/><br/>
 
-### 把 `vibe` 作为主要工作入口
+### 组织本地 Skills 协作，处理复合任务
 
-#### 安装 VibeSkills 后，从 `vibe` 开始，让运行时处理标准流程：澄清目标、冻结需求、把复合任务拆成有边界的工作单元、在需要时绑定合适的本地 Skills、检查证据能证明什么，并把下一次继续所需的上下文保存下来。
+VibeSkills 是一个给 AI Agent 用的工作流运行时。它会把一条任务拆成多个有边界的部分，再让合适的本地 Skills 分别负责规划、实现、测试、文档、研究或评审。
 
-&nbsp;
-*VibeSkills 把公开入口收得很小。公开入口是 `vibe`，额外 Skills 来自声明的本地 skill 根目录，完成宣称要以真实执行证据为准。它最突出的地方，是能把多个本地 Skills 组织进同一次受管任务。*
+<div align="center">
 
-现在公开边界更明确：声明的本地 skill 根目录，是额外 Skills 的唯一发现来源。Vibe 以用户选择的 `<SkillsDir>` 为公共 skills 目录：Vibe 自己在 `<SkillsDir>/vibe`，普通 skills 可以放在 `<SkillsDir>/*`，运行时也可以继续读取用户级或项目级配置里声明的本地目录。如果同一个 skill id 出现多次，先进入有效扫描顺序的根目录生效。真正记录这次运行绑定了什么的，仍然是 `work_binding`；只有真实执行证据能把一个 skill 记为实际使用。遇到复合任务时，一条请求可以先拆成多个有边界的单元，再分别绑定不同的本地 Skills 去做规划、实现、评审、文档或研究。
+| 核心功能 | 最擅长 | 适配环境 |
+|:---|:---|:---|
+| 在同一次任务里组织多个本地 Skills 协作 | 代码改动加测试加文档加 review，或研究加写作加交付这类复合任务 | Codex、Claude Code、Windsurf、Cursor、OpenCode、OpenClaw，以及其他支持 Skills 的环境 |
+
+</div>
+
+从 `vibe` 开始。运行时会处理范围澄清、任务拆分、Skill 协作和验证，让 Agent 更适合完成多步骤工作。
+
+<details>
+<summary><b>给进阶用户的运行时说明</b></summary>
 
 在公开叙事里，已安装的本地 skill 根目录仍然是唯一专家来源。宿主声明的额外本地根目录，是沿着同一条本地扩展面继续扩展，不长出新的中心目录。这不是在宣称最终架构已经完成。
 
+一个 skill 只有在真实执行证据支持时，才会被算作实际使用，`work_binding` 记录的是本次运行里真正绑定了什么。
+
 在当前运行时边界里，Python 负责最终 truth artifacts、canonical validation、任务语义、`work_binding`、专家决策真相和结构化运行结果。PowerShell 仍然承担阶段编排、环境准备、脚本桥接、宿主收据、shell 原生检查和叶子执行。不要把新的任务语义继续加到 PowerShell；现有 PowerShell 阶段脚本只是迁移期编排面。
 
-
-<table align="center">
-<tr>
-<td align="left">
-<pre><code>&gt; vibe
-  intent.freeze()        -> requirement_doc
-  plan.model()           -> bounded_work
-  skills.bind_late()     -> helpful Skills by work unit
-  evidence.verify()      -> tests, checks, artifacts
-  memory.preserve()      -> next-session context</code></pre>
-</td>
-</tr>
-</table>
+</details>
 
 <br/>
 

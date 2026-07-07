@@ -7,7 +7,7 @@
 <div align="center">
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&pause=1000&color=7B61FF&center=true&vCenter=true&width=700&height=100&lines=Vibe+Skills;One+Entry+for+Agent+Work;Local+Skills+With+Evidence" alt="VibeSkills Typing Logo" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=45&pause=1000&color=7B61FF&center=true&vCenter=true&width=700&height=100&lines=Vibe+Skills;Coordinate+Local+Skills;For+Composite+Tasks" alt="VibeSkills Typing Logo" />
 </a>
 
 <br/>
@@ -16,33 +16,30 @@
 
 <br/><br/>
 
-### Use `vibe` as the main work entry
+### Coordinate local Skills for composite agent work
 
-Install VibeSkills, start with `vibe`, and let the runtime handle the standard flow: clarify the goal, freeze requirements, split composite work into bounded units, bind relevant local Skills where they help, verify what the evidence supports, and keep enough context for the next session.
+VibeSkills is a workflow runtime for AI agents. It takes one request, splits it into bounded parts, and lets the right local Skills handle planning, implementation, testing, docs, research, or review inside the same run.
 
-&nbsp;
-*VibeSkills keeps the public surface small. The public entry is `vibe`, extra Skills come from declared local skill roots, and completion claims stay tied to execution evidence. Its strongest behavior is organizing several local Skills inside one governed run.*
+<div align="center">
 
-Declared local skill roots are the only place where additional Skills are discovered. Vibe treats the chosen `<SkillsDir>` as the public skills directory: Vibe itself lives at `<SkillsDir>/vibe`, ordinary skills can live under `<SkillsDir>/*`, and the runtime can also read configured user-level or workspace-level local roots. When the same skill id appears more than once, the earlier root wins, and `work_binding` stays the runtime truth for what was bound. A skill is reported as materially used only when evidence ties it to real execution output. On composite tasks, one request can become several bounded units, and different local Skills can be bound to those units for planning, implementation, review, docs, or research.
+| Core function | Best at | Works with |
+|:---|:---|:---|
+| Organize multiple local Skills in one task | Composite work such as code changes plus tests plus docs plus review, or research plus writing plus delivery | Codex, Claude Code, Windsurf, Cursor, OpenCode, OpenClaw, and other Skills-compatible hosts |
+
+</div>
+
+Start with `vibe`. The runtime handles scoping, task breakdown, skill coordination, and verification so the agent can finish multi-step work with less manual steering.
+
+<details>
+<summary><b>Runtime notes for advanced readers</b></summary>
 
 Installed local skills are the only specialist reference surface in the public runtime story. Host-declared extra local roots extend that same local surface without a new central catalog. This is not a claim that the final architecture is complete.
 
+A skill counts as actually used only when execution evidence supports it, and `work_binding` records what was actually bound in the run.
+
 For this runtime boundary, Python owns final truth artifacts, canonical validation, task semantics, `work_binding`, specialist decision truth, and structured runtime result data. PowerShell still performs stage orchestration, environment setup, script bridging, host receipts, shell-native checks, and leaf execution. Do not add new task semantics to PowerShell; existing PowerShell stage scripts are transitional orchestration surfaces. A future full-Python runtime is optional, not required for this version.
 
-<br/>
-
-<table align="center">
-<tr>
-<td align="left">
-  <pre><code>&gt; vibe
-  intent.freeze()        -> requirement_doc
-  plan.model()           -> bounded_work
-  skills.bind_late()     -> helpful Skills by work unit
-  evidence.verify()      -> tests, checks, artifacts
-  memory.preserve()      -> next-session context</code></pre>
-</td>
-</tr>
-</table>
+</details>
 
 <br/>
 
