@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ._bootstrap import ensure_contracts_src_on_path
 from .policies import (
     GovernanceContext,
     mirror_topology_targets,
@@ -12,6 +13,10 @@ from .policies import (
     utc_now,
     write_text,
 )
+
+ensure_contracts_src_on_path()
+
+from vgo_contracts.mirror_topology_contract import resolve_generated_nested_compatibility_suffix
 
 
 @dataclass(slots=True)
@@ -27,7 +32,7 @@ class FreshnessEvaluationContext:
     installed_root: Path
     receipt_path: Path
     allow_installed_only: set[str]
-    nested_root: Path
+    nested_root: Path | None
 
 
 def build_freshness_context(
@@ -51,10 +56,8 @@ def build_freshness_context(
     installed_root = (target_root / runtime['target_relpath']).resolve()
     receipt_path = (target_root / runtime['receipt_relpath']).resolve()
     allow_installed_only = set(packaging.get('allow_installed_only') or packaging['allow_bundled_only'])
-    generated = (governance.get('packaging') or {}).get('generated_compatibility') or {}
-    nested_runtime = generated.get('nested_runtime_root') or {}
-    nested_rel = str(nested_runtime.get('relative_path') or 'bundled/skills/vibe').strip()
-    nested_root = (installed_root / nested_rel).resolve()
+    nested_suffix = resolve_generated_nested_compatibility_suffix(governance)
+    nested_root = (installed_root / nested_suffix).resolve() if nested_suffix is not None else None
     return FreshnessEvaluationContext(
         repo_root=repo_root,
         governance=governance,
@@ -85,8 +88,8 @@ def build_freshness_results(context: FreshnessEvaluationContext) -> dict[str, An
         'runtime_markers': [],
         'nested': {
             'required': bool(context.runtime.get('require_nested_bundled_root')),
-            'path': str(context.nested_root),
-            'exists': context.nested_root.exists(),
+            'path': str(context.nested_root) if context.nested_root is not None else None,
+            'exists': context.nested_root.exists() if context.nested_root is not None else False,
         },
     }
 

@@ -127,7 +127,7 @@ def evaluate_freshness_runtime(
     installed_exists = context.installed_root.exists()
     _log_assertion(assertions, installed_exists, '[runtime] installed vibe root exists')
     if context.runtime.get('require_nested_bundled_root'):
-        _log_assertion(assertions, context.nested_root.exists(), '[runtime] nested bundled root exists')
+        _log_assertion(assertions, context.nested_root is not None and context.nested_root.exists(), '[runtime] nested bundled root exists')
 
     _evaluate_mirrored_files(context, results, assertions)
     _evaluate_mirrored_directories(context, results, assertions)

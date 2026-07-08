@@ -385,6 +385,30 @@ class FreshnessGateTests(unittest.TestCase):
         mirror_ids = [target["id"] for target in targets if target["role"] != "canonical"]
         self.assertEqual(["bundled", "nested_bundled"], mirror_ids)
 
+    def test_freshness_results_do_not_surface_retired_nested_path_when_generated_compatibility_is_disabled(self) -> None:
+        self.governance["packaging"]["generated_compatibility"] = {
+            "nested_runtime_root": {
+                "relative_path": "",
+                "materialization_mode": "disabled",
+            }
+        }
+        self.write_governance()
+        self.sync_runtime_governance_copies()
+
+        gate_pass, artifact = self.module.evaluate_freshness(
+            repo_root=self.root,
+            governance=self.governance,
+            canonical_root=self.canonical_root,
+            target_root=self.target_root,
+            script_path=self.script_path,
+        )
+
+        self.assertTrue(gate_pass)
+        nested = artifact["results"]["nested"]
+        self.assertFalse(nested["required"])
+        self.assertIsNone(nested["path"])
+        self.assertFalse(nested["exists"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,7 +32,6 @@ from .governance_runtime_roles import (
 from .host_launch_receipt import HostLaunchReceipt, write_host_launch_receipt
 from .install_ledger import InstallLedger
 from .mirror_topology_contract import (
-    DEFAULT_BUNDLED_ROOT,
     DEFAULT_CANONICAL_TARGET_ID,
     DEFAULT_NESTED_MATERIALIZATION_MODE,
     resolve_canonical_mirror_relpath,
@@ -93,7 +92,6 @@ __all__ = [
     'HostLaunchReceipt',
     'write_host_launch_receipt',
     'InstallLedger',
-    'DEFAULT_BUNDLED_ROOT',
     'DEFAULT_CANONICAL_TARGET_ID',
     'DEFAULT_NESTED_MATERIALIZATION_MODE',
     'resolve_canonical_mirror_relpath',

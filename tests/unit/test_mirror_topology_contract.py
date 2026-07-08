@@ -72,7 +72,7 @@ def test_resolve_canonical_mirror_relpath_uses_topology_contract() -> None:
     assert module.resolve_canonical_mirror_relpath(governance) == "repo-root"
 
 
-def test_generated_nested_suffix_preserves_topology_and_legacy_behavior() -> None:
+def test_generated_nested_suffix_preserves_only_explicit_nested_compatibility() -> None:
     module = _load_module()
     topology_governance = {
         "mirror_topology": {
@@ -92,9 +92,16 @@ def test_generated_nested_suffix_preserves_topology_and_legacy_behavior() -> Non
             "bundled_root": "bundled/skills/vibe",
         }
     }
+    explicit_legacy_governance = {
+        "source_of_truth": {
+            "bundled_root": "bundled/skills/vibe",
+            "nested_bundled_root": "bundled/skills/vibe/bundled/skills/vibe",
+        }
+    }
 
     assert module.resolve_generated_nested_compatibility_suffix(topology_governance) == Path("bundled/skills/vibe")
-    assert module.resolve_generated_nested_compatibility_suffix(legacy_governance) == Path("bundled/skills/vibe")
+    assert module.resolve_generated_nested_compatibility_suffix(legacy_governance) is None
+    assert module.resolve_generated_nested_compatibility_suffix(explicit_legacy_governance) == Path("bundled/skills/vibe")
 
 
 def test_generated_nested_suffix_can_be_disabled() -> None:
