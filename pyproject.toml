@@ -4,6 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vibe-skills-workspace"
-version = "3.1.1"
+version = "3.2.0"
 description = "Clean architecture workspace scaffold for Vibe-Skills"
 requires-python = ">=3.10"

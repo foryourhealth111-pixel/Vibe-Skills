@@ -526,7 +526,7 @@ bash ./update.sh --skills-dir "$HOME/.agents/skills"
 bash ./uninstall.sh --skills-dir "$HOME/.agents/skills"
 ```
 
-公开发布物是 host-neutral、以 SkillsDir 为中心的包，例如 `vibe-skills-3.1.1-public.zip`。安装器只把 Vibe 自己拥有的文件写到 `<SkillsDir>/vibe`。公开发布包安装的是 `vibe` 运行时本体，不会额外安装一套内置 skill 目录。安装完成后，公开入口是 `vibe`；额外 Skills 则由共享 skills 目录和额外声明的本地根目录提供。
+公开发布物是 host-neutral、以 SkillsDir 为中心的包，例如 `vibe-skills-3.2.0-public.zip`。安装器只把 Vibe 自己拥有的文件写到 `<SkillsDir>/vibe`。公开发布包安装的是 `vibe` 运行时本体，不会额外安装一套内置 skill 目录。安装完成后，公开入口是 `vibe`；额外 Skills 则由共享 skills 目录和额外声明的本地根目录提供。
 
 安装器只写 `<SkillsDir>/vibe` 下属于 Vibe 的文件，收据在 `<SkillsDir>/vibe/.vibeskills/install-receipt.json`。它不会改 Codex、Claude、Agents 的设置，不会写入系统提示词，也不会生成多宿主 wrapper。重复安装或更新会保留用户自己加的文件；如果未来包内文件会覆盖一个不属于收据的路径，安装器会失败，而不是删除目录。
 

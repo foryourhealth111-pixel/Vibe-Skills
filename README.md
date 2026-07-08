@@ -501,7 +501,7 @@ The runtime core behind **VibeSkills** is **VCO**. It keeps workflow control in 
 
 Public installation starts from a published release zip. Download the release zip, extract it, and run the wrappers from that extracted directory.
 
-The public release asset is a host-neutral, SkillsDir-centered bundle such as `vibe-skills-3.1.1-public.zip`. The installer writes Vibe-owned files under `<SkillsDir>/vibe`. The public release installs the `vibe` runtime itself. It does not add a separate built-in skill catalog. After install, the public entry is `vibe`, and additional Skills are discovered separately from that shared skills directory and any configured local skill roots.
+The public release asset is a host-neutral, SkillsDir-centered bundle such as `vibe-skills-3.2.0-public.zip`. The installer writes Vibe-owned files under `<SkillsDir>/vibe`. The public release installs the `vibe` runtime itself. It does not add a separate built-in skill catalog. After install, the public entry is `vibe`, and additional Skills are discovered separately from that shared skills directory and any configured local skill roots.
 
 The default target is `~/.agents/skills`, so the shortest Windows install from a published release zip is:
 

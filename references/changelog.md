@@ -1,5 +1,13 @@
 # VCO Changelog
 
+## v3.2.0 (2026-07-08)
+
+- Rebuilt the default blocking regression lane around capability seams: install lifecycle, runtime entry truth, routing mainline, and one focused host-boundary smoke instead of the old oversized gate pile.
+- Split the legacy routing matrix and offline skills gate into smaller optional audit seams, while keeping the old entrypoints as compatibility wrappers for downstream callers and docs.
+- Retargeted StrictOffline to required-skills proof, refreshed release metadata and package versions to `3.2.0`, and aligned the public release asset naming around `vibe-skills-3.2.0-public.zip`.
+- Detailed release notes: `docs/releases/v3.2.0.md`.
+
+
 ## v3.1.1 (2026-05-06)
 
 - Hardened the current routing release line around specialist execution lock enforcement, current-session execution accounting, and canonical-entry truth alignment for the latest `main` baseline.

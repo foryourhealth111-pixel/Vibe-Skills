@@ -48,8 +48,8 @@
   },
   "summary": "Claude Code now has a bounded managed install/check lane that writes and verifies a Claude settings surface, but it still does not become the Codex official runtime or full platform-parity lane.",
   "source_release": {
-    "version": "3.1.1",
-    "updated": "2026-05-06"
+    "version": "3.2.0",
+    "updated": "2026-07-08"
   },
   "truth_sources": [
     "docs/universalization/host-capability-matrix.md",

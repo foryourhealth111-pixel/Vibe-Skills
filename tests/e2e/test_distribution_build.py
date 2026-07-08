@@ -99,11 +99,11 @@ def test_distribution_build_creates_generated_outputs(tmp_path) -> None:
     bundle_payload = json.loads(bundle_path.read_text(encoding='utf-8'))
     assert bundle_payload['generated'] is True
     assert bundle_payload['distribution_manifest'] == str(manifest_path.resolve())
-    assert bundle_payload['release']['version'] == '3.1.1'
+    assert bundle_payload['release']['version'] == '3.2.0'
     assert bundle_payload['public_install']['source_kind'] == 'public_release'
     assert bundle_payload['public_install']['host_neutral'] is True
     assert bundle_payload['public_install']['skills_dir_centered'] is True
-    assert bundle_payload['asset']['file_name'] == 'vibe-skills-3.1.1-public.zip'
+    assert bundle_payload['asset']['file_name'] == 'vibe-skills-3.2.0-public.zip'
     assert bundle_payload['asset']['payload_digest_sha256']
     assert bundle_payload['runtime_payload_roles']['notes']['flat_projection_contract']
     assert bundle_payload['runtime_config_payload_roles']['notes']['flat_projection_contract']
@@ -111,8 +111,8 @@ def test_distribution_build_creates_generated_outputs(tmp_path) -> None:
     assert bundle_payload['governance_runtime_roles']['required_runtime_marker_notes']['flat_projection_contract']
     assert 'surface_contracts' not in bundle_payload['runtime_core_payload_roles']['payload_roles']
     assert bundle['host_id'] == manifest['host_id']
-    asset_root = tmp_path / 'bundle-out' / 'vibe-skills-3.1.1-public'
-    asset_zip = tmp_path / 'bundle-out' / 'vibe-skills-3.1.1-public.zip'
+    asset_root = tmp_path / 'bundle-out' / 'vibe-skills-3.2.0-public'
+    asset_zip = tmp_path / 'bundle-out' / 'vibe-skills-3.2.0-public.zip'
     assert asset_root.is_dir()
     assert asset_zip.is_file()
     assert (asset_root / 'install.ps1').is_file()

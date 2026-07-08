@@ -8,10 +8,9 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Start Here
 
-### Current Published Release
+### Current Release Surface
 
-- [`v3.1.1.md`](v3.1.1.md): current routing contract hardening / specialist execution lock closure / runtime-neutral verification stabilization / docs and install-surface refresh
-- Public install/update asset: published `vibe-skills-<version>-public.zip` release zip, extracted locally before running `install` or `update`
+- [`v3.2.0.md`](v3.2.0.md): capability-based default CI redesign, legacy routing and offline gate decomposition into focused optional audits, StrictOffline required-skills closure, and release-surface refresh on the latest mainline
 
 ### Release Runtime / Proof Handoff
 
@@ -21,6 +20,8 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 
 ## Recent Governed Releases
 
+
+- [`v3.2.0.md`](v3.2.0.md) - 2026-07-08 - capability-based default CI redesign, legacy routing and offline gate decomposition into focused optional audits, StrictOffline required-skills closure, and release-surface refresh on the latest mainline
 - [`v3.1.1.md`](v3.1.1.md) - 2026-05-06 - current routing contract hardening / specialist execution lock closure / runtime-neutral verification stabilization / docs and install-surface refresh
 - [`v3.1.0.md`](v3.1.0.md) - 2026-04-25 - unified public vibe surfaces / structured host routing / bounded continuation / specialist truth gates / TDD applicability / install-runtime path hardening / package metadata alignment
 - [`v3.0.4.md`](v3.0.4.md) - 2026-04-19 - Windows verification gate Python resolution / direct in-session specialist routing / canonical entry truth hardening / release-train telemetry seeding / upgrade truth and empty-upgrade repair
@@ -31,8 +32,8 @@ This directory stores governed VCO release notes and the minimum runtime-facing 
 - [`v2.3.55.md`](v2.3.55.md) - 2026-03-30 - owned-only uninstall and skill-only host alignment / OpenCode startup safety / explicit intent-vs-vector AI config split / macOS bootstrap compatibility
 - [`v2.3.54.md`](v2.3.54.md) - 2026-03-30 - release operator closure / runtime contract schema baseline / outputs-boundary migration / install-time generated nested compatibility / release truth hardening
 - [`v2.3.53.md`](v2.3.53.md) - 2026-03-30 - governed specialist dispatch and custom admission closure / Windows PowerShell host resolution / managed host install guarantees / cleanup-truth tightening
+Older release notes remain in this directory as historical version records, but they are not part of the active release surface.
 
-Older release notes remain in this directory as historical version records, but they are not part of the active public install surface.
 
 ## Historical Release Archive
 

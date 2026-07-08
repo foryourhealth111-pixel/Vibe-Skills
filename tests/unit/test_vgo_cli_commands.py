@@ -522,9 +522,9 @@ def test_install_command_uses_public_release_bundle_metadata_when_present(
     (release_root / 'release-bundle.json').write_text(
         json.dumps(
             {
-                'release': {'version': '3.1.1'},
+                'release': {'version': '3.2.0'},
                 'asset': {
-                    'file_name': 'vibe-skills-3.1.1-public.zip',
+                    'file_name': 'vibe-skills-3.2.0-public.zip',
                     'payload_digest_sha256': 'bundle-digest-123',
                 },
                 'public_install': {'source_kind': 'public_release'},
@@ -538,8 +538,8 @@ def test_install_command_uses_public_release_bundle_metadata_when_present(
 
     output = capsys.readouterr().out
     assert '"source_kind": "public_release"' in output
-    assert '"version": "3.1.1"' in output
-    assert '"asset_name": "vibe-skills-3.1.1-public.zip"' in output
+    assert '"version": "3.2.0"' in output
+    assert '"asset_name": "vibe-skills-3.2.0-public.zip"' in output
     assert '"source_git_commit"' not in output
     assert '"source_git_dirty"' not in output
 

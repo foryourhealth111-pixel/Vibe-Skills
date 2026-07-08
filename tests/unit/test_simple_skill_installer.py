@@ -109,15 +109,15 @@ def test_install_public_release_writes_release_identity_not_git_fields(tmp_path:
         skills_dir=skills_dir,
         installed_at_utc="2026-07-08T08:00:00Z",
         source_kind="public_release",
-        release_version="3.1.1",
-        release_asset_name="vibe-skills-3.1.1-public.zip",
+        release_version="3.2.0",
+        release_asset_name="vibe-skills-3.2.0-public.zip",
         release_asset_digest="release-digest-123",
     )
 
     assert receipt["source_kind"] == "public_release"
     assert receipt["release"] == {
-        "version": "3.1.1",
-        "asset_name": "vibe-skills-3.1.1-public.zip",
+        "version": "3.2.0",
+        "asset_name": "vibe-skills-3.2.0-public.zip",
         "asset_digest_sha256": "release-digest-123",
     }
     assert "source_git_commit" not in receipt

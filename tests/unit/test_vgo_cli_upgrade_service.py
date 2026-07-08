@@ -482,7 +482,7 @@ def test_upgrade_runtime_uses_managed_source_when_started_from_installed_runtime
         "refresh_upstream_status",
         lambda repo_root_arg, target_root_arg, status, **kwargs: {
             **status,
-            "remote_latest_version": "3.1.1",
+            "remote_latest_version": "3.2.0",
             "remote_latest_commit": "new-install",
             "update_available": True,
         },
@@ -502,7 +502,7 @@ def test_upgrade_runtime_uses_managed_source_when_started_from_installed_runtime
         upgrade_service,
         "refresh_installed_status",
         lambda repo_root_arg, target_root_arg, host_id, **kwargs: {
-            "installed_version": "3.1.1",
+            "installed_version": "3.2.0",
             "installed_commit": "new-install",
         },
     )
@@ -523,7 +523,7 @@ def test_upgrade_runtime_uses_managed_source_when_started_from_installed_runtime
     assert recorded["repo_root"] == managed_source
     assert steps == [f"reset:{managed_source}:new-install", "reinstall", "check"]
     assert result["changed"] is True
-    assert result["after"]["installed_version"] == "3.1.1"
+    assert result["after"]["installed_version"] == "3.2.0"
 
 
 def test_upgrade_runtime_raises_clear_error_when_no_canonical_git_repo_exists(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
