@@ -20,21 +20,21 @@ from vgo_runtime.runtime_summary import build_runtime_summary
 
 def test_build_runtime_route_view_preserves_canonical_router_selection_for_entry_intent_only() -> None:
     route = RuntimeRoute(
-        requested_skill="vibe-how-do-we-do",
-        router_selected_skill="vibe-how-do-we-do",
+        requested_skill="vibe",
+        router_selected_skill="vibe",
         runtime_selected_skill="vibe",
         task_type="planning",
     )
     packet = RuntimePacket(
         goal="plan the migration",
         stage="skeleton_check",
-        entry_intent_id="vibe-how-do-we-do",
+        entry_intent_id="vibe",
         requested_stage_stop="xl_plan",
     )
 
     payload = build_runtime_route_view(route, packet=packet, requested_skill=None)
 
-    assert payload["requested_skill"] == "vibe-how-do-we-do"
+    assert payload["requested_skill"] == "vibe"
     assert payload["router_selected_skill"] == "vibe"
 
 

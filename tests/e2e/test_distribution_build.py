@@ -119,3 +119,7 @@ def test_distribution_build_creates_generated_outputs(tmp_path) -> None:
     assert (asset_root / 'update.ps1').is_file()
     assert (asset_root / 'README.md').is_file()
     assert (asset_root / 'docs' / 'install' / 'README.en.md').is_file()
+    assert not (asset_root / 'config' / 'pack-manifest.json').exists()
+    assert not (asset_root / 'config' / 'role-pack-policy.json').exists()
+    assert not (asset_root / 'config' / 'bundled-skill-governance-policy.json').exists()
+    assert not (asset_root / 'scripts' / 'verify' / 'vibe-pack-routing-smoke.ps1').exists()

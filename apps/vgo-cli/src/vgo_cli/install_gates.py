@@ -74,7 +74,7 @@ def run_offline_gate(repo_root: Path, target_root: Path) -> None:
     result = run_powershell_file(
         gate_path,
         '-SkillsRoot', str(target_root / 'skills'),
-        '-PackManifestPath', str(repo_root / 'config' / 'pack-manifest.json'),
+        '-RuntimeCorePackagingPath', str(repo_root / 'config' / 'runtime-core-packaging.json'),
     )
     print_process_output(result)
     if result.returncode != 0:

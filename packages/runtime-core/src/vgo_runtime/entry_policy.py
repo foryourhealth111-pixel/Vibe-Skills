@@ -43,10 +43,6 @@ def resolve_runtime_task_type(
     entry = _entry_for_id(requested_entry_id) or _entry_for_id(selected_skill)
     if entry is None:
         return normalized_task_type
-    if entry.id == "vibe-upgrade":
-        return "coding"
-    if entry.requested_stage_stop in {"requirement_doc", "xl_plan"}:
-        return "planning"
     return normalized_task_type
 
 

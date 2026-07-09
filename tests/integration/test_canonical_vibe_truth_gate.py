@@ -429,11 +429,11 @@ def test_truth_gate_rejects_missing_skill_usage_truth_artifact(tmp_path: Path) -
     assert "[FAIL] runtime packet includes skill_usage truth artifact" in result.stdout
 
 
-def test_truth_gate_accepts_presentational_entry_intent_with_canonical_authority(tmp_path: Path) -> None:
+def test_truth_gate_accepts_canonical_entry_intent_with_canonical_authority(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(
         session_root,
-        entry_intent_id="vibe-how-do-we-do",
+        entry_intent_id="vibe",
         requested_stage_stop="xl_plan",
     )
 

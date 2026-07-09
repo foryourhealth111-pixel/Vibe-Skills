@@ -62,5 +62,5 @@ def test_run_offline_gate_uses_required_skills_audit_seam(monkeypatch: pytest.Mo
     assert recorded['script_path'] == gate_path
     assert recorded['args'] == [
         '-SkillsRoot', str(tmp_path / 'target-root' / 'skills'),
-        '-PackManifestPath', str(tmp_path / 'config' / 'pack-manifest.json'),
+        '-RuntimeCorePackagingPath', str(tmp_path / 'config' / 'runtime-core-packaging.json'),
     ]

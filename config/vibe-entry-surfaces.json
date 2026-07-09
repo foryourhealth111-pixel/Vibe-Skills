@@ -13,34 +13,6 @@
       ],
       "allow_grade_flags": true,
       "publicly_exposed": true
-    },
-    {
-      "id": "vibe-what-do-i-want",
-      "display_name": "Vibe: What Do I Want?",
-      "requested_stage_stop": "requirement_doc",
-      "allow_grade_flags": false,
-      "publicly_exposed": false
-    },
-    {
-      "id": "vibe-how-do-we-do",
-      "display_name": "Vibe: How Do We Do It?",
-      "requested_stage_stop": "xl_plan",
-      "allow_grade_flags": true,
-      "publicly_exposed": false
-    },
-    {
-      "id": "vibe-do-it",
-      "display_name": "Vibe: Do It",
-      "requested_stage_stop": "phase_cleanup",
-      "allow_grade_flags": true,
-      "publicly_exposed": false
-    },
-    {
-      "id": "vibe-upgrade",
-      "display_name": "Vibe: Upgrade",
-      "requested_stage_stop": "phase_cleanup",
-      "allow_grade_flags": false,
-      "publicly_exposed": false
     }
   ],
   "grade_flags": [

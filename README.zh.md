@@ -408,7 +408,7 @@ VibeSkills 适合希望 AI Agent 更容易上手、更泛用、更少手动控�
 - 公开可发现的工作入口只有 `vibe`。
 - `vibe` 是渐进式入口：先在 `requirement_doc` 停止，再在 `xl_plan` 停止，只有在每个边界都得到明确 re-entry 批准后才进入 `phase_cleanup`。
 - 已安装副本的升级保留在命令路径上：对同一个 `--skills-dir` 使用 `update`。
-- `vibe-what-do-i-want`、`vibe-how-do-we-do`、`vibe-do-it` 这类阶段 ID 已禁用为公开宿主入口。它们可以作为运行时连续性元数据保留，但安装器不应把它们物化成宿主可见的 command 或 skill wrapper。
+- 旧阶段别名不再作为公开入口，也不会被安装成宿主可见的 command 或 skill wrapper。
 - 公开允许的轻量级别覆盖只有 `--l` 和 `--xl`。像 `vibe-l`、`vibe-xl` 或阶段入口叠加级别的组合别名是故意不支持的。
 - 当内部调用 `tdd-guide`、`code-review` 这类专项技能时，它们只负责当前阶段或当前任务单元，不会接管全局协调。
 - 在 XL 多代理流程里，子代理可以提出候选 skill，但最终由协调者确认选中项。

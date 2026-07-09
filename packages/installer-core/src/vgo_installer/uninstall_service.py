@@ -19,6 +19,13 @@ from .materializer import compatibility_projection_names
 from .runtime_packaging import resolve_runtime_core_packaging
 from .global_instruction_service import remove_global_instruction_bootstrap
 
+RETIRED_DISCOVERABLE_ENTRY_IDS = (
+    "vibe-what-do-i-want",
+    "vibe-how-do-we-do",
+    "vibe-do-it",
+    "vibe-upgrade",
+)
+
 
 def should_remove_claude_pretooluse_hook_entry(
     entry: dict,
@@ -166,10 +173,8 @@ def host_inventory(repo_root: Path, host_id: str) -> set[str]:
         inventory.update(collect_file_inventory(repo_root / "rules", "rules"))
         inventory.update(collect_file_inventory(repo_root / "agents" / "templates", "agents/templates"))
         inventory.add("config/plugins-manifest.codex.json")
-        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-what-do-i-want", "skills/vibe-what-do-i-want"))
-        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-how-do-we-do", "skills/vibe-how-do-we-do"))
-        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-do-it", "skills/vibe-do-it"))
-        inventory.update(collect_file_inventory(repo_root / "bundled" / "skills" / "vibe-upgrade", "skills/vibe-upgrade"))
+        for entry_id in RETIRED_DISCOVERABLE_ENTRY_IDS:
+            inventory.add(f"skills/{entry_id}/SKILL.md")
         inventory.update(
             {
                 "commands/vibe-what-do-i-want.md",

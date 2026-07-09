@@ -205,7 +205,7 @@ class RouterBridgeTests(unittest.TestCase):
         self.assertEqual("local-skill-index", result["selected"]["pack_id"])
         self.assertEqual("scikit-learn", result["selected"]["skill"])
 
-    def test_wrapper_entry_intent_does_not_override_router_selection(self) -> None:
+    def test_canonical_entry_intent_does_not_override_router_selection(self) -> None:
         prompt = (
             "Please use scikit-learn to prototype a tabular classification baseline, "
             "run feature selection, and compare cross-validation metrics."
@@ -215,14 +215,14 @@ class RouterBridgeTests(unittest.TestCase):
             prompt=prompt,
             grade="L",
             task_type="coding",
-            entry_intent_id="vibe-what-do-i-want",
+            entry_intent_id="vibe",
             repo_root=REPO_ROOT,
         )
 
         self.assertEqual(baseline["route_mode"], wrapped["route_mode"])
         self.assertEqual(baseline["selected"]["pack_id"], wrapped["selected"]["pack_id"])
         self.assertEqual(baseline["selected"]["skill"], wrapped["selected"]["skill"])
-        self.assertEqual("vibe-what-do-i-want", wrapped["alias"]["entry_intent_id"])
+        self.assertEqual("vibe", wrapped["alias"]["entry_intent_id"])
 
     def test_requested_vibe_can_preserve_runtime_authority_while_router_selects_specialist(self) -> None:
         result = run_bridge(

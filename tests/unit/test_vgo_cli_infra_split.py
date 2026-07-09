@@ -13,8 +13,8 @@ if str(CLI_SRC) not in sys.path:
     sys.path.insert(0, str(CLI_SRC))
 
 from vgo_cli.errors import CliError
+import vgo_cli.hosts as cli_hosts
 from vgo_cli.hosts import (
-    assert_target_root_matches_host_intent,
     install_mode_for_host,
     normalize_host_id,
     resolve_default_target_root,
@@ -23,11 +23,28 @@ from vgo_cli.process import invoke_python_core, run_powershell_file
 import vgo_cli.process as cli_process
 
 
-def test_normalize_host_id_supports_aliases_and_rejects_unknown() -> None:
+def test_normalize_host_id_supports_aliases_and_defaults_unknown_to_registry_default() -> None:
     assert normalize_host_id('claude') == 'claude-code'
     assert normalize_host_id('codex') == 'codex'
-    with pytest.raises(CliError, match='Unsupported host id'):
-        normalize_host_id('unknown-host')
+    assert normalize_host_id('unknown-host') == 'codex'
+
+
+def test_workspace_repo_root_resolution_no_longer_requires_installer_core(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fake_module_path = tmp_path / 'apps' / 'vgo-cli' / 'src' / 'vgo_cli' / 'hosts.py'
+    fake_module_path.parent.mkdir(parents=True)
+    fake_module_path.write_text('# test shim\n', encoding='utf-8')
+    (tmp_path / 'config').mkdir(parents=True)
+    (tmp_path / 'config' / 'adapter-registry.json').write_text('{"schema_version":1,"default_adapter_id":"codex","adapters":[]}\n', encoding='utf-8')
+
+    monkeypatch.setattr(cli_hosts, '__file__', str(fake_module_path))
+    cli_hosts._resolve_workspace_repo_root.cache_clear()
+    try:
+        assert cli_hosts._resolve_workspace_repo_root() == tmp_path.resolve()
+    finally:
+        cli_hosts._resolve_workspace_repo_root.cache_clear()
 
 
 def test_install_mode_for_host_reads_registry_projection() -> None:
@@ -36,17 +53,7 @@ def test_install_mode_for_host_reads_registry_projection() -> None:
 
 def test_resolve_default_target_root_uses_registry_env_projection(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv('VIBE_AGENTS_HOME', '/tmp/agents-home')
-    assert resolve_default_target_root('windsurf') == Path('/tmp/agents-home')
-
-
-def test_assert_target_root_matches_host_intent_rejects_host_mismatch(tmp_path: Path) -> None:
-    with pytest.raises(CliError, match='Cursor'):
-        assert_target_root_matches_host_intent(tmp_path / '.cursor', 'codex')
-
-
-def test_assert_target_root_matches_host_intent_preserves_opencode_repo_local_guard(tmp_path: Path) -> None:
-    with pytest.raises(CliError, match='OpenCode'):
-        assert_target_root_matches_host_intent(tmp_path / '.opencode', 'codex')
+    assert resolve_default_target_root('windsurf') == Path('/tmp/agents-home').resolve()
 
 
 def test_invoke_python_core_captures_output_and_exit_code(capsys: pytest.CaptureFixture[str]) -> None:

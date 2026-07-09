@@ -554,7 +554,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     "-HostId",
                     "codex",
                     "-EntryId",
-                    "vibe-how-do-we-do",
+                    "vibe",
                     "-RequestedStageStop",
                     "xl_plan",
                     "-RunId",

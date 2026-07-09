@@ -39,7 +39,7 @@ This keeps problems local. If discovery quality is weak, we improve discovery. I
 - Install into `<SkillsDir>/vibe` and treat `<SkillsDir>` as the public skills directory.
 - Prefer convention over configuration.
 - Treat host-declared local skill roots as the only specialist source.
-- Exclude controller entries such as `vibe` and `vibe-upgrade` from the specialist pool.
+- Exclude the controller entry `vibe` from the specialist pool.
 - Keep `work_binding` as the first runtime truth surface for bound skills.
 - Treat `skill_usage.bound` as binding only; material use requires `skill_usage.used` and evidence.
 - Require `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json` before calling a local-agent-kernel launch canonical verified.

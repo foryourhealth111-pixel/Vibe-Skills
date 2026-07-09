@@ -5,24 +5,36 @@ import json
 from pathlib import Path
 import shutil
 
+from ._bootstrap import ensure_contracts_src_on_path
 
-PACKAGE_DIRS = (
-    "config",
-    "protocols",
-    "apps/vgo-cli",
-    "packages/contracts",
-    "packages/runtime-core",
-    "packages/verification-core",
-    "scripts/common",
-    "scripts/runtime",
-    "scripts/router",
-    "scripts/verify",
+ensure_contracts_src_on_path()
+
+from vgo_contracts.runtime_surface_contract import load_json_file, resolve_packaging_contract
+
+
+RUNTIME_SURFACE_PREFIXES = (
+    "SKILL.md",
+    "core/skill-contracts/",
+    "config/",
+    "protocols/",
+    "apps/vgo-cli/",
+    "packages/contracts/",
+    "packages/runtime-core/",
+    "packages/verification-core/",
+    "scripts/common/",
+    "scripts/runtime/",
+    "scripts/router/",
+    "scripts/verify/",
 )
 PACKAGE_EXCLUDED_FILES = {
     "apps/vgo-cli/src/vgo_cli/install_gates.py",
     "apps/vgo-cli/src/vgo_cli/install_support.py",
     "apps/vgo-cli/src/vgo_cli/installer_bridge.py",
     "apps/vgo-cli/src/vgo_cli/upgrade_service.py",
+    "packages/verification-core/src/vgo_verify/bio_science_pack_consolidation_audit.py",
+    "packages/verification-core/src/vgo_verify/code_quality_pack_consolidation_audit.py",
+    "packages/verification-core/src/vgo_verify/global_pack_consolidation_audit.py",
+    "packages/verification-core/src/vgo_verify/ml_skills_pruning_audit.py",
 }
 PACKAGE_RUNTIME_TEST_ENTRYPOINTS = {
     "packages/verification-core/src/vgo_verify/test_baseline_audit.py",
@@ -55,12 +67,29 @@ def _copy_file(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def _matches_surface_prefix(relpath: str) -> bool:
+    if relpath == "SKILL.md":
+        return True
+    return any(relpath.startswith(prefix) for prefix in RUNTIME_SURFACE_PREFIXES if prefix != "SKILL.md")
+
+
 def _is_package_development_test(relpath: str) -> bool:
     if relpath in PACKAGE_RUNTIME_TEST_ENTRYPOINTS:
         return False
     if not relpath.startswith(("packages/runtime-core/", "packages/verification-core/")):
         return False
     return Path(relpath).name.startswith("test_") and relpath.endswith(".py")
+
+
+def _should_copy_runtime_surface_file(relpath: str) -> bool:
+    normalized = Path(relpath).as_posix()
+    if "__pycache__" in Path(normalized).parts or normalized.endswith(".pyc"):
+        return False
+    if normalized in PACKAGE_EXCLUDED_FILES:
+        return False
+    if _is_package_development_test(normalized):
+        return False
+    return _matches_surface_prefix(normalized)
 
 
 def _copy_tree(source_root: Path, install_root: Path, relpath: str) -> None:
@@ -81,24 +110,38 @@ def _copy_tree(source_root: Path, install_root: Path, relpath: str) -> None:
         _copy_file(file_path, install_root / installed_relpath)
 
 
-def _package_file_relpaths(source_root: Path) -> list[str]:
-    relpaths: list[str] = []
-    for relpath in ("SKILL.md", *PACKAGE_DIRS):
+def runtime_surface_relpaths(source_root: Path) -> list[str]:
+    governance_path = source_root / "config" / "version-governance.json"
+    if not governance_path.is_file():
+        raise RuntimeError(f"Missing runtime governance contract: {governance_path}")
+
+    packaging = resolve_packaging_contract(load_json_file(governance_path), source_root)
+    relpaths: set[str] = set()
+    for relpath in packaging["mirror"]["files"]:
+        normalized = Path(relpath).as_posix()
+        source = source_root / normalized
+        if source.is_file() and _should_copy_runtime_surface_file(normalized):
+            relpaths.add(normalized)
+
+    for relpath in packaging["mirror"]["directories"]:
         source = source_root / relpath
         if not source.exists():
             continue
-        if source.is_file():
-            relpaths.append(relpath)
-            continue
         for file_path in sorted(path for path in source.rglob("*") if path.is_file()):
             installed_relpath = file_path.relative_to(source_root).as_posix()
-            if "__pycache__" in file_path.parts or file_path.suffix == ".pyc":
-                continue
-            if installed_relpath in PACKAGE_EXCLUDED_FILES:
-                continue
-            if _is_package_development_test(installed_relpath):
-                continue
-            relpaths.append(installed_relpath)
+            if _should_copy_runtime_surface_file(installed_relpath):
+                relpaths.add(installed_relpath)
+
+    return sorted(relpaths)
+
+
+def _package_file_relpaths(source_root: Path) -> list[str]:
+    relpaths: list[str] = []
+    for relpath in runtime_surface_relpaths(source_root):
+        source = source_root / relpath
+        if not source.exists():
+            continue
+        relpaths.append(relpath)
     return sorted(set(relpaths))
 
 
@@ -327,4 +370,10 @@ def uninstall_vibe_skill(*, skills_dir: Path) -> dict[str, object]:
     return {"removed_files": sorted(removed_files)}
 
 
-__all__ = ["check_vibe_skill", "install_vibe_skill", "uninstall_vibe_skill", "update_vibe_skill"]
+__all__ = [
+    "check_vibe_skill",
+    "install_vibe_skill",
+    "runtime_surface_relpaths",
+    "uninstall_vibe_skill",
+    "update_vibe_skill",
+]

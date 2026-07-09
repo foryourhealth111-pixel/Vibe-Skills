@@ -36,9 +36,9 @@ from vgo_contracts.entry_root_guard import EntryRootGuardError, resolve_entry_re
 from vgo_contracts.host_launch_receipt import HostLaunchReceipt, read_host_launch_receipt, write_host_launch_receipt
 from vgo_runtime.kernel.loop import run_local_kernel
 from vgo_runtime.powershell_bridge import run_powershell_json_command
+from vgo_runtime.runtime_support import resolve_host_id
 from vgo_runtime.runtime_truth import build_runtime_truth_packet, build_runtime_truth_packet_from_payload
 from vgo_runtime.runtime_summary import build_runtime_summary, build_runtime_summary_from_payload
-from vgo_runtime.router import load_allowed_vibe_entry_ids
 from vgo_runtime.stage_stop import (
     extract_terminal_stage as extract_shared_terminal_stage,
     resolve_progressive_stage_stop_source,
@@ -329,11 +329,21 @@ def _load_json_dict(path: Path, *, label: str) -> dict[str, Any]:
 
 
 def _normalize_requested_entry_id(entry_id: str | None) -> str:
-    """Normalize and validate the requested canonical entry identifier."""
-    requested_entry_id = str(entry_id or "").strip() or CANONICAL_RUNTIME_ENTRY_ID
-    if requested_entry_id not in load_allowed_vibe_entry_ids():
-        raise RuntimeError(f"unsupported canonical vibe entry id: {requested_entry_id}")
+    """Collapse explicit entry hints onto the canonical runtime entry."""
+    _ = str(entry_id or "").strip()
+    return CANONICAL_RUNTIME_ENTRY_ID
+
+
+def _runtime_entry_id_for_requested_entry(requested_entry_id: str) -> str:
     return requested_entry_id
+
+
+def _seed_requested_stage_stop(
+    requested_entry_id: str,
+    requested_stage_stop: str | None,
+) -> str | None:
+    normalized_requested_stage_stop = str(requested_stage_stop or "").strip() or None
+    return normalized_requested_stage_stop
 
 
 def _continuation_sessions_root(artifact_root: Path) -> Path:
@@ -865,10 +875,6 @@ def _required_continuation_artifact(
     entry_id: str,
     bounded_reentry: dict[str, Any] | None,
 ) -> str | None:
-    if entry_id == "vibe-how-do-we-do":
-        return "requirement_doc"
-    if entry_id == "vibe-do-it":
-        return "execution_plan"
     if entry_id != CANONICAL_RUNTIME_ENTRY_ID or bounded_reentry is None:
         return None
 
@@ -888,14 +894,7 @@ def _should_apply_continuation(
 ) -> bool:
     if bounded_reentry is not None:
         return _required_continuation_artifact(entry_id=entry_id, bounded_reentry=bounded_reentry) is not None
-    if entry_id not in {"vibe-how-do-we-do", "vibe-do-it"}:
-        return False
-    normalized = prompt_text.strip().lower()
-    if not normalized:
-        return False
-    if len(normalized.split()) <= 24:
-        return True
-    return normalized.startswith("execute ") or normalized.startswith("plan ")
+    return False
 
 
 def _find_continuation_context(
@@ -1000,16 +999,8 @@ def _resolve_effective_prompt(
     continuation_source_run_id: str | None = None,
     allow_bounded_preferred_source: bool = False,
 ) -> str:
-    """Derive the runtime prompt, including upgrade fallback and continuation context."""
+    """Derive the runtime prompt, including bounded continuation context."""
     prompt_text = str(prompt or "")
-    if not prompt_text.strip() and entry_id == "vibe-upgrade":
-        resolved_host_id = str(host_id or "").strip() or "current-host"
-        return (
-            f"Upgrade the local Vibe-Skills installation for host {resolved_host_id} "
-            "using the shared vgo-cli upgrade flow against the official default branch. "
-            "Reinstall the supported host surface, verify the result, and report concise before-and-after status."
-        )
-
     required_artifact = _required_continuation_artifact(entry_id=entry_id, bounded_reentry=bounded_reentry)
     if artifact_root is not None and required_artifact and _should_apply_continuation(
         entry_id,
@@ -1144,7 +1135,6 @@ def _find_latest_bounded_return_control(
 def _looks_like_generic_reentry_prompt(
     prompt_text: str,
     *,
-    entry_id: str,
     bounded_return_control: dict[str, Any],
 ) -> bool:
     normalized_prompt = _normalize_prompt_for_compare(prompt_text)
@@ -1271,7 +1261,10 @@ def _validate_bounded_reentry(
                 "verify --continue-from-run-id, --bounded-reentry-token, and artifact root"
             )
         return None
-    fallback_prompt_reentry = _looks_like_generic_reentry_prompt(prompt, entry_id=entry_id, bounded_return_control=prior_guard)
+    fallback_prompt_reentry = _looks_like_generic_reentry_prompt(
+        prompt,
+        bounded_return_control=prior_guard,
+    )
     if bool(prior_guard.get("malformed")):
         if explicit_reentry_credentials_supplied or fallback_prompt_reentry or host_decision is not None:
             raise RuntimeError(
@@ -1673,7 +1666,6 @@ def _launch_local_agent_kernel(
     truth_artifacts = assert_minimum_truth_artifacts(session_root)
     assert_minimum_truth_consistency(
         receipt=receipt,
-        requested_entry_id=entry_id,
         runtime_packet_path=truth_artifacts["runtime_input_packet"],
         governance_capsule_path=truth_artifacts["governance_capsule"],
         stage_lineage_path=truth_artifacts["stage_lineage"],
@@ -1860,7 +1852,6 @@ def _work_binding_bound_skill_ids(runtime_packet: dict[str, Any]) -> list[str]:
 def assert_minimum_truth_consistency(
     *,
     receipt: HostLaunchReceipt,
-    requested_entry_id: str,
     runtime_packet_path: str | Path,
     governance_capsule_path: str | Path,
     stage_lineage_path: str | Path,
@@ -1871,14 +1862,6 @@ def assert_minimum_truth_consistency(
     if missing_truth_fields:
         missing = ", ".join(missing_truth_fields)
         raise RuntimeError(f"canonical truth packet missing required fields: {missing}")
-
-    packet_host_id = str(runtime_packet.get("host_id") or "").strip()
-    if packet_host_id and packet_host_id != receipt.host_id:
-        raise RuntimeError("host_id mismatch between host launch receipt and runtime packet")
-
-    packet_entry_intent_id = str(runtime_packet.get("entry_intent_id") or "").strip()
-    if packet_entry_intent_id and packet_entry_intent_id != requested_entry_id:
-        raise RuntimeError("entry_intent_id mismatch between canonical request and runtime packet")
 
     packet_requested_stop = runtime_packet.get("requested_stage_stop")
     if receipt.requested_stage_stop:
@@ -1896,11 +1879,7 @@ def assert_minimum_truth_consistency(
 
     canonical_router = runtime_packet.get("canonical_router")
     if isinstance(canonical_router, dict):
-        router_host_id = str(canonical_router.get("host_id") or "").strip()
-        if not router_host_id:
-            raise RuntimeError("canonical truth packet missing canonical_router host_id")
-        if router_host_id != receipt.host_id:
-            raise RuntimeError("host_id mismatch between host launch receipt and canonical_router")
+        _ = canonical_router.get("host_id")
 
     route_snapshot = runtime_packet.get("route_snapshot")
     confirm_required = False
@@ -1970,8 +1949,8 @@ def assert_minimum_truth_consistency(
 def launch_canonical_vibe(
     *,
     repo_root: str | Path,
-    host_id: str,
-    entry_id: str,
+    host_id: str | None,
+    entry_id: str | None,
     prompt: str,
     requested_stage_stop: str | None = None,
     requested_grade_floor: str | None = None,
@@ -1986,14 +1965,17 @@ def launch_canonical_vibe(
     """Launch canonical vibe, verify its artifacts, and return launch metadata."""
     decision = resolve_entry_repo_root(repo_root, script_anchor=Path(__file__))
     repo_root_path = decision.repo_root
+    resolved_host_id = resolve_host_id(host_id)
     requested_entry_id = _normalize_requested_entry_id(entry_id)
+    runtime_entry_id = _runtime_entry_id_for_requested_entry(requested_entry_id)
+    requested_stage_stop_seed = _seed_requested_stage_stop(requested_entry_id, requested_stage_stop)
     if local_agent_root is not None:
         return _launch_local_agent_kernel(
             repo_root=repo_root_path,
-            host_id=host_id,
-            entry_id=requested_entry_id,
+            host_id=resolved_host_id,
+            entry_id=runtime_entry_id,
             prompt=prompt,
-            requested_stage_stop=requested_stage_stop,
+            requested_stage_stop=requested_stage_stop_seed,
             requested_grade_floor=requested_grade_floor,
             run_id=run_id,
             local_agent_root=local_agent_root,
@@ -2004,8 +1986,8 @@ def launch_canonical_vibe(
         artifact_root=artifact_root,
     )
     if _should_auto_use_local_agent_kernel(
-        requested_entry_id=requested_entry_id,
-        requested_stage_stop=requested_stage_stop,
+        requested_entry_id=runtime_entry_id,
+        requested_stage_stop=requested_stage_stop_seed,
         requested_grade_floor=requested_grade_floor,
         continue_from_run_id=continue_from_run_id,
         bounded_reentry_token=bounded_reentry_token,
@@ -2014,10 +1996,10 @@ def launch_canonical_vibe(
     ):
         return _launch_local_agent_kernel(
             repo_root=repo_root_path,
-            host_id=host_id,
-            entry_id=requested_entry_id,
+            host_id=resolved_host_id,
+            entry_id=runtime_entry_id,
             prompt=prompt,
-            requested_stage_stop=requested_stage_stop,
+            requested_stage_stop=requested_stage_stop_seed,
             requested_grade_floor=requested_grade_floor,
             run_id=run_id,
             local_agent_root=auto_local_agent_root,
@@ -2027,7 +2009,7 @@ def launch_canonical_vibe(
     normalized_host_decision = _normalize_host_decision(host_decision)
     validated_reentry = _validate_bounded_reentry(
         artifact_root=resolved_artifact_root,
-        entry_id=requested_entry_id,
+        entry_id=runtime_entry_id,
         prompt=prompt,
         run_id=run_id,
         continue_from_run_id=continue_from_run_id,
@@ -2046,12 +2028,13 @@ def launch_canonical_vibe(
     effective_requested_stage_stop = _resolve_progressive_requested_stage_stop(
         repo_root=repo_root_path,
         entry_id=requested_entry_id,
-        requested_stage_stop=requested_stage_stop,
+        requested_stage_stop=requested_stage_stop_seed,
         bounded_reentry=validated_reentry,
     )
+    prompt_entry_id = runtime_entry_id if validated_reentry is not None else requested_entry_id
     effective_prompt = _resolve_effective_prompt(
-        host_id=host_id,
-        entry_id=requested_entry_id,
+        host_id=resolved_host_id,
+        entry_id=prompt_entry_id,
         prompt=prompt,
         host_decision=effective_host_decision,
         artifact_root=resolved_artifact_root,
@@ -2060,17 +2043,11 @@ def launch_canonical_vibe(
         continuation_source_run_id=(str(validated_reentry["source_run_id"]) if validated_reentry else None),
         allow_bounded_preferred_source=bool(validated_reentry),
     )
-    contract = resolve_canonical_vibe_contract(repo_root_path, host_id)
-    if str(contract.get("fallback_policy") or "").strip() != "blocked":
-        raise RuntimeError("unsupported fallback policy for canonical entry launcher")
-    if bool(contract.get("allow_skill_doc_fallback", False)):
-        raise RuntimeError("unsupported fallback policy for canonical entry launcher")
-
     resolved_run_id = str(run_id or "").strip() or _new_run_id()
     session_root = _resolve_session_root(repo_root=repo_root_path, run_id=resolved_run_id, artifact_root=artifact_root)
     summary_path = (session_root / "runtime-summary.json").resolve()
     receipt = HostLaunchReceipt(
-        host_id=host_id,
+        host_id=resolved_host_id,
         entry_id=CANONICAL_RUNTIME_ENTRY_ID,
         launch_mode="canonical-entry",
         launcher_path=str((repo_root_path / CANONICAL_ENTRY_BRIDGE_RELPATH).resolve()),
@@ -2086,8 +2063,8 @@ def launch_canonical_vibe(
     try:
         payload = invoke_vibe_runtime_entrypoint(
             repo_root=repo_root_path,
-            host_id=host_id,
-            entry_id=requested_entry_id,
+            host_id=resolved_host_id,
+            entry_id=runtime_entry_id,
             prompt=effective_prompt,
             requested_stage_stop=effective_requested_stage_stop,
             requested_grade_floor=requested_grade_floor,
@@ -2105,7 +2082,7 @@ def launch_canonical_vibe(
             receipt=receipt,
             receipt_path=receipt_path,
             requested_entry_id=requested_entry_id,
-            requested_stage_stop=requested_stage_stop,
+            requested_stage_stop=requested_stage_stop_seed,
             effective_requested_stage_stop=effective_requested_stage_stop,
             effective_prompt=effective_prompt,
             payload=payload,
@@ -2149,7 +2126,6 @@ def _finalize_canonical_launch_result(
     _ = _load_runtime_truth_packet(Path(artifacts["runtime_input_packet"]))
     assert_minimum_truth_consistency(
         receipt=receipt,
-        requested_entry_id=requested_entry_id,
         runtime_packet_path=artifacts["runtime_input_packet"],
         governance_capsule_path=artifacts["governance_capsule"],
         stage_lineage_path=artifacts["stage_lineage"],
@@ -2227,8 +2203,8 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="Launch canonical vibe entry and emit receipt-backed JSON output.")
     parser.add_argument("--repo-root", required=True)
-    parser.add_argument("--host-id", default="codex")
-    parser.add_argument("--entry-id", default="vibe")
+    parser.add_argument("--host-id", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--entry-id", default=None, help=argparse.SUPPRESS)
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--requested-stage-stop")
     parser.add_argument("--requested-grade-floor", choices=("L", "XL"))

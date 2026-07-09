@@ -43,7 +43,7 @@ def test_build_execution_plan_keeps_legacy_fields_and_exposes_kernel_plan() -> N
     assert plan.stage_stop_source == 'requested'
     assert plan.kernel['task_card']['goal'] == 'design the architecture and write an implementation plan'
     assert plan.kernel['task_card']['mode'] == 'planning'
-    assert plan.kernel['candidates'][0]['skill_id'] == 'vibe-how-do-we-do'
+    assert plan.kernel['candidates'] == []
     assert plan.kernel['work_plan']['task_id'] == plan.kernel['task_card']['id']
 
 
@@ -55,8 +55,8 @@ def test_build_execution_plan_uses_task_type_to_shape_kernel_work_plan() -> None
 
     assert plan.internal_grade == 'L'
     assert len(plan.kernel['work_plan']['work_units']) == 1
-    assert plan.kernel['work_plan']['work_units'][0]['preferred_skill'] == 'vibe-do-it'
-    assert plan.kernel['work_plan']['work_units'][0]['bound_skill'] == 'vibe-do-it'
+    assert plan.kernel['work_plan']['work_units'][0]['preferred_skill'] is None
+    assert plan.kernel['work_plan']['work_units'][0]['bound_skill'] is None
 
 
 def test_build_kernel_plan_returns_typed_kernel_planning_result() -> None:
@@ -66,17 +66,17 @@ def test_build_kernel_plan_returns_typed_kernel_planning_result() -> None:
     )
 
     assert kernel_plan.task_card.goal == 'design the architecture and write an implementation plan'
-    assert kernel_plan.candidates[0].skill_id == 'vibe-how-do-we-do'
+    assert kernel_plan.candidates == ()
     assert kernel_plan.work_plan.task_id == kernel_plan.task_card.id
     assert kernel_plan.work_binding.task_id == kernel_plan.task_card.id
     assert kernel_plan.work_binding.units[0].work_unit_id == "wu-1"
-    assert kernel_plan.work_binding.units[0].bound_skill == 'vibe-how-do-we-do'
+    assert kernel_plan.work_binding.units[0].bound_skill is None
     assert kernel_plan.inferred_task_type == 'planning'
-    assert kernel_plan.preferred_skill == 'vibe-how-do-we-do'
-    assert kernel_plan.model_dump()['work_binding']['units'][0]['bound_skill'] == 'vibe-how-do-we-do'
+    assert kernel_plan.preferred_skill is None
+    assert kernel_plan.model_dump()['work_binding']['units'][0]['bound_skill'] is None
     assert kernel_plan.resolved_task_type == 'planning'
     assert kernel_plan.suggested_internal_grade == 'L'
-    assert kernel_plan.suggested_stage_stop == 'xl_plan'
+    assert kernel_plan.suggested_stage_stop == 'phase_cleanup'
 
 
 def test_build_execution_plan_prefers_kernel_selected_skill_over_legacy_task_type() -> None:
@@ -90,11 +90,11 @@ def test_build_execution_plan_prefers_kernel_selected_skill_over_legacy_task_typ
         kernel_plan=kernel_plan,
     )
 
-    assert kernel_plan.work_plan.work_units[0].preferred_skill == 'vibe-how-do-we-do'
+    assert kernel_plan.work_plan.work_units[0].preferred_skill is None
     assert kernel_plan.inferred_task_type == 'planning'
-    assert kernel_plan.resolved_task_type == 'planning'
-    assert kernel_plan.suggested_internal_grade == 'M'
-    assert plan.internal_grade == 'M'
+    assert kernel_plan.resolved_task_type == 'coding'
+    assert kernel_plan.suggested_internal_grade == 'L'
+    assert plan.internal_grade == 'L'
 
 
 def test_build_execution_plan_uses_kernel_suggested_stage_stop_when_none_requested() -> None:
@@ -108,10 +108,10 @@ def test_build_execution_plan_uses_kernel_suggested_stage_stop_when_none_request
         kernel_plan=kernel_plan,
     )
 
-    assert kernel_plan.suggested_stage_stop == 'xl_plan'
-    assert plan.stages == ('skeleton_check', 'deep_interview', 'requirement_doc', 'xl_plan')
+    assert kernel_plan.suggested_stage_stop == 'phase_cleanup'
+    assert plan.stages == ('skeleton_check', 'deep_interview', 'requirement_doc', 'xl_plan', 'plan_execute', 'phase_cleanup')
     assert plan.requested_stage_stop is None
-    assert plan.effective_requested_stage_stop == 'xl_plan'
+    assert plan.effective_requested_stage_stop == 'phase_cleanup'
     assert plan.stage_stop_source == 'kernel_suggested'
 
 
@@ -160,8 +160,8 @@ def test_build_execution_plan_can_use_kernel_plan_without_legacy_task_type() -> 
     )
 
     assert plan.kernel['task_card']['goal'] == 'need a plan'
-    assert plan.kernel['work_plan']['work_units'][0]['preferred_skill'] == 'vibe-how-do-we-do'
-    assert plan.internal_grade == 'M'
+    assert plan.kernel['work_plan']['work_units'][0]['preferred_skill'] is None
+    assert plan.internal_grade == 'L'
 
 
 def test_build_execution_plan_can_use_precomputed_stages_without_stage_machine() -> None:

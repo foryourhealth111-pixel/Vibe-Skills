@@ -108,24 +108,24 @@ def test_local_skill_index_uses_agents_then_codex_then_claude_duplicate_priority
     assert catalog["discovery_diagnostics"]["duplicates"][0]["active_entrypoint"] == str(agents_path.resolve())
 
 
-def test_local_skill_index_records_invalid_and_excludes_controller_entries(tmp_path: Path) -> None:
+def test_local_skill_index_records_invalid_and_excludes_only_canonical_controller_entry(tmp_path: Path) -> None:
     agent_root = tmp_path / "home" / ".agents"
     skills_root = agent_root / "skills"
     _write_skill(skills_root, "vibe", _frontmatter("vibe", "Controller entry."))
-    _write_skill(skills_root, "vibe-upgrade", _frontmatter("vibe-upgrade", "Public upgrade entry."))
+    _write_skill(skills_root, "vibe-upgrade", _frontmatter("vibe-upgrade", "Legacy name reused as a local helper."))
     _write_skill(skills_root, "missing-description", "---\nname: Missing Description")
     _write_skill(skills_root, "usable-local", _frontmatter("Usable Local", "A real local helper."))
 
     catalog = build_skill_catalog(agent_root=agent_root, host_roots=(skills_root,))
     index = build_skill_index_from_catalog(catalog)
 
-    assert [row["skill_id"] for row in index["skills"]] == ["usable-local"]
+    assert [row["skill_id"] for row in index["skills"]] == ["usable-local", "vibe-upgrade"]
     reasons = {
         item["skill_id"]: item["reason"]
         for item in catalog["discovery_diagnostics"]["invalid_entries"]
     }
     assert reasons["vibe"] == "controller_entry_excluded"
-    assert reasons["vibe-upgrade"] == "controller_entry_excluded"
+    assert "vibe-upgrade" not in reasons
     assert reasons["missing-description"] == "missing_required_frontmatter"
 
 

@@ -5,19 +5,19 @@ function Invoke-VibeOfflineRequiredSkillsAudit {
         [Parameter(Mandatory = $true)]
         [string]$ScriptRoot,
         [string]$SkillsRoot = "",
-        [string]$PackManifestPath = ""
+        [string]$RuntimeCorePackagingPath = ""
     )
 
-    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -PackManifestPath $PackManifestPath
+    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -RuntimeCorePackagingPath $RuntimeCorePackagingPath
     if (-not (Test-Path -LiteralPath $paths.skills_root)) {
         throw "Skills root not found: $($paths.skills_root)"
     }
-    if (-not (Test-Path -LiteralPath $paths.pack_manifest_path)) {
-        throw "Pack manifest not found: $($paths.pack_manifest_path)"
+    if (-not (Test-Path -LiteralPath $paths.runtime_core_packaging_path)) {
+        throw "Runtime-core packaging manifest not found: $($paths.runtime_core_packaging_path)"
     }
 
-    $manifest = Read-VibeOfflineJsonUtf8 -Path $paths.pack_manifest_path
-    $requiredSet = Get-VibeOfflineRequiredSkillSet -Manifest $manifest
+    $packaging = Read-VibeOfflineJsonUtf8 -Path $paths.runtime_core_packaging_path
+    $requiredSet = Get-VibeOfflineManagedSkillSet -Packaging $packaging
     $presentSet = Get-VibeOfflinePresentSkillSet -SkillsRoot $paths.skills_root
     $canonicalSkillMap = Get-VibeOfflineCanonicalSkillMap -RepoRoot $paths.repo_root
     $canonicalSkillSet = New-VibeOfflineCaseInsensitiveSet
@@ -27,8 +27,9 @@ function Invoke-VibeOfflineRequiredSkillsAudit {
 
     Write-Host "=== Vibe Offline Required-Skills Audit ==="
     Write-Host ("skills_root={0}" -f $paths.skills_root)
-    Write-Host ("required_skills={0}" -f $requiredSet.Count)
-    Write-Host ("canonical_required_skills={0}" -f $canonicalSkillSet.Count)
+    Write-Host ("runtime_core_packaging={0}" -f $paths.runtime_core_packaging_path)
+    Write-Host ("managed_required_skills={0}" -f $requiredSet.Count)
+    Write-Host ("canonical_skills={0}" -f $canonicalSkillSet.Count)
     Write-Host ("present_skills={0}" -f $presentSet.Count)
 
     $missingRequired = @()
@@ -36,36 +37,36 @@ function Invoke-VibeOfflineRequiredSkillsAudit {
     $missingRequiredSkillMd = @()
 
     foreach ($name in $requiredSet | Sort-Object) {
+        if (-not $presentSet.Contains($name)) {
+            $missingRequired += $name
+        }
+
         if ($canonicalSkillSet.Contains($name)) {
             $canonicalSkill = $canonicalSkillMap[$name]
             $canonicalSkillMdPath = if ($null -ne $canonicalSkill) { [string]$canonicalSkill.skill_md } else { "" }
             if ([string]::IsNullOrWhiteSpace($canonicalSkillMdPath) -or -not (Test-Path -LiteralPath $canonicalSkillMdPath)) {
                 $missingCanonicalRequired += $name
             }
-            continue
         }
 
-        if (-not $presentSet.Contains($name)) {
-            $missingRequired += $name
-            continue
-        }
-
-        $skillMdPath = Join-Path $paths.skills_root "$name\SKILL.md"
-        if (-not (Test-Path -LiteralPath $skillMdPath)) {
-            $missingRequiredSkillMd += $name
+        if ($presentSet.Contains($name)) {
+            $skillMdPath = Join-Path $paths.skills_root "$name\SKILL.md"
+            if (-not (Test-Path -LiteralPath $skillMdPath)) {
+                $missingRequiredSkillMd += $name
+            }
         }
     }
 
     $results = @()
-    $results += Assert-VibeOfflineTrue -Condition ($missingRequired.Count -eq 0) -Message "required routed skills are present"
+    $results += Assert-VibeOfflineTrue -Condition ($missingRequired.Count -eq 0) -Message "managed required skills are present"
     if ($missingRequired.Count -gt 0) {
         Write-Host ("       missing: {0}" -f ($missingRequired -join ", ")) -ForegroundColor DarkRed
     }
-    $results += Assert-VibeOfflineTrue -Condition ($missingCanonicalRequired.Count -eq 0) -Message "required canonical skills still resolve to live SKILL.md sources"
+    $results += Assert-VibeOfflineTrue -Condition ($missingCanonicalRequired.Count -eq 0) -Message "managed canonical skills still resolve to live SKILL.md sources"
     if ($missingCanonicalRequired.Count -gt 0) {
         Write-Host ("       missing canonical: {0}" -f ($missingCanonicalRequired -join ", ")) -ForegroundColor DarkRed
     }
-    $results += Assert-VibeOfflineTrue -Condition ($missingRequiredSkillMd.Count -eq 0) -Message "required bundled skills still ship SKILL.md"
+    $results += Assert-VibeOfflineTrue -Condition ($missingRequiredSkillMd.Count -eq 0) -Message "managed installed skills still ship SKILL.md"
     if ($missingRequiredSkillMd.Count -gt 0) {
         Write-Host ("       missing SKILL.md: {0}" -f ($missingRequiredSkillMd -join ", ")) -ForegroundColor DarkRed
     }
@@ -78,17 +79,17 @@ function Invoke-VibeOfflineLockParityAudit {
         [Parameter(Mandatory = $true)]
         [string]$ScriptRoot,
         [string]$SkillsRoot = "",
-        [string]$PackManifestPath = "",
+        [string]$RuntimeCorePackagingPath = "",
         [string]$SkillsLockPath = "",
         [switch]$RequireSkillsLock
     )
 
-    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -PackManifestPath $PackManifestPath -SkillsLockPath $SkillsLockPath
+    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -RuntimeCorePackagingPath $RuntimeCorePackagingPath -SkillsLockPath $SkillsLockPath
     if (-not (Test-Path -LiteralPath $paths.skills_root)) {
         throw "Skills root not found: $($paths.skills_root)"
     }
-    if (-not (Test-Path -LiteralPath $paths.pack_manifest_path)) {
-        throw "Pack manifest not found: $($paths.pack_manifest_path)"
+    if (-not (Test-Path -LiteralPath $paths.runtime_core_packaging_path)) {
+        throw "Runtime-core packaging manifest not found: $($paths.runtime_core_packaging_path)"
     }
 
     Write-Host "=== Vibe Offline Lock-Parity Audit ==="
@@ -99,34 +100,30 @@ function Invoke-VibeOfflineLockParityAudit {
         return New-VibeOfflineSkippedSuiteSummary -Title "Vibe Offline Lock-Parity Audit" -Reason $lockState.reason
     }
 
-    $manifest = Read-VibeOfflineJsonUtf8 -Path $paths.pack_manifest_path
-    $requiredSet = Get-VibeOfflineRequiredSkillSet -Manifest $manifest
+    $packaging = Read-VibeOfflineJsonUtf8 -Path $paths.runtime_core_packaging_path
+    $requiredSet = Get-VibeOfflineManagedSkillSet -Packaging $packaging
     $presentSet = Get-VibeOfflinePresentSkillSet -SkillsRoot $paths.skills_root
-    $canonicalSkillMap = Get-VibeOfflineCanonicalSkillMap -RepoRoot $paths.repo_root
-    $canonicalSkillSet = New-VibeOfflineCaseInsensitiveSet
-    foreach ($canonicalSkillId in @($canonicalSkillMap.Keys)) {
-        [void]$canonicalSkillSet.Add([string]$canonicalSkillId)
-    }
     $lockIndex = Get-VibeOfflineLockIndex -SkillsLockPath $paths.skills_lock_path
 
     Write-Host ("skills_root={0}" -f $paths.skills_root)
+    Write-Host ("runtime_core_packaging={0}" -f $paths.runtime_core_packaging_path)
     Write-Host ("skills_lock={0}" -f $paths.skills_lock_path)
-    Write-Host ("required_skills={0}" -f $requiredSet.Count)
+    Write-Host ("managed_required_skills={0}" -f $requiredSet.Count)
     Write-Host ("lock_skills={0}" -f $lockIndex.lock_set.Count)
     Write-Host ("present_skills={0}" -f $presentSet.Count)
 
-    $missingInLock = @()
-    foreach ($name in $requiredSet | Sort-Object) {
-        if ($canonicalSkillSet.Contains($name)) {
-            continue
-        }
-        if (-not $lockIndex.lock_set.Contains($name)) {
-            $missingInLock += $name
+    $managedInLock = @()
+    foreach ($name in $lockIndex.lock_set | Sort-Object) {
+        if ($requiredSet.Contains($name)) {
+            $managedInLock += $name
         }
     }
 
     $missingInSkills = @()
     foreach ($name in $lockIndex.lock_set | Sort-Object) {
+        if ($requiredSet.Contains($name)) {
+            continue
+        }
         if (-not $presentSet.Contains($name)) {
             $missingInSkills += $name
         }
@@ -134,21 +131,24 @@ function Invoke-VibeOfflineLockParityAudit {
 
     $extraInSkills = @()
     foreach ($name in $presentSet | Sort-Object) {
+        if ($requiredSet.Contains($name)) {
+            continue
+        }
         if (-not $lockIndex.lock_set.Contains($name)) {
             $extraInSkills += $name
         }
     }
 
     $results = @()
-    $results += Assert-VibeOfflineTrue -Condition ($missingInLock.Count -eq 0) -Message "required bundled skills are listed in skills-lock"
-    if ($missingInLock.Count -gt 0) {
-        Write-Host ("       missing in lock: {0}" -f ($missingInLock -join ", ")) -ForegroundColor DarkRed
+    $results += Assert-VibeOfflineTrue -Condition ($managedInLock.Count -eq 0) -Message "managed public skills are excluded from skills-lock"
+    if ($managedInLock.Count -gt 0) {
+        Write-Host ("       managed entries in lock: {0}" -f ($managedInLock -join ", ")) -ForegroundColor DarkRed
     }
-    $results += Assert-VibeOfflineTrue -Condition ($missingInSkills.Count -eq 0) -Message "skills-lock entries still exist under the bundled skills root"
+    $results += Assert-VibeOfflineTrue -Condition ($missingInSkills.Count -eq 0) -Message "skills-lock entries still exist under the tracked skills root"
     if ($missingInSkills.Count -gt 0) {
         Write-Host ("       missing in skills root: {0}" -f ($missingInSkills -join ", ")) -ForegroundColor DarkRed
     }
-    $results += Assert-VibeOfflineTrue -Condition ($extraInSkills.Count -eq 0) -Message "bundled skills root contains no unlocked extras"
+    $results += Assert-VibeOfflineTrue -Condition ($extraInSkills.Count -eq 0) -Message "tracked skills root contains no unlocked extras"
     if ($extraInSkills.Count -gt 0) {
         Write-Host ("       extra skills: {0}" -f ($extraInSkills -join ", ")) -ForegroundColor DarkRed
     }
@@ -161,13 +161,17 @@ function Invoke-VibeOfflineHashAudit {
         [Parameter(Mandatory = $true)]
         [string]$ScriptRoot,
         [string]$SkillsRoot = "",
+        [string]$RuntimeCorePackagingPath = "",
         [string]$SkillsLockPath = "",
         [switch]$RequireSkillsLock
     )
 
-    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -SkillsLockPath $SkillsLockPath
+    $paths = Resolve-VibeOfflineAuditPaths -ScriptRoot $ScriptRoot -SkillsRoot $SkillsRoot -RuntimeCorePackagingPath $RuntimeCorePackagingPath -SkillsLockPath $SkillsLockPath
     if (-not (Test-Path -LiteralPath $paths.skills_root)) {
         throw "Skills root not found: $($paths.skills_root)"
+    }
+    if (-not (Test-Path -LiteralPath $paths.runtime_core_packaging_path)) {
+        throw "Runtime-core packaging manifest not found: $($paths.runtime_core_packaging_path)"
     }
 
     Write-Host "=== Vibe Offline Hash Audit ==="
@@ -178,10 +182,13 @@ function Invoke-VibeOfflineHashAudit {
         return New-VibeOfflineSkippedSuiteSummary -Title "Vibe Offline Hash Audit" -Reason $lockState.reason
     }
 
+    $packaging = Read-VibeOfflineJsonUtf8 -Path $paths.runtime_core_packaging_path
+    $requiredSet = Get-VibeOfflineManagedSkillSet -Packaging $packaging
     $presentSet = Get-VibeOfflinePresentSkillSet -SkillsRoot $paths.skills_root
     $lockIndex = Get-VibeOfflineLockIndex -SkillsLockPath $paths.skills_lock_path
 
     Write-Host ("skills_root={0}" -f $paths.skills_root)
+    Write-Host ("runtime_core_packaging={0}" -f $paths.runtime_core_packaging_path)
     Write-Host ("skills_lock={0}" -f $paths.skills_lock_path)
     Write-Host ("present_skills={0}" -f $presentSet.Count)
     Write-Host ("lock_skills={0}" -f $lockIndex.lock_set.Count)
@@ -189,6 +196,9 @@ function Invoke-VibeOfflineHashAudit {
     $hashMismatches = @()
     $skillMdMismatches = @()
     foreach ($name in $lockIndex.lock_set | Sort-Object) {
+        if ($requiredSet.Contains($name)) {
+            continue
+        }
         if (-not $presentSet.Contains($name)) {
             continue
         }

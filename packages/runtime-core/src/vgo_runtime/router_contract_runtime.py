@@ -20,7 +20,7 @@ from .runtime_support import (
 
 LOCAL_PACK_ID = "local-skill-index"
 LOCAL_CANDIDATE_SOURCE = "local_skill_index"
-CONTROLLER_REQUESTED_SKILLS = {"vibe", "vibe-do-it", "vibe-how-do-we-do", "vibe-what-do-i-want"}
+CONTROLLER_REQUESTED_SKILLS = {"vibe"}
 AUTO_ROUTE_MIN_SCORE = 0.35
 CONFIRM_ROUTE_MIN_SCORE = 0.18
 CONFIRM_UI_ROUTE_PREFIX = "Bounded work suggested local skill options"
@@ -1179,8 +1179,6 @@ def route_prompt(
         "confidence": round(confidence, 4),
         "top1_top2_gap": round(public_top1_top2_gap, 4),
         "candidate_signal": round(confidence, 4),
-        "legacy_fallback_guard_applied": False,
-        "legacy_fallback_original_reason": None,
         "fallback_applied": False,
         "fallback_target": {
             "pack_id": None,

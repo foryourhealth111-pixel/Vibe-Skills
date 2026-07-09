@@ -1,6 +1,6 @@
 param(
     [string]$SkillsRoot = "",
-    [string]$PackManifestPath = "",
+    [string]$RuntimeCorePackagingPath = "",
     [string]$SkillsLockPath = ""
 )
 
@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $summary = Invoke-VibeOfflineLockParityAudit `
     -ScriptRoot $PSScriptRoot `
     -SkillsRoot $SkillsRoot `
-    -PackManifestPath $PackManifestPath `
+    -RuntimeCorePackagingPath $RuntimeCorePackagingPath `
     -SkillsLockPath $SkillsLockPath `
     -RequireSkillsLock
 if (-not $summary.gate_passed) {

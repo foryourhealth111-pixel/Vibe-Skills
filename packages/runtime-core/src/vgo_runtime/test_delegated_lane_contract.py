@@ -93,7 +93,6 @@ def _load_canonical_entry_module() -> types.ModuleType:
         sys.modules[host_receipt_module.__name__] = host_receipt_module
 
         router_module = types.ModuleType("vgo_runtime.router")
-        router_module.load_allowed_vibe_entry_ids = lambda: {"vibe", "vibe-upgrade"}
         sys.modules[router_module.__name__] = router_module
 
         spec = importlib.util.spec_from_file_location("vgo_runtime.canonical_entry", RUNTIME_CORE_SRC / "vgo_runtime" / "canonical_entry.py")

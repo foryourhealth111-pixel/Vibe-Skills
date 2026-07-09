@@ -256,13 +256,12 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
 
     monkeypatch.setattr(cli_commands, 'run_canonical_entry_core', fake_run_canonical_entry_core)
     monkeypatch.setattr(cli_commands, 'print_process_output', fake_print)
-    monkeypatch.setattr(cli_commands, 'normalize_host_id', lambda host_id: 'codex')
 
     args = argparse.Namespace(
         repo_root=str(tmp_path),
         prompt='plan runtime entry hardening',
-        host_id='CoDeX',
-        entry_id='vibe',
+        host_id=None,
+        entry_id=None,
         requested_stage_stop='phase_cleanup',
         requested_grade_floor='XL',
         artifact_root=str(tmp_path / 'artifacts'),
@@ -278,8 +277,6 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
     assert recorded['repo_root'] == tmp_path.resolve()
     assert recorded['argv'] == [
         '--repo-root', str(tmp_path.resolve()),
-        '--host-id', 'codex',
-        '--entry-id', 'vibe',
         '--prompt', 'plan runtime entry hardening',
         '--requested-stage-stop', 'phase_cleanup',
         '--requested-grade-floor', 'XL',
@@ -292,6 +289,48 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         '--force-runtime-neutral',
     ]
     assert recorded['printed_stdout'] == '{"run_id":"r1"}\n'
+
+
+def test_canonical_entry_command_passes_host_and_canonical_entry_flags_when_explicit(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import vgo_cli.commands as cli_commands
+
+    recorded: dict[str, object] = {}
+
+    def fake_run_canonical_entry_core(repo_root: Path, argv: list[str]) -> subprocess.CompletedProcess[str]:
+        recorded['argv'] = list(argv)
+        return subprocess.CompletedProcess(args=list(argv), returncode=0, stdout='{"run_id":"r2"}\n', stderr='')
+
+    monkeypatch.setattr(cli_commands, 'run_canonical_entry_core', fake_run_canonical_entry_core)
+    monkeypatch.setattr(cli_commands, 'print_process_output', lambda result: None)
+
+    args = argparse.Namespace(
+        repo_root=str(tmp_path),
+        prompt='continue canonical vibe',
+        host_id='opencode',
+        entry_id='vibe',
+        requested_stage_stop='xl_plan',
+        requested_grade_floor=None,
+        artifact_root=None,
+        local_agent_root=None,
+        run_id=None,
+        continue_from_run_id=None,
+        bounded_reentry_token=None,
+        host_decision_json=None,
+        host_decision_json_file=None,
+        force_runtime_neutral=False,
+    )
+
+    assert canonical_entry_command(args) == 0
+    assert recorded['argv'] == [
+        '--repo-root', str(tmp_path.resolve()),
+        '--prompt', 'continue canonical vibe',
+        '--host-id', 'opencode',
+        '--entry-id', 'vibe',
+        '--requested-stage-stop', 'xl_plan',
+    ]
 
 
 
@@ -690,8 +729,8 @@ def test_build_parser_includes_canonical_entry_subcommand() -> None:
 
     assert args.command == 'canonical-entry'
     assert args.handler is canonical_entry_command
-    assert args.host_id == 'codex'
-    assert args.entry_id == 'vibe'
+    assert args.host_id is None
+    assert args.entry_id is None
 
 
 def test_build_parser_accepts_canonical_entry_host_decision_json_file() -> None:

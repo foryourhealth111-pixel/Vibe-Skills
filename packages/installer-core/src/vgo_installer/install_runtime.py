@@ -88,16 +88,16 @@ ledger_state = {
 }
 
 LEGACY_VIBE_WRAPPER_IDS = ("vibe-want", "vibe-how", "vibe-do")
+RETIRED_DISCOVERABLE_ENTRY_IDS = (
+    "vibe-what-do-i-want",
+    "vibe-how-do-we-do",
+    "vibe-do-it",
+    "vibe-upgrade",
+)
 
 
 def retired_discoverable_entry_ids(entry_surface) -> list[str]:
-    return [
-        str(entry.id).strip()
-        for entry in getattr(entry_surface, "entries", ())
-        if entry is not None
-        and str(getattr(entry, "id", "")).strip()
-        and not bool(getattr(entry, "publicly_exposed", False))
-    ]
+    return list(RETIRED_DISCOVERABLE_ENTRY_IDS)
 
 
 def retired_discoverable_command_filenames(entry_surface) -> set[str]:

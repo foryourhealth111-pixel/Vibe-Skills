@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
 
@@ -22,6 +23,51 @@ from vgo_installer.simple_skill_installer import (
 def _write(path: Path, text: str = "x\n") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _seed_runtime_contract(
+    repo_root: Path,
+    *,
+    config_files: tuple[str, ...] = (),
+    script_files: tuple[str, ...] = (),
+    package_dirs: tuple[str, ...] = (),
+) -> None:
+    _write(
+        repo_root / "config" / "version-governance.json",
+        json.dumps(
+            {
+                "packaging": {
+                    "runtime_payload": {
+                        "files": [
+                            "SKILL.md",
+                            "core/skill-contracts/v1/vibe.json",
+                            "config/runtime-config-manifest.json",
+                            "config/runtime-script-manifest.json",
+                        ],
+                        "directories": ["protocols"],
+                    },
+                    "manifests": [
+                        {"id": "runtime_scripts", "path": "config/runtime-script-manifest.json"},
+                        {"id": "runtime_configs", "path": "config/runtime-config-manifest.json"},
+                    ],
+                }
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+    _write(
+        repo_root / "config" / "runtime-config-manifest.json",
+        json.dumps({"files": list(config_files), "directories": []}, indent=2) + "\n",
+    )
+    _write(
+        repo_root / "config" / "runtime-script-manifest.json",
+        json.dumps({"files": list(script_files), "directories": list(package_dirs)}, indent=2) + "\n",
+    )
+    _write(
+        repo_root / "core" / "skill-contracts" / "v1" / "vibe.json",
+        json.dumps({"id": "vibe"}, indent=2) + "\n",
+    )
 
 
 def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None:
@@ -62,6 +108,22 @@ def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None
         ".vibeskills/install-ledger.json",
     ):
         _write(repo_root / relpath)
+    _seed_runtime_contract(
+        repo_root,
+        config_files=("config/runtime.json",),
+        script_files=(
+            "scripts/common/vibe-governance-helpers.ps1",
+            "scripts/runtime/VibeRuntime.Common.ps1",
+            "scripts/router/modules/46-confirm-ui.ps1",
+            "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
+        ),
+        package_dirs=(
+            "apps/vgo-cli",
+            "packages/contracts",
+            "packages/runtime-core",
+            "packages/verification-core",
+        ),
+    )
 
     receipt = install_vibe_skill(
         repo_root=repo_root,
@@ -76,6 +138,9 @@ def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None
     assert (install_root / "config/runtime.json").is_file()
     assert (install_root / "protocols/runtime.md").is_file()
     assert not (install_root / "adapters").exists()
+    assert not (install_root / "config/pack-manifest.json").exists()
+    assert not (install_root / "config/role-pack-policy.json").exists()
+    assert not (install_root / "config/bundled-skill-governance-policy.json").exists()
     assert not (install_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "upgrade_service.py").exists()
     assert not (install_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "install_support.py").exists()
     assert not (install_root / "apps" / "vgo-cli" / "src" / "vgo_cli" / "install_gates.py").exists()
@@ -85,8 +150,10 @@ def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None
     assert (install_root / "packages" / "verification-core" / "src" / "vgo_verify" / "runtime_delivery_acceptance.py").is_file()
     assert (install_root / "packages" / "verification-core" / "src" / "vgo_verify" / "test_baseline_audit.py").is_file()
     assert not (install_root / "packages" / "verification-core" / "src" / "vgo_verify" / "test_runtime_delivery_acceptance_lock_reconciliation.py").exists()
+    assert not (install_root / "packages" / "verification-core" / "src" / "vgo_verify" / "global_pack_consolidation_audit.py").exists()
     assert (install_root / "scripts" / "common" / "vibe-governance-helpers.ps1").is_file()
     assert (install_root / "scripts" / "verify" / "vibe-release-install-runtime-coherence-gate.ps1").is_file()
+    assert not (install_root / "scripts" / "verify" / "vibe-pack-routing-smoke.ps1").exists()
     assert not (install_root / "docs").exists()
     assert not (install_root / "tests").exists()
     assert not (install_root / "bundled").exists()
@@ -103,6 +170,7 @@ def test_install_public_release_writes_release_identity_not_git_fields(tmp_path:
     repo_root = tmp_path / "release-root"
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
 
     receipt = install_vibe_skill(
         repo_root=repo_root,
@@ -128,6 +196,7 @@ def test_check_reports_drift_when_receipt_owned_file_changes(tmp_path: Path) -> 
     repo_root = tmp_path / "repo"
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
 
     install_vibe_skill(
         repo_root=repo_root,
@@ -152,6 +221,8 @@ def test_update_refuses_to_overwrite_drifted_install(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
     _write(next_repo_root / "SKILL.md", "# next vibe\n")
+    _seed_runtime_contract(repo_root)
+    _seed_runtime_contract(next_repo_root)
     install_vibe_skill(
         repo_root=repo_root,
         skills_dir=skills_dir,
@@ -183,6 +254,8 @@ def test_update_preserves_user_added_files(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
     _write(next_repo_root / "SKILL.md", "# next vibe\n")
+    _seed_runtime_contract(repo_root)
+    _seed_runtime_contract(next_repo_root)
     install_vibe_skill(
         repo_root=repo_root,
         skills_dir=skills_dir,
@@ -212,6 +285,8 @@ def test_install_rerun_preserves_user_added_files(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
     _write(next_repo_root / "SKILL.md", "# next vibe\n")
+    _seed_runtime_contract(repo_root)
+    _seed_runtime_contract(next_repo_root)
     install_vibe_skill(
         repo_root=repo_root,
         skills_dir=skills_dir,
@@ -239,6 +314,7 @@ def test_check_reports_user_added_files(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
     install_vibe_skill(
         repo_root=repo_root,
         skills_dir=skills_dir,
@@ -258,6 +334,7 @@ def test_uninstall_removes_owned_files_but_keeps_user_files(tmp_path: Path) -> N
     repo_root = tmp_path / "repo"
     skills_dir = tmp_path / "skills"
     _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
     install_vibe_skill(
         repo_root=repo_root,
         skills_dir=skills_dir,
@@ -270,6 +347,9 @@ def test_uninstall_removes_owned_files_but_keeps_user_files(tmp_path: Path) -> N
 
     result = uninstall_vibe_skill(skills_dir=skills_dir)
 
-    assert result["removed_files"] == ["SKILL.md"]
+    removed_files = set(result["removed_files"])
+    assert "SKILL.md" in removed_files
+    assert "config/runtime-config-manifest.json" in removed_files
+    assert "config/runtime-script-manifest.json" in removed_files
     assert user_file.read_text(encoding="utf-8") == "keep me\n"
     assert (skills_dir / "vibe").is_dir()

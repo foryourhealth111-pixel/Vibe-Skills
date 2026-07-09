@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 import json
 import os
 import re
@@ -15,6 +16,8 @@ if RUNTIME_SRC.is_dir() and str(RUNTIME_SRC) not in os.sys.path:
     os.sys.path.insert(0, str(RUNTIME_SRC))
 
 from vgo_contracts.discoverable_entry_surface import load_discoverable_entry_surface
+from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id, resolve_adapter_entry
+from vgo_contracts.target_root_contract import resolve_target_root_text
 from vgo_runtime.kernel.host_skill_roots import resolve_host_skill_roots
 
 # ponytail: shared repo and skill descriptor helpers live outside router naming.
@@ -210,34 +213,41 @@ def resolve_home_directory() -> Path:
     return Path.home().resolve()
 
 
+@lru_cache(maxsize=1)
+def _load_runtime_adapter_registry() -> dict[str, Any]:
+    repo_root = resolve_repo_root(Path(__file__))
+    return load_adapter_registry(repo_root)
+
+
 def resolve_host_id(host_id: str | None = None) -> str:
-    resolved = normalize_text(host_id or os.environ.get("VCO_HOST_ID") or "codex")
-    aliases = {
-        "claude": "claude-code",
-    }
-    resolved = aliases.get(resolved, resolved)
-    if resolved not in {"codex", "claude-code", "cursor", "windsurf", "openclaw", "opencode", "generic"}:
-        return "codex"
-    return resolved
+    registry = _load_runtime_adapter_registry()
+    requested = str(host_id or os.environ.get("VCO_HOST_ID") or "").strip()
+    normalized = str(normalize_adapter_host_id(requested, registry)).strip().lower()
+    default_host = str(registry.get("default_adapter_id") or "codex").strip().lower() or "codex"
+    if not normalized:
+        normalized = default_host
+    try:
+        entry = resolve_adapter_entry(registry, normalized)
+    except ValueError:
+        entry = resolve_adapter_entry(registry, default_host)
+    return str(entry.get("id") or default_host).strip().lower() or default_host
 
 
 def resolve_target_root(target_root: str | None = None, host_id: str | None = None) -> Path:
     if target_root:
         return Path(target_root).expanduser().resolve()
+    registry = _load_runtime_adapter_registry()
     resolved_host_id = resolve_host_id(host_id)
-    env_map = {
-        "codex": ("CODEX_HOME", Path(".codex")),
-        "claude-code": ("CLAUDE_HOME", Path(".claude")),
-        "cursor": ("CURSOR_HOME", Path(".cursor")),
-        "windsurf": ("WINDSURF_HOME", Path(".codeium") / "windsurf"),
-        "openclaw": ("OPENCLAW_HOME", Path(".openclaw")),
-        "opencode": ("OPENCODE_HOME", Path(".config") / "opencode"),
-        "generic": ("", Path(".vibe-skills") / "generic"),
-    }
-    env_name, default_rel = env_map[resolved_host_id]
-    if env_name and os.environ.get(env_name):
-        return Path(os.environ[env_name]).expanduser().resolve()
-    return (resolve_home_directory() / default_rel).resolve()
+    entry = resolve_adapter_entry(registry, resolved_host_id)
+    default_target_root = dict(entry.get("default_target_root") or {})
+    target_root_text = resolve_target_root_text(
+        default_target_root=default_target_root.get("rel"),
+        default_target_root_env=default_target_root.get("env"),
+        env=dict(os.environ),
+        home=resolve_home_directory(),
+        descriptor_id=resolved_host_id,
+    )
+    return Path(target_root_text).expanduser().resolve()
 
 
 def resolve_requested_canonical(

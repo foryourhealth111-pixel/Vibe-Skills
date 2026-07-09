@@ -32,24 +32,6 @@ def resolve_powershell() -> str | None:
 
 
 class OfflineSkillsGateTests(unittest.TestCase):
-    bundled_required_skills = [
-        "brainstorming",
-        "cancel-ralph",
-        "dialectic",
-        "local-vco-roles",
-        "ralph-loop",
-        "spec-kit-vibe-compat",
-        "subagent-driven-development",
-        "superclaude-framework-compat",
-        "systematic-debugging",
-        "tdd-guide",
-        "think-harder",
-        "vibe-do-it",
-        "vibe-how-do-we-do",
-        "vibe-what-do-i-want",
-        "writing-plans",
-    ]
-
     def setUp(self) -> None:
         self.powershell = resolve_powershell()
         if self.powershell is None:
@@ -72,8 +54,29 @@ class OfflineSkillsGateTests(unittest.TestCase):
         self._write("scripts/verify/vibe-offline-lock-parity-audit.ps1", OFFLINE_LOCK_PARITY_AUDIT.read_text(encoding="utf-8"))
         self._write("scripts/verify/vibe-offline-hash-audit.ps1", OFFLINE_HASH_AUDIT.read_text(encoding="utf-8"))
         shutil.copytree(OFFLINE_LIB_ROOT, self.root / "scripts" / "verify" / "lib", dirs_exist_ok=True)
-        self._write("config/pack-manifest.json", json.dumps({"packs": []}, indent=2) + "\n")
-        self._write("SKILL.md", "---\nname: vibe\ndescription: canonical fixture\n---\n")
+
+        self._write(
+            "config/runtime-core-packaging.json",
+            json.dumps(
+                {
+                    "default_profile": "minimal",
+                    "canonical_vibe_payload": {"target_relpath": "skills/vibe"},
+                    "profiles": {
+                        "minimal": {
+                            "managed_skill_inventory": {
+                                "public_entry_skills": ["vibe"],
+                                "starter_skill_names": [],
+                                "optional_skill_names": [],
+                            }
+                        }
+                    },
+                },
+                indent=2,
+            )
+            + "\n",
+        )
+        self._write("skills/vibe/SKILL.md", "---\nname: vibe\ndescription: canonical fixture\n---\n")
+        self._write("skills/helper/SKILL.md", "---\nname: helper\ndescription: tracked extra fixture\n---\n")
         self._write(
             "core/skills/vibe/skill.json",
             json.dumps(
@@ -84,41 +87,32 @@ class OfflineSkillsGateTests(unittest.TestCase):
                     "summary": "fixture",
                     "instruction_path": "core/skills/vibe/instruction.md",
                     "compatibility_path": "core/skills/vibe/compatibility.json",
-                    "source_of_truth": {"kind": "canonical-skill", "path": "SKILL.md"},
+                    "source_of_truth": {"kind": "canonical-skill", "path": "skills/vibe/SKILL.md"},
                     "tags": ["router"],
                 },
                 indent=2,
             )
             + "\n",
         )
-
-        for skill_name in self.bundled_required_skills:
-            self._write(
-                f"bundled/skills/{skill_name}/SKILL.md",
-                f"---\nname: {skill_name}\ndescription: bundled fixture\n---\n",
-            )
-
-        lock_skills = [
-            {
-                "name": skill_name,
-                "relative_path": f"bundled/skills/{skill_name}",
-                "file_count": 1,
-                "bytes": 64,
-                "skill_md_hash": None,
-                "dir_hash": "fixture",
-            }
-            for skill_name in self.bundled_required_skills
-        ]
         self._write(
             "config/skills-lock.json",
             json.dumps(
                 {
                     "version": 1,
                     "generated_at": "2026-04-01T12:00:00+08:00",
-                    "source": "bundled/skills",
-                    "skill_count": len(lock_skills),
-                    "total_bytes": 768,
-                    "skills": lock_skills,
+                    "source": "skills",
+                    "skill_count": 1,
+                    "total_bytes": 128,
+                    "skills": [
+                        {
+                            "name": "helper",
+                            "relative_path": "skills/helper",
+                            "file_count": 1,
+                            "bytes": 64,
+                            "skill_md_hash": None,
+                            "dir_hash": "fixture",
+                        }
+                    ],
                 },
                 indent=2,
             )
@@ -141,11 +135,10 @@ class OfflineSkillsGateTests(unittest.TestCase):
             text=True,
         )
 
-    def test_required_skills_audit_accepts_canonical_vibe_when_not_present_under_bundled_skills(self) -> None:
+    def test_required_skills_audit_accepts_managed_vibe_without_skills_lock_entry(self) -> None:
         result = self._run_script("vibe-offline-required-skills-audit.ps1")
         self.assertEqual(0, result.returncode, msg=result.stdout + result.stderr)
-        self.assertNotIn("missing required routed skills: vibe", result.stdout)
-        self.assertNotIn("skills-lock entries missing in skills root: vibe", result.stdout)
+        self.assertNotIn("missing: vibe", result.stdout)
 
     def test_wrapper_skips_lock_based_audits_when_skills_lock_is_absent(self) -> None:
         (self.root / "config" / "skills-lock.json").unlink()
@@ -164,12 +157,12 @@ class OfflineSkillsGateTests(unittest.TestCase):
         self.assertIn("Skills lock not found:", combined)
         self.assertIn("run scripts/verify/vibe-generate-skills-lock.ps1 or pass -SkillsLockPath", combined)
 
-    def test_lock_parity_audit_fails_when_stale_vibe_entry_remains_in_bundled_skills_lock(self) -> None:
+    def test_lock_parity_audit_fails_when_managed_vibe_is_listed_in_skills_lock(self) -> None:
         payload = json.loads((self.root / "config" / "skills-lock.json").read_text(encoding="utf-8"))
         payload["skills"].append(
             {
                 "name": "vibe",
-                "relative_path": "bundled/skills/vibe",
+                "relative_path": "skills/vibe",
                 "file_count": 1,
                 "bytes": 64,
                 "skill_md_hash": None,
@@ -181,24 +174,21 @@ class OfflineSkillsGateTests(unittest.TestCase):
 
         result = self._run_script("vibe-offline-lock-parity-audit.ps1")
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("missing in skills root: vibe", result.stdout)
+        self.assertIn("managed entries in lock: vibe", result.stdout)
 
-    def test_required_skills_audit_fails_when_required_wrapper_skill_is_missing(self) -> None:
-        wrapper_root = self.root / "bundled" / "skills" / "vibe-do-it"
-        shutil.rmtree(wrapper_root)
+    def test_lock_parity_audit_fails_when_tracked_skill_is_missing(self) -> None:
+        shutil.rmtree(self.root / "skills" / "helper")
 
-        payload = json.loads((self.root / "config" / "skills-lock.json").read_text(encoding="utf-8"))
-        payload["skills"] = [
-            item
-            for item in payload["skills"]
-            if item.get("name") != "vibe-do-it"
-        ]
-        payload["skill_count"] = len(payload["skills"])
-        (self.root / "config" / "skills-lock.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
+        result = self._run_script("vibe-offline-lock-parity-audit.ps1")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("missing in skills root: helper", result.stdout)
+
+    def test_required_skills_audit_fails_when_managed_vibe_is_missing(self) -> None:
+        shutil.rmtree(self.root / "skills" / "vibe")
 
         result = self._run_script("vibe-offline-required-skills-audit.ps1")
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("missing: vibe-do-it", result.stdout)
+        self.assertIn("missing: vibe", result.stdout)
 
 
 if __name__ == "__main__":

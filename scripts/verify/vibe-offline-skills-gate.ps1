@@ -1,6 +1,6 @@
 param(
     [string]$SkillsRoot = "",
-    [string]$PackManifestPath = "",
+    [string]$RuntimeCorePackagingPath = "",
     [string]$SkillsLockPath = "",
     [switch]$SkipHash
 )
@@ -13,12 +13,12 @@ $ErrorActionPreference = "Stop"
 $requiredSummary = Invoke-VibeOfflineRequiredSkillsAudit `
     -ScriptRoot $PSScriptRoot `
     -SkillsRoot $SkillsRoot `
-    -PackManifestPath $PackManifestPath
+    -RuntimeCorePackagingPath $RuntimeCorePackagingPath
 
 $lockParitySummary = Invoke-VibeOfflineLockParityAudit `
     -ScriptRoot $PSScriptRoot `
     -SkillsRoot $SkillsRoot `
-    -PackManifestPath $PackManifestPath `
+    -RuntimeCorePackagingPath $RuntimeCorePackagingPath `
     -SkillsLockPath $SkillsLockPath
 
 $summaries = @($requiredSummary, $lockParitySummary)
@@ -26,6 +26,7 @@ if (-not $SkipHash) {
     $hashSummary = Invoke-VibeOfflineHashAudit `
         -ScriptRoot $PSScriptRoot `
         -SkillsRoot $SkillsRoot `
+        -RuntimeCorePackagingPath $RuntimeCorePackagingPath `
         -SkillsLockPath $SkillsLockPath
     $summaries += $hashSummary
 }

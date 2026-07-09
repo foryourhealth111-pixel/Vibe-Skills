@@ -5,11 +5,20 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import sys
 from typing import Any
 import zipfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTRACTS_SRC = REPO_ROOT / "packages" / "contracts" / "src"
+INSTALLER_SRC = REPO_ROOT / "packages" / "installer-core" / "src"
+for src in (CONTRACTS_SRC, INSTALLER_SRC):
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+
+from vgo_installer.simple_skill_installer import runtime_surface_relpaths
+
 PUBLIC_RELEASE_ROOT_FILES = (
     "README.md",
     "README.zh.md",
@@ -24,23 +33,12 @@ PUBLIC_RELEASE_ROOT_FILES = (
     "uninstall.sh",
 )
 PUBLIC_RELEASE_DIRS = (
-    "core",
-    "config",
-    "protocols",
     "references",
     "docs",
     "mcp",
     "templates",
     "adapters",
-    "apps/vgo-cli",
-    "packages/contracts",
     "packages/installer-core",
-    "packages/runtime-core",
-    "packages/verification-core",
-    "scripts/common",
-    "scripts/runtime",
-    "scripts/router",
-    "scripts/verify",
 )
 
 
@@ -59,7 +57,7 @@ def _copy_file(source: Path, destination: Path) -> None:
 
 
 def _iter_release_relpaths(source_root: Path) -> list[str]:
-    relpaths: set[str] = set()
+    relpaths: set[str] = set(runtime_surface_relpaths(source_root))
     for relpath in (*PUBLIC_RELEASE_ROOT_FILES, *PUBLIC_RELEASE_DIRS):
         source = source_root / relpath
         if not source.exists():

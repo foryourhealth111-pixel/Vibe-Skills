@@ -33,26 +33,26 @@ function Resolve-VibeOfflineAuditPaths {
         [Parameter(Mandatory = $true)]
         [string]$ScriptRoot,
         [string]$SkillsRoot = "",
-        [string]$PackManifestPath = "",
+        [string]$RuntimeCorePackagingPath = "",
         [string]$SkillsLockPath = ""
     )
 
     $repoRoot = (Resolve-Path (Join-Path $ScriptRoot "..\..")).Path
     if ([string]::IsNullOrWhiteSpace($SkillsRoot)) {
-        $SkillsRoot = Join-Path $repoRoot "bundled\skills"
+        $SkillsRoot = Join-Path $repoRoot "skills"
     }
-    if ([string]::IsNullOrWhiteSpace($PackManifestPath)) {
-        $PackManifestPath = Join-Path $repoRoot "config\pack-manifest.json"
+    if ([string]::IsNullOrWhiteSpace($RuntimeCorePackagingPath)) {
+        $RuntimeCorePackagingPath = Join-Path $repoRoot "config\runtime-core-packaging.json"
     }
     if ([string]::IsNullOrWhiteSpace($SkillsLockPath)) {
         $SkillsLockPath = Join-Path $repoRoot "config\skills-lock.json"
     }
 
     return [pscustomobject]@{
-        repo_root          = $repoRoot
-        skills_root        = $SkillsRoot
-        pack_manifest_path = $PackManifestPath
-        skills_lock_path   = $SkillsLockPath
+        repo_root                  = $repoRoot
+        skills_root                = $SkillsRoot
+        runtime_core_packaging_path = $RuntimeCorePackagingPath
+        skills_lock_path           = $SkillsLockPath
     }
 }
 
@@ -225,54 +225,75 @@ function Get-VibeOfflineCanonicalSkillMap {
     return $map
 }
 
-function Get-VibeOfflineRequiredSkillSet {
+function Get-VibeOfflineCanonicalVibeSkillName {
     param(
         [Parameter(Mandatory = $true)]
-        [object]$Manifest
+        [object]$Packaging
     )
 
-    $requiredSet = New-VibeOfflineCaseInsensitiveSet
-    $alwaysRequired = @(
-        "vibe",
-        "dialectic",
-        "local-vco-roles",
-        "spec-kit-vibe-compat",
-        "superclaude-framework-compat",
-        "ralph-loop",
-        "cancel-ralph",
-        "tdd-guide",
-        "think-harder",
-        "vibe-what-do-i-want",
-        "vibe-how-do-we-do",
-        "vibe-do-it",
-        "brainstorming",
-        "writing-plans",
-        "subagent-driven-development",
-        "systematic-debugging"
-    )
-
-    foreach ($name in $alwaysRequired) {
-        [void]$requiredSet.Add($name)
-    }
-
-    foreach ($pack in @($Manifest.packs)) {
-        foreach ($candidate in @($pack.skill_candidates)) {
-            if (-not [string]::IsNullOrWhiteSpace([string]$candidate)) {
-                [void]$requiredSet.Add([string]$candidate)
-            }
-        }
-
-        if ($pack.defaults_by_task) {
-            foreach ($prop in $pack.defaults_by_task.PSObject.Properties) {
-                $value = [string]$prop.Value
-                if (-not [string]::IsNullOrWhiteSpace($value)) {
-                    [void]$requiredSet.Add($value)
-                }
-            }
+    $canonicalPayload = $Packaging.canonical_vibe_payload
+    $targetRelpath = "skills/vibe"
+    if ($null -ne $canonicalPayload -and $canonicalPayload.PSObject.Properties.Name -contains "target_relpath") {
+        $candidate = [string]$canonicalPayload.target_relpath
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            $targetRelpath = $candidate
         }
     }
 
-    return $requiredSet
+    return [System.IO.Path]::GetFileName($targetRelpath)
+}
+
+function Get-VibeOfflineManagedSkillSet {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Packaging
+    )
+
+    $managedSet = New-VibeOfflineCaseInsensitiveSet
+    $canonicalVibe = Get-VibeOfflineCanonicalVibeSkillName -Packaging $Packaging
+    if (-not [string]::IsNullOrWhiteSpace($canonicalVibe)) {
+        [void]$managedSet.Add($canonicalVibe)
+    }
+
+    $inventory = $null
+    if ($Packaging.PSObject.Properties.Name -contains "managed_skill_inventory") {
+        $inventory = $Packaging.managed_skill_inventory
+    }
+
+    if ($null -eq $inventory -or $null -eq $inventory.public_entry_skills) {
+        $defaultProfile = ""
+        if ($Packaging.PSObject.Properties.Name -contains "default_profile") {
+            $defaultProfile = [string]$Packaging.default_profile
+        }
+        if (
+            -not [string]::IsNullOrWhiteSpace($defaultProfile) -and
+            $Packaging.PSObject.Properties.Name -contains "profiles" -and
+            $Packaging.profiles.PSObject.Properties.Name -contains $defaultProfile
+        ) {
+            $profile = $Packaging.profiles.$defaultProfile
+            if ($null -ne $profile -and $profile.PSObject.Properties.Name -contains "managed_skill_inventory") {
+                $inventory = $profile.managed_skill_inventory
+            }
+        }
+    }
+
+    if ($null -eq $inventory) {
+        throw "Runtime-core packaging manifest missing managed_skill_inventory contract."
+    }
+
+    foreach ($field in @("public_entry_skills", "starter_skill_names", "optional_skill_names")) {
+        if ($inventory.PSObject.Properties.Name -notcontains $field) {
+            continue
+        }
+        foreach ($name in @($inventory.$field)) {
+            $candidate = [string]$name
+            if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                [void]$managedSet.Add($candidate)
+            }
+        }
+    }
+
+    Write-Output -NoEnumerate $managedSet
 }
 
 function Get-VibeOfflinePresentSkillSet {
@@ -285,7 +306,7 @@ function Get-VibeOfflinePresentSkillSet {
     foreach ($name in @(Get-ChildItem -LiteralPath $SkillsRoot -Force -Directory | Select-Object -ExpandProperty Name)) {
         [void]$presentSet.Add([string]$name)
     }
-    return $presentSet
+    Write-Output -NoEnumerate $presentSet
 }
 
 function Get-VibeOfflineLockIndex {

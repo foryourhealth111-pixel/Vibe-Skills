@@ -2981,21 +2981,12 @@ function Get-VibeNextProgressiveStageStop {
 
 function Get-VibeBoundedReturnFollowupEntryIds {
     param(
-        [AllowEmptyString()] [string]$EntryIntentId = '',
         [AllowEmptyString()] [string]$TerminalStage = ''
     )
 
-    if ([string]$EntryIntentId -eq 'vibe') {
-        switch ([string]$TerminalStage) {
-            'requirement_doc' { return @('vibe') }
-            'xl_plan' { return @('vibe') }
-            default { return @() }
-        }
-    }
-
     switch ([string]$TerminalStage) {
-        'requirement_doc' { return @('vibe', 'vibe-how-do-we-do', 'vibe-do-it') }
-        'xl_plan' { return @('vibe', 'vibe-do-it') }
+        'requirement_doc' { return @('vibe') }
+        'xl_plan' { return @('vibe') }
         default { return @() }
     }
 }
@@ -3010,7 +3001,7 @@ function New-VibeBoundedReturnControlProjection {
 
     $resolvedEntryIntentId = if ([string]::IsNullOrWhiteSpace($EntryIntentId)) { 'vibe' } else { [string]$EntryIntentId }
     $terminalStage = Get-VibeStageLineageTerminalStage -StageLineage $StageLineage
-    $allowedFollowupEntryIds = @(Get-VibeBoundedReturnFollowupEntryIds -EntryIntentId $resolvedEntryIntentId -TerminalStage $terminalStage)
+    $allowedFollowupEntryIds = @(Get-VibeBoundedReturnFollowupEntryIds -TerminalStage $terminalStage)
     if (@($allowedFollowupEntryIds).Count -eq 0) {
         return $null
     }
@@ -3107,7 +3098,6 @@ function New-VibeBoundedReturnControlProjection {
         forbidden_actions = @($forbiddenActions)
         control_owner = 'user'
         source_run_id = $RunId
-        source_entry_intent_id = $resolvedEntryIntentId
         terminal_stage = [string]$terminalStage
         next_stage = if ([string]::IsNullOrWhiteSpace($nextStage)) { $null } else { [string]$nextStage }
         approval_kind = [string]$approvalKind

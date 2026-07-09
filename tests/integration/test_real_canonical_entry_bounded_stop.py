@@ -25,17 +25,16 @@ def _require_powershell() -> None:
 
 @pytest.mark.parametrize("host_id", ["codex", "claude-code", "opencode"])
 @pytest.mark.parametrize(
-    ("entry_id", "requested_stage_stop", "requested_grade_floor"),
+    ("requested_stage_stop", "requested_grade_floor"),
     [
-        ("vibe-what-do-i-want", "requirement_doc", None),
-        ("vibe-how-do-we-do", "xl_plan", "XL"),
+        ("requirement_doc", None),
+        ("xl_plan", "XL"),
     ],
 )
-def test_real_canonical_entry_honors_wrapper_bounded_stop(
+def test_real_canonical_entry_honors_explicit_bounded_stop_on_vibe(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     host_id: str,
-    entry_id: str,
     requested_stage_stop: str,
     requested_grade_floor: str | None,
 ) -> None:
@@ -46,18 +45,20 @@ def test_real_canonical_entry_honors_wrapper_bounded_stop(
     result = canonical_entry.launch_canonical_vibe(
         repo_root=REPO_ROOT,
         host_id=host_id,
-        entry_id=entry_id,
-        prompt=f"Verify bounded stop for {host_id} {entry_id}",
+        entry_id="vibe",
+        prompt=f"Verify bounded stop for {host_id} {requested_stage_stop}",
         requested_stage_stop=requested_stage_stop,
         requested_grade_floor=requested_grade_floor,
-        artifact_root=tmp_path / host_id / entry_id,
+        artifact_root=tmp_path / host_id / requested_stage_stop,
     )
 
     stage_lineage = json.loads(Path(result.artifacts["stage_lineage"]).read_text(encoding="utf-8"))
     runtime_packet = json.loads(Path(result.artifacts["runtime_input_packet"]).read_text(encoding="utf-8"))
+    host_launch_receipt = json.loads(result.host_launch_receipt_path.read_text(encoding="utf-8"))
 
     assert stage_lineage["last_stage_name"] == requested_stage_stop
-    assert runtime_packet["entry_intent_id"] == entry_id
+    assert host_launch_receipt["entry_id"] == "vibe"
+    assert runtime_packet["entry_intent_id"] == "vibe"
     assert runtime_packet["requested_stage_stop"] == requested_stage_stop
     if requested_grade_floor is None:
         assert runtime_packet["requested_grade_floor"] is None

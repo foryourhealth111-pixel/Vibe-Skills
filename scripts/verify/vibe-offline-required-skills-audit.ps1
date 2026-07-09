@@ -1,6 +1,6 @@
 param(
     [string]$SkillsRoot = "",
-    [string]$PackManifestPath = ""
+    [string]$RuntimeCorePackagingPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "lib\VibeOfflineSkillsAudit.ps1")
 . (Join-Path $PSScriptRoot "lib\VibeOfflineSkillsAudit.Suites.ps1")
 
-$summary = Invoke-VibeOfflineRequiredSkillsAudit -ScriptRoot $PSScriptRoot -SkillsRoot $SkillsRoot -PackManifestPath $PackManifestPath
+$summary = Invoke-VibeOfflineRequiredSkillsAudit -ScriptRoot $PSScriptRoot -SkillsRoot $SkillsRoot -RuntimeCorePackagingPath $RuntimeCorePackagingPath
 if (-not $summary.gate_passed) {
     exit 1
 }

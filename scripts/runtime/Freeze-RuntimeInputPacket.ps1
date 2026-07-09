@@ -102,7 +102,17 @@ function Test-VibeSingleOptionCanonicalConfirmSurface {
         [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
     )
 
-    if (-not [string]::IsNullOrWhiteSpace([string]$EntryIntentId)) {
+    $resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId `
+        -EntryIntentId $EntryIntentId `
+        -RuntimeSelectedSkill $RuntimeSelectedSkill
+    if (
+        -not [string]::IsNullOrWhiteSpace([string]$EntryIntentId) -and
+        -not [string]::Equals(
+            [string]$resolvedEntryIntentId,
+            [string]$RuntimeSelectedSkill,
+            [System.StringComparison]::OrdinalIgnoreCase
+        )
+    ) {
         return $false
     }
     if ($null -eq $RouteResult -or [string]$RouteResult.route_mode -ne 'confirm_required') {
@@ -148,31 +158,16 @@ function Test-VibeSingleOptionCanonicalConfirmSurface {
     return $true
 }
 
-function Test-VibeProgressiveEntryLegacyConfirmBypass {
+function Resolve-VibeControllerEntryIntentId {
     param(
-        [AllowNull()] [object]$RouteResult,
         [AllowEmptyString()] [string]$EntryIntentId = '',
-        [AllowEmptyString()] [string]$TaskType = ''
+        [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
     )
 
     if ([string]::IsNullOrWhiteSpace([string]$EntryIntentId)) {
-        return $false
+        return ''
     }
-    if ([string]$EntryIntentId -notin @('vibe-what-do-i-want', 'vibe-how-do-we-do', 'vibe-do-it')) {
-        return $false
-    }
-    if ($null -eq $RouteResult -or [string]$RouteResult.route_mode -ne 'confirm_required') {
-        return $false
-    }
-    if (
-        -not ($RouteResult.PSObject.Properties.Name -contains 'legacy_fallback_guard_applied') -or
-        -not [bool]$RouteResult.legacy_fallback_guard_applied
-    ) {
-        return $false
-    }
-
-    $normalizedTaskType = ([string]$TaskType).Trim().ToLowerInvariant()
-    return $normalizedTaskType -in @('planning', 'coding')
+    return [string]$EntryIntentId
 }
 
 function Get-VibeSkillMetadata {
@@ -1003,6 +998,9 @@ $effectiveRequestedStageStop = Resolve-VibeEntryRequestedStageStop `
     -RequestedStageStop $RequestedStageStop
 $grade = Get-VibeInternalGrade -Task $Task -RequestedGradeFloor $RequestedGradeFloor
 $taskType = Get-VibeRouterTaskType -Task $Task
+$resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId `
+    -EntryIntentId $EntryIntentId `
+    -RuntimeSelectedSkill ([string]$policy.explicit_runtime_skill)
 if (
     (Test-VibeStructuredBoundedReentryContext -ContinuationContext $continuationContext) -and
     (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'control_only_prompt') -and
@@ -1021,17 +1019,13 @@ $storageProjection = New-VibeWorkspaceArtifactProjection `
     -ArtifactRoot $ArtifactRoot `
     -RouterTargetRoot $routerTargetRoot
 $controllerEntryIntentIds = @(
-    [string]$policy.explicit_runtime_skill,
-    'vibe-what-do-i-want',
-    'vibe-how-do-we-do',
-    'vibe-do-it',
-    'vibe-upgrade'
+    [string]$policy.explicit_runtime_skill
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
 $requestedSkill = if (
-    -not [string]::IsNullOrWhiteSpace($EntryIntentId) -and
-    [string]$EntryIntentId -notin @($controllerEntryIntentIds)
+    -not [string]::IsNullOrWhiteSpace($resolvedEntryIntentId) -and
+    [string]$resolvedEntryIntentId -notin @($controllerEntryIntentIds)
 ) {
-    [string]$EntryIntentId
+    [string]$resolvedEntryIntentId
 } else {
     ''
 }
@@ -1088,15 +1082,6 @@ if (
     }
     $routeResult = Invoke-VibeFrozenRoute -RouterScriptPath $routerScriptPath -BaseArgs $routeArgs -HostDecisionJson $syntheticHostDecisionJson
     $executionPhaseDecomposition = Resolve-VibeHostPhaseDecomposition -HostDecision $hostDecision -Task $Task -Policy $policy
-}
-
-$shouldBypassLegacyConfirm = Test-VibeProgressiveEntryLegacyConfirmBypass `
-    -RouteResult $routeResult `
-    -EntryIntentId $EntryIntentId `
-    -TaskType $taskType
-if ($shouldBypassLegacyConfirm) {
-    $routeResult.route_mode = 'pack_overlay'
-    $routeResult.route_reason = 'progressive_entry_legacy_fallback_bypass'
 }
 
 $confirmRequired = ([string]$routeResult.route_mode -eq 'confirm_required')

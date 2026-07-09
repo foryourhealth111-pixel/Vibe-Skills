@@ -87,7 +87,7 @@ packages/runtime-core/src/vgo_runtime/
 
 - ordinary skills should remain self-describing through `SKILL.md`
 - local skill roots should be declared by the host, not guessed
-- controller entries such as `vibe` and `vibe-upgrade` should stay out of the specialist pool
+- the controller entry `vibe` should stay out of the specialist pool
 - catalog and index artifacts should describe discovery, not replace runtime truth
 - `work_binding` should carry the selected source details and provenance needed for inspection
 - the public CLI should stay narrow and match real operator actions

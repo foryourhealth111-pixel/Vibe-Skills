@@ -27,3 +27,5 @@ def test_vibe_skill_frontloads_canonical_bootstrap_contract() -> None:
     assert "Proof of canonical launch is post-launch and requires: `host-launch-receipt.json`, `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json` under the returned `session_root`." in content
     assert "report `blocked` with the concrete failure reason" in content
     assert "`vibe` is a host-syntax-neutral skill contract." in content
+    assert "public runtime entry" not in content
+    assert "second public runtime skill" not in content

@@ -11,19 +11,16 @@ if str(RUNTIME_SRC) not in sys.path:
     sys.path.insert(0, str(RUNTIME_SRC))
 
 from vgo_runtime.governance import choose_internal_grade
-from vgo_runtime.router import infer_task_type, load_allowed_vibe_entry_ids, route_runtime_task
+from vgo_runtime.router import infer_task_type, route_runtime_task
 import vgo_runtime.runtime_bridge as runtime_bridge
 
 
-def test_runtime_router_allowed_entry_ids_match_shared_surface_contract() -> None:
-    payload = json.loads((ROOT / "config" / "vibe-entry-surfaces.json").read_text(encoding="utf-8"))
-    expected = frozenset(
-        str(entry["id"]).strip()
-        for entry in payload["entries"]
-        if str(entry.get("id") or "").strip()
-    )
+def test_runtime_router_collapses_explicit_entry_hints_back_to_vibe() -> None:
+    route = route_runtime_task("plan this change", requested_skill="not-a-real-entry")
 
-    assert load_allowed_vibe_entry_ids() == expected
+    assert route.requested_skill == "vibe"
+    assert route.router_selected_skill == "vibe"
+    assert route.runtime_selected_skill == "vibe"
 
 
 def test_runtime_bridge_prefers_python_owner_before_powershell_bridge(
@@ -89,42 +86,25 @@ def test_runtime_bridge_uses_powershell_only_as_fallback_for_owner_failure(
     assert json.loads(capsys.readouterr().out) == {"driver": "powershell-fallback"}
 
 
-def test_runtime_router_rejects_entries_outside_shared_surface_contract() -> None:
-    try:
-        route_runtime_task("plan this change", requested_skill="vibe-xl")
-    except ValueError:
-        assert True
-    else:
-        raise AssertionError("expected unsupported entry id failure")
+def test_requested_canonical_entry_stays_vibe() -> None:
+    route = route_runtime_task("implement the approved plan", requested_skill="vibe")
 
-
-def test_requested_execution_entry_is_router_selection_but_runtime_stays_canonical() -> None:
-    route = route_runtime_task("implement the approved plan", requested_skill="vibe-do-it")
-
-    assert route.requested_skill == "vibe-do-it"
-    assert route.router_selected_skill == "vibe-do-it"
+    assert route.requested_skill == "vibe"
+    assert route.router_selected_skill == "vibe"
     assert route.runtime_selected_skill == "vibe"
 
 
-def test_requested_planning_entry_forces_planning_route() -> None:
-    route = route_runtime_task("implement the approved plan", requested_skill="vibe-how-do-we-do")
-
-    assert route.router_selected_skill == "vibe-how-do-we-do"
-    assert route.runtime_selected_skill == "vibe"
-    assert route.task_type == "planning"
-
-
-def test_planning_prompt_prefers_planning_entry() -> None:
+def test_planning_prompt_stays_on_canonical_vibe() -> None:
     route = route_runtime_task("design the architecture and write an implementation plan")
 
-    assert route.router_selected_skill == "vibe-how-do-we-do"
+    assert route.router_selected_skill == "vibe"
     assert route.runtime_selected_skill == "vibe"
 
 
-def test_upgrade_prompt_prefers_upgrade_entry() -> None:
+def test_upgrade_prompt_stays_on_cli_owned_canonical_vibe() -> None:
     route = route_runtime_task("upgrade the local vibe runtime installation")
 
-    assert route.router_selected_skill == "vibe-upgrade"
+    assert route.router_selected_skill == "vibe"
     assert route.runtime_selected_skill == "vibe"
 
 

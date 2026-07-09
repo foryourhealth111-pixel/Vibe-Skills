@@ -115,7 +115,7 @@ function Resolve-VibeLocalSkillAuthority {
             canonical_entrypoint = $null
         }
     }
-    if ($skillIdText -in @('vibe', 'vibe-upgrade')) {
+    if ($skillIdText -eq 'vibe') {
         return [pscustomobject]@{
             valid = $false
             reason = 'controller_entry_excluded'

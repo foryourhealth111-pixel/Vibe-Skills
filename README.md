@@ -411,7 +411,7 @@ After the runtime has a bounded work model, it still chooses how large the run s
 - The public discoverable work entry is `vibe`.
 - `vibe` is progressive: it stops after `requirement_doc`, then after `xl_plan`, and only reaches `phase_cleanup` after explicit bounded re-entry approval at each boundary.
 - Installed-copy upgrades stay on the command path: use `update` with the same `--skills-dir`.
-- Compatibility stage IDs such as `vibe-what-do-i-want`, `vibe-how-do-we-do`, and `vibe-do-it` are disabled as public host entries. They may remain in runtime metadata for continuity, but installers must not materialize them as host-visible command or skill wrappers.
+- Older stage aliases are not public entries and are not installed as host-visible command or skill wrappers.
 - The only lightweight public grade overrides are `--l` and `--xl`. Aliases like `vibe-l`, `vibe-xl`, or stage-plus-grade combinations are intentionally unsupported.
 - When Skills such as `tdd-guide` or `code-review` are selected, they work only inside the current phase or bounded unit. They do not take over global coordination.
 - In XL multi-agent work, worker lanes can surface candidate Skills, but the coordinator confirms the selected Skills.

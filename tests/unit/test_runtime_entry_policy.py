@@ -18,19 +18,14 @@ def test_runtime_entry_policy_uses_shared_discoverable_entry_surface() -> None:
     surface = load_runtime_entry_surface()
 
     assert surface.canonical_runtime_skill == "vibe"
-    assert surface.entry_by_id["vibe-how-do-we-do"].requested_stage_stop == "xl_plan"
+    assert set(surface.entry_by_id) == {"vibe"}
 
 
-def test_runtime_entry_policy_resolves_planning_entries_to_planning() -> None:
-    assert resolve_runtime_task_type("coding", requested_entry_id="vibe-what-do-i-want") == "planning"
-    assert resolve_runtime_task_type("debug", requested_entry_id="vibe-how-do-we-do") == "planning"
-
-
-def test_runtime_entry_policy_keeps_upgrade_entry_as_coding() -> None:
-    assert resolve_runtime_task_type("planning", requested_entry_id="vibe-upgrade") == "coding"
+def test_runtime_entry_policy_preserves_requested_task_type_for_canonical_vibe() -> None:
+    assert resolve_runtime_task_type("planning", requested_entry_id="vibe") == "planning"
+    assert resolve_runtime_task_type("coding", requested_entry_id="vibe") == "coding"
 
 
 def test_runtime_entry_policy_uses_shared_entry_surface_for_stage_stop() -> None:
-    assert suggest_stage_stop("vibe-what-do-i-want") == "requirement_doc"
-    assert suggest_stage_stop("vibe-how-do-we-do") == "xl_plan"
-    assert suggest_stage_stop("vibe-do-it") == "phase_cleanup"
+    assert suggest_stage_stop("vibe") == "phase_cleanup"
+    assert suggest_stage_stop("retired-entry-id") == "phase_cleanup"

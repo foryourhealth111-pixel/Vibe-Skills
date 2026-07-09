@@ -20,7 +20,7 @@ skill may proceed outside `vibe` unless the user explicitly invoked this entry.
 
 Installed-copy upgrades stay on the command path. Use the repo's `update`
 entry with `--skills-dir` for the same managed skills directory instead of
-introducing a second public runtime skill.
+starting a separate skill flow.
 
 User instructions remain highest priority. If CLAUDE.md, GEMINI.md, AGENTS.md,
 or the direct user request narrows or forbids a workflow such as TDD, follow the
@@ -32,7 +32,7 @@ user's instruction while preserving canonical launch and proof rules.
 
 Before canonical launch, do only the minimum needed to launch:
 
-- Resolve `skill_root`, `workspace_root`, and `host_id`.
+- Resolve `skill_root` and `workspace_root`.
 - Extract core intent as keyword text. Do not pass the raw prompt, full chat history, or mixed-language filler to the router.
 
 Do not search the current workspace, repository, or install root for canonical proof files before launch.
@@ -45,7 +45,7 @@ Local installed specialist recommender: semantic owner `packages/runtime-core/sr
 
 Specialist recommender input rules:
 
-This recommender runs inside canonical `vibe`; it may suggest specialist skills, but it does not decide whether `$vibe` is the public runtime entry.
+This recommender runs inside canonical `vibe`; it may suggest specialist skills, but it does not decide runtime proof or stage control.
 
 - Include work type, domain/technology, deliverable, and explicit constraints.
 - Reuse verified frozen requirement/plan facts when continuing a run.
@@ -59,8 +59,6 @@ $env:PYTHONPATH = "<skill_root>/apps/vgo-cli/src"
 py -3 -m vgo_cli.main canonical-entry `
   --repo-root "<skill_root>" `
   --artifact-root "<workspace_root>" `
-  --host-id "<host_id>" `
-  --entry-id "vibe" `
   --prompt "<extracted keyword intent text>"
 ```
 
@@ -75,10 +73,11 @@ WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"
 PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" python -m vgo_cli.main canonical-entry \
   --repo-root "$REPO_ROOT" \
   --artifact-root "$WORKSPACE_ROOT" \
-  --host-id "<host_id>" \
-  --entry-id "vibe" \
   --prompt "<extracted keyword intent text>"
 ```
+
+A normal launch does not need explicit `--host-id` or `--entry-id`.
+Those flags remain compatibility-only for wrappers or older automation that already carries them.
 
 Only validate canonical proof artifacts after canonical-entry returns a `session_root`.
 `check` on an installed copy proves only `installed locally`.
@@ -127,8 +126,6 @@ JSON
 PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main canonical-entry \
   --repo-root "$REPO_ROOT" \
   --artifact-root "$WORKSPACE_ROOT" \
-  --host-id "<host_id>" \
-  --entry-id "vibe" \
   --prompt "<stable continuation intent, not just the user's short reply>" \
   --continue-from-run-id "<source_run_id>" \
   --bounded-reentry-token "<reentry_token>" \
@@ -179,12 +176,9 @@ Installed-copy updates remain a command-path action:
 
 - `update --skills-dir <skills-dir>`
 
-Compatibility stage IDs are non-public metadata and must not be materialized as
-host-visible command or skill wrappers:
-
-- `vibe-what-do-i-want` -> `requirement_doc`
-- `vibe-how-do-we-do` -> `xl_plan`
-- `vibe-do-it` -> `phase_cleanup`
+Compatibility stage wrappers stay internal-only. If an old caller still sends
+one, collapse it to canonical `vibe` before runtime launch and keep it out of
+the host-visible skill surface.
 
 ## Skill Execution
 

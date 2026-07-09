@@ -26,19 +26,19 @@ def test_execute_runtime_packet_exposes_kernel_compatibility_data() -> None:
 
     result = execute_runtime_packet(packet)
 
-    assert result.route['router_selected_skill'] == 'vibe-how-do-we-do'
+    assert result.route['router_selected_skill'] == 'vibe'
     assert result.route['runtime_selected_skill'] == 'vibe'
     assert 'kernel' not in result.plan
     assert result.snapshot['task_card']['goal'] == packet.goal
-    assert result.snapshot['candidates'][0]['skill_id'] == 'vibe-how-do-we-do'
+    assert result.snapshot['candidates'] == []
     assert result.snapshot['work_plan']['task_id'] == result.snapshot['task_card']['id']
     assert result.snapshot['work_binding']['task_id'] == result.snapshot['task_card']['id']
     assert result.snapshot['effective_requested_stage_stop'] == 'xl_plan'
     assert result.snapshot['stage_stop_source'] == 'requested'
     assert result.snapshot['terminal_stage'] == 'xl_plan'
     assert result.snapshot['verification']['result'] == 'needs_execution'
-    assert result.snapshot['work_plan']['work_units'][0]['bound_skill'] == 'vibe-how-do-we-do'
-    assert result.snapshot['work_binding']['units'][0]['bound_skill'] == 'vibe-how-do-we-do'
+    assert result.snapshot['work_plan']['work_units'][0]['bound_skill'] is None
+    assert result.snapshot['work_binding']['units'][0]['bound_skill'] is None
     assert result.snapshot['work_results'][0]['artifact_paths']
     assert result.snapshot['work_results'][0]['execution_receipt_path'] is not None
     assert result.stage_receipts[0] == {'stage': 'requirement_doc', 'order': 1}
@@ -48,14 +48,14 @@ def test_execute_runtime_packet_keeps_requested_entry_but_reports_kernel_plan() 
     packet = RuntimePacket(
         goal='implement the approved plan',
         stage='xl_plan',
-        entry_intent_id='vibe-do-it',
+        entry_intent_id='vibe',
         requested_stage_stop='phase_cleanup',
     )
 
-    result = execute_runtime_packet(packet, requested_skill='vibe-do-it')
+    result = execute_runtime_packet(packet, requested_skill='vibe')
 
-    assert result.route['requested_skill'] == 'vibe-do-it'
-    assert result.route['router_selected_skill'] == 'vibe-do-it'
+    assert result.route['requested_skill'] == 'vibe'
+    assert result.route['router_selected_skill'] == 'vibe'
     assert result.snapshot['task_card']['mode'] == result.route['task_type']
     assert len(result.snapshot['work_plan']['work_units']) >= 1
     assert result.snapshot['work_results'][0]['status'] == 'needs_execution'
@@ -71,18 +71,20 @@ def test_execute_runtime_packet_uses_kernel_suggested_stage_stop_when_none_reque
 
     result = execute_runtime_packet(packet)
 
-    assert result.snapshot['work_plan']['work_units'][0]['preferred_skill'] == 'vibe-how-do-we-do'
-    assert result.snapshot['work_plan']['work_units'][0]['bound_skill'] == 'vibe-how-do-we-do'
+    assert result.snapshot['work_plan']['work_units'][0]['preferred_skill'] is None
+    assert result.snapshot['work_plan']['work_units'][0]['bound_skill'] is None
     assert 'kernel' not in result.plan
-    assert result.snapshot['effective_requested_stage_stop'] == 'xl_plan'
+    assert result.snapshot['effective_requested_stage_stop'] == 'phase_cleanup'
     assert result.snapshot['stage_stop_source'] == 'kernel_suggested'
-    assert result.snapshot['terminal_stage'] == 'xl_plan'
-    assert result.final_packet.stage == 'xl_plan'
+    assert result.snapshot['terminal_stage'] == 'phase_cleanup'
+    assert result.final_packet.stage == 'phase_cleanup'
     assert result.snapshot['executed_stages'] == (
         'skeleton_check',
         'deep_interview',
         'requirement_doc',
         'xl_plan',
+        'plan_execute',
+        'phase_cleanup',
     )
     assert result.stage_receipts[0] == {'stage': 'skeleton_check', 'order': 1}
     assert [receipt['stage'] for receipt in result.stage_receipts] == [
@@ -90,6 +92,8 @@ def test_execute_runtime_packet_uses_kernel_suggested_stage_stop_when_none_reque
         'deep_interview',
         'requirement_doc',
         'xl_plan',
+        'plan_execute',
+        'phase_cleanup',
     ]
 
 
@@ -97,13 +101,13 @@ def test_execute_runtime_packet_keeps_canonical_router_selection_when_only_entry
     packet = RuntimePacket(
         goal='plan the migration and freeze the requirement before execution',
         stage='skeleton_check',
-        entry_intent_id='vibe-how-do-we-do',
+        entry_intent_id='vibe',
         requested_stage_stop='xl_plan',
     )
 
     result = execute_runtime_packet(packet)
 
-    assert result.route['requested_skill'] == 'vibe-how-do-we-do'
+    assert result.route['requested_skill'] == 'vibe'
     assert result.route['router_selected_skill'] == 'vibe'
     assert result.route['runtime_selected_skill'] == 'vibe'
     assert result.snapshot['task_card']['mode'] == 'planning'
@@ -113,12 +117,12 @@ def test_execute_runtime_packet_builds_final_packet_from_terminal_stage_once() -
     packet = RuntimePacket(
         goal='implement the approved plan',
         stage='xl_plan',
-        entry_intent_id='vibe-do-it',
+        entry_intent_id='vibe',
         requested_stage_stop='phase_cleanup',
         requested_grade_floor='XL',
     )
 
-    result = execute_runtime_packet(packet, requested_skill='vibe-do-it')
+    result = execute_runtime_packet(packet, requested_skill='vibe')
 
     assert result.final_packet.stage == result.snapshot['terminal_stage']
     assert result.final_packet.entry_intent_id == packet.entry_intent_id

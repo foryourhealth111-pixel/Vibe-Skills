@@ -18,10 +18,9 @@ from vgo_runtime.stage_stop import (
 )
 
 
-def test_suggest_stage_stop_maps_planning_entries_to_expected_stage() -> None:
-    assert suggest_stage_stop("vibe-what-do-i-want") == "requirement_doc"
-    assert suggest_stage_stop("vibe-how-do-we-do") == "xl_plan"
-    assert suggest_stage_stop("vibe-do-it") == "phase_cleanup"
+def test_suggest_stage_stop_defaults_to_canonical_phase_cleanup() -> None:
+    assert suggest_stage_stop("vibe") == "phase_cleanup"
+    assert suggest_stage_stop("non-public-entry") == "phase_cleanup"
 
 
 def test_resolve_stage_stop_prefers_explicit_request() -> None:

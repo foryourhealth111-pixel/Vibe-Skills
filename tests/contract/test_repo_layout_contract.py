@@ -13,7 +13,7 @@ RETIRED_ARCHITECTURE_ROOTS = [
     "platform",
     "tools",
 ]
-REQUIRED_CODEX_VIBE_WRAPPER_SKILLS = [
+REMOVED_CODEX_VIBE_WRAPPER_SKILLS = [
     "bundled/skills/vibe-what-do-i-want/SKILL.md",
     "bundled/skills/vibe-how-do-we-do/SKILL.md",
     "bundled/skills/vibe-do-it/SKILL.md",
@@ -31,6 +31,6 @@ def test_retired_top_level_roots_do_not_reappear() -> None:
         assert not (ROOT / rel).exists(), rel
 
 
-def test_codex_vibe_wrapper_skill_sources_exist() -> None:
-    for rel in REQUIRED_CODEX_VIBE_WRAPPER_SKILLS:
-        assert (ROOT / rel).exists(), rel
+def test_retired_codex_vibe_wrapper_skill_sources_stay_removed() -> None:
+    for rel in REMOVED_CODEX_VIBE_WRAPPER_SKILLS:
+        assert not (ROOT / rel).exists(), rel

@@ -80,6 +80,32 @@ class BinarySkillUsageContractTests(unittest.TestCase):
             self.assertEqual(str(skill_path.resolve()), payload["canonical_entrypoint"])
             self.assertEqual(str((target_root / "skills").resolve()), payload["source_root"])
 
+    def test_local_authority_allows_retired_wrapper_name_when_it_is_a_real_local_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            target_root = root / "home" / ".agents"
+            skill_dir = target_root / "skills" / "vibe-upgrade"
+            skill_dir.mkdir(parents=True)
+            skill_path = skill_dir / "SKILL.md"
+            skill_path.write_text(
+                "---\nname: vibe-upgrade\ndescription: Reused local helper.\n---\n# Reused local helper\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+
+            payload = run_ps_json(
+                "& { "
+                f". {ps_quote(str(RUNTIME_COMMON))}; "
+                f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+                f"$authority = Resolve-VibeLocalSkillAuthority -RepoRoot {ps_quote(str(REPO_ROOT))} -SkillId 'vibe-upgrade' -NativeSkillEntrypoint {ps_quote(str(skill_path))} -TargetRoot {ps_quote(str(target_root))} -HostId 'codex' -RequireProvidedEntrypoint; "
+                "$authority | ConvertTo-Json -Depth 20 "
+                "}"
+            )
+
+            self.assertTrue(payload["valid"])
+            self.assertEqual("ok", payload["reason"])
+            self.assertEqual(str(skill_path.resolve()), payload["canonical_entrypoint"])
+
     def test_loaded_skill_record_keeps_real_descriptor_proof(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)

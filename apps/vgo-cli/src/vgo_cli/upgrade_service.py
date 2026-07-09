@@ -44,7 +44,7 @@ def prepare_managed_upgrade_repo_root(repo_root: Path, target_root: Path) -> Pat
     elif checkout_root.exists() and any(checkout_root.iterdir()):
         raise CliError(
             'Managed upgrade source path exists but is not a git checkout: '
-            f'{checkout_root}. Remove or rename it before running vibe-upgrade.'
+            f'{checkout_root}. Remove or rename it before running the shared upgrade flow.'
         )
     else:
         clone_result = run_subprocess(

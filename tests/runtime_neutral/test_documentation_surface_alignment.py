@@ -27,6 +27,9 @@ def test_readmes_describe_only_public_vibe_entry_surface() -> None:
     for path in ("README.md", "README.zh.md", "docs/quick-start.en.md", "docs/quick-start.md"):
         content = _read(path)
         assert "vibe-upgrade" not in content
+        assert "vibe-what-do-i-want" not in content
+        assert "vibe-how-do-we-do" not in content
+        assert "vibe-do-it" not in content
         assert "host-rendered" not in content
         assert "宿主渲染标签" not in content
         for legacy_alias in ("vibe-want", "vibe-how", "vibe-do"):

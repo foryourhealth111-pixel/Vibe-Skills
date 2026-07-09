@@ -86,8 +86,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     canonical_entry_parser = subparsers.add_parser('canonical-entry')
     canonical_entry_parser.add_argument('--repo-root', required=True)
-    canonical_entry_parser.add_argument('--host-id', default='codex')
-    canonical_entry_parser.add_argument('--entry-id', default='vibe')
+    canonical_entry_parser.add_argument('--host-id', default=None, help=argparse.SUPPRESS)
+    canonical_entry_parser.add_argument('--entry-id', default=None, help=argparse.SUPPRESS)
     canonical_entry_parser.add_argument('--prompt', required=True)
     canonical_entry_parser.add_argument('--requested-stage-stop')
     canonical_entry_parser.add_argument('--requested-grade-floor', choices=('L', 'XL'))

@@ -16,9 +16,8 @@ def _resolve_workspace_repo_root() -> Path:
         current = current.parent
 
     while True:
-        installer_core_src = current / 'packages' / 'installer-core' / 'src'
         registry_exists = (current / 'adapters' / 'index.json').exists() or (current / 'config' / 'adapter-registry.json').exists()
-        if installer_core_src.is_dir() and registry_exists:
+        if registry_exists:
             return current
         if current.parent == current:
             break
@@ -28,43 +27,51 @@ def _resolve_workspace_repo_root() -> Path:
 
 
 @lru_cache(maxsize=1)
-def _installer_registry_module() -> tuple[Path, ModuleType]:
+def _contract_modules() -> tuple[Path, ModuleType, ModuleType]:
     repo_root = _resolve_workspace_repo_root()
     extend_workspace_package_path(repo_root)
-    from vgo_installer import adapter_registry as module
+    from vgo_contracts import adapter_registry_support as registry_module
+    from vgo_contracts import target_root_contract as target_root_module
 
-    return repo_root, module
+    return repo_root, registry_module, target_root_module
 
 
-def _raise_host_error(host_id: str | None, exc: SystemExit) -> None:
-    message = str(exc).strip()
-    if message.startswith('Unsupported VGO host id:'):
-        raise CliError(f'Unsupported host id: {host_id}') from None
-    raise CliError(message) from None
+def _load_registry() -> tuple[Path, dict[str, object], ModuleType, ModuleType]:
+    repo_root, registry_module, target_root_module = _contract_modules()
+    registry = dict(registry_module.load_adapter_registry(repo_root))
+    return repo_root, registry, registry_module, target_root_module
+
+
+def _default_host_id(registry: dict[str, object]) -> str:
+    return str(registry.get('default_adapter_id') or 'codex').strip().lower() or 'codex'
 
 
 def _resolve_host_entry(host_id: str | None) -> tuple[str, dict[str, object]]:
-    repo_root, module = _installer_registry_module()
+    _repo_root, registry, registry_module, _target_root_module = _load_registry()
     requested_host = str(host_id or os.environ.get('VCO_HOST_ID') or '').strip()
-    try:
-        entry = dict(module.resolve_adapter(repo_root, requested_host))
-    except SystemExit as exc:
-        _raise_host_error(host_id, exc)
-
-    normalized = str(entry.get('id') or '').strip().lower()
+    normalized = str(registry_module.normalize_adapter_host_id(requested_host, registry)).strip().lower()
     if not normalized:
-        raise CliError(f'Unsupported host id: {host_id}')
+        normalized = _default_host_id(registry)
+    try:
+        entry = dict(registry_module.resolve_adapter_entry(registry, normalized))
+    except ValueError:
+        normalized = _default_host_id(registry)
+        try:
+            entry = dict(registry_module.resolve_adapter_entry(registry, normalized))
+        except ValueError as exc:
+            raise CliError(f'Unable to resolve host registry entry for: {host_id}') from exc
     return normalized, entry
 
 
 def _target_root_spec(host_id: str | None) -> tuple[str, dict[str, str]]:
-    repo_root, module = _installer_registry_module()
-    requested_host = str(host_id or os.environ.get('VCO_HOST_ID') or '').strip()
-    try:
-        normalized, spec = module.resolve_target_root_spec(repo_root, requested_host)
-    except SystemExit as exc:
-        _raise_host_error(host_id, exc)
-    return str(normalized), dict(spec)
+    normalized, entry = _resolve_host_entry(host_id)
+    target = dict(entry.get('default_target_root') or {})
+    return normalized, {
+        'env': str(target.get('env') or '').strip(),
+        'rel': str(target.get('rel') or '').strip(),
+        'kind': str(target.get('kind') or '').strip(),
+        'install_mode': str(entry.get('install_mode') or '').strip(),
+    }
 
 
 def normalize_host_id(host_id: str | None) -> str:
@@ -73,18 +80,16 @@ def normalize_host_id(host_id: str | None) -> str:
 
 
 def resolve_default_target_root(host_id: str) -> Path:
-    repo_root, module = _installer_registry_module()
-    requested_host = str(host_id or os.environ.get('VCO_HOST_ID') or '').strip()
-    try:
-        target_root_text = module.resolve_default_target_root_text(
-            repo_root,
-            requested_host,
-            env=dict(os.environ),
-            home=str(Path.home()),
-        )
-        return Path(str(target_root_text)).expanduser()
-    except SystemExit as exc:
-        _raise_host_error(host_id, exc)
+    normalized, spec = _target_root_spec(host_id)
+    _repo_root, _registry, _registry_module, target_root_module = _load_registry()
+    target_root_text = target_root_module.resolve_target_root_text(
+        default_target_root=spec['rel'],
+        default_target_root_env=spec['env'],
+        env=dict(os.environ),
+        home=str(Path.home()),
+        descriptor_id=normalized,
+    )
+    return Path(str(target_root_text)).expanduser().resolve()
 
 
 def resolve_target_root(host_id: str, target_root: str | None) -> Path:
@@ -96,29 +101,3 @@ def resolve_target_root(host_id: str, target_root: str | None) -> Path:
 def install_mode_for_host(host_id: str) -> str:
     _, spec = _target_root_spec(host_id)
     return spec['install_mode']
-
-
-def assert_target_root_matches_host_intent(target_root: Path, host_id: str) -> None:
-    normalized_host = normalize_host_id(host_id)
-    repo_root, module = _installer_registry_module()
-    try:
-        matching_hosts = list(module.resolve_matching_target_root_hosts(repo_root, str(target_root)))
-    except SystemExit as exc:
-        _raise_host_error(host_id, exc)
-    if not matching_hosts or normalized_host in matching_hosts:
-        return
-
-    foreign_host = matching_hosts[0]
-    if normalized_host == 'codex' and foreign_host == 'cursor':
-        raise CliError(
-            f"Target root '{target_root}' looks like a Cursor home, but host='codex'.\n"
-            "Pass --host cursor for preview guidance or use a Codex target root."
-        )
-    if normalized_host == 'codex' and foreign_host == 'opencode':
-        raise CliError(
-            f"Target root '{target_root}' looks like an OpenCode root, but host='codex'.\n"
-            "Pass --host opencode for the OpenCode preview lane or use a Codex target root."
-        )
-    raise CliError(
-        f"Target root '{target_root}' looks like the default target root for host='{foreign_host}', but host='{normalized_host}'."
-    )

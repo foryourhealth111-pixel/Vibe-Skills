@@ -488,19 +488,20 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertFalse(summary["artifacts"]["execute_receipt"])
             self.assertFalse(summary["artifacts"]["cleanup_receipt"])
 
-    def test_vibe_what_do_i_want_shortcut_stops_after_requirement_freeze(self) -> None:
+    def test_explicit_requirement_doc_stop_stops_after_requirement_freeze(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
                 task="Clarify the project goal before any implementation starts.",
                 artifact_root=Path(tempdir),
                 governance_scope="root",
-                entry_intent_id="vibe-what-do-i-want",
+                entry_intent_id="vibe",
+                requested_stage_stop="requirement_doc",
             )
             summary = payload["summary"]
             runtime_input = load_json(summary["artifacts"]["runtime_input_packet"])
             stage_lineage = load_json(summary["artifacts"]["stage_lineage"])
 
-            self.assertEqual("vibe-what-do-i-want", runtime_input["entry_intent_id"])
+            self.assertEqual("vibe", runtime_input["entry_intent_id"])
             self.assertNotIn("requested_skill", runtime_input["canonical_router"])
             self.assertEqual("requirement_doc", runtime_input["requested_stage_stop"])
             self.assertIsNone(runtime_input["requested_grade_floor"])
@@ -517,7 +518,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertEqual(payload["run_id"], summary["bounded_return_control"]["source_run_id"])
             self.assertTrue(bool(summary["bounded_return_control"]["explicit_user_reentry_required"]))
             self.assertEqual(
-                ["vibe", "vibe-how-do-we-do", "vibe-do-it"],
+                ["vibe"],
                 list(summary["bounded_return_control"]["allowed_followup_entry_ids"]),
             )
             self.assertTrue(summary["artifacts"]["host_user_briefing"])
@@ -528,13 +529,14 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertFalse(summary["artifacts"]["execute_receipt"])
             self.assertFalse(summary["artifacts"]["cleanup_receipt"])
 
-    def test_vibe_how_do_we_do_shortcut_freezes_requirement_and_plan_then_stops_before_execute(self) -> None:
+    def test_explicit_xl_plan_stop_freezes_requirement_and_plan_then_stops_before_execute(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
                 task="Plan the migration and freeze the requirement before execution.",
                 artifact_root=Path(tempdir),
                 governance_scope="root",
-                entry_intent_id="vibe-how-do-we-do",
+                entry_intent_id="vibe",
+                requested_stage_stop="xl_plan",
                 requested_grade_floor="XL",
             )
             summary = payload["summary"]
@@ -544,7 +546,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             execution_plan = Path(summary["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
             plan_receipt = load_json(summary["artifacts"]["execution_plan_receipt"])
 
-            self.assertEqual("vibe-how-do-we-do", runtime_input["entry_intent_id"])
+            self.assertEqual("vibe", runtime_input["entry_intent_id"])
             self.assertNotIn("requested_skill", runtime_input["canonical_router"])
             self.assertEqual("xl_plan", runtime_input["requested_stage_stop"])
             self.assertEqual("XL", runtime_input["requested_grade_floor"])
@@ -565,7 +567,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 summary["bounded_return_control"]["host_decision_contract"]["allowed_decision_actions"],
             )
             self.assertEqual(
-                ["vibe", "vibe-do-it"],
+                ["vibe"],
                 list(summary["bounded_return_control"]["allowed_followup_entry_ids"]),
             )
             self.assertTrue(summary["artifacts"]["host_user_briefing"])
@@ -585,7 +587,8 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 task="Implement the migration with explicit code changes, tests, and verification.",
                 artifact_root=Path(tempdir),
                 governance_scope="root",
-                entry_intent_id="vibe-do-it",
+                entry_intent_id="vibe",
+                requested_stage_stop="phase_cleanup",
                 requested_grade_floor="XL",
             )
             summary = payload["summary"]
@@ -593,7 +596,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             plan_receipt = load_json(summary["artifacts"]["execution_plan_receipt"])
             execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
 
-            self.assertEqual("vibe-do-it", runtime_input["entry_intent_id"])
+            self.assertEqual("vibe", runtime_input["entry_intent_id"])
             self.assertNotIn("requested_skill", runtime_input["canonical_router"])
             self.assertEqual("phase_cleanup", runtime_input["requested_stage_stop"])
             self.assertEqual("XL", runtime_input["requested_grade_floor"])
@@ -601,13 +604,14 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertEqual("XL", plan_receipt["internal_grade"])
             self.assertEqual("XL", execution_manifest["internal_grade"])
 
-    def test_vibe_what_do_i_want_stops_at_requirement_doc_without_wrapper_confirm(self) -> None:
+    def test_explicit_requirement_doc_stop_stays_before_execute_without_wrapper_confirm(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
                 task="Design architecture migration with staged review and planning gates.",
                 artifact_root=Path(tempdir),
                 governance_scope="root",
-                entry_intent_id="vibe-what-do-i-want",
+                entry_intent_id="vibe",
+                requested_stage_stop="requirement_doc",
             )
             summary = payload["summary"]
             runtime_input = load_json(summary["artifacts"]["runtime_input_packet"])
@@ -671,7 +675,8 @@ class NativeExecutionTopologyTests(unittest.TestCase):
                 task="Plan a small bounded migration.",
                 artifact_root=artifact_root,
                 governance_scope="root",
-                entry_intent_id="vibe-how-do-we-do",
+                entry_intent_id="vibe",
+                requested_stage_stop="xl_plan",
                 requested_grade_floor="XL",
             )
             initial_summary = initial_payload["summary"]
@@ -690,7 +695,7 @@ class NativeExecutionTopologyTests(unittest.TestCase):
 
             self.assertEqual(str(runtime_input_packet_path), plan_receipt["runtime_input_packet_path"])
             self.assertEqual("XL", plan_receipt["internal_grade"])
-            self.assertIn("Entry intent: vibe-how-do-we-do", execution_plan)
+            self.assertIn("Entry intent: vibe", execution_plan)
             self.assertIn("Requested stop stage: xl_plan", execution_plan)
             self.assertIn("Requested grade floor: XL", execution_plan)
 
