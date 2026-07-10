@@ -11,4 +11,5 @@ Canonical rules:
 - `M`, `L`, and `XL` are internal execution grades, not user-facing entry branches
 - provider-assisted intelligence may advise but must not replace `vibe` runtime authority
 - explicit user tool choice overrides routing
+- at `requirement_doc`, the host must reuse the runtime workflow-level confirmation from `host_user_briefing` in the same field order, not just the recommended level; spell out L/XL workflow plus skills and say when no concrete task skill has matched yet
 - XL execution may use multi-agent orchestration, but must preserve requirement freeze, review, cleanup, and no-regression discipline

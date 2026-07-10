@@ -93,6 +93,43 @@ def test_build_runtime_truth_packet_omits_selected_and_keeps_routing_projection_
     assert "selected" not in payload["skill_routing"]
 
 
+def test_build_runtime_truth_packet_preserves_skill_selection_truth() -> None:
+    payload = build_runtime_truth_packet(
+        run_id="run-123",
+        task="review code",
+        work_binding={"units": []},
+        specialist_decision={"approved_skill_ids": []},
+        base_fields={
+            "skill_selection": {
+                "schema_version": "skill_selection_v1",
+                "workflow_level": "L",
+                "selection_limit": 3,
+                "primary_skill_id": "research",
+                "candidate_skill_ids": ["research", "humanizer", "paper-writer"],
+                "selected_skill_ids": ["research", "humanizer", "paper-writer"],
+                "rejected_candidate_skill_ids": [],
+            }
+        },
+        skill_routing={
+            "schema_version": "simplified_skill_routing_v1",
+            "candidates": [{"skill_id": "research"}],
+            "selected": [{"skill_id": "wrong-skill"}],
+            "rejected": [],
+        },
+    )
+
+    assert payload["skill_selection"] == {
+        "schema_version": "skill_selection_v1",
+        "workflow_level": "L",
+        "selection_limit": 3,
+        "primary_skill_id": "research",
+        "candidate_skill_ids": ["research", "humanizer", "paper-writer"],
+        "selected_skill_ids": ["research", "humanizer", "paper-writer"],
+        "rejected_candidate_skill_ids": [],
+    }
+    assert "selected" not in payload["skill_routing"]
+
+
 def test_build_runtime_truth_packet_derives_skill_usage_from_work_results_not_selected_mirrors(tmp_path: Path) -> None:
     artifact_path = tmp_path / "01-review-notes.md"
     artifact_path.write_text("review evidence\n", encoding="utf-8")

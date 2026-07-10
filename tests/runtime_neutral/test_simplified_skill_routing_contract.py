@@ -121,6 +121,146 @@ class SimplifiedSkillRoutingContractTests(unittest.TestCase):
         self.assertEqual("in_execution", selected["dispatch_phase"])
         self.assertEqual("model training", selected["reason"])
 
+    def test_skill_selection_can_choose_multiple_l_skills_from_broad_route_candidates(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {ps_quote(str(RUNTIME_COMMON))}; "
+            f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+            f". {ps_quote(str(SKILL_ROUTING_COMMON))}; "
+            "$route = [pscustomobject]@{ "
+            "grade = 'L'; "
+            "thresholds = [pscustomobject]@{ confirm_required = 0.45 }; "
+            "candidates = @( "
+            "[pscustomobject]@{ skill = 'research'; score = 1.0; matched_tokens = @('research'); matched_capabilities = @(); description = 'Investigate research questions against primary sources.'; native_skill_entrypoint = 'skills/research/SKILL.md'; skill_root = 'skills/research'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'humanizer'; score = 0.75; matched_tokens = @('editing', 'human', 'natural', 'writing'); matched_capabilities = @(); description = 'Edit writing to sound more natural and human-written.'; native_skill_entrypoint = 'skills/humanizer/SKILL.md'; skill_root = 'skills/humanizer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'paper-writer'; score = 0.5308; matched_tokens = @('literature', 'research', 'search', 'writing'); matched_capabilities = @('research.literature_search'); description = 'Scientific paper writing workflow.'; native_skill_entrypoint = 'skills/paper-writer/SKILL.md'; skill_root = 'skills/paper-writer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'pytorch-fsdp2'; score = 0.4808; matched_tokens = @('literature', 'research', 'search'); matched_capabilities = @('research.literature_search'); description = 'Specialized niche workflow. Use only when the user explicitly asks for it.'; native_skill_entrypoint = 'skills/pytorch-fsdp2/SKILL.md'; skill_root = 'skills/pytorch-fsdp2'; source_root = 'skills'; source_kind = 'host_installed' } "
+            ") "
+            "}; "
+            "$selection = New-VibeSkillSelectionFromRouteResult -RouteResult $route -RuntimeSelectedSkill 'vibe'; "
+            "$selection | ConvertTo-Json -Depth 20 "
+            "}"
+        )
+
+        self.assertEqual("skill_selection_v1", payload["schema_version"])
+        self.assertEqual("L", payload["workflow_level"])
+        self.assertEqual(3, payload["selection_limit"])
+        self.assertEqual(["research", "humanizer", "paper-writer"], as_list(payload["selected_skill_ids"]))
+        self.assertEqual("research", payload["primary_skill_id"])
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer", "pytorch-fsdp2"],
+            as_list(payload["candidate_skill_ids"]),
+        )
+        self.assertEqual(["pytorch-fsdp2"], as_list(payload["rejected_candidate_skill_ids"]))
+
+    def test_skill_selection_caps_xl_at_five_skills_while_preserving_route_candidate_list(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {ps_quote(str(RUNTIME_COMMON))}; "
+            f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+            f". {ps_quote(str(SKILL_ROUTING_COMMON))}; "
+            "$route = [pscustomobject]@{ "
+            "grade = 'XL'; "
+            "thresholds = [pscustomobject]@{ confirm_required = 0.45 }; "
+            "candidates = @( "
+            "[pscustomobject]@{ skill = 'research'; score = 1.0; matched_tokens = @('research'); matched_capabilities = @('research.literature_review'); description = 'Research synthesis workflow.'; native_skill_entrypoint = 'skills/research/SKILL.md'; skill_root = 'skills/research'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'humanizer'; score = 0.82; matched_tokens = @('natural', 'human', 'editing'); matched_capabilities = @('writing.reader_report'); description = 'Humanize reader-facing writing.'; native_skill_entrypoint = 'skills/humanizer/SKILL.md'; skill_root = 'skills/humanizer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'paper-writer'; score = 0.79; matched_tokens = @('literature', 'search'); matched_capabilities = @('research.literature_search'); description = 'Paper writing workflow.'; native_skill_entrypoint = 'skills/paper-writer/SKILL.md'; skill_root = 'skills/paper-writer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'statistical-analysis'; score = 0.76; matched_tokens = @('regression', 'correlation'); matched_capabilities = @('statistics.regression'); description = 'Statistical analysis workflow.'; native_skill_entrypoint = 'skills/statistical-analysis/SKILL.md'; skill_root = 'skills/statistical-analysis'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'matplotlib'; score = 0.72; matched_tokens = @('figure', 'plot'); matched_capabilities = @('visualization.figure'); description = 'Figure generation workflow.'; native_skill_entrypoint = 'skills/matplotlib/SKILL.md'; skill_root = 'skills/matplotlib'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'pptx-collab-integrated'; score = 0.68; matched_tokens = @('ppt', 'slides'); matched_capabilities = @('presentation.deck'); description = 'Openable PPT delivery workflow.'; native_skill_entrypoint = 'skills/pptx/SKILL.md'; skill_root = 'skills/pptx'; source_root = 'skills'; source_kind = 'host_installed' } "
+            ") "
+            "}; "
+            "$selection = New-VibeSkillSelectionFromRouteResult -RouteResult $route -RuntimeSelectedSkill 'vibe'; "
+            "$selection | ConvertTo-Json -Depth 20 "
+            "}"
+        )
+
+        self.assertEqual("XL", payload["workflow_level"])
+        self.assertEqual(5, payload["selection_limit"])
+        self.assertEqual(6, len(as_list(payload["candidate_skill_ids"])))
+        self.assertEqual(5, len(as_list(payload["selected_skill_ids"])))
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer", "statistical-analysis", "matplotlib"],
+            as_list(payload["selected_skill_ids"]),
+        )
+        self.assertEqual(["pptx-collab-integrated"], as_list(payload["rejected_candidate_skill_ids"]))
+
+    def test_workflow_level_schemes_choose_curated_l_and_xl_skill_sets_from_same_shortlist(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {ps_quote(str(RUNTIME_COMMON))}; "
+            f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+            f". {ps_quote(str(SKILL_ROUTING_COMMON))}; "
+            "$route = [pscustomobject]@{ "
+            "grade = 'XL'; "
+            "thresholds = [pscustomobject]@{ confirm_required = 0.45 }; "
+            "candidates = @( "
+            "[pscustomobject]@{ skill = 'research'; score = 1.0; matched_tokens = @('research'); matched_capabilities = @('research.literature_review'); description = 'Research synthesis workflow.'; native_skill_entrypoint = 'skills/research/SKILL.md'; skill_root = 'skills/research'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'humanizer'; score = 0.82; matched_tokens = @('natural', 'human', 'editing'); matched_capabilities = @('writing.reader_report'); description = 'Humanize reader-facing writing.'; native_skill_entrypoint = 'skills/humanizer/SKILL.md'; skill_root = 'skills/humanizer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'paper-writer'; score = 0.79; matched_tokens = @('literature', 'search'); matched_capabilities = @('research.literature_search'); description = 'Paper writing workflow.'; native_skill_entrypoint = 'skills/paper-writer/SKILL.md'; skill_root = 'skills/paper-writer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'statistical-analysis'; score = 0.76; matched_tokens = @('regression', 'correlation'); matched_capabilities = @('statistics.regression'); description = 'Statistical analysis workflow.'; native_skill_entrypoint = 'skills/statistical-analysis/SKILL.md'; skill_root = 'skills/statistical-analysis'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'matplotlib'; score = 0.72; matched_tokens = @('figure', 'plot'); matched_capabilities = @('visualization.figure'); description = 'Figure generation workflow.'; native_skill_entrypoint = 'skills/matplotlib/SKILL.md'; skill_root = 'skills/matplotlib'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'pptx-collab-integrated'; score = 0.68; matched_tokens = @('ppt', 'slides'); matched_capabilities = @('presentation.deck'); description = 'Openable PPT delivery workflow.'; native_skill_entrypoint = 'skills/pptx/SKILL.md'; skill_root = 'skills/pptx'; source_root = 'skills'; source_kind = 'host_installed' } "
+            ") "
+            "}; "
+            "$schemes = New-VibeWorkflowLevelSkillSelectionSchemes -RouteResult $route -RuntimeSelectedSkill 'vibe'; "
+            "$schemes | ConvertTo-Json -Depth 20 "
+            "}"
+        )
+
+        self.assertEqual(
+            [
+                "research",
+                "humanizer",
+                "paper-writer",
+                "statistical-analysis",
+                "matplotlib",
+                "pptx-collab-integrated",
+            ],
+            as_list(payload["shortlist_skill_ids"]),
+        )
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer"],
+            as_list(payload["levels"]["L"]["selected_skill_ids"]),
+        )
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer", "statistical-analysis", "matplotlib"],
+            as_list(payload["levels"]["XL"]["selected_skill_ids"]),
+        )
+
+    def test_workflow_level_schemes_keep_weak_route_fillers_out_of_selected_sets(self) -> None:
+        payload = run_ps_json(
+            "& { "
+            f". {ps_quote(str(RUNTIME_COMMON))}; "
+            f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+            f". {ps_quote(str(SKILL_ROUTING_COMMON))}; "
+            "$route = [pscustomobject]@{ "
+            "grade = 'XL'; "
+            "thresholds = [pscustomobject]@{ confirm_required = 0.45 }; "
+            "candidates = @( "
+            "[pscustomobject]@{ skill = 'research'; score = 1.0; matched_tokens = @('research'); matched_capabilities = @(); description = 'Investigate research questions against primary sources.'; native_skill_entrypoint = 'skills/research/SKILL.md'; skill_root = 'skills/research'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'humanizer'; score = 0.75; matched_tokens = @('editing', 'human', 'natural', 'writing'); matched_capabilities = @(); description = 'Edit writing to sound more natural and human-written.'; native_skill_entrypoint = 'skills/humanizer/SKILL.md'; skill_root = 'skills/humanizer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'paper-writer'; score = 0.5308; matched_tokens = @('literature', 'research', 'search', 'writing'); matched_capabilities = @('research.literature_search'); description = 'Scientific paper writing workflow.'; native_skill_entrypoint = 'skills/paper-writer/SKILL.md'; skill_root = 'skills/paper-writer'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'pytorch-fsdp2'; score = 0.4808; matched_tokens = @('literature', 'research', 'search'); matched_capabilities = @('research.literature_search'); description = 'Specialized niche workflow. Use only when the user explicitly asks for it.'; native_skill_entrypoint = 'skills/pytorch-fsdp2/SKILL.md'; skill_root = 'skills/pytorch-fsdp2'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'code-review'; score = 0.375; matched_tokens = @('report', 'review'); matched_capabilities = @(); description = 'Review code changes against standards and spec.'; native_skill_entrypoint = 'skills/code-review/SKILL.md'; skill_root = 'skills/code-review'; source_root = 'skills'; source_kind = 'host_installed' }, "
+            "[pscustomobject]@{ skill = 'writing-great-skills'; score = 0.375; matched_tokens = @('editing', 'writing'); matched_capabilities = @(); description = 'Reference for writing and editing skills well.'; native_skill_entrypoint = 'skills/writing-great-skills/SKILL.md'; skill_root = 'skills/writing-great-skills'; source_root = 'skills'; source_kind = 'host_installed' } "
+            ") "
+            "}; "
+            "$schemes = New-VibeWorkflowLevelSkillSelectionSchemes -RouteResult $route -RuntimeSelectedSkill 'vibe'; "
+            "$schemes | ConvertTo-Json -Depth 20 "
+            "}"
+        )
+
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer"],
+            as_list(payload["levels"]["L"]["selected_skill_ids"]),
+        )
+        self.assertEqual(
+            ["research", "humanizer", "paper-writer"],
+            as_list(payload["levels"]["XL"]["selected_skill_ids"]),
+        )
+
     def test_selected_skill_ids_prefer_skill_routing_over_legacy_dispatch(self) -> None:
         payload = run_ps_json(
             "& { "

@@ -123,7 +123,12 @@ $skillUsage = if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properti
 } else {
     Read-VibeSkillUsageArtifact -SessionRoot $sessionRoot -Fallback $null
 }
-$selectedUsageSkill = Get-VibePrimaryBoundSkillId -RuntimeInputPacket $runtimeInputPacket
+$selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket)
+$selectedTaskSkillText = if (@($selectedTaskSkillIds).Count -gt 0) {
+    @($selectedTaskSkillIds | ForEach-Object { ('`{0}`' -f [string]$_) }) -join ', '
+} else {
+    'none'
+}
 $routeRuntimeAlignment = New-VibeRouteRuntimeAlignmentProjection -RuntimeInputPacket $runtimeInputPacket
 $requestedGradeFloor = if (
     $runtimeInputPacket -and
@@ -272,9 +277,9 @@ if ($runtimeInputPacket) {
         "- Entry intent: $entryIntentId",
         "- Requested stop stage: $requestedStageStop",
         "- Requested grade floor: $requestedGradeFloorDisplay",
-        "- Bounded work skill: $selectedUsageSkill",
+        "- Selected task skills: $selectedTaskSkillText",
         "- Frozen route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
-        "- Bounded work differs from runtime authority: $([bool]$routeRuntimeAlignment.skill_mismatch)"
+        "- Selected task skills differ from runtime authority: $([bool]$routeRuntimeAlignment.skill_mismatch)"
     )
     $hostReentryAction = if (
         $runtimeInputPacket.PSObject.Properties.Name -contains 'continuation_context' -and
@@ -512,17 +517,19 @@ if ($planMemoryContext -and ((@($planMemoryContext.items).Count -gt 0) -or (@($s
         $lines += @($planMemoryContext.items | ForEach-Object { "- $_" })
     }
 }
-if ($skillUsage -and -not [string]::IsNullOrWhiteSpace($selectedUsageSkill)) {
-    $skillUsage = Update-VibeSkillUsageArtifactImpact `
-        -SkillUsage $skillUsage `
-        -SkillId $selectedUsageSkill `
-        -Stage 'xl_plan' `
-        -ArtifactRef ([System.IO.Path]::GetFileName($planPath)) `
-        -ImpactSummary ('Execution plan carries the loaded {0} SKILL.md workflow authority into the planned verification and completion path.' -f $selectedUsageSkill)
+if ($skillUsage -and @($selectedTaskSkillIds).Count -gt 0) {
+    foreach ($selectedTaskSkillId in @($selectedTaskSkillIds)) {
+        $skillUsage = Update-VibeSkillUsageArtifactImpact `
+            -SkillUsage $skillUsage `
+            -SkillId ([string]$selectedTaskSkillId) `
+            -Stage 'xl_plan' `
+            -ArtifactRef ([System.IO.Path]::GetFileName($planPath)) `
+            -ImpactSummary ('Execution plan carries the loaded {0} SKILL.md workflow authority into the planned verification and completion path.' -f [string]$selectedTaskSkillId)
+    }
     $lines += @(
         '',
         '## Binary Skill Usage Plan',
-        ('- Used skill candidate: `{0}`.' -f $selectedUsageSkill),
+        ('- Used skill candidates: {0}.' -f $selectedTaskSkillText),
         '- Execution must preserve the loaded skill workflow and report final use only from `skill_usage.used` / `skill_usage.unused`.',
         '- Legacy routing fields remain audit data, not usage proof.'
     )

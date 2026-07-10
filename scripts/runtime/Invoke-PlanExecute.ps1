@@ -1152,14 +1152,16 @@ $skillUsage = if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properti
 } else {
     Read-VibeSkillUsageArtifact -SessionRoot $sessionRoot -Fallback $null
 }
-$selectedUsageSkill = Get-VibePrimaryBoundSkillId -RuntimeInputPacket $runtimeInputPacket
-if ($skillUsage -and -not [string]::IsNullOrWhiteSpace($selectedUsageSkill)) {
-    $skillUsage = Update-VibeSkillUsageArtifactImpact `
-        -SkillUsage $skillUsage `
-        -SkillId $selectedUsageSkill `
-        -Stage 'plan_execute' `
-        -ArtifactRef 'execution-manifest.json' `
-        -ImpactSummary ('Execution manifest preserves binary skill usage truth for {0}; execution cannot use routing, hints, consultation, or dispatch alone as usage proof.' -f $selectedUsageSkill)
+$selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket)
+if ($skillUsage -and @($selectedTaskSkillIds).Count -gt 0) {
+    foreach ($selectedTaskSkillId in @($selectedTaskSkillIds)) {
+        $skillUsage = Update-VibeSkillUsageArtifactImpact `
+            -SkillUsage $skillUsage `
+            -SkillId ([string]$selectedTaskSkillId) `
+            -Stage 'plan_execute' `
+            -ArtifactRef 'execution-manifest.json' `
+            -ImpactSummary ('Execution manifest preserves binary skill usage truth for {0}; execution cannot use routing, hints, consultation, or dispatch alone as usage proof.' -f [string]$selectedTaskSkillId)
+    }
     Write-VibeJsonArtifact -Path (Get-VibeSkillUsagePath -SessionRoot $sessionRoot) -Value $skillUsage
 }
 $hierarchyState = Get-VibeHierarchyState `

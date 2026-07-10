@@ -1,0 +1,463 @@
+{
+  "schema_version": "replay.route.audit.v2",
+  "generated_at": "2026-07-09",
+  "purpose": "Black-box and packet-level audit cases for long-running Vibe routing chaos: shortlist noise, missing module coverage, control-word leakage, and host-surface collapse.",
+  "layers": [
+    "route_contract",
+    "governed_requirement_stop",
+    "live_clean_context_subagent_audit"
+  ],
+  "cases": [
+    {
+      "id": "ml_snake_demo_noise",
+      "grade": "L",
+      "task_type": "planning",
+      "prompt": "构建贪吃蛇游戏 训练机器学习模型 在游戏中虚拟训练 AI 玩贪吃蛇 可运行演示",
+      "dimensions": [
+        "shortlist_quality",
+        "control_task_isolation",
+        "evidence_discipline"
+      ],
+      "expected_core_families": [
+        "model.training",
+        "interactive_demo_or_game"
+      ],
+      "symptoms_to_catch": [
+        "statistics-facing skills enter because generic model wording is over-expanded",
+        "planning leakage pulls in unrelated study-plan style skills",
+        "weak textual evidence introduces debug or GPU helpers too early"
+      ],
+      "known_bad_shortlist_examples": [
+        "diagnosing-bugs",
+        "optimize-for-gpu",
+        "scientific-critical-thinking",
+        "algernom-building-analysis-pools"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 2,
+        "critical_family_groups": [
+          [
+            "model.training"
+          ],
+          [
+            "interactive_demo_or_game"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set contains only analysis or helper skills and never reveals a game or demo builder lane",
+          "the surfaced set contains only implementation or debug noise and never reveals model training"
+        ]
+      }
+    },
+    {
+      "id": "perf_regression_debug_collision",
+      "grade": "L",
+      "task_type": "debug",
+      "prompt": "React 前端性能回归，点击筛选后页面卡顿并伴随 failing test 和 stack trace，请系统排查 root cause",
+      "dimensions": [
+        "shortlist_quality",
+        "evidence_discipline"
+      ],
+      "expected_core_families": [
+        "debug.systematic_workflow",
+        "performance_debugging"
+      ],
+      "symptoms_to_catch": [
+        "software regression is misread as statistical regression",
+        "statistics owners outrank debugging owners"
+      ],
+      "known_bad_shortlist_examples": [
+        "statistical-analysis",
+        "scientific-critical-thinking"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 2,
+        "critical_family_groups": [
+          [
+            "debug.systematic_workflow"
+          ],
+          [
+            "performance_debugging"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set explains regression only as a statistics concept",
+          "the shortlist never exposes a real software debugging or profiling lane"
+        ]
+      }
+    },
+    {
+      "id": "public_db_review_composite",
+      "grade": "XL",
+      "task_type": "research",
+      "prompt": "做脓毒症公共数据库研究：检索 full-text 文献，提取样本量和 effect size，做统计比较，再写通俗综述并整理成汇报",
+      "dimensions": [
+        "module_coverage",
+        "host_surface_coherence"
+      ],
+      "expected_core_families": [
+        "research.literature_search",
+        "research.literature_review",
+        "statistics.regression_or_relationship_modeling",
+        "writing.reader_report",
+        "presentation.deck"
+      ],
+      "symptoms_to_catch": [
+        "one delivery-oriented skill becomes the primary story and hides the research stack",
+        "multi-module task is surfaced as too few usable skills"
+      ],
+      "known_bad_shortlist_examples": [
+        "humanizer"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 4,
+        "critical_family_groups": [
+          [
+            "research.literature_search",
+            "research.literature_review"
+          ],
+          [
+            "statistics.regression_or_relationship_modeling"
+          ],
+          [
+            "writing.reader_report"
+          ],
+          [
+            "presentation.deck"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set talks about polishing or one writer helper but not literature plus statistics plus reporting together",
+          "the surfaced set omits either the data-analysis step or the downstream reader-facing report step"
+        ]
+      }
+    },
+    {
+      "id": "frontend_preview_test_report_gap",
+      "grade": "XL",
+      "task_type": "coding",
+      "prompt": "做一个可用的数据看板前端，接着部署 preview，再根据 pytest 和 coverage 输出生成测试报告",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality"
+      ],
+      "expected_core_families": [
+        "frontend_build",
+        "preview_deployment",
+        "quality.test_report"
+      ],
+      "symptoms_to_catch": [
+        "router fails to surface any usable local candidate for a composite delivery task",
+        "fallback top rows are unrelated pool-building or generic skills"
+      ],
+      "known_bad_shortlist_examples": [
+        "algernom-building-analysis-pools",
+        "algernom-building-data-pools",
+        "algernom-building-journal-pools",
+        "algernom-building-problem-pools"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 3,
+        "critical_family_groups": [
+          [
+            "frontend_build"
+          ],
+          [
+            "preview_deployment"
+          ],
+          [
+            "quality.test_report"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set has no front-end builder lane at all",
+          "the surfaced set mentions generic planning only and never exposes preview or report packaging"
+        ]
+      }
+    },
+    {
+      "id": "ml_report_figure_deck_bundle",
+      "grade": "XL",
+      "task_type": "research",
+      "prompt": "完成一个机器学习实验交付：训练 baseline，做 figure，整理 scientific report，并输出组会 slides",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "host_surface_coherence"
+      ],
+      "expected_core_families": [
+        "model.training",
+        "visualization.figure",
+        "writing.scientific_report",
+        "presentation.deck"
+      ],
+      "symptoms_to_catch": [
+        "one delivery surface dominates and hides the rest of the bundle",
+        "setup-style or unrelated utility skills leak into the shortlist"
+      ],
+      "known_bad_shortlist_examples": [
+        "setup-matt-pocock-skills"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 4,
+        "critical_family_groups": [
+          [
+            "model.training"
+          ],
+          [
+            "visualization.figure"
+          ],
+          [
+            "writing.scientific_report"
+          ],
+          [
+            "presentation.deck"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only talks about training and never exposes report or slides",
+          "the surfaced set only talks about one delivery artifact and hides the experiment core"
+        ]
+      }
+    },
+    {
+      "id": "architecture_prd_issue_bundle",
+      "grade": "XL",
+      "task_type": "coding",
+      "prompt": "接手一个已经变得臃肿的 Python 服务：先抽象领域模型和边界，再重设计模块接口，做一个小型原型验证，再把方案整理成 PRD 和可拆分 issues。",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "host_surface_coherence"
+      ],
+      "expected_core_families": [
+        "architecture.domain_model",
+        "architecture.interface_design",
+        "prototype.throwaway_validation",
+        "planning.prd",
+        "planning.issue_breakdown"
+      ],
+      "symptoms_to_catch": [
+        "the route collapses to generic implementation and hides the design stack",
+        "unrelated ML or analysis helpers enter because of weak textual overlap"
+      ],
+      "known_bad_shortlist_examples": [
+        "optimize-for-gpu",
+        "scikit-learn",
+        "statistical-analysis"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 4,
+        "critical_family_groups": [
+          [
+            "architecture.domain_model"
+          ],
+          [
+            "architecture.interface_design"
+          ],
+          [
+            "prototype.throwaway_validation"
+          ],
+          [
+            "planning.prd",
+            "planning.issue_breakdown"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only names implementation or issue breakdown without domain or interface design",
+          "the surfaced set has planning output helpers but no prototype or architecture lane"
+        ]
+      }
+    },
+    {
+      "id": "manuscript_review_audit_rewrite",
+      "grade": "L",
+      "task_type": "research",
+      "prompt": "审阅一篇已有的医学机器学习论文草稿：检查实验设计和统计方法是否站得住脚，指出证据薄弱处，重写摘要和讨论，让中文表达更像真人。",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "evidence_discipline"
+      ],
+      "expected_core_families": [
+        "writing.manuscript_review",
+        "science.methodology_audit",
+        "statistics.test_selection_or_result_check",
+        "writing.chinese_humanization"
+      ],
+      "symptoms_to_catch": [
+        "the route mistakes review and rewrite for fresh model building",
+        "the surfaced set misses either the audit lane or the rewrite lane"
+      ],
+      "known_bad_shortlist_examples": [
+        "algernom-building-problem-pools",
+        "optimize-for-gpu",
+        "scikit-learn"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 3,
+        "critical_family_groups": [
+          [
+            "writing.manuscript_review",
+            "science.methodology_audit"
+          ],
+          [
+            "statistics.test_selection_or_result_check"
+          ],
+          [
+            "writing.chinese_humanization"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only exposes critique without any writing or rewrite helper",
+          "the surfaced set only exposes writing polish without methodology or statistics review"
+        ]
+      }
+    },
+    {
+      "id": "cv_error_analysis_figure_bundle",
+      "grade": "XL",
+      "task_type": "research",
+      "prompt": "分析一个目标检测项目为什么小目标 mAP 很差：需要从误检漏检模式、数据标注、训练策略和评估口径找原因，最后整理成图和技术结论。",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "evidence_discipline"
+      ],
+      "expected_core_families": [
+        "vision.error_analysis",
+        "vision.training_strategy",
+        "science.methodology_audit",
+        "visualization.figure"
+      ],
+      "symptoms_to_catch": [
+        "generic context or planning skills outrank the real computer-vision owner",
+        "the surfaced set sees CV but misses audit or figure output"
+      ],
+      "known_bad_shortlist_examples": [
+        "context-keeper",
+        "algernom-building-analysis-pools",
+        "algernom-building-data-pools",
+        "algernom-building-journal-pools"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 3,
+        "critical_family_groups": [
+          [
+            "vision.error_analysis",
+            "vision.training_strategy"
+          ],
+          [
+            "science.methodology_audit"
+          ],
+          [
+            "visualization.figure"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only exposes a CV owner but no audit or figure lane",
+          "the surfaced set is dominated by context or pool-building helpers and the CV owner is absent or demoted"
+        ]
+      }
+    },
+    {
+      "id": "rfc_decision_brief_bundle",
+      "grade": "L",
+      "task_type": "research",
+      "prompt": "精读一份很长的技术 RFC 和配套设计文档，提炼核心论证和隐藏假设，用第一性原理挑战方案，再输出一份给中文团队看的说人话决策备忘录。",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "control_task_isolation"
+      ],
+      "expected_core_families": [
+        "docs.deep_reading",
+        "reasoning.first_principles",
+        "writing.reader_report",
+        "writing.chinese_humanization"
+      ],
+      "symptoms_to_catch": [
+        "the route mistakes document analysis for bug diagnosis",
+        "the surfaced set sees abstract reasoning but misses the reader-facing briefing lane"
+      ],
+      "known_bad_shortlist_examples": [
+        "diagnose",
+        "statistical-analysis",
+        "algernom-building-analysis-pools"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 3,
+        "critical_family_groups": [
+          [
+            "docs.deep_reading"
+          ],
+          [
+            "reasoning.first_principles"
+          ],
+          [
+            "writing.reader_report",
+            "writing.chinese_humanization"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only exposes critique or diagnosis without deep reading",
+          "the surfaced set only exposes reading or reasoning but no team-facing memo or humanized Chinese write-up"
+        ]
+      }
+    },
+    {
+      "id": "cpu_gpu_pipeline_triage",
+      "grade": "XL",
+      "task_type": "debug",
+      "prompt": "排查一个本地 pandas + scikit-learn 分析流水线为什么又慢又吃 CPU：先区分是算法问题还是工程实现问题，再判断哪些步骤值得迁移到 GPU，并给出验证计划。",
+      "dimensions": [
+        "module_coverage",
+        "shortlist_quality",
+        "evidence_discipline"
+      ],
+      "expected_core_families": [
+        "debug.systematic_workflow",
+        "model.training_or_sklearn_pipeline",
+        "performance.gpu_migration",
+        "experiment.validation_plan"
+      ],
+      "symptoms_to_catch": [
+        "the route over-privileges the ML owner and hides the diagnosis lane",
+        "supporting GPU migration expertise stays in shortlist noise instead of becoming part of the surfaced plan"
+      ],
+      "known_bad_shortlist_examples": [
+        "long-context",
+        "accelerate",
+        "megatron-core"
+      ],
+      "missing_module_contract": {
+        "coverage_source": "selected_or_public_shortlist",
+        "minimum_expected_family_hits": 3,
+        "critical_family_groups": [
+          [
+            "debug.systematic_workflow"
+          ],
+          [
+            "model.training_or_sklearn_pipeline"
+          ],
+          [
+            "performance.gpu_migration"
+          ]
+        ],
+        "failure_examples": [
+          "the surfaced set only names scikit-learn and never exposes diagnosis or GPU migration",
+          "the surfaced set jumps straight to acceleration suggestions without an analysis or validation lane"
+        ]
+      }
+    }
+  ]
+}

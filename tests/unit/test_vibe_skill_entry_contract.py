@@ -5,10 +5,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL_MD = ROOT / "SKILL.md"
+INSTRUCTION_MD = ROOT / "core" / "skills" / "vibe" / "instruction.md"
 
 
 def _skill_text() -> str:
     return SKILL_MD.read_text(encoding="utf-8")
+
+
+def _instruction_text() -> str:
+    return INSTRUCTION_MD.read_text(encoding="utf-8")
 
 
 def test_vibe_skill_entry_preserves_canonical_runtime_anchors() -> None:
@@ -56,4 +61,25 @@ def test_vibe_skill_entry_stays_sop_sized_and_avoids_overtriggering_language() -
     assert "1% chance" not in text
     assert "YOU DO NOT HAVE A CHOICE" not in text
     assert "This is not negotiable" not in text
+
+
+def test_vibe_skill_entry_requires_requirement_stop_reply_to_spell_out_l_xl_skills() -> None:
+    text = _skill_text()
+
+    assert "host_user_briefing" in text
+    assert "selected_skill_ids" in text
+    assert "workflow, selected task skills, and recommendation reason" in text
+    assert "rather than echoing raw route results" in text
+    assert "requirement approval and level choice in the same reply" in text
+    assert "backbone of the user reply" in text
+    assert "Keep the same field order" in text
+    assert "Do not summarize it down to only the recommendation" in text
+
+
+def test_vibe_core_instruction_locks_requirement_stop_reply_to_host_briefing() -> None:
+    text = _instruction_text()
+
+    assert "host must reuse the runtime workflow-level confirmation" in text
+    assert "same field order" in text
+    assert "not just the recommended level" in text
 

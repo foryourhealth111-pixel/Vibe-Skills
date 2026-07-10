@@ -524,11 +524,22 @@ if ($requestedStop -eq 'requirement_doc') {
     } else {
         $null
     }
+    $boundedSkillSelection = if (
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_selection' -and
+        $null -ne $runtimeInputPacket.skill_selection
+    ) {
+        $runtimeInputPacket.skill_selection
+    } else {
+        $null
+    }
     $boundedReturnControl = New-VibeBoundedReturnControlProjection `
         -RepoRoot ([string]$runtime.repo_root) `
         -RunId $RunId `
         -EntryIntentId $EntryIntentId `
-        -StageLineage $stageLineage
+        -StageLineage $stageLineage `
+        -WorkflowLevelConfirmation $interview.intent_contract.workflow_level_confirmation `
+        -SelectedSkillIds @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket) `
+        -SkillSelection $boundedSkillSelection
     $hostUserBriefing = New-VibeHostUserBriefingProjection -BoundedReturnControl $boundedReturnControl
     $hostUserBriefingPath = ''
     if ($hostUserBriefing) {

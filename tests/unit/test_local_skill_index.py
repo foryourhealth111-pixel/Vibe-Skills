@@ -165,6 +165,209 @@ description: Draft research grant proposals and narrative sections.
     assert payload["skills"][0]["capability_evidence"] == []
 
 
+def test_build_skill_index_keeps_metadata_only_weak_capabilities_out_of_route_active_capabilities(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "optimize-for-gpu",
+        """---
+name: Optimize For GPU
+description: Speed up machine learning training on GPU.
+---""",
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "optimize-for-gpu"
+    assert "model.training" not in entry["capabilities"]
+    assert any(
+        row["capability"] == "model.training"
+        and row["evidence_level"] == "weak_text"
+        and row["source"] == "metadata_text"
+        for row in entry["capability_evidence"]
+    )
+
+
+def test_build_skill_index_uses_named_when_to_use_sections_as_body_intent(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "scikit-learn",
+        """---
+name: scikit-learn
+description: Classical ML helper.
+---""",
+        (
+            "# Scikit-learn\n\n"
+            "## When to Use This Skill\n\n"
+            "Use the scikit-learn skill when:\n\n"
+            "- Building classification or regression models\n"
+            "- Training baseline machine learning systems\n"
+        ),
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "scikit-learn"
+    assert "model.training" in entry["capabilities"]
+    assert any(
+        row["capability"] == "model.training"
+        and row["evidence_level"] == "weak_text"
+        and row["source"] == "body_text"
+        for row in entry["capability_evidence"]
+    )
+
+
+def test_build_skill_index_uses_explicit_description_intent_as_route_active_capability(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "diagnosing-bugs",
+        """---
+name: diagnosing-bugs
+description: Diagnosis loop for hard bugs. Use when the user reports failing tests, stack traces, or slow pages.
+---""",
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "diagnosing-bugs"
+    assert "debug.systematic_workflow" in entry["capabilities"]
+    assert any(
+        row["capability"] == "debug.systematic_workflow"
+        and row["evidence_level"] == "weak_text"
+        and row["source"] == "frontmatter_intent"
+        for row in entry["capability_evidence"]
+    )
+
+
+def test_build_skill_index_treats_action_led_description_as_route_active_capability(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "prototype",
+        """---
+name: prototype
+description: Build a throwaway prototype to answer a design question.
+---""",
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "prototype"
+    assert "prototype.throwaway_validation" in entry["capabilities"]
+    assert any(
+        row["capability"] == "prototype.throwaway_validation"
+        and row["evidence_level"] == "weak_text"
+        and row["source"] == "frontmatter_intent"
+        for row in entry["capability_evidence"]
+    )
+    assert any(
+        chunk["role"] == "applicable"
+        and "Build a throwaway prototype" in chunk["text"]
+        for chunk in entry["route_evidence_chunks"]
+    )
+
+
+def test_build_skill_index_does_not_promote_dependency_mentions_into_planning_owner_capabilities(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "implement",
+        """---
+name: implement
+description: Implement a piece of work based on a PRD or set of issues.
+---""",
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "implement"
+    assert "runtime.feature_delivery" in entry["capabilities"]
+    assert any(
+        row["capability"] == "runtime.feature_delivery"
+        and row["evidence_level"] == "weak_text"
+        and row["source"] == "frontmatter_intent"
+        for row in entry["capability_evidence"]
+    )
+    assert "planning.prd" not in entry["capabilities"]
+    assert "planning.issue_breakdown" not in entry["capabilities"]
+
+
+def test_build_skill_index_keeps_humanization_descriptions_out_of_reader_report_owner_capabilities(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "qu-ai-wei",
+        """---
+name: qu-ai-wei
+description: 用于去除简体中文文本中的 AI 写作痕迹，让内容更像真人表达且不虚构事实；用户说去 AI 味、改得说人话、humanize 中文时使用。
+---""",
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+
+    assert entry["skill_id"] == "qu-ai-wei"
+    assert "writing.chinese_humanization" in entry["capabilities"]
+    assert "writing.reader_report" not in entry["capabilities"]
+
+
+def test_build_skill_index_emits_route_evidence_chunks_with_roles_and_source_spans(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    vibe_root = agent_root / "vibe"
+    _write_skill(
+        vibe_root / "skills" / "local" / "reader-brief-helper",
+        """---
+name: Reader Brief Helper
+description: Help readers understand technical work.
+---""",
+        (
+            "# Reader Brief Helper\n\n"
+            "Use this skill for plain-language summaries of technical documents.\n\n"
+            "## Routing Boundary\n\n"
+            "This is not final slide production or poster layout.\n\n"
+            "## Examples\n\n"
+            "- Example: turn a spec into a short summary for leadership.\n\n"
+            "```python\n"
+            "use for plotting and chart export\n"
+            "```\n"
+        ),
+    )
+
+    payload = build_skill_index(agent_root)
+    entry = payload["skills"][0]
+    chunks = entry["route_evidence_chunks"]
+
+    assert any(
+        chunk["role"] == "applicable"
+        and "plain-language summaries" in chunk["text"]
+        for chunk in chunks
+    )
+    assert any(
+        chunk["role"] == "not_applicable"
+        and "final slide production" in chunk["text"]
+        for chunk in chunks
+    )
+    assert any(
+        chunk["role"] == "example"
+        and "short summary for leadership" in chunk["text"]
+        for chunk in chunks
+    )
+    assert all("plotting and chart export" not in chunk["text"] for chunk in chunks)
+    assert all(
+        isinstance(chunk["line_start"], int)
+        and isinstance(chunk["line_end"], int)
+        and chunk["line_end"] >= chunk["line_start"] >= 1
+        for chunk in chunks
+    )
+
+
 def test_build_skill_index_ignores_non_leading_use_lines_in_related_skill_examples(tmp_path: Path) -> None:
     agent_root = tmp_path / "home" / ".agents"
     vibe_root = agent_root / "vibe"

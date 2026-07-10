@@ -366,7 +366,12 @@ $skillUsage = if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properti
 } else {
     $null
 }
-$selectedUsageSkill = Get-VibePrimaryBoundSkillId -RuntimeInputPacket $runtimeInputPacket
+$selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket)
+$selectedTaskSkillText = if (@($selectedTaskSkillIds).Count -gt 0) {
+    @($selectedTaskSkillIds | ForEach-Object { ('`{0}`' -f [string]$_) }) -join ', '
+} else {
+    'none'
+}
 $runtimeTaskType = if (
     $runtimeInputPacket -and
     $runtimeInputPacket.PSObject.Properties.Name -contains 'route_snapshot' -and
@@ -598,18 +603,20 @@ $workflowLevelConfirmation = if (
     $null
 }
 if ($workflowLevelConfirmation) {
-    $lines += @(
-        "- User-visible: $([bool]$workflowLevelConfirmation.user_visible)",
-        "- Recommended level: $([string]$workflowLevelConfirmation.recommended_level)",
-        "- Question: $([string]$workflowLevelConfirmation.question)"
-    )
-    if ($workflowLevelConfirmation.PSObject.Properties.Name -contains 'levels' -and $workflowLevelConfirmation.levels) {
-        foreach ($levelName in @('L', 'XL')) {
-            if ($workflowLevelConfirmation.levels.PSObject.Properties.Name -contains $levelName) {
-                $lines += ("- {0}: {1}" -f $levelName, [string]$workflowLevelConfirmation.levels.$levelName)
-            }
+    if ($runtimeInputPacket) {
+        $workflowLevelSkillSelection = if (
+            $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_selection' -and
+            $null -ne $runtimeInputPacket.skill_selection
+        ) {
+            $runtimeInputPacket.skill_selection
+        } else {
+            $null
         }
+        $lines += @(Get-VibeWorkflowLevelSkillSelectionLines `
+                -SelectedSkillIds (Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket) `
+                -SkillSelection $workflowLevelSkillSelection)
     }
+    $lines += @(Get-VibeWorkflowLevelConfirmationLines -WorkflowLevelConfirmation $workflowLevelConfirmation)
 } else {
     $lines += 'No workflow level confirmation was recorded in the intent contract.'
 }
@@ -660,7 +667,7 @@ if ($runtimeInputPacket) {
         "- Entry intent: $entryIntentId",
         "- Requested stop stage: $requestedStageStop",
         "- Requested grade floor: $requestedGradeFloor",
-        "- Bounded work skill: $selectedUsageSkill",
+        "- Selected task skills: $selectedTaskSkillText",
         "- Runtime-selected skill: $([string]$runtimeInputPacket.authority_flags.explicit_runtime_skill)",
         "- Route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
         "- Confirm required: $([bool]$runtimeInputPacket.route_snapshot.confirm_required)"
@@ -742,18 +749,20 @@ if ($runtimeInputPacket) {
         $lines += @($executionPhaseLines)
     }
 
-    if ($skillUsage -and -not [string]::IsNullOrWhiteSpace($selectedUsageSkill)) {
-        $skillUsage = Update-VibeSkillUsageArtifactImpact `
-            -SkillUsage $skillUsage `
-            -SkillId $selectedUsageSkill `
-            -Stage 'requirement_doc' `
-            -ArtifactRef ([System.IO.Path]::GetFileName($docPath)) `
-            -ImpactSummary ('Requirement doc adopts the loaded {0} SKILL.md as the workflow authority for downstream planning and completion evidence.' -f $selectedUsageSkill)
+    if ($skillUsage -and @($selectedTaskSkillIds).Count -gt 0) {
+        foreach ($selectedTaskSkillId in @($selectedTaskSkillIds)) {
+            $skillUsage = Update-VibeSkillUsageArtifactImpact `
+                -SkillUsage $skillUsage `
+                -SkillId ([string]$selectedTaskSkillId) `
+                -Stage 'requirement_doc' `
+                -ArtifactRef ([System.IO.Path]::GetFileName($docPath)) `
+                -ImpactSummary ('Requirement doc adopts the loaded {0} SKILL.md as the workflow authority for downstream planning and completion evidence.' -f [string]$selectedTaskSkillId)
+        }
         $lines += @(
             '',
             '## Skill Usage',
             '- Skill usage state model: binary `used` / `unused`.',
-            ('- Used skill candidate: `{0}` is promoted only because full `SKILL.md` load evidence exists and this requirement doc adopts it as workflow authority.' -f $selectedUsageSkill),
+            ('- Used skill candidates: {0} are promoted only because full `SKILL.md` load evidence exists and this requirement doc adopts them as workflow authority.' -f $selectedTaskSkillText),
             '- Routing, hints, recommendations, consultation, and dispatch do not by themselves prove skill use.',
             '- Final completion must read `skill_usage.used` and `skill_usage.evidence` before claiming a skill was used.'
         )

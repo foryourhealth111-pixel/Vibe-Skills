@@ -261,6 +261,220 @@ function Get-VibeNestedPropertySafe {
     return $current
 }
 
+function Get-VibeWorkflowLevelConfirmationDetailValue {
+    param(
+        [AllowNull()] [object]$WorkflowLevelConfirmation = $null,
+        [Parameter(Mandatory)] [string]$LevelName,
+        [Parameter(Mandatory)] [string]$PropertyName
+    )
+
+    $levelDetails = Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'level_details' -DefaultValue $null
+    if (-not (Test-VibeStructuredObject -InputObject $levelDetails)) {
+        return $null
+    }
+
+    $levelRecord = Get-VibePropertySafe -InputObject $levelDetails -PropertyName $LevelName -DefaultValue $null
+    if (-not (Test-VibeStructuredObject -InputObject $levelRecord)) {
+        return $null
+    }
+
+    $value = Get-VibePropertySafe -InputObject $levelRecord -PropertyName $PropertyName -DefaultValue $null
+    if ($null -eq $value) {
+        return $null
+    }
+
+    return [string]$value
+}
+
+function Get-VibeWorkflowLevelConfirmationLines {
+    param(
+        [AllowNull()] [object]$WorkflowLevelConfirmation = $null
+    )
+
+    if ($null -eq $WorkflowLevelConfirmation) {
+        return @('No workflow level confirmation was recorded in the intent contract.')
+    }
+
+    $lines = @(
+        "- User-visible: $([bool](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'user_visible' -DefaultValue $false))"
+    )
+
+    $recommendedLevel = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'recommended_level' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($recommendedLevel)) {
+        $lines += ('- Recommended level: {0}' -f $recommendedLevel)
+    }
+
+    $recommendationReason = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'recommendation_reason' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($recommendationReason)) {
+        $lines += ('- Recommendation reason: {0}' -f $recommendationReason)
+    }
+
+    $question = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'question' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($question)) {
+        $lines += ('- Question: {0}' -f $question)
+    }
+
+    $decisionImportance = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'decision_importance' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($decisionImportance)) {
+        $lines += ('- Why this decision matters: {0}' -f $decisionImportance)
+    }
+
+    $levels = Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'levels' -DefaultValue $null
+    foreach ($levelName in @('L', 'XL')) {
+        $levelSummary = [string](Get-VibePropertySafe -InputObject $levels -PropertyName $levelName -DefaultValue '')
+        if (-not [string]::IsNullOrWhiteSpace($levelSummary)) {
+            $lines += ('- {0}: {1}' -f $levelName, $levelSummary)
+        }
+
+        foreach ($detail in @(
+                @{ property = 'workflow'; label = 'workflow' },
+                @{ property = 'skills'; label = 'skills' },
+                @{ property = 'why_this_fit'; label = 'rationale' },
+                @{ property = 'confirm_reply'; label = 'confirm reply' }
+            )) {
+            $detailValue = Get-VibeWorkflowLevelConfirmationDetailValue `
+                -WorkflowLevelConfirmation $WorkflowLevelConfirmation `
+                -LevelName $levelName `
+                -PropertyName ([string]$detail.property)
+            if (-not [string]::IsNullOrWhiteSpace($detailValue)) {
+                $lines += ('- {0} {1}: {2}' -f $levelName, [string]$detail.label, $detailValue)
+            }
+        }
+    }
+
+    $selectionPrompt = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'selection_prompt' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($selectionPrompt)) {
+        $lines += ('- Selection prompt: {0}' -f $selectionPrompt)
+    }
+
+    return @($lines)
+}
+
+function Get-VibeWorkflowLevelSkillSelectionLines {
+    param(
+        [string[]]$SelectedSkillIds = @(),
+        [AllowNull()] [object]$SkillSelection = $null
+    )
+
+    $workflowLevelSchemes = if (
+        $null -ne $SkillSelection -and
+        (Test-VibeObjectHasProperty -InputObject $SkillSelection -PropertyName 'workflow_level_schemes') -and
+        $null -ne $SkillSelection.workflow_level_schemes
+    ) {
+        $SkillSelection.workflow_level_schemes
+    } else {
+        $null
+    }
+
+    if ($null -ne $workflowLevelSchemes) {
+        $shortlistSkillIds = if (
+            (Test-VibeObjectHasProperty -InputObject $workflowLevelSchemes -PropertyName 'shortlist_skill_ids') -and
+            $null -ne $workflowLevelSchemes.shortlist_skill_ids
+        ) {
+            @($workflowLevelSchemes.shortlist_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        } else {
+            @()
+        }
+        $levels = if (
+            (Test-VibeObjectHasProperty -InputObject $workflowLevelSchemes -PropertyName 'levels') -and
+            $null -ne $workflowLevelSchemes.levels
+        ) {
+            $workflowLevelSchemes.levels
+        } else {
+            $null
+        }
+
+        $schemeLines = @()
+        if (@($shortlistSkillIds).Count -gt 0) {
+            $schemeLines += ('- Screened task-skill shortlist size: `{0}`' -f @($shortlistSkillIds).Count)
+            $schemeLines += '- The L / XL plans below already choose usable task skills from that shortlist; they do not simply repeat the raw route results.'
+        }
+
+        foreach ($levelName in @('L', 'XL')) {
+            $levelRecord = Get-VibePropertySafe -InputObject $levels -PropertyName $levelName -DefaultValue $null
+            if ($null -eq $levelRecord) {
+                continue
+            }
+
+            $levelSelectedSkillIds = if (
+                (Test-VibeObjectHasProperty -InputObject $levelRecord -PropertyName 'selected_skill_ids') -and
+                $null -ne $levelRecord.selected_skill_ids
+            ) {
+                @($levelRecord.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            } else {
+                @()
+            }
+            if (@($levelSelectedSkillIds).Count -eq 0) {
+                continue
+            }
+
+            $schemeLines += ('- {0} selected task skills: `{1}`' -f [string]$levelName, (@($levelSelectedSkillIds) -join '`, `'))
+            $levelReason = [string](Get-VibePropertySafe -InputObject $levelRecord -PropertyName 'reason' -DefaultValue '')
+            if (-not [string]::IsNullOrWhiteSpace($levelReason)) {
+                $schemeLines += ('- {0} why these skills: {1}' -f [string]$levelName, $levelReason)
+            }
+        }
+
+        if (@($schemeLines).Count -gt 0) {
+            return @($schemeLines)
+        }
+    }
+
+    $resolvedSkillIds = @(
+        @($SelectedSkillIds | ForEach-Object { [string]$_ }) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+
+    if (@($resolvedSkillIds).Count -gt 0) {
+        return @(
+            ('- Current selected task skills: `{0}`' -f (@($resolvedSkillIds) -join '`, `')),
+            '- These are the concrete task skills currently matched for this run.'
+        )
+    }
+
+    return @(
+        '- Current selected task skills: none yet.',
+        '- No concrete task skill matched this run yet, so the L / XL explanation below is the default coordination skeleton.'
+    )
+}
+
+function Get-VibeSelectedTaskSkillIds {
+    param(
+        [AllowNull()] [object]$RuntimeInputPacket = $null,
+        [AllowNull()] [object]$SkillSelection = $null,
+        [AllowNull()] [object]$WorkBinding = $null
+    )
+
+    $resolvedSkillSelection = if ($null -ne $SkillSelection) {
+        $SkillSelection
+    } elseif (
+        $null -ne $RuntimeInputPacket -and
+        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_selection')
+    ) {
+        $RuntimeInputPacket.skill_selection
+    } else {
+        $null
+    }
+
+    if (
+        $null -ne $resolvedSkillSelection -and
+        (Test-VibeObjectHasProperty -InputObject $resolvedSkillSelection -PropertyName 'selected_skill_ids') -and
+        $null -ne $resolvedSkillSelection.selected_skill_ids
+    ) {
+        $selectedSkillIds = @(
+            $resolvedSkillSelection.selected_skill_ids |
+            ForEach-Object { [string]$_ } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Select-Object -Unique
+        )
+        if (@($selectedSkillIds).Count -gt 0) {
+            return [object[]]@($selectedSkillIds)
+        }
+    }
+
+    return [object[]]@(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $RuntimeInputPacket -WorkBinding $WorkBinding)
+}
+
 function Get-VibeWorkBindingBoundSkillIds {
     param(
         [AllowNull()] [object]$RuntimeInputPacket = $null,
@@ -300,9 +514,9 @@ function Get-VibePrimaryBoundSkillId {
         [AllowEmptyString()] [string]$FallbackSkillId = ''
     )
 
-    $boundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $RuntimeInputPacket -WorkBinding $WorkBinding)
-    if ($boundSkillIds.Count -ge 1) {
-        return [string]$boundSkillIds[0]
+    $selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $RuntimeInputPacket -WorkBinding $WorkBinding)
+    if (@($selectedTaskSkillIds).Count -ge 1) {
+        return [string]$selectedTaskSkillIds[0]
     }
 
     $skillRouting = if (
@@ -1772,18 +1986,20 @@ function New-VibeRouteRuntimeAlignmentProjection {
     $authorityFlags = Get-VibePropertySafe -InputObject $RuntimeInputPacket -PropertyName 'authority_flags'
     $divergenceShadow = Get-VibePropertySafe -InputObject $RuntimeInputPacket -PropertyName 'divergence_shadow'
 
-    $routerSelectedSkill = Get-VibePrimaryBoundSkillId -RuntimeInputPacket $RuntimeInputPacket -FallbackSkillId $null
+    $selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $RuntimeInputPacket)
+    $routerSelectedSkill = if (@($selectedTaskSkillIds).Count -gt 0) { [string]$selectedTaskSkillIds[0] } else { $null }
     $runtimeSelectedSkill = Get-VibeNestedPropertySafe -InputObject $authorityFlags -PropertyPath @('explicit_runtime_skill') -DefaultValue $DefaultRuntimeSkill
     $skillMismatch = Get-VibeNestedPropertySafe -InputObject $divergenceShadow -PropertyPath @('skill_mismatch') -DefaultValue $null
     if ($null -eq $skillMismatch) {
-        $skillMismatch = (
-            -not [string]::IsNullOrWhiteSpace([string]$routerSelectedSkill) -and
-            -not [string]::Equals([string]$routerSelectedSkill, [string]$runtimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)
-        )
+        $skillMismatch = @($selectedTaskSkillIds | Where-Object {
+            -not [string]::IsNullOrWhiteSpace([string]$_) -and
+            -not [string]::Equals([string]$_, [string]$runtimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)
+        }).Count -gt 0
     }
 
     return [pscustomobject]@{
         router_selected_skill = $routerSelectedSkill
+        selected_task_skill_ids = @($selectedTaskSkillIds)
         runtime_selected_skill = $runtimeSelectedSkill
         skill_mismatch = [bool]$skillMismatch
         confirm_required = Get-VibeNestedPropertySafe -InputObject $routeSnapshot -PropertyPath @('confirm_required') -DefaultValue $false
@@ -2607,6 +2823,7 @@ function New-VibeRuntimeInputPacketProjection {
         [AllowNull()] [object[]]$SpecialistRecommendations = @(),
         [AllowNull()] [object[]]$StageAssistantHints = @(),
         [AllowNull()] [object]$SkillUsage = $null,
+        [AllowNull()] [object]$SkillSelection = $null,
         [AllowNull()] [object]$SkillRouting = $null,
         [AllowNull()] [object]$SkillExecutionLock = $null,
         [Parameter(Mandatory)] [object]$SpecialistDispatch,
@@ -2756,6 +2973,7 @@ function New-VibeRuntimeInputPacketProjection {
         code_task_tdd_decision = $CodeTaskTddDecision
         host_skill_execution_decision = $HostSpecialistDispatchDecision
         skill_execution_lock = if ($null -ne $SkillExecutionLock) { $SkillExecutionLock } else { $null }
+        skill_selection = if ($null -ne $SkillSelection) { $SkillSelection } else { $null }
         canonical_router = [pscustomobject]@{
             role = 'internal_specialist_recommender'
             prompt = $Task
@@ -2996,7 +3214,10 @@ function New-VibeBoundedReturnControlProjection {
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$RunId,
         [AllowEmptyString()] [string]$EntryIntentId = '',
-        [AllowNull()] [object]$StageLineage = $null
+        [AllowNull()] [object]$StageLineage = $null,
+        [AllowNull()] [object]$WorkflowLevelConfirmation = $null,
+        [string[]]$SelectedSkillIds = @(),
+        [AllowNull()] [object]$SkillSelection = $null
     )
 
     $resolvedEntryIntentId = if ([string]::IsNullOrWhiteSpace($EntryIntentId)) { 'vibe' } else { [string]$EntryIntentId }
@@ -3046,6 +3267,15 @@ function New-VibeBoundedReturnControlProjection {
         'requirement_doc' { 'approve_requirement' }
         'xl_plan' { 'approve_plan' }
         default { 'approve' }
+    }
+    $recommendedWorkflowLevel = if (
+        $null -ne $WorkflowLevelConfirmation -and
+        (Test-VibeObjectHasProperty -InputObject $WorkflowLevelConfirmation -PropertyName 'recommended_level') -and
+        -not [string]::IsNullOrWhiteSpace([string]$WorkflowLevelConfirmation.recommended_level)
+    ) {
+        [string]$WorkflowLevelConfirmation.recommended_level
+    } else {
+        $null
     }
     $approvalPrompt = switch ([string]$terminalStage) {
         'requirement_doc' {
@@ -3115,11 +3345,17 @@ function New-VibeBoundedReturnControlProjection {
                 decision_kind = 'approval_response'
                 decision_action = [string]$preferredDecisionAction
                 approval_decision = 'approve'
+                requested_grade_floor = if ([string]$terminalStage -eq 'requirement_doc' -and -not [string]::IsNullOrWhiteSpace([string]$recommendedWorkflowLevel)) { [string]$recommendedWorkflowLevel } else { $null }
             }
+            allowed_workflow_levels = if ([string]$terminalStage -eq 'requirement_doc') { @('L', 'XL') } else { @() }
+            recommended_workflow_level = if ([string]$terminalStage -eq 'requirement_doc' -and -not [string]::IsNullOrWhiteSpace([string]$recommendedWorkflowLevel)) { [string]$recommendedWorkflowLevel } else { $null }
         }
         allowed_followup_entry_ids = @($allowedFollowupEntryIds)
         reentry_token = $token
         rendered_text = (@($renderedLines) -join "`n")
+        selected_skill_ids = @($SelectedSkillIds)
+        skill_selection = if ($null -eq $SkillSelection) { $null } else { $SkillSelection }
+        workflow_level_confirmation = if ($null -eq $WorkflowLevelConfirmation) { $null } else { $WorkflowLevelConfirmation }
     }
 }
 
@@ -4488,6 +4724,30 @@ function New-VibeHostUserBriefingProjection {
         } else {
             'approve'
         }
+        $workflowLevelConfirmationLines = @()
+        if (
+            [string]$BoundedReturnControl.terminal_stage -eq 'requirement_doc' -and
+            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'workflow_level_confirmation') -and
+            $null -ne $BoundedReturnControl.workflow_level_confirmation
+        ) {
+            $workflowLevelConfirmationLines = @(Get-VibeWorkflowLevelConfirmationLines -WorkflowLevelConfirmation $BoundedReturnControl.workflow_level_confirmation)
+        }
+        $selectedSkillIds = if (
+            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'selected_skill_ids') -and
+            $null -ne $BoundedReturnControl.selected_skill_ids
+        ) {
+            @($BoundedReturnControl.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        } else {
+            @()
+        }
+        $skillSelection = if (
+            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'skill_selection') -and
+            $null -ne $BoundedReturnControl.skill_selection
+        ) {
+            $BoundedReturnControl.skill_selection
+        } else {
+            $null
+        }
         $boundedLines = @(
             'Bounded governed stop reached. Return control to the user now.',
             ('- terminal stage: `{0}`' -f [string]$BoundedReturnControl.terminal_stage),
@@ -4502,6 +4762,11 @@ function New-VibeHostUserBriefingProjection {
             '- the original detailed prompt is not approval of the frozen requirement or plan',
             ('- after the user approves in a later message, forward `--continue-from-run-id {0}` and `--bounded-reentry-token {1}` from the latest runtime summary' -f [string]$BoundedReturnControl.source_run_id, [string]$BoundedReturnControl.reentry_token)
         )
+        if (@($workflowLevelConfirmationLines).Count -gt 0) {
+            $boundedLines += '- 先把 L / XL 级别说明清楚，再让用户选择：'
+            $boundedLines += @(Get-VibeWorkflowLevelSkillSelectionLines -SelectedSkillIds @($selectedSkillIds) -SkillSelection $skillSelection | ForEach-Object { "  $_" })
+            $boundedLines += @($workflowLevelConfirmationLines | ForEach-Object { "  $_" })
+        }
         $boundedSegment = [pscustomobject]@{
             segment_id = 'bounded_return_control'
             stage = if ((Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'terminal_stage') -and -not [string]::IsNullOrWhiteSpace([string]$BoundedReturnControl.terminal_stage)) { [string]$BoundedReturnControl.terminal_stage } else { $null }
@@ -5145,6 +5410,11 @@ function New-VibeIntentContractObject {
     $title = Get-VibeTitleFromTask -Task $Task
     $grade = Get-VibeInternalGrade -Task $Task
     $recommendedWorkflowLevel = if ([string]$grade -eq 'XL') { 'XL' } else { 'L' }
+    $workflowLevelRecommendationReason = if ($recommendedWorkflowLevel -eq 'XL') {
+        '当前任务看起来更像高协调成本交付：需要先冻结需求和计划，再把多技能或多产物工作拆成分波次执行，避免执行中途再回头重排分工。'
+    } else {
+        '当前任务更像单主线交付：先冻结需求和计划，再按顺序推进已选中的任务 skills，通常比一开始就上分波次协作更省沟通成本。'
+    }
     $assumptions = @()
     $assumptions += 'Interactive clarification is allowed if unresolved ambiguity materially changes implementation.'
     return [pscustomobject]@{
@@ -5171,11 +5441,28 @@ function New-VibeIntentContractObject {
             user_visible = $true
             required_for_levels = @('L', 'XL')
             recommended_level = [string]$recommendedWorkflowLevel
-            question = '你希望走 L 级还是 XL 级工作流？'
+            recommendation_reason = $workflowLevelRecommendationReason
+            question = '先确认任务级别：这次任务走 L 级还是 XL 级？'
+            decision_importance = 'L 和 XL 会直接改变后续的协作深度、是否进入分波次执行，以及证据和回归边界的强度。'
             levels = [pscustomobject]@{
                 L = 'L 级适合多步骤但主要串行的工作：会确认需求和计划，证据要求完整，但一般由一个主流程推进。'
                 XL = 'XL 级适合研究交付、多产物、多技能协作或风险更高的任务：会有更严格的需求冻结、计划冻结、分阶段执行、证据清单和收尾检查。'
             }
+            level_details = [pscustomobject]@{
+                L = [pscustomobject]@{
+                    workflow = '先冻结需求和计划，再由 vibe 在单主线里按顺序推进已选中的任务 skills；如果途中需要额外验证，才补充少量针对性的 skills。'
+                    skills = '由 `vibe` 主控串行协作；涉及代码改动或缺陷修复时，会补充 `tdd` 这类 failure-first 验证 skill，但不默认拆成多代理。'
+                    why_this_fit = '适合仍然是一个主交付物、依赖链较短、并行收益不高的任务，可以把沟通成本压低，同时保留完整的冻结与验证边界。'
+                    confirm_reply = '如果你认可这个较轻量但证据完整的流程，请回复：`走 L 级`。'
+                }
+                XL = [pscustomobject]@{
+                    workflow = '先冻结需求和计划，再把工作拆成分波次执行；只有在依赖安全时才允许小步并行，最后统一回到验证和收尾。'
+                    skills = '由 `vibe` 先组织已选中的任务 skills；当任务确实需要多代理拆分时，再引入 `subagent-driven-development` 协调受控子代理。'
+                    why_this_fit = '适合多产物、多技能协作、研究交付或高风险改动，因为它能先讲清分工、阶段边界和证据清单，再进入执行。'
+                    confirm_reply = '如果你希望先把分工和波次讲清楚，再进入更重的执行流程，请回复：`走 XL 级`。'
+                }
+            }
+            selection_prompt = '请根据上面的说明选择并确认这次任务级别。'
         }
         risk_tolerance = 'moderate'
         autonomy_mode = $Mode

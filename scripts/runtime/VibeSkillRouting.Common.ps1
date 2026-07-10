@@ -81,6 +81,348 @@ function Add-VibeSkillRoutingEntry {
     $Seen[$skillId] = $true
 }
 
+function Get-VibeWorkflowLevelFromRouteResult {
+    param(
+        [AllowNull()] [object]$RouteResult = $null
+    )
+
+    $grade = [string](Get-VibeSkillRoutingProperty -InputObject $RouteResult -PropertyName 'grade' -DefaultValue '')
+    if ([string]::Equals($grade, 'XL', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return 'XL'
+    }
+    return 'L'
+}
+
+function Get-VibeWorkflowLevelSelectionLimit {
+    param(
+        [Parameter(Mandatory)] [ValidateSet('L', 'XL')] [string]$WorkflowLevel
+    )
+
+    if ($WorkflowLevel -eq 'XL') {
+        return 5
+    }
+    return 3
+}
+
+function New-VibeSkillSelectionCandidateRecord {
+    param(
+        [Parameter(Mandatory)] [object]$Candidate
+    )
+
+    $skillId = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_id' -DefaultValue '')
+    if ([string]::IsNullOrWhiteSpace($skillId)) {
+        $skillId = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill' -DefaultValue '')
+    }
+    if ([string]::IsNullOrWhiteSpace($skillId)) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        skill_id = $skillId
+        score = [double](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'score' -DefaultValue 0.0)
+        matched_tokens = [object[]]@(Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_tokens' -DefaultValue @())
+        matched_capabilities = [object[]]@(Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_capabilities' -DefaultValue @())
+        description = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'description' -DefaultValue '')
+        native_skill_entrypoint = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'native_skill_entrypoint' -DefaultValue $null
+        skill_md_path = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'native_skill_entrypoint' -DefaultValue $null
+        skill_root = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_root' -DefaultValue $null
+        source_root = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'source_root' -DefaultValue $null
+        source_kind = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'source_kind' -DefaultValue $null
+        reason = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'candidate_selection_reason' -DefaultValue '')
+    }
+}
+
+function New-VibeSkillSelectionRecord {
+    param(
+        [Parameter(Mandatory)] [object]$Candidate,
+        [Parameter(Mandatory)] [ValidateSet('candidate', 'selected', 'rejected')] [string]$SelectionState,
+        [AllowEmptyString()] [string]$SelectionReason = '',
+        [AllowNull()] [int]$SelectionRank = $null
+    )
+
+    return [pscustomobject]@{
+        skill_id = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_id' -DefaultValue '')
+        score = [double](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'score' -DefaultValue 0.0)
+        matched_tokens = [object[]]@(Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_tokens' -DefaultValue @())
+        matched_capabilities = [object[]]@(Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_capabilities' -DefaultValue @())
+        description = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'description' -DefaultValue '')
+        native_skill_entrypoint = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'native_skill_entrypoint' -DefaultValue $null
+        skill_md_path = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_md_path' -DefaultValue $null
+        skill_root = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_root' -DefaultValue $null
+        source_root = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'source_root' -DefaultValue $null
+        source_kind = Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'source_kind' -DefaultValue $null
+        selection_state = $SelectionState
+        selection_reason = [string]$SelectionReason
+        selection_rank = if ($null -eq $SelectionRank) { $null } else { [int]$SelectionRank }
+    }
+}
+
+function Get-VibeRouteCandidateRows {
+    param(
+        [AllowNull()] [object]$RouteResult = $null,
+        [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
+    )
+
+    $rows = New-Object System.Collections.Generic.List[object]
+    $seen = @{}
+    $candidateRows = @()
+    if ($null -ne $RouteResult -and $RouteResult.PSObject.Properties.Name -contains 'candidates' -and $null -ne $RouteResult.candidates) {
+        $candidateRows = @($RouteResult.candidates)
+    }
+
+    foreach ($candidate in $candidateRows) {
+        $record = New-VibeSkillSelectionCandidateRecord -Candidate $candidate
+        if ($null -eq $record) {
+            continue
+        }
+        $skillId = [string]$record.skill_id
+        if ([string]::IsNullOrWhiteSpace($skillId)) {
+            continue
+        }
+        if (-not [string]::IsNullOrWhiteSpace($RuntimeSelectedSkill) -and [string]::Equals($skillId, $RuntimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        if ($seen.ContainsKey($skillId)) {
+            continue
+        }
+        $rows.Add($record) | Out-Null
+        $seen[$skillId] = $true
+    }
+
+    return [object[]]$rows.ToArray()
+}
+
+function Get-VibeSkillSelectionCoverageKeys {
+    param(
+        [Parameter(Mandatory)] [object]$Candidate
+    )
+
+    $keys = New-Object System.Collections.Generic.List[string]
+    $seen = @{}
+
+    foreach ($capability in @([object[]](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_capabilities' -DefaultValue @()))) {
+        $normalized = [string]$capability
+        if ([string]::IsNullOrWhiteSpace($normalized)) {
+            continue
+        }
+        $key = 'cap:' + $normalized.Trim().ToLowerInvariant()
+        if ($seen.ContainsKey($key)) {
+            continue
+        }
+        $keys.Add($key) | Out-Null
+        $seen[$key] = $true
+    }
+
+    if ($keys.Count -eq 0) {
+        foreach ($token in @([object[]](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_tokens' -DefaultValue @()))) {
+            $normalized = [string]$token
+            if ([string]::IsNullOrWhiteSpace($normalized)) {
+                continue
+            }
+            $key = 'token:' + $normalized.Trim().ToLowerInvariant()
+            if ($seen.ContainsKey($key)) {
+                continue
+            }
+            $keys.Add($key) | Out-Null
+            $seen[$key] = $true
+        }
+    }
+
+    if ($keys.Count -eq 0) {
+        $skillId = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'skill_id' -DefaultValue '')
+        if (-not [string]::IsNullOrWhiteSpace($skillId)) {
+            $keys.Add('skill:' + $skillId.Trim().ToLowerInvariant()) | Out-Null
+        }
+    }
+
+    return [string[]]$keys.ToArray()
+}
+
+function Test-VibeSkillSelectionRequiresExplicitRequest {
+    param(
+        [Parameter(Mandatory)] [object]$Candidate
+    )
+
+    $description = [string](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'description' -DefaultValue '')
+    return $description -match 'Use only when the user explicitly asks for it\.?'
+}
+
+function Test-VibeSkillSelectionHasUsableTaskEvidence {
+    param(
+        [Parameter(Mandatory)] [object]$Candidate,
+        [bool]$IsPrimary = $false
+    )
+
+    if ($IsPrimary) {
+        return $true
+    }
+
+    $matchedCapabilities = @(
+        @([object[]](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_capabilities' -DefaultValue @())) |
+        ForEach-Object { [string]$_ } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if (@($matchedCapabilities).Count -gt 0) {
+        return $true
+    }
+
+    $matchedTokens = @(
+        @([object[]](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'matched_tokens' -DefaultValue @())) |
+        ForEach-Object { [string]$_ } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -Unique
+    )
+    $score = [double](Get-VibeSkillRoutingProperty -InputObject $Candidate -PropertyName 'score' -DefaultValue 0.0)
+
+    if (@($matchedTokens).Count -ge 3) {
+        return $true
+    }
+    if (@($matchedTokens).Count -ge 2 -and $score -ge 0.6) {
+        return $true
+    }
+
+    return $false
+}
+
+function New-VibeSkillSelectionFromRouteResult {
+    param(
+        [AllowNull()] [object]$RouteResult = $null,
+        [AllowEmptyString()] [string]$RuntimeSelectedSkill = '',
+        [AllowEmptyString()] [string]$WorkflowLevelOverride = ''
+    )
+
+    $workflowLevel = if ([string]::IsNullOrWhiteSpace($WorkflowLevelOverride)) {
+        Get-VibeWorkflowLevelFromRouteResult -RouteResult $RouteResult
+    } else {
+        $override = [string]$WorkflowLevelOverride
+        if ($override -notin @('L', 'XL')) {
+            throw "Unsupported workflow level override: $override"
+        }
+        $override
+    }
+    $selectionLimit = Get-VibeWorkflowLevelSelectionLimit -WorkflowLevel $workflowLevel
+    $candidateRows = @(Get-VibeRouteCandidateRows -RouteResult $RouteResult -RuntimeSelectedSkill $RuntimeSelectedSkill)
+    $selectedRows = New-Object System.Collections.Generic.List[object]
+    $rejectedRows = New-Object System.Collections.Generic.List[object]
+    $selectedCoverage = @{}
+
+    $routeSelected = if ($null -ne $RouteResult -and $RouteResult.PSObject.Properties.Name -contains 'selected' -and $null -ne $RouteResult.selected) {
+        [string](Get-VibeSkillRoutingProperty -InputObject $RouteResult.selected -PropertyName 'skill' -DefaultValue '')
+    } else {
+        ''
+    }
+
+    foreach ($candidate in $candidateRows) {
+        $skillId = [string]$candidate.skill_id
+        if ([string]::IsNullOrWhiteSpace($skillId)) {
+            continue
+        }
+
+        if ($selectedRows.Count -ge $selectionLimit) {
+            $rejectedRows.Add((New-VibeSkillSelectionRecord -Candidate $candidate -SelectionState 'rejected' -SelectionReason 'selection_limit_reached')) | Out-Null
+            continue
+        }
+
+        $coverageKeys = @(Get-VibeSkillSelectionCoverageKeys -Candidate $candidate)
+        $addsCoverage = $selectedRows.Count -eq 0
+        foreach ($key in $coverageKeys) {
+            if (-not $selectedCoverage.ContainsKey($key)) {
+                $addsCoverage = $true
+                break
+            }
+        }
+
+        $requiresExplicitRequest = Test-VibeSkillSelectionRequiresExplicitRequest -Candidate $candidate
+        $isRoutePrimary = -not [string]::IsNullOrWhiteSpace($routeSelected) -and [string]::Equals($skillId, $routeSelected, [System.StringComparison]::OrdinalIgnoreCase)
+        if ($requiresExplicitRequest -and -not $isRoutePrimary) {
+            $rejectedRows.Add((New-VibeSkillSelectionRecord -Candidate $candidate -SelectionState 'rejected' -SelectionReason 'requires_explicit_request')) | Out-Null
+            continue
+        }
+
+        $hasUsableTaskEvidence = Test-VibeSkillSelectionHasUsableTaskEvidence `
+            -Candidate $candidate `
+            -IsPrimary ($selectedRows.Count -eq 0)
+        if (-not $hasUsableTaskEvidence) {
+            $rejectedRows.Add((New-VibeSkillSelectionRecord -Candidate $candidate -SelectionState 'rejected' -SelectionReason 'insufficient_task_evidence')) | Out-Null
+            continue
+        }
+
+        if (-not $addsCoverage) {
+            $rejectedRows.Add((New-VibeSkillSelectionRecord -Candidate $candidate -SelectionState 'rejected' -SelectionReason 'coverage_already_selected')) | Out-Null
+            continue
+        }
+
+        foreach ($key in $coverageKeys) {
+            $selectedCoverage[$key] = $true
+        }
+        $selectionReason = if ($selectedRows.Count -eq 0) {
+            'primary_route_candidate'
+        } else {
+            'adds_new_task_coverage'
+        }
+        $selectedRows.Add((New-VibeSkillSelectionRecord -Candidate $candidate -SelectionState 'selected' -SelectionReason $selectionReason -SelectionRank ($selectedRows.Count + 1))) | Out-Null
+    }
+
+    return [pscustomobject]@{
+        schema_version = 'skill_selection_v1'
+        workflow_level = $workflowLevel
+        selection_limit = $selectionLimit
+        primary_skill_id = if ($selectedRows.Count -ge 1) { [string]$selectedRows[0].skill_id } else { $null }
+        candidate_skill_ids = [object[]]@($candidateRows | ForEach-Object { [string]$_.skill_id })
+        selected_skill_ids = [object[]]@($selectedRows | ForEach-Object { [string]$_.skill_id })
+        rejected_candidate_skill_ids = [object[]]@($rejectedRows | ForEach-Object { [string]$_.skill_id })
+        candidates = [object[]]@($candidateRows | ForEach-Object { New-VibeSkillSelectionRecord -Candidate $_ -SelectionState 'candidate' -SelectionReason 'route_candidate' })
+        selected = [object[]]$selectedRows.ToArray()
+        rejected = [object[]]$rejectedRows.ToArray()
+    }
+}
+
+function New-VibeWorkflowLevelSkillSelectionSchemes {
+    param(
+        [AllowNull()] [object]$RouteResult = $null,
+        [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
+    )
+
+    $candidateRows = @(Get-VibeRouteCandidateRows -RouteResult $RouteResult -RuntimeSelectedSkill $RuntimeSelectedSkill)
+    $lSelection = New-VibeSkillSelectionFromRouteResult `
+        -RouteResult $RouteResult `
+        -RuntimeSelectedSkill $RuntimeSelectedSkill `
+        -WorkflowLevelOverride 'L'
+    $xlSelection = New-VibeSkillSelectionFromRouteResult `
+        -RouteResult $RouteResult `
+        -RuntimeSelectedSkill $RuntimeSelectedSkill `
+        -WorkflowLevelOverride 'XL'
+
+    $lSelectedSkillIds = @($lSelection.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $xlSelectedSkillIds = @($xlSelection.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $xlReason = if (@($xlSelectedSkillIds).Count -gt @($lSelectedSkillIds).Count) {
+        'XL keeps the broader usable skill set so the plan can open extra bounded lanes after freeze.'
+    } else {
+        'XL keeps the same usable skill set here because the screened shortlist did not surface more bounded skills with enough task evidence yet; the workflow still stays on the heavier XL coordination contract.'
+    }
+
+    return [pscustomobject]@{
+        shortlist_skill_ids = [object[]]@($candidateRows | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        shortlist_size = @($candidateRows).Count
+        levels = [pscustomobject]@{
+            L = [pscustomobject]@{
+                workflow_level = 'L'
+                selection_limit = [int]$lSelection.selection_limit
+                primary_skill_id = if ([string]::IsNullOrWhiteSpace([string]$lSelection.primary_skill_id)) { $null } else { [string]$lSelection.primary_skill_id }
+                selected_skill_ids = [object[]]@($lSelectedSkillIds)
+                reason = 'L keeps the smallest usable skill set on one serial governed lane.'
+            }
+            XL = [pscustomobject]@{
+                workflow_level = 'XL'
+                selection_limit = [int]$xlSelection.selection_limit
+                primary_skill_id = if ([string]::IsNullOrWhiteSpace([string]$xlSelection.primary_skill_id)) { $null } else { [string]$xlSelection.primary_skill_id }
+                selected_skill_ids = [object[]]@($xlSelectedSkillIds)
+                reason = $xlReason
+            }
+        }
+    }
+}
+
 function New-VibeSkillRoutingFromLegacy {
     param(
         [AllowEmptyString()] [string]$RouterSelectedSkill = '',

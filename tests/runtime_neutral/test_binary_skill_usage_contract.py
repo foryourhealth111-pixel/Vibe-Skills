@@ -162,6 +162,36 @@ class BinarySkillUsageContractTests(unittest.TestCase):
             self.assertEqual("xl_plan.md", payload["evidence"][0]["artifact_ref"])
             self.assertIn("loaded demo skill workflow", payload["evidence"][0]["impact_summary"])
 
+    def test_artifact_impact_can_promote_multiple_loaded_skills_without_collapsing_arrays(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            target_root = root / "home" / ".agents"
+            for skill_id in ("research", "humanizer"):
+                skill_dir = target_root / "skills" / skill_id
+                skill_dir.mkdir(parents=True, exist_ok=True)
+                (skill_dir / "SKILL.md").write_text(f"# {skill_id}\nUse it.\n", encoding="utf-8", newline="\n")
+
+            payload = run_ps_json(
+                "& { "
+                f". {ps_quote(str(RUNTIME_COMMON))}; "
+                f". {ps_quote(str(SKILL_USAGE_COMMON))}; "
+                f"$research = New-VibeSkillUsageLoadedSkill -RepoRoot {ps_quote(str(REPO_ROOT))} -SkillId 'research' -LoadedAtStage 'skeleton_check' -TargetRoot {ps_quote(str(target_root))} -HostId 'codex'; "
+                f"$humanizer = New-VibeSkillUsageLoadedSkill -RepoRoot {ps_quote(str(REPO_ROOT))} -SkillId 'humanizer' -LoadedAtStage 'skeleton_check' -TargetRoot {ps_quote(str(target_root))} -HostId 'codex'; "
+                "$usage = New-VibeInitialSkillUsage -LoadedSkills @($research, $humanizer) -TouchedSkills @(); "
+                "$usage = Update-VibeSkillUsageArtifactImpact -SkillUsage $usage -SkillId 'research' -Stage 'requirement_doc' -ArtifactRef 'requirement.md' -ImpactSummary 'Requirement doc adopts the loaded research workflow.'; "
+                "$usage = Update-VibeSkillUsageArtifactImpact -SkillUsage $usage -SkillId 'humanizer' -Stage 'xl_plan' -ArtifactRef 'plan.md' -ImpactSummary 'Execution plan adopts the loaded humanizer workflow.'; "
+                "$usage | ConvertTo-Json -Depth 20 "
+                "}"
+            )
+
+            self.assertEqual(["humanizer", "research"], sorted(payload["used_skills"]))
+            self.assertEqual([], as_list(payload["unused"]))
+            used_rows = {item["skill_id"]: item for item in as_list(payload["used"])}
+            self.assertEqual({"research", "humanizer"}, set(used_rows))
+            self.assertEqual("requirement_doc", used_rows["research"]["evidence"][0]["stage"])
+            self.assertEqual("xl_plan", used_rows["humanizer"]["evidence"][0]["stage"])
+            self.assertEqual({"research", "humanizer"}, {item["skill_id"] for item in as_list(payload["evidence"])})
+
     def test_runtime_freeze_records_selected_skill_as_loaded_but_not_yet_used(self) -> None:
         shell = resolve_powershell()
         if shell is None:

@@ -1060,6 +1060,354 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                         requirement_doc,
                     )
 
+    def test_write_requirement_doc_renders_detailed_workflow_level_confirmation(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
+        run_id = "pytest-requirement-doc-workflow-level-details"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        intent_contract = {
+            "title": "Governed workflow level confirmation",
+            "goal": "Clarify which workflow level should run before any execution starts.",
+            "deliverable": "A requirement document with explicit L and XL guidance.",
+            "constraints": [
+                "Do not start execution before the user chooses the workflow level.",
+            ],
+            "acceptance_criteria": [
+                "Both levels explain the workflow, expected skills, and reason for the recommendation.",
+            ],
+            "non_goals": [
+                "Do not auto-continue into execution planning.",
+            ],
+            "autonomy_mode": "interactive_governed",
+            "assumptions": [
+                "The user still needs to confirm the workflow level.",
+            ],
+            "workflow_level_confirmation": {
+                "enabled": True,
+                "user_visible": True,
+                "recommended_level": "L",
+                "recommendation_reason": "L keeps the work on one serial governed lane for this scope.",
+                "question": "先确认任务级别：这次任务走 L 级还是 XL 级？",
+                "decision_importance": "L 和 XL 会直接改变后续协作深度、执行波次和证据压力。",
+                "levels": {
+                    "L": "L 级保持单主线推进。",
+                    "XL": "XL 级进入更重的分波次协作。",
+                },
+                "level_details": {
+                    "L": {
+                        "workflow": "冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。",
+                        "skills": "优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。",
+                        "why_this_fit": "适合仍然是一个主交付物、并行收益不高的任务。",
+                        "confirm_reply": "如果你认可这个流程，请回复：走 L 级。",
+                    },
+                    "XL": {
+                        "workflow": "冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。",
+                        "skills": "会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。",
+                        "why_this_fit": "适合多技能协作、多产物或高风险任务。",
+                        "confirm_reply": "如果你要更重的分波次流程，请回复：走 XL 级。",
+                    },
+                },
+                "selection_prompt": "请根据上面的说明选择并确认这次任务级别。",
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            intent_contract_path = artifact_root / "intent-contract.json"
+            runtime_input_packet_path = artifact_root / "runtime-input-packet.json"
+            intent_contract_path.write_text(
+                json.dumps(intent_contract, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            runtime_input_packet_path.write_text(
+                json.dumps(
+                    {
+                        "governance_scope": "root",
+                        "work_binding": {
+                            "unit_count": 0,
+                            "status": "no_bound_skills",
+                            "units": [],
+                        },
+                        "hierarchy": {
+                            "root_run_id": run_id,
+                        },
+                        "authority_flags": {
+                            "explicit_runtime_skill": "vibe",
+                        },
+                        "route_snapshot": {
+                            "task_type": "research",
+                            "route_mode": "no_local_candidate",
+                            "confirm_required": False,
+                        },
+                        "specialist_decision": {
+                            "decision_state": "no_specialist_recommendations",
+                            "resolution_mode": "no_matching_specialist",
+                            "notes": "No concrete task skills matched this run.",
+                            "selected_skill_ids": [],
+                        },
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    "-Task 'Clarify the governed workflow level before execution.' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-IntentContractPath '{intent_contract_path}' "
+                    f"-RuntimeInputPacketPath '{runtime_input_packet_path}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+            )
+
+            payload = json.loads(completed.stdout)
+            requirement_doc = Path(payload["requirement_doc_path"]).read_text(encoding="utf-8")
+
+            self.assertIn("## Workflow Level Confirmation", requirement_doc)
+            self.assertIn("Current selected task skills: none yet.", requirement_doc)
+            self.assertIn(
+                "No concrete task skill matched this run yet, so the L / XL explanation below is the default coordination skeleton.",
+                requirement_doc,
+            )
+            self.assertIn("Recommendation reason: L keeps the work on one serial governed lane for this scope.", requirement_doc)
+            self.assertIn("Why this decision matters: L 和 XL 会直接改变后续协作深度、执行波次和证据压力。", requirement_doc)
+            self.assertIn("L workflow: 冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。", requirement_doc)
+            self.assertIn("L skills: 优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。", requirement_doc)
+            self.assertIn("XL workflow: 冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。", requirement_doc)
+            self.assertIn("XL skills: 会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。", requirement_doc)
+
+    def test_write_requirement_doc_prefers_skill_selection_ids_for_workflow_level_disclosure(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
+        run_id = "pytest-requirement-doc-skill-selection-details"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        intent_contract = {
+            "title": "Governed workflow level confirmation",
+            "goal": "Clarify which workflow level should run before any execution starts.",
+            "deliverable": "A requirement document with explicit L and XL guidance.",
+            "constraints": [
+                "Do not start execution before the user chooses the workflow level.",
+            ],
+            "acceptance_criteria": [
+                "Both levels explain the workflow, expected skills, and reason for the recommendation.",
+            ],
+            "non_goals": [
+                "Do not auto-continue into execution planning.",
+            ],
+            "autonomy_mode": "interactive_governed",
+            "assumptions": [
+                "The user still needs to confirm the workflow level.",
+            ],
+            "workflow_level_confirmation": {
+                "enabled": True,
+                "user_visible": True,
+                "recommended_level": "L",
+                "recommendation_reason": "L keeps the work on one serial governed lane for this scope.",
+                "question": "先确认任务级别：这次任务走 L 级还是 XL 级？",
+                "decision_importance": "L 和 XL 会直接改变后续协作深度、执行波次和证据压力。",
+                "levels": {
+                    "L": "L 级保持单主线推进。",
+                    "XL": "XL 级进入更重的分波次协作。",
+                },
+                "level_details": {
+                    "L": {
+                        "workflow": "冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。",
+                        "skills": "优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。",
+                        "why_this_fit": "适合仍然是一个主交付物、并行收益不高的任务。",
+                        "confirm_reply": "如果你认可这个流程，请回复：走 L 级。",
+                    },
+                    "XL": {
+                        "workflow": "冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。",
+                        "skills": "会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。",
+                        "why_this_fit": "适合多技能协作、多产物或高风险任务。",
+                        "confirm_reply": "如果你要更重的分波次流程，请回复：走 XL 级。",
+                    },
+                },
+                "selection_prompt": "请根据上面的说明选择并确认这次任务级别。",
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            intent_contract_path = artifact_root / "intent-contract.json"
+            runtime_input_packet_path = artifact_root / "runtime-input-packet.json"
+            intent_contract_path.write_text(
+                json.dumps(intent_contract, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            runtime_input_packet_path.write_text(
+                json.dumps(
+                    {
+                        "governance_scope": "root",
+                        "work_binding": {
+                            "unit_count": 0,
+                            "status": "no_bound_skills",
+                            "units": [],
+                        },
+                        "skill_selection": {
+                            "schema_version": "skill_selection_v1",
+                            "workflow_level": "L",
+                            "selection_limit": 3,
+                            "primary_skill_id": "research",
+                            "candidate_skill_ids": [
+                                "research",
+                                "humanizer",
+                                "paper-writer",
+                                "statistical-analysis",
+                                "matplotlib",
+                                "pptx-collab-integrated",
+                            ],
+                            "selected_skill_ids": ["research", "humanizer", "paper-writer"],
+                            "rejected_candidate_skill_ids": [],
+                            "workflow_level_schemes": {
+                                "shortlist_skill_ids": [
+                                    "research",
+                                    "humanizer",
+                                    "paper-writer",
+                                    "statistical-analysis",
+                                    "matplotlib",
+                                    "pptx-collab-integrated",
+                                ],
+                                "shortlist_size": 6,
+                                "levels": {
+                                    "L": {
+                                        "workflow_level": "L",
+                                        "selection_limit": 3,
+                                        "primary_skill_id": "research",
+                                        "selected_skill_ids": ["research", "humanizer", "paper-writer"],
+                                        "reason": "L keeps the smallest usable skill set on one serial governed lane.",
+                                    },
+                                    "XL": {
+                                        "workflow_level": "XL",
+                                        "selection_limit": 5,
+                                        "primary_skill_id": "research",
+                                        "selected_skill_ids": [
+                                            "research",
+                                            "humanizer",
+                                            "paper-writer",
+                                            "statistical-analysis",
+                                            "matplotlib",
+                                        ],
+                                        "reason": "XL keeps the broader usable skill set so the plan can open extra bounded lanes after freeze.",
+                                    },
+                                },
+                            },
+                        },
+                        "hierarchy": {
+                            "root_run_id": run_id,
+                        },
+                        "authority_flags": {
+                            "explicit_runtime_skill": "vibe",
+                        },
+                        "route_snapshot": {
+                            "task_type": "research",
+                            "route_mode": "candidate_discovery_only",
+                            "confirm_required": False,
+                        },
+                        "skill_usage": {
+                            "schema_version": 2,
+                            "state_model": "binary_used_unused",
+                            "used": [],
+                            "unused": [],
+                            "used_skills": [],
+                            "unused_skills": [],
+                            "loaded_skills": [
+                                {"skill_id": "research", "skill_md_path": "skills/research/SKILL.md", "skill_md_sha256": "sha-research"},
+                                {"skill_id": "humanizer", "skill_md_path": "skills/humanizer/SKILL.md", "skill_md_sha256": "sha-humanizer"},
+                                {"skill_id": "paper-writer", "skill_md_path": "skills/paper-writer/SKILL.md", "skill_md_sha256": "sha-paper-writer"},
+                            ],
+                            "evidence": [],
+                            "unused_reasons": [],
+                        },
+                        "specialist_decision": {
+                            "decision_state": "no_specialist_recommendations",
+                            "resolution_mode": "no_matching_specialist",
+                            "notes": "Use route candidates for selection and disclosure first.",
+                            "selected_skill_ids": [],
+                        },
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    "-Task 'Clarify the governed workflow level before execution.' "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-IntentContractPath '{intent_contract_path}' "
+                    f"-RuntimeInputPacketPath '{runtime_input_packet_path}' "
+                    f"-ArtifactRoot '{artifact_root}'; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+            )
+
+            payload = json.loads(completed.stdout)
+            requirement_doc = Path(payload["requirement_doc_path"]).read_text(encoding="utf-8")
+
+            self.assertIn("Screened task-skill shortlist size: `6`", requirement_doc)
+            self.assertIn(
+                "The L / XL plans below already choose usable task skills from that shortlist; they do not simply repeat the raw route results.",
+                requirement_doc,
+            )
+            self.assertIn("L selected task skills: `research`, `humanizer`, `paper-writer`", requirement_doc)
+            self.assertIn(
+                "XL selected task skills: `research`, `humanizer`, `paper-writer`, `statistical-analysis`, `matplotlib`",
+                requirement_doc,
+            )
+            self.assertIn("- Selected task skills: `research`, `humanizer`, `paper-writer`", requirement_doc)
+            self.assertNotIn("- Bounded work skill:", requirement_doc)
+            self.assertIn("## Skill Usage", requirement_doc)
+            self.assertIn(
+                "- Used skill candidates: `research`, `humanizer`, `paper-writer` are promoted only because full `SKILL.md` load evidence exists and this requirement doc adopts them as workflow authority.",
+                requirement_doc,
+            )
+            self.assertIn("Selection prompt: 请根据上面的说明选择并确认这次任务级别。", requirement_doc)
+
     def test_resolve_vgo_python_command_spec_falls_back_to_python3(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             fake_dir = Path(tempdir)

@@ -151,6 +151,9 @@ stage without asking the user for a separate approval first:
 Route confirmations must stay inside surfaced confirm options. Bounded approvals
 or revisions must stay inside the surfaced bounded-stage action contract.
 
+At `requirement_doc`, read `runtime-summary.json -> host_user_briefing` and use `host_user_briefing.rendered_text` as the backbone of the user reply. Keep the same field order. Do not summarize it down to only the recommendation.
+Name both `L` and `XL`: workflow, selected task skills, and recommendation reason. When a screened shortlist exists, use the level-specific curated skill schemes from `host_user_briefing` rather than echoing raw route results. If `selected_skill_ids` is empty, say no concrete task skill matched yet and only describe the default skeleton; if it is not empty, keep the requirement approval and level choice in the same reply.
+
 ## Unified Runtime Contract
 
 Canonical `vibe` owns one runtime authority and one visible requirement/plan

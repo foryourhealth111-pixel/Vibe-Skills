@@ -102,9 +102,7 @@ function Test-VibeSingleOptionCanonicalConfirmSurface {
         [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
     )
 
-    $resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId `
-        -EntryIntentId $EntryIntentId `
-        -RuntimeSelectedSkill $RuntimeSelectedSkill
+    $resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId -EntryIntentId $EntryIntentId
     if (
         -not [string]::IsNullOrWhiteSpace([string]$EntryIntentId) -and
         -not [string]::Equals(
@@ -160,8 +158,7 @@ function Test-VibeSingleOptionCanonicalConfirmSurface {
 
 function Resolve-VibeControllerEntryIntentId {
     param(
-        [AllowEmptyString()] [string]$EntryIntentId = '',
-        [AllowEmptyString()] [string]$RuntimeSelectedSkill = ''
+        [AllowEmptyString()] [string]$EntryIntentId = ''
     )
 
     if ([string]::IsNullOrWhiteSpace([string]$EntryIntentId)) {
@@ -722,6 +719,105 @@ function Get-VibeSpecialistRecommendations {
     return @($recommendations)
 }
 
+function Get-VibeSkillExecutionDispatchContract {
+    param(
+        [Parameter(Mandatory)] [object]$Policy
+    )
+
+    if ($Policy.PSObject.Properties.Name -contains 'skill_execution_contract' -and $null -ne $Policy.skill_execution_contract) {
+        return $Policy.skill_execution_contract
+    }
+
+    return [pscustomobject]@{
+        bounded_role = 'specialist_assist'
+        native_usage_required = $true
+        must_preserve_workflow = $true
+        dispatch_phase = 'in_execution'
+        execution_priority = 50
+        lane_policy = 'inherit_grade'
+        parallelizable_in_root_xl = $true
+        write_scope_template = 'specialist:{skill_id}'
+        review_mode = 'native_contract'
+        required_inputs = @('bounded specialist subtask contract')
+        expected_outputs = @('bounded specialist result')
+        verification_expectation = 'Preserve the specialist skill native workflow.'
+    }
+}
+
+function Select-VibeRecommendationsForSkillSelection {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$Task,
+        [Parameter(Mandatory)] [object]$SkillSelection,
+        [AllowEmptyCollection()] [object[]]$Recommendations = @(),
+        [Parameter(Mandatory)] [string]$TaskType,
+        [Parameter(Mandatory)] [object]$Policy,
+        [AllowNull()] [object]$PromotionPolicy = $null,
+        [AllowEmptyString()] [string]$TargetRoot = '',
+        [AllowEmptyString()] [string]$HostId = ''
+    )
+
+    $selectedRows = if (
+        $null -ne $SkillSelection -and
+        $SkillSelection.PSObject.Properties.Name -contains 'selected' -and
+        $null -ne $SkillSelection.selected
+    ) {
+        @($SkillSelection.selected)
+    } else {
+        @()
+    }
+    if (@($selectedRows).Count -eq 0) {
+        return @()
+    }
+
+    $recommendationIndex = @{}
+    foreach ($recommendation in @($Recommendations)) {
+        $skillId = if ($recommendation.PSObject.Properties.Name -contains 'skill_id') { [string]$recommendation.skill_id } else { '' }
+        if ([string]::IsNullOrWhiteSpace($skillId) -or $recommendationIndex.ContainsKey($skillId)) {
+            continue
+        }
+        $recommendationIndex[$skillId] = $recommendation
+    }
+
+    $dispatchContract = Get-VibeSkillExecutionDispatchContract -Policy $Policy
+    $dispatchContractForRecommendation = [pscustomobject]@{}
+    foreach ($property in @($dispatchContract.PSObject.Properties)) {
+        $dispatchContractForRecommendation | Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value
+    }
+    $dispatchContractForRecommendation | Add-Member -NotePropertyName policy -NotePropertyValue $Policy -Force
+
+    $selectedRecommendations = New-Object System.Collections.Generic.List[object]
+    foreach ($selectedRow in $selectedRows) {
+        $skillId = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'skill_id' -DefaultValue '')
+        if ([string]::IsNullOrWhiteSpace($skillId)) {
+            continue
+        }
+
+        if ($recommendationIndex.ContainsKey($skillId)) {
+            $selectedRecommendations.Add($recommendationIndex[$skillId]) | Out-Null
+            continue
+        }
+
+        $selectedRecommendations.Add((New-VibeSpecialistRecommendation `
+            -RepoRoot $RepoRoot `
+            -Task $Task `
+            -SkillId $skillId `
+            -Source 'skill_selection' `
+            -TaskType $TaskType `
+            -Reason 'selected task skill from route candidate screening' `
+            -PackId $null `
+            -Confidence (Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'score' -DefaultValue 0.0) `
+            -Rank (Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'selection_rank' -DefaultValue ($selectedRecommendations.Count + 1)) `
+            -DispatchContract $dispatchContractForRecommendation `
+            -PromotionPolicy $PromotionPolicy `
+            -CustomMetadata $selectedRow `
+            -TargetRoot $TargetRoot `
+            -HostId $HostId)) | Out-Null
+    }
+
+    return [object[]]$selectedRecommendations.ToArray()
+}
+
 function Split-VibeSpecialistDispatch {
     param(
         [Parameter(Mandatory)] [string]$GovernanceScope,
@@ -998,9 +1094,7 @@ $effectiveRequestedStageStop = Resolve-VibeEntryRequestedStageStop `
     -RequestedStageStop $RequestedStageStop
 $grade = Get-VibeInternalGrade -Task $Task -RequestedGradeFloor $RequestedGradeFloor
 $taskType = Get-VibeRouterTaskType -Task $Task
-$resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId `
-    -EntryIntentId $EntryIntentId `
-    -RuntimeSelectedSkill ([string]$policy.explicit_runtime_skill)
+$resolvedEntryIntentId = Resolve-VibeControllerEntryIntentId -EntryIntentId $EntryIntentId
 if (
     (Test-VibeStructuredBoundedReentryContext -ContinuationContext $continuationContext) -and
     (Test-VibeObjectHasProperty -InputObject $continuationContext -PropertyName 'control_only_prompt') -and
@@ -1087,12 +1181,31 @@ if (
 $confirmRequired = ([string]$routeResult.route_mode -eq 'confirm_required')
 $runtimeSelectedSkill = [string]$policy.explicit_runtime_skill
 $routerSelectedSkill = if ($routeResult.selected) { [string]$routeResult.selected.skill } else { $null }
+$skillSelection = New-VibeSkillSelectionFromRouteResult `
+    -RouteResult $routeResult `
+    -RuntimeSelectedSkill $runtimeSelectedSkill
+$workflowLevelSkillSchemes = New-VibeWorkflowLevelSkillSelectionSchemes `
+    -RouteResult $routeResult `
+    -RuntimeSelectedSkill $runtimeSelectedSkill
+if ($null -ne $skillSelection -and $null -ne $workflowLevelSkillSchemes) {
+    $skillSelection | Add-Member -NotePropertyName 'workflow_level_schemes' -NotePropertyValue $workflowLevelSkillSchemes -Force
+}
 $specialistRecommendations = @(Get-VibeSpecialistRecommendations `
     -RepoRoot $runtime.repo_root `
     -Task $Task `
     -RouteResult $routeResult `
     -RuntimeSelectedSkill $runtimeSelectedSkill `
     -RouterSelectedSkill $routerSelectedSkill `
+    -TaskType $taskType `
+    -Policy $policy `
+    -PromotionPolicy $runtime.skill_promotion_policy `
+    -TargetRoot $routerTargetRoot `
+    -HostId $routerHostId)
+$specialistRecommendations = @(Select-VibeRecommendationsForSkillSelection `
+    -RepoRoot $runtime.repo_root `
+    -Task $Task `
+    -SkillSelection $skillSelection `
+    -Recommendations @($specialistRecommendations) `
     -TaskType $taskType `
     -Policy $policy `
     -PromotionPolicy $runtime.skill_promotion_policy `
@@ -1252,6 +1365,7 @@ $packet = New-VibeRuntimeInputPacketProjection `
     -SpecialistRecommendations @($specialistRecommendations) `
     -StageAssistantHints @($stageAssistantHints) `
     -SkillUsage $skillUsage `
+    -SkillSelection $skillSelection `
     -SkillRouting $skillRouting `
     -SkillExecutionLock $skillExecutionLock `
     -SpecialistDispatch $specialistDispatch `

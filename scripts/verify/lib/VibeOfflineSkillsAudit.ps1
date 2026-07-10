@@ -270,9 +270,9 @@ function Get-VibeOfflineManagedSkillSet {
             $Packaging.PSObject.Properties.Name -contains "profiles" -and
             $Packaging.profiles.PSObject.Properties.Name -contains $defaultProfile
         ) {
-            $profile = $Packaging.profiles.$defaultProfile
-            if ($null -ne $profile -and $profile.PSObject.Properties.Name -contains "managed_skill_inventory") {
-                $inventory = $profile.managed_skill_inventory
+            $selectedProfile = $Packaging.profiles.$defaultProfile
+            if ($null -ne $selectedProfile -and $selectedProfile.PSObject.Properties.Name -contains "managed_skill_inventory") {
+                $inventory = $selectedProfile.managed_skill_inventory
             }
         }
     }

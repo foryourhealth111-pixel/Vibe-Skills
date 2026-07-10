@@ -357,13 +357,13 @@ function Update-VibeSkillUsageArtifactImpact {
         skill_md_path = if (@($loadedRecord).Count -gt 0) { [string]$loadedRecord[0].skill_md_path } else { $null }
         skill_md_sha256 = if (@($loadedRecord).Count -gt 0) { [string]$loadedRecord[0].skill_md_sha256 } else { $null }
     }
-    $evidence += $legacyEvidenceRecord
-    $usedRows += [pscustomobject]@{
+    $evidence = [object[]]@(@($evidence) + @($legacyEvidenceRecord))
+    $usedRows = [object[]]@(@($usedRows) + @([pscustomobject]@{
         skill_id = $SkillId
         skill_md_path = if (@($loadedRecord).Count -gt 0) { [string]$loadedRecord[0].skill_md_path } else { $null }
         skill_md_sha256 = if (@($loadedRecord).Count -gt 0) { [string]$loadedRecord[0].skill_md_sha256 } else { $null }
         evidence = @($impactRecord)
-    }
+    }))
 
     return [pscustomobject]@{
         schema_version = 2

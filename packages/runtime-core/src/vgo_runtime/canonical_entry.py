@@ -568,6 +568,26 @@ def _serialize_host_decision_json(host_decision: dict[str, Any] | None) -> str |
     return json.dumps(decision, ensure_ascii=False, separators=(",", ":"))
 
 
+def _requested_grade_floor_from_host_decision(
+    host_decision: dict[str, Any] | None,
+) -> str | None:
+    decision = _normalize_host_decision(host_decision)
+    if not decision:
+        return None
+
+    for container in (
+        decision,
+        decision.get("continuation_context") if isinstance(decision.get("continuation_context"), dict) else None,
+    ):
+        if not isinstance(container, dict):
+            continue
+        for key in ("requested_grade_floor", "workflow_level"):
+            value = str(container.get(key) or "").strip().upper()
+            if value in {"L", "XL"}:
+                return value
+    return None
+
+
 def _resolve_local_kernel_stage_stop_summary(
     *,
     entry_id: str,
@@ -2031,6 +2051,9 @@ def launch_canonical_vibe(
         requested_stage_stop=requested_stage_stop_seed,
         bounded_reentry=validated_reentry,
     )
+    effective_requested_grade_floor = requested_grade_floor or _requested_grade_floor_from_host_decision(
+        effective_host_decision,
+    )
     prompt_entry_id = runtime_entry_id if validated_reentry is not None else requested_entry_id
     effective_prompt = _resolve_effective_prompt(
         host_id=resolved_host_id,
@@ -2052,7 +2075,7 @@ def launch_canonical_vibe(
         launch_mode="canonical-entry",
         launcher_path=str((repo_root_path / CANONICAL_ENTRY_BRIDGE_RELPATH).resolve()),
         requested_stage_stop=effective_requested_stage_stop,
-        requested_grade_floor=requested_grade_floor,
+        requested_grade_floor=effective_requested_grade_floor,
         runtime_entrypoint=str((repo_root_path / RUNTIME_ENTRYPOINT_RELPATH).resolve()),
         run_id=resolved_run_id,
         created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -2067,7 +2090,7 @@ def launch_canonical_vibe(
             entry_id=runtime_entry_id,
             prompt=effective_prompt,
             requested_stage_stop=effective_requested_stage_stop,
-            requested_grade_floor=requested_grade_floor,
+            requested_grade_floor=effective_requested_grade_floor,
             run_id=resolved_run_id,
             artifact_root=resolved_artifact_root,
             host_decision=effective_host_decision,

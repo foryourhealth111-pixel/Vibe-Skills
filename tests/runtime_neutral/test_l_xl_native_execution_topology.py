@@ -529,6 +529,44 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertFalse(summary["artifacts"]["execute_receipt"])
             self.assertFalse(summary["artifacts"]["cleanup_receipt"])
 
+    def test_requirement_stop_host_briefing_explains_l_and_xl_before_choice(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            payload = run_runtime(
+                task="Clarify the project goal before any implementation starts.",
+                artifact_root=Path(tempdir),
+                governance_scope="root",
+                entry_intent_id="vibe",
+                requested_stage_stop="requirement_doc",
+            )
+            summary = payload["summary"]
+            requirement_doc = Path(summary["artifacts"]["requirement_doc"]).read_text(encoding="utf-8")
+            rendered_text = summary["host_user_briefing"]["rendered_text"]
+            selected_skill_ids = list(summary["bounded_return_control"]["selected_skill_ids"])
+
+            self.assertIn("Screened task-skill shortlist size:", rendered_text)
+            self.assertIn(
+                "The L / XL plans below already choose usable task skills from that shortlist; they do not simply repeat the raw route results.",
+                rendered_text,
+            )
+            self.assertIn("L selected task skills:", rendered_text)
+            self.assertIn("XL selected task skills:", rendered_text)
+            if selected_skill_ids:
+                for skill_id in selected_skill_ids:
+                    self.assertIn(skill_id, rendered_text)
+            self.assertIn("Recommendation reason:", rendered_text)
+            self.assertIn("Why this decision matters:", rendered_text)
+            self.assertIn("L workflow:", rendered_text)
+            self.assertIn("L skills:", rendered_text)
+            self.assertIn("tdd", rendered_text)
+            self.assertIn("XL workflow:", rendered_text)
+            self.assertIn("subagent-driven-development", rendered_text)
+            self.assertIn("请根据上面的说明选择并确认这次任务级别。", rendered_text)
+            self.assertIn("L selected task skills:", requirement_doc)
+            self.assertIn("XL selected task skills:", requirement_doc)
+            self.assertIn("Why this decision matters:", requirement_doc)
+            self.assertIn("L skills:", requirement_doc)
+            self.assertIn("XL skills:", requirement_doc)
+
     def test_explicit_xl_plan_stop_freezes_requirement_and_plan_then_stops_before_execute(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
@@ -698,6 +736,140 @@ class NativeExecutionTopologyTests(unittest.TestCase):
             self.assertIn("Entry intent: vibe", execution_plan)
             self.assertIn("Requested stop stage: xl_plan", execution_plan)
             self.assertIn("Requested grade floor: XL", execution_plan)
+
+    def test_write_xl_plan_prefers_skill_selection_ids_in_host_facing_disclosure(self) -> None:
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
+        run_id = "pytest-xl-plan-skill-selection-details"
+        intent_contract = {
+            "title": "Governed workflow level confirmation",
+            "goal": "Clarify which workflow level should run before any execution starts.",
+            "deliverable": "A requirement document with explicit L and XL guidance.",
+            "constraints": [
+                "Do not start execution before the user chooses the workflow level.",
+            ],
+            "acceptance_criteria": [
+                "Both levels explain the workflow, expected skills, and reason for the recommendation.",
+            ],
+            "non_goals": [
+                "Do not auto-continue into execution planning.",
+            ],
+            "autonomy_mode": "interactive_governed",
+            "assumptions": [
+                "The user still needs to confirm the workflow level.",
+            ],
+        }
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            intent_contract_path = artifact_root / "intent-contract.json"
+            runtime_input_packet_path = artifact_root / "runtime-input-packet.json"
+            intent_contract_path.write_text(
+                json.dumps(intent_contract, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            runtime_input_packet_path.write_text(
+                json.dumps(
+                    {
+                        "governance_scope": "root",
+                        "work_binding": {
+                            "unit_count": 0,
+                            "status": "no_bound_skills",
+                            "units": [],
+                        },
+                        "skill_selection": {
+                            "schema_version": "skill_selection_v1",
+                            "workflow_level": "L",
+                            "selection_limit": 3,
+                            "primary_skill_id": "research",
+                            "candidate_skill_ids": ["research", "humanizer", "paper-writer"],
+                            "selected_skill_ids": ["research", "humanizer", "paper-writer"],
+                            "rejected_candidate_skill_ids": [],
+                        },
+                        "hierarchy": {
+                            "root_run_id": run_id,
+                        },
+                        "authority_flags": {
+                            "explicit_runtime_skill": "vibe",
+                        },
+                        "route_snapshot": {
+                            "task_type": "research",
+                            "route_mode": "candidate_discovery_only",
+                            "confirm_required": False,
+                        },
+                        "skill_usage": {
+                            "schema_version": 2,
+                            "state_model": "binary_used_unused",
+                            "used": [],
+                            "unused": [],
+                            "used_skills": [],
+                            "unused_skills": [],
+                            "loaded_skills": [
+                                {"skill_id": "research", "skill_md_path": "skills/research/SKILL.md", "skill_md_sha256": "sha-research"},
+                                {"skill_id": "humanizer", "skill_md_path": "skills/humanizer/SKILL.md", "skill_md_sha256": "sha-humanizer"},
+                                {"skill_id": "paper-writer", "skill_md_path": "skills/paper-writer/SKILL.md", "skill_md_sha256": "sha-paper-writer"},
+                            ],
+                            "evidence": [],
+                            "unused_reasons": [],
+                        },
+                        "specialist_decision": {
+                            "decision_state": "no_specialist_recommendations",
+                            "resolution_mode": "no_matching_specialist",
+                            "notes": "Use route candidates for selection and disclosure first.",
+                            "selected_skill_ids": [],
+                        },
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            completed = subprocess.run(
+                [
+                    shell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    (
+                        "& { "
+                        f"$result = & '{script_path}' "
+                        "-Task 'Clarify the governed workflow level before execution.' "
+                        "-Mode interactive_governed "
+                        f"-RunId '{run_id}' "
+                        f"-IntentContractPath '{intent_contract_path}' "
+                        f"-RuntimeInputPacketPath '{runtime_input_packet_path}' "
+                        f"-ArtifactRoot '{artifact_root}'; "
+                        "$result | ConvertTo-Json -Depth 20 }"
+                    ),
+                ],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=True,
+            )
+            requirement_payload = json.loads(completed.stdout)
+            requirement_doc_path = Path(requirement_payload["requirement_doc_path"])
+
+            plan_payload = run_write_xl_plan(
+                task="Clarify the governed workflow level before execution.",
+                artifact_root=artifact_root,
+                requirement_doc_path=requirement_doc_path,
+                runtime_input_packet_path=runtime_input_packet_path,
+                run_id=run_id,
+            )
+            execution_plan = Path(plan_payload["execution_plan_path"]).read_text(encoding="utf-8")
+
+            self.assertIn("- Selected task skills: `research`, `humanizer`, `paper-writer`", execution_plan)
+            self.assertNotIn("- Bounded work skill:", execution_plan)
+            self.assertIn("## Binary Skill Usage Plan", execution_plan)
+            self.assertIn("- Used skill candidates: `research`, `humanizer`, `paper-writer`.", execution_plan)
 
     def test_write_xl_plan_keeps_unknown_phase_dispatches_and_suggestions_in_ungrouped_sections(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

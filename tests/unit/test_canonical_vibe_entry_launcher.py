@@ -779,6 +779,28 @@ def test_parse_host_decision_json_rejects_invalid_file_payload(tmp_path: Path) -
         canonical_entry._parse_host_decision_json(None, str(decision_path))
 
 
+def test_requested_grade_floor_can_be_read_from_host_decision() -> None:
+    assert canonical_entry._requested_grade_floor_from_host_decision(
+        {
+            "decision_kind": "approval_response",
+            "decision_action": "approve_requirement",
+            "requested_grade_floor": "xl",
+        }
+    ) == "XL"
+
+
+def test_requested_grade_floor_can_be_read_from_continuation_context() -> None:
+    assert canonical_entry._requested_grade_floor_from_host_decision(
+        {
+            "decision_kind": "approval_response",
+            "continuation_context": {
+                "structured_bounded_reentry": True,
+                "workflow_level": "l",
+            },
+        }
+    ) == "L"
+
+
 def test_resolve_effective_prompt_ignores_bounded_preferred_summary_without_explicit_allow(
     tmp_path: Path,
 ) -> None:

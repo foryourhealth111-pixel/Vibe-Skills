@@ -50,6 +50,27 @@ CAPABILITY_SEARCH_HINTS_BY_CAPABILITY = {
     capability: tuple(spec["skill_inference_hints"])
     for capability, spec in CAPABILITY_BRIDGE
 }
+CAPABILITY_PROMPT_HINTS_BY_CAPABILITY = {
+    capability: tuple(spec["prompt_hints"])
+    for capability, spec in CAPABILITY_BRIDGE
+}
+ROUTER_QUERY_ALIAS_HINTS = (
+    (("综述", "文献综述", "系统综述"), ("literature review", "review")),
+    (("数据库", "公共数据库", "公开数据库"), ("public database", "database", "literature search")),
+    (("浅显易懂", "通俗易懂", "通俗"), ("plain language", "reader report")),
+    (("去ai味", "去 ai 味", "像人写", "更自然"), ("human written", "natural writing", "editing")),
+)
+MODULE_CAPABILITY_ALIASES = {
+    "deploy.netlify": "deploy.preview",
+    "deploy.vercel": "deploy.preview",
+    "research.pubmed_search": "research.literature_search",
+}
+MODULE_PRIORITY_ORDER = {
+    "primary": 0,
+    "supporting": 1,
+    "secondary": 2,
+}
+ALIASED_CAPABILITY_STRENGTH = 0.25
 
 
 def _dedupe_strings(values: list[str]) -> list[str]:
@@ -95,6 +116,26 @@ def _load_local_thresholds(repo_root: Path) -> dict[str, float]:
     }
 
 
+def _augment_prompt_for_local_routing(prompt: str, task_type: str) -> str:
+    prompt_text = str(prompt or "").strip()
+    prompt_lower = normalize_text(prompt_text)
+    parts: list[str] = [prompt_text] if prompt_text else []
+
+    for aliases, hint_values in ROUTER_QUERY_ALIAS_HINTS:
+        if any(alias in prompt_lower for alias in aliases):
+            parts.extend(hint_values)
+
+    augmented: list[str] = []
+    seen: set[str] = set()
+    for value in parts:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        augmented.append(text)
+        seen.add(text)
+    return " ".join(augmented)
+
+
 def _resolve_local_host_roots(*, repo_root: Path, host_id: str | None, target_root: Path) -> tuple[Path, ...]:
     normalized_host_id = resolve_host_id(host_id)
     return tuple(
@@ -120,6 +161,19 @@ def _entry_search_tokens(entry: dict[str, Any]) -> set[str]:
     return tokens
 
 
+def _expand_capability_names(capabilities: list[str] | set[str] | tuple[str, ...]) -> set[str]:
+    expanded: set[str] = set()
+    for raw_capability in capabilities:
+        capability = str(raw_capability).strip()
+        if not capability:
+            continue
+        expanded.add(capability)
+        alias = MODULE_CAPABILITY_ALIASES.get(capability)
+        if alias:
+            expanded.add(alias)
+    return expanded
+
+
 def _capability_bridge_search_hints(entry: dict[str, Any]) -> list[str]:
     weak_text_capabilities: set[str] = set()
     body_intent_weak_text_capabilities: set[str] = set()
@@ -139,7 +193,8 @@ def _capability_bridge_search_hints(entry: dict[str, Any]) -> list[str]:
             continue
         if capability_text in weak_text_capabilities and capability_text not in body_intent_weak_text_capabilities:
             continue
-        hints.extend(CAPABILITY_SEARCH_HINTS_BY_CAPABILITY.get(capability_text, ()))
+        for expanded_capability in _expand_capability_names([capability_text]):
+            hints.extend(CAPABILITY_SEARCH_HINTS_BY_CAPABILITY.get(expanded_capability, ()))
     return hints
 
 
@@ -153,10 +208,17 @@ def _capability_strengths(entry: dict[str, Any]) -> dict[str, float]:
             continue
         strength = float(row.get("strength") or 0.0)
         strengths[capability] = max(strengths.get(capability, 0.0), strength)
+        alias = MODULE_CAPABILITY_ALIASES.get(capability)
+        if alias:
+            strengths[alias] = max(strengths.get(alias, 0.0), min(strength, ALIASED_CAPABILITY_STRENGTH))
     for capability in entry.get("capabilities") or []:
         text = str(capability).strip()
-        if text:
-            strengths.setdefault(text, 0.55)
+        if not text:
+            continue
+        strengths.setdefault(text, 0.55)
+        alias = MODULE_CAPABILITY_ALIASES.get(text)
+        if alias:
+            strengths.setdefault(alias, ALIASED_CAPABILITY_STRENGTH)
     return strengths
 
 
@@ -164,11 +226,19 @@ def _capability_evidence_level(entry: dict[str, Any], matched_capabilities: list
     matched = set(matched_capabilities)
     levels: list[str] = []
     for row in entry.get("capability_evidence") or []:
-        if not isinstance(row, dict) or str(row.get("capability") or "").strip() not in matched:
+        if not isinstance(row, dict):
+            continue
+        capability = str(row.get("capability") or "").strip()
+        if not capability:
             continue
         level = str(row.get("evidence_level") or "").strip()
-        if level:
-            levels.append(level)
+        if capability in matched:
+            if level:
+                levels.append(level)
+            continue
+        alias = MODULE_CAPABILITY_ALIASES.get(capability)
+        if alias and alias in matched:
+            levels.append("weak_text")
     if "declared" in levels:
         return "declared"
     if "weak_text" in levels:
@@ -179,6 +249,11 @@ def _capability_evidence_level(entry: dict[str, Any], matched_capabilities: list
 def _domain_anchor_score(entry: dict[str, Any], task_card: dict[str, Any]) -> float:
     primary = set(task_card.get("primary_capabilities") or [])
     skill_id = str(entry.get("skill_id") or entry.get("id") or "").casefold()
+    raw_entry_capabilities = {
+        str(capability).strip()
+        for capability in entry.get("capabilities") or []
+        if str(capability).strip()
+    }
     identity_text = " ".join(
         [
             skill_id,
@@ -195,6 +270,10 @@ def _domain_anchor_score(entry: dict[str, Any], task_card: dict[str, Any]) -> fl
         return 0.32
     if "research.literature_review" in primary and skill_id == "literature-review":
         return 0.32
+    if "research.literature_search" in primary and skill_id == "research":
+        return 0.45
+    if "research.literature_review" in primary and skill_id == "research":
+        return 0.35
     if "research.pubmed_search" in primary and skill_id == "pubmed-database":
         return 0.55
     if "research.zotero_management" in primary and skill_id == "pyzotero":
@@ -209,12 +288,72 @@ def _domain_anchor_score(entry: dict[str, Any], task_card: dict[str, Any]) -> fl
         return 0.32
     if "research.deep_research" in primary and skill_id == "webthinker-deep-research":
         return 0.32
+    if "architecture.domain_model" in primary and any(
+        anchor in identity_text for anchor in ("domain model", "ubiquitous language", "bounded context", "领域模型", "统一语言")
+    ):
+        return 0.5
+    if "architecture.interface_design" in primary and any(
+        anchor in identity_text for anchor in ("module interface", "interface design", "service boundary", "deep module", "seam", "模块接口", "边界设计")
+    ):
+        return 0.45
+    if "frontend.build" in primary and "frontend.build" in raw_entry_capabilities and any(
+        anchor in identity_text for anchor in ("frontend", "front-end", "react", "next.js", "前端", "看板前端", "网页界面")
+    ):
+        return 0.45
+    if "observability.sentry" in primary and any(
+        anchor in identity_text for anchor in ("sentry", "production error", "线上报错", "线上告警")
+    ):
+        return 0.55
     if "visualization.figure" in primary and skill_id == "scientific-visualization":
         return 0.35
+    if "visualization.figure" in primary and any(
+        anchor in identity_text for anchor in ("visualization", "figure", "plot", "matplotlib", "chart", "科研绘图", "结果图")
+    ):
+        return 0.18
     if "visualization.infographic" in primary and skill_id == "infographics":
         return 0.32
     if "visualization.schematic" in primary and skill_id == "scientific-schematics":
         return 0.32
+    if "docs.deep_reading" in primary and any(
+        anchor in identity_text for anchor in ("deep reading", "deep analysis", "long-form content", "technical rfc", "精读")
+    ):
+        return 0.42
+    if "debug.systematic_workflow" in primary and any(
+        anchor in identity_text for anchor in ("diagnose", "debug", "bug", "调试", "性能回退", "性能变差")
+    ):
+        return 0.45
+    if "reasoning.first_principles" in primary and any(
+        anchor in identity_text for anchor in ("first principles", "第一性原理", "隐藏假设")
+    ):
+        return 0.48
+    if "prototype.throwaway_validation" in primary and any(
+        anchor in identity_text for anchor in ("throwaway prototype", "prototype", "spike", "原型验证")
+    ):
+        return 0.42
+    if "deploy.preview" in primary and "deploy.preview" in raw_entry_capabilities and any(
+        anchor in identity_text for anchor in ("preview deployment", "preview link", "vercel", "netlify", "预览部署")
+    ):
+        return 0.42
+    if "planning.prd" in primary and "planning.prd" in raw_entry_capabilities and any(
+        anchor in identity_text for anchor in ("prd", "product requirements", "requirements doc", "需求文档")
+    ):
+        return 0.42
+    if "planning.issue_breakdown" in primary and "planning.issue_breakdown" in raw_entry_capabilities and any(
+        anchor in identity_text for anchor in ("to-issues", "issue breakdown", "task breakdown", "issue tracker", "拆分 issues", "任务拆分")
+    ):
+        return 0.42
+    if "performance.gpu_migration" in primary and any(
+        anchor in identity_text for anchor in ("gpu", "cuda", "gpu acceleration", "迁移到 gpu", "cuda 加速")
+    ):
+        return 0.5
+    if "performance.regression_debugging" in primary and any(
+        anchor in identity_text for anchor in ("diagnose", "debug", "performance regression", "性能回退", "性能变差")
+    ):
+        return 0.45
+    if "science.methodology_audit" in primary and any(
+        anchor in identity_text for anchor in ("methodology", "experimental design", "evidence quality", "bias", "confounding", "方法学", "偏倚", "混杂")
+    ):
+        return 0.4
     if "presentation.deck" in primary and skill_id == "scientific-slides":
         return 0.18
     if "presentation.slidev" in primary and skill_id == "slides-as-code":
@@ -233,6 +372,38 @@ def _domain_anchor_score(entry: dict[str, Any], task_card: dict[str, Any]) -> fl
         return 0.08
     if "statistics.regression" in primary and skill_id == "scikit-learn":
         return 0.18
+    if "statistics.test_selection_or_result_check" in primary and any(
+        anchor in identity_text for anchor in ("statistical analysis", "检验选择", "假设检查", "power analysis", "统计方法")
+    ):
+        return 0.18
+    if "research.literature_search" in primary and any(
+        anchor in identity_text for anchor in ("literature search", "primary sources", "high-trust primary sources", "文献检索")
+    ):
+        return 0.22
+    if "research.literature_review" in primary and any(
+        anchor in identity_text for anchor in ("literature review", "systematic review", "综述", "evidence table")
+    ):
+        return 0.22
+    if "vision.error_analysis" in primary and any(
+        anchor in identity_text for anchor in ("computer vision", "object detection", "目标检测", "m ap", "map 指标", "mAP")
+    ):
+        return 0.52
+    if "vision.training_strategy" in primary and any(
+        anchor in identity_text for anchor in ("training strategy", "object detection", "yolo", "detr", "训练策略")
+    ):
+        return 0.42
+    if "writing.chinese_humanization" in primary and any(
+        anchor in identity_text for anchor in ("去 ai 味", "humanize 中文", "说人话", "真人表达", "human-written", "natural writing")
+    ):
+        return 0.42
+    if "writing.manuscript_review" in primary and any(
+        anchor in identity_text for anchor in ("manuscript review", "scientific writing", "论文润色", "审阅论文")
+    ):
+        return 0.42
+    if "writing.reader_report" in primary and any(
+        anchor in identity_text for anchor in ("plain language", "ordinary reader", "通俗", "说人话")
+    ):
+        return 0.2
     if "writing.scientific_report" in primary and any(
         anchor in identity_text for anchor in ("scientific-reporting", "scientific reporting", "scientific report")
     ):
@@ -254,11 +425,192 @@ def _domain_anchor_score(entry: dict[str, Any], task_card: dict[str, Any]) -> fl
     return 0.0
 
 
+def _hint_prompt_positions(prompt_lower: str, hints: tuple[str, ...] | list[str]) -> list[int]:
+    positions: list[int] = []
+    for hint in hints:
+        normalized_hint = normalize_text(hint)
+        if not normalized_hint or not keyword_hit(prompt_lower, normalized_hint):
+            continue
+        position = prompt_lower.find(normalized_hint)
+        if position >= 0:
+            positions.append(position)
+    return positions
+
+
+def _hint_prompt_position(prompt_lower: str, hints: tuple[str, ...] | list[str]) -> int | None:
+    positions = _hint_prompt_positions(prompt_lower, hints)
+    if not positions:
+        return None
+    return min(positions)
+
+
+def _capability_prompt_position(prompt_lower: str, capability: str) -> int | None:
+    return _hint_prompt_position(prompt_lower, CAPABILITY_PROMPT_HINTS_BY_CAPABILITY.get(capability, ()))
+
+
 def _build_task_card(prompt_lower: str, task_type: str) -> dict[str, Any]:
     required: list[str] = []
+    capability_prompt_positions: dict[str, int | None] = {}
     for capability, hints in CAPABILITY_HINTS:
         if any(keyword_hit(prompt_lower, hint) for hint in hints):
             required.append(capability)
+
+    has_performance_regression_context = any(
+        hint in prompt_lower
+        for hint in ("performance regression", "latency regression", "slow page", "性能回归", "性能退化", "卡顿")
+    )
+    if keyword_hit(prompt_lower, "regression") and not has_performance_regression_context:
+        required.append("statistics.regression")
+    if "回归" in prompt_lower and not has_performance_regression_context:
+        required.append("statistics.regression")
+
+    review_or_existing_artifact_context = any(
+        keyword_hit(prompt_lower, hint)
+        for hint in (
+            "manuscript review",
+            "paper draft",
+            "existing paper",
+            "revise abstract",
+            "revise discussion",
+            "论文草稿",
+            "审阅论文",
+            "重写摘要",
+            "重写讨论",
+            "已有的",
+        )
+    )
+    training_action_context = any(
+        keyword_hit(prompt_lower, hint)
+        for hint in (
+            "train model",
+            "model training",
+            "training strategy",
+            "training baseline",
+            "build model",
+            "prototype baseline",
+            "训练模型",
+            "模型训练",
+            "训练策略",
+            "重新训练",
+            "训练 baseline",
+        )
+    )
+    if review_or_existing_artifact_context and not training_action_context:
+        required = [capability for capability in required if not capability.startswith("model.")]
+
+    contextual_model_output_or_audit = any(
+        capability in required
+        for capability in (
+            "model.data_leakage_guard",
+            "visualization.figure",
+        )
+    )
+    if contextual_model_output_or_audit and not training_action_context:
+        required = [capability for capability in required if capability != "model.training"]
+
+    artifact_delivery_action_hints = (
+        "build",
+        "create",
+        "develop",
+        "implement",
+        "make",
+        "ship",
+        "构建",
+        "开发",
+        "实现",
+        "做一个",
+        "做个",
+        "搭一个",
+        "写一个",
+    )
+    artifact_delivery_target_hints = (
+        "game",
+        "app",
+        "tool",
+        "service",
+        "script",
+        "cli",
+        "bot",
+        "website",
+        "web app",
+        "demo",
+        "interactive demo",
+        "runnable demo",
+        "游戏",
+        "应用",
+        "工具",
+        "服务",
+        "脚本",
+        "命令行",
+        "网站",
+        "网页",
+        "界面",
+        "程序",
+        "软件",
+        "演示",
+        "可运行演示",
+    )
+    artifact_delivery_action_positions = _hint_prompt_positions(prompt_lower, artifact_delivery_action_hints)
+    artifact_delivery_target_positions = _hint_prompt_positions(prompt_lower, artifact_delivery_target_hints)
+    artifact_delivery_action_context = bool(artifact_delivery_action_positions)
+    artifact_delivery_target_context = bool(artifact_delivery_target_positions)
+    artifact_delivery_position_pairs = [
+        (action_position, target_position)
+        for action_position in artifact_delivery_action_positions
+        for target_position in artifact_delivery_target_positions
+        if target_position >= action_position and (target_position - action_position) <= 24
+    ]
+    specific_delivery_capabilities = {
+        "document.latex_submission",
+        "frontend.build",
+        "presentation.deck",
+        "presentation.poster",
+        "presentation.pptx_poster",
+        "presentation.slidev",
+    }
+    if (
+        artifact_delivery_action_context
+        and artifact_delivery_target_context
+        and artifact_delivery_position_pairs
+        and not review_or_existing_artifact_context
+        and not any(capability in required for capability in specific_delivery_capabilities)
+    ):
+        required.append("runtime.feature_delivery")
+        closest_action_position, closest_target_position = min(
+            artifact_delivery_position_pairs,
+            key=lambda pair: (abs(pair[0] - pair[1]), min(pair)),
+        )
+        capability_prompt_positions["runtime.feature_delivery"] = min(
+            closest_action_position,
+            closest_target_position,
+        )
+
+    frontend_build_action_context = any(
+        keyword_hit(prompt_lower, hint)
+        for hint in (
+            "build frontend",
+            "build a frontend",
+            "build ui",
+            "build dashboard",
+            "create dashboard",
+            "implement frontend",
+            "frontend app",
+            "做一个",
+            "搭一个",
+            "实现前端",
+            "开发前端",
+            "看板前端",
+        )
+    )
+    frontend_debug_context = any(
+        capability in required
+        for capability in (
+            "debug.systematic_workflow",
+            "performance.regression_debugging",
+        )
+    )
+    if frontend_debug_context and not frontend_build_action_context:
+        required = [capability for capability in required if capability != "frontend.build"]
 
     statistical_work = any(
         capability.startswith(("statistics.", "data."))
@@ -268,26 +620,103 @@ def _build_task_card(prompt_lower: str, task_type: str) -> dict[str, Any]:
     if statistical_work and not any(hint in prompt_lower for hint in ("study pool", "analysis pool", "data pool", "cohort pool")):
         rejected.append("research.study_plan_pool")
 
+    primary_capabilities = _dedupe_strings(
+        [
+            capability
+            for capability in required
+            if capability.startswith(
+                (
+                    "architecture.",
+                    "chem.",
+                    "clinical.",
+                    "data.",
+                    "debug.",
+                    "deploy.",
+                    "devops.",
+                    "docs.",
+                    "document.",
+                    "frontend.",
+                    "model.",
+                    "observability.",
+                    "performance.",
+                    "planning.",
+                    "presentation.",
+                    "prototype.",
+                    "quality.",
+                    "reasoning.",
+                    "runtime.",
+                    "science.",
+                    "statistics.",
+                    "vision.",
+                    "visualization.",
+                    "writing.",
+                )
+            )
+            or capability.startswith("research.")
+        ]
+    )
+    supporting_capabilities = _dedupe_strings(
+        [
+            capability
+            for capability in required
+            if not capability.startswith(("data.", "statistics.", "model."))
+        ]
+    )
     return {
         "task_type": normalize_text(task_type) or "planning",
         "required_capabilities": _dedupe_strings(required),
-        "primary_capabilities": _dedupe_strings(
-            [
-                capability
-                for capability in required
-                if capability.startswith(("data.", "statistics.", "model.", "visualization.", "presentation.", "chem.", "clinical.", "writing.scientific", "debug.", "devops.", "observability.", "deploy.", "runtime.", "document.", "quality."))
-                or capability.startswith("research.")
-            ]
-        ),
-        "supporting_capabilities": _dedupe_strings(
-            [
-                capability
-                for capability in required
-                if not capability.startswith(("data.", "statistics.", "model."))
-            ]
+        "primary_capabilities": primary_capabilities,
+        "supporting_capabilities": supporting_capabilities,
+        "modules": _build_task_modules(
+            prompt_lower=prompt_lower,
+            required_capabilities=_dedupe_strings(required),
+            primary_capabilities=primary_capabilities,
+            supporting_capabilities=supporting_capabilities,
+            capability_prompt_positions=capability_prompt_positions,
         ),
         "rejected_capabilities": _dedupe_strings(rejected),
     }
+
+
+def _build_task_modules(
+    *,
+    prompt_lower: str,
+    required_capabilities: list[str],
+    primary_capabilities: list[str],
+    supporting_capabilities: list[str],
+    capability_prompt_positions: dict[str, int | None] | None = None,
+) -> list[dict[str, Any]]:
+    primary = set(primary_capabilities)
+    supporting = set(supporting_capabilities)
+    modules: list[dict[str, Any]] = []
+    module_by_id: dict[str, dict[str, Any]] = {}
+    explicit_prompt_positions = capability_prompt_positions or {}
+    for capability in required_capabilities:
+        module_id = MODULE_CAPABILITY_ALIASES.get(capability, capability)
+        module = module_by_id.get(module_id)
+        capability_position = explicit_prompt_positions.get(capability, _capability_prompt_position(prompt_lower, capability))
+        if module is None:
+            module = {
+                "module_id": module_id,
+                "label": module_id,
+                "required_capabilities": [capability],
+                "priority": "primary" if capability in primary else "supporting" if capability in supporting else "secondary",
+                "prompt_position": capability_position,
+            }
+            module_by_id[module_id] = module
+            modules.append(module)
+            continue
+        if capability not in module["required_capabilities"]:
+            module["required_capabilities"].append(capability)
+        if capability_position is not None and (
+            module.get("prompt_position") is None or int(module["prompt_position"]) > capability_position
+        ):
+            module["prompt_position"] = capability_position
+        if module["priority"] != "primary" and capability in primary:
+            module["priority"] = "primary"
+        elif module["priority"] == "secondary" and capability in supporting:
+            module["priority"] = "supporting"
+    return modules
 
 
 def _matched_not_for_boundaries(entry: dict[str, Any], prompt_lower: str, query_tokens: set[str]) -> list[str]:
@@ -357,7 +786,7 @@ def _score_entry(prompt: str, prompt_lower: str, entry: dict[str, Any], task_car
     rejected_capabilities = set(task_card.get("rejected_capabilities") or [])
     if skill_id == "pdf" and "document.latex_submission" in required_capabilities:
         name_score = 0.0
-    entry_capabilities = set(entry.get("capabilities") or [])
+    entry_capabilities = _expand_capability_names(entry.get("capabilities") or [])
     matched_capabilities = sorted(required_capabilities & entry_capabilities)
     matched_primary_capabilities = sorted(primary_capabilities & entry_capabilities)
     matched_supporting_capabilities = sorted(supporting_capabilities & entry_capabilities)
@@ -400,13 +829,21 @@ def _score_entry(prompt: str, prompt_lower: str, entry: dict[str, Any], task_car
         capability_score = 0.0
     domain_anchor_score = _domain_anchor_score(entry, task_card)
     capability_weighted_score = (0.7 * capability_score) + (0.2 * token_score) + (0.1 * tag_score) + domain_anchor_score
-    local_lexical_score = (0.75 * token_score) + (0.25 * tag_score) if not required_capabilities or not entry_capabilities else 0.0
+    lexical_score = (0.75 * token_score) + (0.25 * tag_score)
+    if not required_capabilities:
+        local_lexical_score = lexical_score
+    elif not entry_capabilities:
+        local_lexical_score = 0.35 * lexical_score
+    else:
+        local_lexical_score = 0.0
     base_score = max(name_score, capability_weighted_score, local_lexical_score)
     if rejected_capability_matches:
         base_score = min(base_score, 0.1)
     matched_not_for = _matched_not_for_boundaries(entry, prompt_lower, query_tokens)
     if matched_not_for:
         base_score = min(base_score, 0.05)
+    if bool(entry.get("explicit_only")):
+        base_score = min(base_score, 0.1)
     score = round(base_score, 4)
     return {
         "score": score,
@@ -454,8 +891,10 @@ def _candidate_row(entry: dict[str, Any], score: dict[str, Any], *, selected: bo
         "native_skill_entrypoint": entry.get("native_skill_entrypoint"),
         "skill_root": entry.get("skill_root"),
         "description": entry.get("description"),
+        "explicit_only": bool(entry.get("explicit_only")),
         "capabilities": list(entry.get("capabilities") or []),
         "capability_card_path": entry.get("capability_card_path"),
+        "route_evidence_chunks": list(entry.get("route_evidence_chunks") or []),
         "matched_tokens": score["matched_tokens"],
         "matched_capabilities": score["matched_capabilities"],
         "matched_primary_capabilities": score["matched_primary_capabilities"],
@@ -479,6 +918,50 @@ def _top1_top2_gap(scored_rows: list[dict[str, Any]]) -> float:
     return round(max(0.0, top - second), 4)
 
 
+def _preferred_primary_row(
+    scored_rows: list[dict[str, Any]],
+    task_card: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not scored_rows:
+        return None
+    if len(task_card.get("modules") or []) <= 1:
+        return scored_rows[0]
+
+    eligible_rows = [row for row in scored_rows if not row.get("rejected_capabilities") and row.get("matched_capabilities")]
+    if not eligible_rows:
+        return scored_rows[0]
+
+    def _primary_key(row: dict[str, Any]) -> tuple[float, ...]:
+        return (
+            float(len(row.get("matched_primary_capabilities") or [])),
+            float(len(row.get("matched_capabilities") or [])),
+            float(row.get("capability_score") or 0.0),
+            -float(_evidence_level_priority(row)),
+            float(row.get("score") or 0.0),
+        )
+
+    return max(eligible_rows, key=_primary_key)
+
+
+def _visible_ranked_rows(ranked_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    positive_rows = [row for row in ranked_rows if float(row.get("score") or 0.0) > 0.0]
+    if positive_rows:
+        if len(positive_rows) <= 2:
+            return positive_rows[:2]
+        visible_rows = [
+            row
+            for index, row in enumerate(positive_rows)
+            if index == 0
+            or row.get("role") in {"primary_owner", "supporting_owner"}
+            or row.get("matched_capabilities")
+            or _has_confirmable_near_match(row)
+        ]
+        if visible_rows:
+            return visible_rows[:6]
+        return positive_rows[:1]
+    return ranked_rows[:1]
+
+
 def _has_confirmable_near_match(row: dict[str, Any]) -> bool:
     if row.get("matched_capabilities") and row.get("capability_evidence_level") != "weak_text":
         return True
@@ -489,7 +972,9 @@ def _has_confirmable_near_match(row: dict[str, Any]) -> bool:
         for token in row.get("matched_tokens") or []
         if str(token).casefold() not in GENERIC_CONFIRM_TOKENS
     }
-    return len(specific_tokens) >= 2
+    if len(specific_tokens) < 2:
+        return False
+    return float(row.get("score") or 0.0) >= CONFIRM_ROUTE_MIN_SCORE
 
 
 def _selected_payload(row: dict[str, Any], *, reason: str) -> dict[str, Any]:
@@ -537,14 +1022,58 @@ def _specialist_surfaces(row: dict[str, Any], required_capabilities: set[str], p
     matched_capabilities = set(row.get("matched_capabilities") or [])
     surfaces: set[str] = set()
 
+    if "architecture.domain_model" in required_capabilities and "architecture.domain_model" in matched_capabilities and (
+        "domain" in skill or "ubiquitous" in skill
+    ):
+        surfaces.add("architecture.domain_model")
+    if "architecture.interface_design" in required_capabilities and "architecture.interface_design" in matched_capabilities and (
+        "interface" in skill or "design" in skill or "seam" in skill
+    ):
+        surfaces.add("architecture.interface_design")
     if "data.eda" in required_capabilities and "data.eda" in matched_capabilities and ("exploratory" in skill or skill == "eda"):
         surfaces.add("data.eda")
+    if "docs.deep_reading" in required_capabilities and "docs.deep_reading" in matched_capabilities and (
+        "deep-reading" in skill or "deep reading" in skill or "reading" in skill
+    ):
+        surfaces.add("docs.deep_reading")
+    if (
+        "debug.systematic_workflow" in required_capabilities
+        and "debug.systematic_workflow" in matched_capabilities
+        and ("diagnos" in skill or "debug" in skill or "bug" in skill)
+    ):
+        surfaces.add("debug.systematic_workflow")
+    if (
+        "performance.regression_debugging" in required_capabilities
+        and "performance.regression_debugging" in matched_capabilities
+        and ("diagnos" in skill or "debug" in skill or "bug" in skill)
+    ):
+        surfaces.add("performance.regression_debugging")
     if matched_capabilities & {"statistics.relationship_modeling", "statistics.correlation", "statistics.regression"} and "statistical" in skill:
         surfaces.add("statistics")
+    if (
+        "statistics.test_selection_or_result_check" in required_capabilities
+        and "statistics.test_selection_or_result_check" in matched_capabilities
+        and "statistical" in skill
+    ):
+        surfaces.add("statistics.test_selection_or_result_check")
     if "model.training" in required_capabilities and "model.training" in matched_capabilities and ("scikit" in skill or "machine-learning" in skill):
         surfaces.add("model.training")
     if "model.explainability" in required_capabilities and "model.explainability" in matched_capabilities and ("shap" in skill or "explain" in skill):
         surfaces.add("model.explainability")
+    if (
+        "performance.gpu_migration" in required_capabilities
+        and "performance.gpu_migration" in matched_capabilities
+        and ("gpu" in skill or "cuda" in skill)
+    ):
+        surfaces.add("performance.gpu_migration")
+    if (
+        "planning.issue_breakdown" in required_capabilities
+        and "planning.issue_breakdown" in matched_capabilities
+        and ("issue" in skill or "task" in skill)
+    ):
+        surfaces.add("planning.issue_breakdown")
+    if "planning.prd" in required_capabilities and "planning.prd" in matched_capabilities and "prd" in skill:
+        surfaces.add("planning.prd")
     if "visualization.figure" in required_capabilities and "visualization.figure" in matched_capabilities and (
         "matplotlib" in skill or "visualization" in skill or "figure" in skill
     ):
@@ -555,6 +1084,54 @@ def _specialist_surfaces(row: dict[str, Any], required_capabilities: set[str], p
         surfaces.add("presentation.deck")
     if "document.latex_submission" in required_capabilities and "document.latex_submission" in matched_capabilities and "latex" in skill:
         surfaces.add("document.latex_submission")
+    if (
+        "prototype.throwaway_validation" in required_capabilities
+        and "prototype.throwaway_validation" in matched_capabilities
+        and "prototype" in skill
+    ):
+        surfaces.add("prototype.throwaway_validation")
+    if (
+        "reasoning.first_principles" in required_capabilities
+        and "reasoning.first_principles" in matched_capabilities
+        and ("first-principles" in skill or "principles" in skill)
+    ):
+        surfaces.add("reasoning.first_principles")
+    if (
+        "science.methodology_audit" in required_capabilities
+        and "science.methodology_audit" in matched_capabilities
+        and ("critical" in skill or "audit" in skill or "review" in skill)
+    ):
+        surfaces.add("science.methodology_audit")
+    if (
+        "vision.error_analysis" in required_capabilities
+        and "vision.error_analysis" in matched_capabilities
+        and ("vision" in skill or "detection" in skill)
+    ):
+        surfaces.add("vision.error_analysis")
+    if (
+        "vision.training_strategy" in required_capabilities
+        and "vision.training_strategy" in matched_capabilities
+        and ("vision" in skill or "detection" in skill)
+    ):
+        surfaces.add("vision.training_strategy")
+    if (
+        "writing.reader_report" in required_capabilities
+        and "writing.reader_report" in matched_capabilities
+        and ("reader" in skill or "plain" in skill or "qu-ai-wei" in skill or "human" in skill)
+    ):
+        surfaces.add("writing.reader_report")
+    if (
+        "writing.chinese_humanization" in required_capabilities
+        and "writing.chinese_humanization" in matched_capabilities
+        and ("qu-ai-wei" in skill or "human" in skill or "ai" in skill)
+    ):
+        surfaces.add("writing.chinese_humanization")
+    if (
+        "writing.manuscript_review" in required_capabilities
+        and "writing.manuscript_review" in matched_capabilities
+        and ("manuscript" in skill or "sciwrite" in skill or "review" in skill)
+    ):
+        surfaces.add("writing.manuscript_review")
 
     return surfaces
 
@@ -592,12 +1169,343 @@ def _preferred_presentation_skill(
     return str(min(rows, key=lambda row: _presentation_delivery_priority(row, prompt_lower)).get("skill") or "")
 
 
+def _row_matches_module(row: dict[str, Any], module: dict[str, Any]) -> bool:
+    required_capabilities = set(module.get("required_capabilities") or [])
+    matched_capabilities = set(row.get("matched_capabilities") or [])
+    return bool(required_capabilities & matched_capabilities)
+
+
+def _evidence_level_priority(row: dict[str, Any]) -> int:
+    level = str(row.get("capability_evidence_level") or "").strip()
+    if level == "declared":
+        return 0
+    if level == "weak_text":
+        return 1
+    return 2
+
+
+MODULE_EVIDENCE_ROLE_PRIORITY = {
+    "applicable": 0,
+    "deliverable": 1,
+    "prerequisite": 2,
+    "example": 3,
+    "background": 4,
+}
+
+
+def _module_hint_texts(module: dict[str, Any]) -> list[str]:
+    hints: list[str] = []
+    for capability in module.get("required_capabilities") or []:
+        capability_text = str(capability).strip()
+        if not capability_text:
+            continue
+        hints.extend(CAPABILITY_SEARCH_HINTS_BY_CAPABILITY.get(capability_text, ()))
+        hints.append(capability_text.split(".", 1)[-1].replace("_", " "))
+        hints.append(capability_text.replace(".", " ").replace("_", " "))
+    return _dedupe_strings(hints)
+
+
+def _public_route_evidence_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "text": str(chunk.get("text") or ""),
+        "role": str(chunk.get("role") or ""),
+        "source": str(chunk.get("source") or ""),
+        "line_start": int(chunk.get("line_start") or 0),
+        "line_end": int(chunk.get("line_end") or 0),
+    }
+
+
+def _module_candidate_evidence(module: dict[str, Any], row: dict[str, Any]) -> list[dict[str, Any]]:
+    hint_texts = _module_hint_texts(module)
+    matched_chunks: list[tuple[int, int, int, dict[str, Any]]] = []
+    fallback_chunks: list[tuple[int, int, dict[str, Any]]] = []
+    for raw_chunk in row.get("route_evidence_chunks") or []:
+        if not isinstance(raw_chunk, dict):
+            continue
+        public_chunk = _public_route_evidence_chunk(raw_chunk)
+        role = public_chunk["role"]
+        if role == "not_applicable" or not public_chunk["text"]:
+            continue
+        role_priority = MODULE_EVIDENCE_ROLE_PRIORITY.get(role, 5)
+        text_lower = normalize_text(public_chunk["text"])
+        hint_hits = sum(1 for hint in hint_texts if keyword_hit(text_lower, hint))
+        if hint_hits > 0:
+            matched_chunks.append((role_priority, -hint_hits, public_chunk["line_start"], public_chunk))
+            continue
+        if role == "applicable":
+            fallback_chunks.append((role_priority, public_chunk["line_start"], public_chunk))
+    if matched_chunks:
+        matched_chunks.sort(key=lambda item: (item[0], item[1], item[2], item[3]["text"]))
+        return [item[3] for item in matched_chunks[:2]]
+    if fallback_chunks:
+        fallback_chunks.sort(key=lambda item: (item[0], item[1], item[2]["text"]))
+        return [item[2] for item in fallback_chunks[:1]]
+    return []
+
+
+def _module_candidate_evidence_priority(module: dict[str, Any], row: dict[str, Any]) -> int:
+    evidence = _module_candidate_evidence(module, row)
+    if not evidence:
+        return 5
+    return MODULE_EVIDENCE_ROLE_PRIORITY.get(str(evidence[0].get("role") or ""), 5)
+
+
+def _module_capability_profile(module: dict[str, Any], row: dict[str, Any]) -> tuple[int, int]:
+    required_capabilities = {
+        str(capability).strip()
+        for capability in module.get("required_capabilities") or []
+        if str(capability).strip()
+    }
+    matched_capabilities = {
+        str(capability).strip()
+        for capability in row.get("matched_capabilities") or []
+        if str(capability).strip()
+    }
+    required_hits = len(required_capabilities & matched_capabilities)
+    extra_hits = len(matched_capabilities - required_capabilities)
+    return required_hits, extra_hits
+
+
+def _module_candidate_sort_key(module: dict[str, Any], row: dict[str, Any], prompt_lower: str) -> tuple[Any, ...]:
+    module_id = str(module.get("module_id") or "")
+    skill_text = " ".join(
+        [
+            str(row.get("skill") or ""),
+            str(row.get("description") or ""),
+        ]
+    ).casefold()
+    evidence_priority = _module_candidate_evidence_priority(module, row)
+    required_hits, extra_hits = _module_capability_profile(module, row)
+    if module_id == "presentation.deck":
+        return (
+            evidence_priority,
+            -required_hits,
+            extra_hits,
+            *_presentation_delivery_priority(row, prompt_lower),
+        )
+    delivery_penalty = 1 if any(anchor in skill_text for anchor in ("ppt", "pptx", "slide", "deck", "paper2ppt", "image-first")) else 0
+    return (
+        evidence_priority,
+        delivery_penalty,
+        _evidence_level_priority(row),
+        -required_hits,
+        extra_hits,
+        -float(row.get("score") or 0.0),
+        str(row.get("skill") or ""),
+    )
+
+
+def _public_module_candidate(module: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "skill": str(row.get("skill") or ""),
+        "score": float(row.get("score") or 0.0),
+        "matched_capabilities": list(row.get("matched_capabilities") or []),
+        "capability_evidence_level": row.get("capability_evidence_level"),
+        "evidence": _module_candidate_evidence(module, row),
+    }
+
+
+def _build_module_candidates(
+    scored_rows: list[dict[str, Any]],
+    task_card: dict[str, Any],
+    prompt_lower: str,
+) -> list[dict[str, Any]]:
+    module_candidates: list[dict[str, Any]] = []
+    for module in task_card.get("modules") or []:
+        rows = [
+            row
+            for row in scored_rows
+            if not row.get("rejected_capabilities") and _row_matches_module(row, module)
+        ]
+        rows.sort(key=lambda row: _module_candidate_sort_key(module, row, prompt_lower))
+        module_candidates.append(
+            {
+                "module_id": str(module.get("module_id") or ""),
+                "label": str(module.get("label") or ""),
+                "priority": str(module.get("priority") or ""),
+                "prompt_position": module.get("prompt_position"),
+                "required_capabilities": list(module.get("required_capabilities") or []),
+                "candidate_rows": rows,
+                "candidates": [_public_module_candidate(module, row) for row in rows[:3]],
+            }
+        )
+    return module_candidates
+
+
+def _module_priority_sort_key(module: dict[str, Any]) -> tuple[Any, ...]:
+    prompt_position = module.get("prompt_position")
+    top_candidate_score = float((module.get("candidate_rows") or [{}])[0].get("score") or 0.0)
+    weak_module_owner = top_candidate_score < AUTO_ROUTE_MIN_SCORE
+    return (
+        int(MODULE_PRIORITY_ORDER.get(str(module.get("priority") or ""), 3)),
+        weak_module_owner,
+        prompt_position is None,
+        int(prompt_position if prompt_position is not None else 10**9),
+        -top_candidate_score,
+        str(module.get("module_id") or ""),
+    )
+
+
+def _selected_module_ids(selected_rows: list[dict[str, Any]]) -> set[str]:
+    covered: set[str] = set()
+    for row in selected_rows:
+        covered.update(str(capability) for capability in row.get("matched_capabilities") or [] if str(capability).strip())
+    return covered
+
+
+def _public_uncovered_modules(
+    module_candidates: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    covered = _selected_module_ids(selected_rows)
+    uncovered: list[dict[str, Any]] = []
+    for module in module_candidates:
+        required_capabilities = [str(capability) for capability in module.get("required_capabilities") or [] if str(capability).strip()]
+        if set(required_capabilities) & covered:
+            continue
+        uncovered.append(
+            {
+                "module_id": str(module.get("module_id") or ""),
+                "label": str(module.get("label") or ""),
+                "priority": str(module.get("priority") or ""),
+                "required_capabilities": required_capabilities,
+            }
+        )
+    return uncovered
+
+
+def _selected_row_sort_key(
+    row: dict[str, Any],
+    module_order: dict[str, int],
+    module_capabilities: dict[str, set[str]],
+    module_prompt_positions: dict[str, int],
+    row_index: int,
+) -> tuple[Any, ...]:
+    matched_capabilities = {
+        str(capability).strip()
+        for capability in row.get("matched_capabilities") or []
+        if str(capability).strip()
+    }
+    covered_module_indexes = sorted(
+        order
+        for module_id, order in module_order.items()
+        if module_capabilities[module_id] & matched_capabilities
+    )
+    covered_prompt_positions = sorted(
+        module_prompt_positions[module_id]
+        for module_id in module_order
+        if module_capabilities[module_id] & matched_capabilities
+    )
+    first_module_index = covered_module_indexes[0] if covered_module_indexes else len(module_order) + row_index
+    first_prompt_position = covered_prompt_positions[0] if covered_prompt_positions else 10**9
+    prompt_bucket = first_prompt_position // 8 if first_prompt_position < 10**9 else 10**9
+    return (
+        prompt_bucket,
+        -len(covered_module_indexes),
+        -len(row.get("matched_primary_capabilities") or []),
+        -float(row.get("score") or 0.0),
+        first_prompt_position,
+        first_module_index,
+        row_index,
+    )
+
+
+def _reorder_selected_rows_by_module_priority(
+    selected_rows: list[dict[str, Any]],
+    module_candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if len(selected_rows) <= 1 or not module_candidates:
+        return selected_rows
+
+    ordered_modules = sorted(module_candidates, key=_module_priority_sort_key)
+    module_order = {
+        str(module.get("module_id") or ""): index
+        for index, module in enumerate(ordered_modules)
+    }
+    module_capabilities = {
+        str(module.get("module_id") or ""): {
+            str(capability).strip()
+            for capability in module.get("required_capabilities") or []
+            if str(capability).strip()
+        }
+        for module in ordered_modules
+    }
+    module_prompt_positions = {
+        str(module.get("module_id") or ""): int(module.get("prompt_position") if module.get("prompt_position") is not None else 10**9)
+        for module in ordered_modules
+    }
+    composite_gap = max(float(row.get("candidate_top1_top2_gap") or 0.0) for row in selected_rows)
+    reordered = sorted(
+        enumerate(selected_rows),
+        key=lambda item: _selected_row_sort_key(item[1], module_order, module_capabilities, module_prompt_positions, item[0]),
+    )
+
+    normalized_rows: list[dict[str, Any]] = []
+    for index, (_, row) in enumerate(reordered):
+        normalized = dict(row)
+        normalized["role"] = "primary_owner" if index == 0 else "supporting_owner"
+        if index == 0:
+            normalized["candidate_top1_top2_gap"] = composite_gap
+        normalized_rows.append(normalized)
+    return normalized_rows
+
+
+def _first_viable_module_seed_row(
+    module: dict[str, Any],
+    *,
+    min_score: float,
+) -> dict[str, Any] | None:
+    for row in module.get("candidate_rows") or []:
+        if bool(row.get("explicit_only")) or row.get("rejected_capabilities"):
+            continue
+        if float(row.get("score") or 0.0) < min_score:
+            continue
+        return row
+    return None
+
+
+def _preferred_module_seed_row(
+    module_candidates: list[dict[str, Any]],
+    *,
+    grade: str,
+    thresholds: dict[str, float],
+) -> tuple[dict[str, Any] | None, float]:
+    if len(module_candidates) <= 1:
+        return None, 0.0
+
+    normalized_grade = normalize_text(grade).upper()
+    min_seed_score = 0.1 if normalized_grade == "XL" else float(
+        thresholds.get("min_candidate_signal_for_confirm_override", CONFIRM_ROUTE_MIN_SCORE)
+    )
+    max_modules = 5 if normalized_grade == "XL" else 3
+
+    viable_modules: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for module in sorted(module_candidates, key=_module_priority_sort_key):
+        row = _first_viable_module_seed_row(module, min_score=min_seed_score)
+        if row is None:
+            continue
+        viable_modules.append((module, row))
+
+    if len(viable_modules) <= 1:
+        return None, 0.0
+
+    composite_signal = round(
+        sum(float(row.get("score") or 0.0) for _, row in viable_modules[:max_modules]),
+        4,
+    )
+    if composite_signal < float(thresholds.get("confirm_required", CONFIRM_ROUTE_MIN_SCORE)):
+        return None, composite_signal
+
+    return dict(viable_modules[0][1]), composite_signal
+
+
 def _selected_rows_for_route(
     scored_rows: list[dict[str, Any]],
     selected_row: dict[str, Any] | None,
     *,
     grade: str,
     task_card: dict[str, Any],
+    module_candidates: list[dict[str, Any]],
     prompt_lower: str,
     thresholds: dict[str, float],
     requested_canonical: str | None,
@@ -608,47 +1516,71 @@ def _selected_rows_for_route(
 
     primary = _mark_selected_row(selected_row, role="primary_owner", reason=selection_reason)
     selected_rows = [primary]
-    if requested_canonical or normalize_text(grade).upper() != "XL":
+    if requested_canonical:
         return selected_rows
 
-    required_capabilities = set(task_card.get("required_capabilities") or [])
-    if len(required_capabilities) <= 1:
+    if len(module_candidates) <= 1:
         return selected_rows
 
-    selected_surfaces = _specialist_surfaces(primary, required_capabilities, prompt_lower)
+    normalized_grade = normalize_text(grade).upper()
+    max_selected = 6 if normalized_grade == "XL" else 3
+
     selected_skill_ids = {str(primary.get("skill") or "")}
-    preferred_presentation_skill = _preferred_presentation_skill(scored_rows, required_capabilities, prompt_lower)
+    covered_modules = _selected_module_ids(selected_rows)
+
+    module_queue = sorted(module_candidates, key=_module_priority_sort_key)
+    min_module_score = 0.1 if normalized_grade == "XL" else float(
+        thresholds.get("min_candidate_signal_for_confirm_override", CONFIRM_ROUTE_MIN_SCORE)
+    )
+
+    for module in module_queue:
+        if len(selected_rows) >= max_selected:
+            break
+        required_capabilities = set(str(capability) for capability in module.get("required_capabilities") or [] if str(capability).strip())
+        module_already_covered = bool(required_capabilities & covered_modules)
+        if normalized_grade != "XL" and module_already_covered:
+            continue
+        candidate_rows = list(module.get("candidate_rows") or [])
+        if normalized_grade == "XL":
+            candidate_rows = candidate_rows[:2]
+        for row in candidate_rows:
+            if bool(row.get("explicit_only")):
+                continue
+            if float(row.get("score") or 0.0) < min_module_score:
+                continue
+            skill = str(row.get("skill") or "").strip()
+            if not skill or skill in selected_skill_ids:
+                continue
+            selected_rows.append(
+                _mark_selected_row(
+                    row,
+                    role="supporting_owner",
+                    reason="module_coverage_xl" if normalized_grade == "XL" else "module_coverage_l",
+                )
+            )
+            selected_skill_ids.add(skill)
+            covered_modules.update(str(capability) for capability in row.get("matched_capabilities") or [] if str(capability).strip())
+            break
 
     for row in scored_rows:
-        if len(selected_rows) >= 6:
+        if len(selected_rows) >= max_selected:
             break
         skill = str(row.get("skill") or "").strip()
-        if not skill or skill in selected_skill_ids:
+        if not skill or skill in selected_skill_ids or row.get("rejected_capabilities"):
             continue
-        if row.get("rejected_capabilities"):
-            continue
-
-        surfaces = _specialist_surfaces(row, required_capabilities, prompt_lower)
-        if (
-            "presentation.deck" in surfaces
-            and "presentation.deck" not in selected_surfaces
-            and preferred_presentation_skill
-            and skill != preferred_presentation_skill
-        ):
-            continue
-        adds_surface = bool(surfaces - selected_surfaces)
         explicitly_named = _skill_is_named(row, prompt_lower)
-        if skill == "pdf" and "document.latex_submission" in required_capabilities:
-            explicitly_named = False
-        if not adds_surface and not explicitly_named:
+        if not explicitly_named:
             continue
-
-        reason = "composite_xl_specialist_surface" if adds_surface else "explicit_xl_skill"
-        selected_rows.append(_mark_selected_row(row, role="supporting_owner", reason=reason))
+        selected_rows.append(
+            _mark_selected_row(
+                row,
+                role="supporting_owner",
+                reason="explicit_xl_skill" if normalized_grade == "XL" else "explicit_l_skill",
+            )
+        )
         selected_skill_ids.add(skill)
-        selected_surfaces.update(surfaces)
 
-    return selected_rows
+    return _reorder_selected_rows_by_module_priority(selected_rows, module_candidates)
 
 
 def _empty_custom_admission(target_root: Path | None) -> dict[str, Any]:
@@ -1045,7 +1977,8 @@ def route_prompt(
     )
     catalog = build_skill_catalog(agent_root=resolved_target_root, host_roots=host_roots)
     index = build_skill_index_from_catalog(catalog)
-    prompt_lower = normalize_text(prompt)
+    routing_prompt = _augment_prompt_for_local_routing(prompt, task_type)
+    prompt_lower = normalize_text(routing_prompt)
     requested_canonical = _normalize_requested_skill(requested_skill)
     requested_controller = requested_canonical == "vibe"
 
@@ -1059,7 +1992,7 @@ def route_prompt(
 
     scored_rows: list[dict[str, Any]] = []
     for entry in active_entries:
-        score = _score_entry(prompt, prompt_lower, entry, task_card)
+        score = _score_entry(routing_prompt, prompt_lower, entry, task_card)
         scored_rows.append(_candidate_row(entry, score, selected=False))
     scored_rows.sort(
         key=lambda row: (
@@ -1072,6 +2005,8 @@ def route_prompt(
     top1_top2_gap = _top1_top2_gap(scored_rows)
     if scored_rows:
         scored_rows[0]["candidate_top1_top2_gap"] = top1_top2_gap
+    preferred_primary_row = _preferred_primary_row(scored_rows, task_card)
+    module_candidates = _build_module_candidates(scored_rows, task_card, prompt_lower)
 
     selected_row: dict[str, Any] | None = None
     route_reason = "no_local_candidate_above_threshold"
@@ -1107,11 +2042,11 @@ def route_prompt(
             selection_reason = "requested_skill_missing"
             rejected_reasons.append(requested_canonical)
     elif (
-        scored_rows
-        and float(scored_rows[0]["score"]) >= float(thresholds["min_candidate_signal_for_auto_route"])
+        preferred_primary_row is not None
+        and float(preferred_primary_row["score"]) >= float(thresholds["min_candidate_signal_for_auto_route"])
         and float(top1_top2_gap) >= float(thresholds["min_top1_top2_gap"])
     ):
-        selected_row = dict(scored_rows[0])
+        selected_row = dict(preferred_primary_row)
         selected_row["selected_candidate"] = selected_row["skill"]
         selected_row["candidate_selection_reason"] = "capability_ranked" if selected_row["matched_capabilities"] else "keyword_ranked"
         selected_row["authority_eligible"] = True
@@ -1120,8 +2055,8 @@ def route_prompt(
         selected_row["candidate_top1_top2_gap"] = top1_top2_gap
         route_reason = "auto_route"
         selection_reason = selected_row["candidate_selection_reason"]
-    elif scored_rows and float(scored_rows[0]["score"]) >= float(thresholds["confirm_required"]):
-        selected_row = dict(scored_rows[0])
+    elif preferred_primary_row is not None and float(preferred_primary_row["score"]) >= float(thresholds["confirm_required"]):
+        selected_row = dict(preferred_primary_row)
         selected_row["selected_candidate"] = selected_row["skill"]
         selected_row["candidate_selection_reason"] = "capability_ranked" if selected_row["matched_capabilities"] else "keyword_ranked"
         selected_row["authority_eligible"] = True
@@ -1131,12 +2066,12 @@ def route_prompt(
         route_reason = "candidate_signal_host_selection"
         selection_reason = selected_row["candidate_selection_reason"]
     elif (
-        scored_rows
-        and float(scored_rows[0]["score"]) >= float(thresholds["min_candidate_signal_for_confirm_override"])
-        and _has_confirmable_near_match(scored_rows[0])
-        and not scored_rows[0]["rejected_capabilities"]
+        preferred_primary_row is not None
+        and float(preferred_primary_row["score"]) >= float(thresholds["min_candidate_signal_for_confirm_override"])
+        and _has_confirmable_near_match(preferred_primary_row)
+        and not preferred_primary_row["rejected_capabilities"]
     ):
-        selected_row = dict(scored_rows[0])
+        selected_row = dict(preferred_primary_row)
         selected_row["selected_candidate"] = selected_row["skill"]
         selected_row["candidate_selection_reason"] = "near_match_confirm_required"
         selected_row["authority_eligible"] = True
@@ -1146,11 +2081,30 @@ def route_prompt(
         route_reason = "candidate_signal_confirm_override"
         selection_reason = "near_match_confirm_required"
 
+    if selected_row is None:
+        module_seed_row, composite_signal = _preferred_module_seed_row(
+            module_candidates,
+            grade=grade,
+            thresholds=thresholds,
+        )
+        if module_seed_row is not None:
+            selected_row = module_seed_row
+            selected_row["selected_candidate"] = selected_row["skill"]
+            selected_row["candidate_selection_reason"] = "composite_module_seed"
+            selected_row["authority_eligible"] = True
+            selected_row["authority_rejection_reasons"] = []
+            selected_row["role"] = "primary_owner"
+            selected_row["candidate_top1_top2_gap"] = top1_top2_gap
+            selected_row["composite_module_signal"] = composite_signal
+            route_reason = "composite_module_confirm_override"
+            selection_reason = "composite_module_seed"
+
     selected_rows = _selected_rows_for_route(
         scored_rows,
         selected_row,
         grade=grade,
         task_card=task_card,
+        module_candidates=module_candidates,
         prompt_lower=prompt_lower,
         thresholds=thresholds,
         requested_canonical=None if requested_controller else requested_canonical,
@@ -1160,9 +2114,17 @@ def route_prompt(
     ranked_rows = selected_rows + [
         row for row in scored_rows if str(row.get("skill") or "") not in selected_skill_ids
     ]
+    visible_rows = _visible_ranked_rows(ranked_rows)
 
     primary_row = selected_rows[0] if selected_rows else None
-    selected = _selected_payload(primary_row, reason=selection_reason) if primary_row is not None else None
+    selected = (
+        _selected_payload(
+            primary_row,
+            reason=str(primary_row.get("candidate_selection_reason") or selection_reason),
+        )
+        if primary_row is not None
+        else None
+    )
     confidence = float(primary_row["score"]) if primary_row is not None else (float(ranked_rows[0]["score"]) if ranked_rows else 0.0)
     public_top1_top2_gap = float(primary_row["candidate_top1_top2_gap"]) if primary_row is not None else 0.0
     route_mode = "local_skill_overlay" if selected is not None else "no_local_candidate"
@@ -1185,8 +2147,8 @@ def route_prompt(
             "skill": None,
         },
         "pre_fallback_top": {
-            "pack_id": LOCAL_PACK_ID if ranked_rows else None,
-            "skill": str(ranked_rows[0]["skill"]) if ranked_rows else None,
+            "pack_id": LOCAL_PACK_ID if visible_rows else None,
+            "skill": str(visible_rows[0]["skill"]) if visible_rows else None,
         },
         "rejected_specialist_reasons": rejected_reasons,
         "thresholds": thresholds,
@@ -1206,14 +2168,25 @@ def route_prompt(
             "skill_cache": index["skill_cache"],
         },
         "custom_admission": _empty_custom_admission(resolved_target_root),
-        "candidates": ranked_rows[:6],
+        "candidates": visible_rows,
         "primary_candidate": selected,
         "selected": selected,
-        "ranked": ranked_rows[:6],
+        "ranked": visible_rows,
         "skill_routing": {
             "schema_version": "composite_skill_routing_v1",
             "primary_skill": str(primary_row.get("skill") or "") if primary_row is not None else None,
             "selected": selected_rows,
+            "module_candidates": [
+                {
+                    "module_id": str(module.get("module_id") or ""),
+                    "label": str(module.get("label") or ""),
+                    "priority": str(module.get("priority") or ""),
+                    "required_capabilities": list(module.get("required_capabilities") or []),
+                    "candidates": list(module.get("candidates") or []),
+                }
+                for module in module_candidates
+            ],
+            "uncovered_modules": _public_uncovered_modules(module_candidates, selected_rows),
         },
         "quality_debt_advice": _build_quality_debt_advice(
             repo_root=repo_path,
@@ -1233,7 +2206,11 @@ def route_prompt(
         str(resolved_target_root),
         normalized_host_id,
     )
-    if confirm_ui and selected is not None and route_reason in {"candidate_signal_host_selection", "candidate_signal_confirm_override"}:
+    if confirm_ui and selected is not None and route_reason in {
+        "candidate_signal_host_selection",
+        "candidate_signal_confirm_override",
+        "composite_module_confirm_override",
+    }:
         result["confirm_required"] = True
         result["confirm_options"] = confirm_ui["options"]
         result["confirm_ui"] = confirm_ui

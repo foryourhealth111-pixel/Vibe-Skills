@@ -11,11 +11,12 @@ from typing import Any
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
 from .host_skill_roots import resolve_host_skill_roots
 from .skill_manifest import parse_installed_skill_manifest
+from ..runtime_support import keyword_hit, normalize_text
 
 
 INDEX_VERSION = 2
 INDEX_SCHEMA_VERSION = "local_skill_index_v2"
-CARD_SCHEMA_VERSION = "local_skill_capability_card_v1"
+CARD_SCHEMA_VERSION = "local_skill_capability_card_v2"
 HOST_INSTALLED_SOURCE_KIND = "host_installed"
 VIBE_LOCAL_SOURCE_KIND = "vibe_local"
 SOURCE_ROOT_RELATIVE_PATH_CONTRACT = "source_root_relative"
@@ -24,6 +25,37 @@ DISCOVERY_CHILD_DIRS = ("", "custom")
 CAPABILITY_INFERENCE_HINTS = SKILL_INDEX_CAPABILITY_HINTS
 ROUTING_BOUNDARY_HEADING = re.compile(r"^#{1,6}\s+Routing Boundary\s*$", re.IGNORECASE)
 ROUTING_BOUNDARY_NOT_FOR = re.compile(r"\bThis is not\s+(.+?)(?:\.(?=\s|$)|。|$)", re.IGNORECASE)
+WHEN_TO_USE_HEADING = re.compile(
+    r"^#{1,6}\s+(when to use(?: this skill| vs alternatives)?|when this skill applies|use cases?|适用场景(?:（关键词）)?|何时使用)\s*$",
+    re.IGNORECASE,
+)
+EXAMPLE_HEADING = re.compile(r"^#{1,6}\s+(examples?|示例|例子)\s*$", re.IGNORECASE)
+PREREQUISITE_HEADING = re.compile(r"^#{1,6}\s+(prerequisites?|before you start|前置条件)\s*$", re.IGNORECASE)
+DELIVERABLE_HEADING = re.compile(r"^#{1,6}\s+(deliverables?|outputs?|交付物|输出)\s*$", re.IGNORECASE)
+EXPLICIT_ONLY_MARKERS = (
+    "use only when the user explicitly asks",
+    "only when the user explicitly asks",
+    "user explicitly names this skill",
+    "explicitly names this skill",
+    "formal problem-pool construction is allowed only when",
+)
+ACTION_LED_INTENT_DESCRIPTION = re.compile(
+    r"^(build|break|create|draft|design|diagnose|explain|extract|generate|help|humanize|implement|investigate|manage|optimize|organize|prepare|produce|query|read|review|search|summarize|teach|translate|turn|validate|write)\b",
+    re.IGNORECASE,
+)
+DEPENDENCY_CONTEXT_MARKERS = (
+    "according to ",
+    "based on ",
+    "compare against ",
+    "compare the result against ",
+    "derived from ",
+    "from ",
+    "result against ",
+    "review against ",
+    "using ",
+    "with an existing ",
+    "with existing ",
+)
 
 
 def _utc_now() -> str:
@@ -146,8 +178,10 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
     manifest = parse_installed_skill_manifest(skill_file, skill_id=skill_dir.name)
     root_dir = _relative_to_source(Path(manifest.root_dir), source_spec)
     skill_file_value = _relative_to_source(Path(manifest.skill_file), source_spec)
-    capability_evidence = _build_capability_evidence(manifest, Path(manifest.skill_file))
-    capabilities = _unique_ordered([str(row["capability"]) for row in capability_evidence])
+    route_evidence_chunks = _build_route_evidence_chunks(manifest, Path(manifest.skill_file))
+    explicit_only = _manifest_is_explicit_only(manifest, Path(manifest.skill_file))
+    capability_evidence = _build_capability_evidence(manifest, Path(manifest.skill_file), route_evidence_chunks)
+    capabilities = _route_active_capabilities(capability_evidence)
     not_for = _unique_ordered([*manifest.not_for, *_extract_routing_boundary_not_for(Path(manifest.skill_file))])
     return {
         "skill_id": manifest.skill_id,
@@ -155,8 +189,10 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
         "display_name": manifest.name,
         "name": manifest.name,
         "description": manifest.description,
+        "explicit_only": explicit_only,
         "capabilities": capabilities,
         "capability_evidence": capability_evidence,
+        "route_evidence_chunks": route_evidence_chunks,
         "when_to_use": list(manifest.headings),
         "not_for": not_for,
         "outputs": [],
@@ -182,9 +218,127 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
     }
 
 
-def _build_capability_evidence(manifest: object, skill_file: Path) -> list[dict[str, object]]:
+def _frontmatter_field_line_number(skill_file: Path, field_name: str) -> int | None:
+    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    for index, line in enumerate(lines[1:], start=2):
+        if line.strip() == "---":
+            return None
+        if line.lstrip().startswith(f"{field_name}:"):
+            return index
+    return None
+
+
+def _skill_body_line_rows(skill_file: Path) -> list[tuple[int, str]]:
+    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
+    if lines and lines[0].strip() == "---":
+        for index, line in enumerate(lines[1:], start=1):
+            if line.strip() == "---":
+                return [(line_number, lines[line_number - 1]) for line_number in range(index + 2, len(lines) + 1)]
+    return [(line_number, line) for line_number, line in enumerate(lines, start=1)]
+
+
+def _section_kind_from_heading(line: str) -> str:
+    stripped = line.strip()
+    if WHEN_TO_USE_HEADING.match(stripped):
+        return "when_to_use"
+    if ROUTING_BOUNDARY_HEADING.match(stripped):
+        return "routing_boundary"
+    if EXAMPLE_HEADING.match(stripped):
+        return "example"
+    if PREREQUISITE_HEADING.match(stripped):
+        return "prerequisite"
+    if DELIVERABLE_HEADING.match(stripped):
+        return "deliverable"
+    return "background"
+
+
+def _classify_route_evidence_role(text: str, *, section_kind: str) -> str:
+    lowered = str(text or "").strip().casefold()
+    if not lowered:
+        return "background"
+    if section_kind == "routing_boundary" or lowered.startswith(("this is not ", "do not use this skill for", "do not use for", "not for ")):
+        return "not_applicable"
+    if section_kind == "example" or lowered.startswith(("example:", "- example:", "* example:")):
+        return "example"
+    if section_kind == "prerequisite":
+        return "prerequisite"
+    if section_kind == "deliverable":
+        return "deliverable"
+    if section_kind == "when_to_use" or _is_explicit_body_intent_line(text):
+        return "applicable"
+    return "background"
+
+
+def _route_evidence_source(*, section_kind: str, role: str) -> str:
+    if role == "not_applicable":
+        return "body.routing_boundary"
+    if role == "example":
+        return "body.example"
+    if role == "prerequisite":
+        return "body.prerequisite"
+    if role == "deliverable":
+        return "body.deliverable"
+    if role == "applicable":
+        return "body.intent"
+    return f"body.{section_kind}"
+
+
+def _build_route_evidence_chunks(manifest: object, skill_file: Path) -> list[dict[str, object]]:
+    chunks: list[dict[str, object]] = []
+    description = str(getattr(manifest, "description") or "").strip()
+    if description:
+        description_line = _frontmatter_field_line_number(skill_file, "description")
+        chunks.append(
+            {
+                "text": description,
+                "role": "applicable" if _contains_explicit_intent_phrase(description) else "background",
+                "source": "frontmatter.description",
+                "line_start": int(description_line or 1),
+                "line_end": int(description_line or 1),
+            }
+        )
+
+    section_kind = "background"
+    in_code_fence = False
+    for line_number, line in _skill_body_line_rows(skill_file):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence or not stripped:
+            continue
+        if stripped.startswith("#"):
+            section_kind = _section_kind_from_heading(stripped)
+            continue
+        role = _classify_route_evidence_role(line, section_kind=section_kind)
+        chunks.append(
+            {
+                "text": stripped,
+                "role": role,
+                "source": _route_evidence_source(section_kind=section_kind, role=role),
+                "line_start": line_number,
+                "line_end": line_number,
+            }
+        )
+    return chunks
+
+
+def _build_capability_evidence(
+    manifest: object,
+    skill_file: Path,
+    route_evidence_chunks: list[dict[str, object]],
+) -> list[dict[str, object]]:
     evidence: list[dict[str, object]] = []
     declared = set(getattr(manifest, "capabilities"))
+    explicit_only = _manifest_is_explicit_only(manifest, skill_file)
+    identity_text = " ".join(
+        [
+            str(getattr(manifest, "skill_id")),
+            str(getattr(manifest, "name")),
+        ]
+    ).casefold()
     for capability in getattr(manifest, "capabilities"):
         evidence.append(
             {
@@ -204,17 +358,45 @@ def _build_capability_evidence(manifest: object, skill_file: Path) -> list[dict[
             " ".join(getattr(manifest, "headings")),
         ]
     ).casefold()
-    body_lines = _skill_body_lines(skill_file)
-    body_intent_text = "\n".join(
-        line.casefold()
-        for line in body_lines
-        if _is_explicit_body_intent_line(line)
-    )
+    frontmatter_intent_lines = [
+        str(chunk.get("text") or "")
+        for chunk in route_evidence_chunks
+        if str(chunk.get("role") or "") == "applicable" and str(chunk.get("source") or "").startswith("frontmatter.")
+    ]
+    body_intent_lines = [
+        str(chunk.get("text") or "")
+        for chunk in route_evidence_chunks
+        if str(chunk.get("role") or "") == "applicable" and str(chunk.get("source") or "").startswith("body.")
+    ]
 
     for capability, hints in CAPABILITY_INFERENCE_HINTS:
         if capability in declared:
             continue
-        if any(hint in metadata_text for hint in hints):
+        intent_hints = hints
+        identity_match = any(keyword_hit(identity_text, hint) for hint in hints)
+        metadata_match = any(keyword_hit(metadata_text, hint) for hint in hints)
+        frontmatter_intent_match = any(
+            _intent_text_matches_hint_as_owner(line, hint)
+            for line in frontmatter_intent_lines
+            for hint in intent_hints
+        )
+        body_match = any(
+            _intent_text_matches_hint_as_owner(line, hint)
+            for line in body_intent_lines
+            for hint in intent_hints
+        )
+        requires_capability_anchor = capability in {"presentation.deck", "visualization.figure"}
+        allow_intent_inference = not requires_capability_anchor or identity_match or metadata_match
+        if identity_match:
+            evidence.append(
+                {
+                    "capability": capability,
+                    "evidence_level": "weak_text",
+                    "source": "identity_text",
+                    "strength": 0.85,
+                }
+            )
+        if metadata_match and not explicit_only:
             evidence.append(
                 {
                     "capability": capability,
@@ -223,8 +405,16 @@ def _build_capability_evidence(manifest: object, skill_file: Path) -> list[dict[
                     "strength": 0.7,
                 }
             )
-            continue
-        if any(hint in body_intent_text for hint in hints):
+        if frontmatter_intent_match and not explicit_only and allow_intent_inference:
+            evidence.append(
+                {
+                    "capability": capability,
+                    "evidence_level": "weak_text",
+                    "source": "frontmatter_intent",
+                    "strength": 0.6,
+                }
+            )
+        if body_match and not explicit_only and allow_intent_inference:
             evidence.append(
                 {
                     "capability": capability,
@@ -234,6 +424,93 @@ def _build_capability_evidence(manifest: object, skill_file: Path) -> list[dict[
                 }
             )
     return evidence
+
+
+def _manifest_is_explicit_only(manifest: object, skill_file: Path) -> bool:
+    text_parts: list[str] = []
+    description = str(getattr(manifest, "description") or "").strip()
+    if description:
+        text_parts.append(description)
+    for line in getattr(manifest, "when_to_use", ()) or ():
+        text = str(line).strip()
+        if text:
+            text_parts.append(text)
+    text_parts.extend(line.strip() for line in _skill_body_lines(skill_file)[:80] if line.strip())
+    lowered = "\n".join(text_parts).casefold()
+    return any(marker in lowered for marker in EXPLICIT_ONLY_MARKERS)
+
+
+def _route_active_capabilities(capability_evidence: list[dict[str, object]]) -> list[str]:
+    active: list[str] = []
+    for row in capability_evidence:
+        capability = str(row.get("capability") or "").strip()
+        if not capability:
+            continue
+        evidence_level = str(row.get("evidence_level") or "").strip()
+        source = str(row.get("source") or "").strip()
+        if evidence_level == "weak_text" and source == "metadata_text":
+            continue
+        active.append(capability)
+    return _unique_ordered(active)
+
+
+def _body_intent_lines(skill_file: Path) -> list[str]:
+    lines: list[str] = []
+    in_code_fence = False
+    in_when_to_use_section = False
+    for line in _skill_body_lines(skill_file):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
+        if stripped.startswith("#"):
+            in_when_to_use_section = bool(WHEN_TO_USE_HEADING.match(stripped))
+            continue
+        if _is_explicit_body_intent_line(line):
+            lines.append(line)
+            continue
+        if in_when_to_use_section and stripped:
+            lines.append(line)
+    return lines
+
+
+def _frontmatter_intent_text(manifest: object) -> str:
+    lines: list[str] = []
+    description = str(getattr(manifest, "description") or "").strip()
+    if description and _contains_explicit_intent_phrase(description):
+        lines.append(description)
+    for line in getattr(manifest, "when_to_use", ()) or ():
+        text = str(line).strip()
+        if text:
+            lines.append(text)
+    return "\n".join(text.casefold() for text in lines)
+
+
+def _contains_explicit_intent_phrase(text: str) -> bool:
+    lowered = str(text or "").casefold()
+    if not lowered:
+        return False
+    if any(marker in lowered for marker in ("use this skill for ", "use for ", "use when ", "used when ", "用于", "适用于")):
+        return True
+    if "时使用" in lowered and any(anchor in lowered for anchor in ("用户", "当用户", "用户说", "用户要求", "需要")):
+        return True
+    if ACTION_LED_INTENT_DESCRIPTION.match(str(text or "").strip()):
+        return True
+    return re.search(r"\buse the .+ skill (when|for)\b", lowered) is not None
+
+
+def _intent_text_matches_hint_as_owner(text: str, hint: str) -> bool:
+    lowered = normalize_text(text)
+    hint_lower = normalize_text(hint)
+    if not lowered or not hint_lower or not keyword_hit(lowered, hint_lower):
+        return False
+    hint_index = lowered.find(hint_lower)
+    if hint_index < 0:
+        return True
+    prefix = lowered[max(0, hint_index - 48):hint_index]
+    return not any(marker in prefix for marker in DEPENDENCY_CONTEXT_MARKERS)
 
 
 def _is_explicit_body_intent_line(line: str) -> bool:
@@ -246,16 +523,13 @@ def _is_explicit_body_intent_line(line: str) -> bool:
         stripped = stripped[1:].lstrip()
     stripped = stripped.lstrip("*_`").strip()
     lowered = stripped.casefold()
-    return lowered.startswith(("use this skill for ", "use for ", "use when ", "used when ", "用于", "适用于"))
+    return lowered.startswith(("use this skill for ", "use for ", "use when ", "used when ", "用于", "适用于")) or (
+        "时使用" in lowered and any(anchor in lowered for anchor in ("用户", "当用户", "用户说", "用户要求", "需要"))
+    ) or bool(re.match(r"^use the .+ skill (when|for)\b", lowered))
 
 
 def _skill_body_lines(skill_file: Path) -> list[str]:
-    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
-    if lines and lines[0].strip() == "---":
-        for index, line in enumerate(lines[1:], start=1):
-            if line.strip() == "---":
-                return lines[index + 1 :]
-    return lines
+    return [line for _, line in _skill_body_line_rows(skill_file)]
 
 
 def _extract_routing_boundary_not_for(skill_file: Path) -> list[str]:
@@ -292,8 +566,10 @@ def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:
         "skill_id": entry["skill_id"],
         "name": entry["name"],
         "description": entry["description"],
+        "explicit_only": bool(entry.get("explicit_only")),
         "capabilities": list(entry.get("capabilities") or []),
         "capability_evidence": list(entry.get("capability_evidence") or []),
+        "route_evidence_chunks": list(entry.get("route_evidence_chunks") or []),
         "not_for": list(entry.get("not_for") or []),
         "tags": list(entry.get("tags") or []),
         "headings": list(entry.get("when_to_use") or []),
