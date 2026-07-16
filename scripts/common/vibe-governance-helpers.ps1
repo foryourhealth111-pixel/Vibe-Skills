@@ -1381,21 +1381,13 @@ function Test-VgoGovernedMirrorRelativePath {
 function Get-VgoInstalledRuntimeEmergencyFallbackDefaults {
     return [pscustomobject][ordered]@{
         target_relpath = 'skills/vibe'
-        receipt_relpath = 'skills/vibe/outputs/runtime-freshness-receipt.json'
+        receipt_relpath = 'skills/vibe/.vibeskills/install-receipt.json'
         post_install_gate = 'scripts/verify/vibe-installed-runtime-freshness-gate.ps1'
         coherence_gate = 'scripts/verify/vibe-release-install-runtime-coherence-gate.ps1'
         frontmatter_gate = 'scripts/verify/vibe-bom-frontmatter-gate.ps1'
         neutral_freshness_gate = 'scripts/verify/runtime_neutral/freshness_gate.py'
         runtime_entrypoint = 'scripts/runtime/invoke-vibe-runtime.ps1'
         receipt_contract_version = 1
-        shell_degraded_behavior = 'warn_and_skip_authoritative_runtime_gate'
-        required_runtime_markers = @(
-            'SKILL.md',
-            'config/version-governance.json',
-            'scripts/common/vibe-governance-helpers.ps1',
-            'scripts/runtime/invoke-vibe-runtime.ps1',
-            'scripts/router/resolve-pack-route.ps1'
-        )
         require_nested_bundled_root = $false
     }
 }
@@ -1451,15 +1443,6 @@ function Get-VgoInstalledRuntimeConfig {
     $defaultKeys = @($defaults.PSObject.Properties | ForEach-Object { [string]$_.Name })
     foreach ($key in $defaultKeys) {
         $defaultValue = $defaults.$key
-        if ($key -eq 'required_runtime_markers') {
-            if ($runtimeConfig.PSObject.Properties.Name -contains $key -and $null -ne $runtimeConfig.$key) {
-                $merged[$key] = @($runtimeConfig.$key)
-            } else {
-                $merged[$key] = @($defaultValue)
-            }
-            continue
-        }
-
         if ($runtimeConfig.PSObject.Properties.Name -contains $key -and $null -ne $runtimeConfig.$key -and -not (($runtimeConfig.$key -is [string]) -and [string]::IsNullOrWhiteSpace([string]$runtimeConfig.$key))) {
             $merged[$key] = $runtimeConfig.$key
         } else {
@@ -1629,8 +1612,7 @@ function Get-VgoLegacySourceOfTruthCompatibility {
 
 function Test-VgoInstalledRuntimeMaterialization {
     param(
-        [AllowEmptyString()] [string]$RepoRoot,
-        [AllowNull()] [psobject]$RuntimeConfig
+        [AllowEmptyString()] [string]$RepoRoot
     )
 
     if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
@@ -1652,30 +1634,7 @@ function Test-VgoInstalledRuntimeMaterialization {
         }
     }
 
-    if ($null -eq $RuntimeConfig) {
-        return $false
-    }
-
-    $requiredMarkers = @()
-    if ($RuntimeConfig.PSObject.Properties.Name -contains 'required_runtime_markers' -and $null -ne $RuntimeConfig.required_runtime_markers) {
-        $requiredMarkers = @($RuntimeConfig.required_runtime_markers)
-    }
-    if (@($requiredMarkers).Count -eq 0) {
-        return $false
-    }
-
-    foreach ($marker in @($requiredMarkers)) {
-        if ([string]::IsNullOrWhiteSpace([string]$marker)) {
-            continue
-        }
-
-        $markerPath = Join-Path $RepoRoot ([string]$marker)
-        if (-not (Test-Path -LiteralPath $markerPath)) {
-            return $false
-        }
-    }
-
-    return $true
+    return $false
 }
 
 function Assert-VgoCanonicalExecutionContext {
@@ -1697,7 +1656,7 @@ function Assert-VgoCanonicalExecutionContext {
     }
 
     $hasOuterGitRoot = (Test-Path -LiteralPath (Join-Path $Context.repoRoot '.git'))
-    $hasInstalledRuntimeMaterialization = Test-VgoInstalledRuntimeMaterialization -RepoRoot ([string]$Context.repoRoot) -RuntimeConfig $Context.runtimeConfig
+    $hasInstalledRuntimeMaterialization = Test-VgoInstalledRuntimeMaterialization -RepoRoot ([string]$Context.repoRoot)
     if ($requireOuterGitRoot -and -not $hasOuterGitRoot -and -not $hasInstalledRuntimeMaterialization) {
         throw "Execution-context lock failed: resolved repo root is not the outer git root -> $($Context.repoRoot)"
     }
@@ -1797,11 +1756,8 @@ function Get-VgoGovernanceContext {
     return $context
 }
 
-function Get-VgoSkillPromotionPolicyDefaults {
+function Get-VgoSkillExecutionSafetyPolicyDefaults {
     return [pscustomobject]@{
-        promotion_enabled = $true
-        default_mode = 'recall_first'
-        allow_auto_dispatch_when_non_destructive = $true
         require_contract_complete = $true
         destructive_prompt_patterns = [pscustomobject]@{
             destructive_delete = @(
@@ -1825,29 +1781,22 @@ function Get-VgoSkillPromotionPolicyDefaults {
                 '销毁.{0,20}(全部|整个|环境|工作区|设置|配置|仓库|数据库|数据表|表|模式|产物|文件|分支|部署|生产)'
             )
         }
-        degraded_fallback_rules = [pscustomobject]@{
-            missing_contract = 'explicit_degraded'
-        }
     }
 }
 
-function Get-VgoSkillPromotionPolicy {
+function Get-VgoSkillExecutionSafetyPolicy {
     param(
         [AllowNull()] [object]$Policy
     )
 
-    $defaults = Get-VgoSkillPromotionPolicyDefaults
+    $defaults = Get-VgoSkillExecutionSafetyPolicyDefaults
     if ($null -eq $Policy) {
         return $defaults
     }
 
     return [pscustomobject]@{
-        promotion_enabled = if ($Policy.PSObject.Properties.Name -contains 'promotion_enabled' -and $null -ne $Policy.promotion_enabled) { [bool]$Policy.promotion_enabled } else { [bool]$defaults.promotion_enabled }
-        default_mode = if ($Policy.PSObject.Properties.Name -contains 'default_mode' -and -not [string]::IsNullOrWhiteSpace([string]$Policy.default_mode)) { [string]$Policy.default_mode } else { [string]$defaults.default_mode }
-        allow_auto_dispatch_when_non_destructive = if ($Policy.PSObject.Properties.Name -contains 'allow_auto_dispatch_when_non_destructive' -and $null -ne $Policy.allow_auto_dispatch_when_non_destructive) { [bool]$Policy.allow_auto_dispatch_when_non_destructive } else { [bool]$defaults.allow_auto_dispatch_when_non_destructive }
         require_contract_complete = if ($Policy.PSObject.Properties.Name -contains 'require_contract_complete' -and $null -ne $Policy.require_contract_complete) { [bool]$Policy.require_contract_complete } else { [bool]$defaults.require_contract_complete }
         destructive_prompt_patterns = if ($Policy.PSObject.Properties.Name -contains 'destructive_prompt_patterns' -and $null -ne $Policy.destructive_prompt_patterns) { $Policy.destructive_prompt_patterns } else { $defaults.destructive_prompt_patterns }
-        degraded_fallback_rules = if ($Policy.PSObject.Properties.Name -contains 'degraded_fallback_rules' -and $null -ne $Policy.degraded_fallback_rules) { $Policy.degraded_fallback_rules } else { $defaults.degraded_fallback_rules }
     }
 }
 
@@ -1859,7 +1808,6 @@ function Get-VgoSkillContractCompleteness {
         [AllowNull()] [object]$RequiredInputs = $null,
         [AllowNull()] [object]$ExpectedOutputs = $null,
         [AllowEmptyString()] [string]$VerificationExpectation = '',
-        [bool]$NativeUsageRequired = $true,
         [bool]$MustPreserveWorkflow = $true
     )
 
@@ -1878,13 +1826,13 @@ function Get-VgoSkillContractCompleteness {
 
     $missingFields = @()
     if ([string]::IsNullOrWhiteSpace($SkillMdPath)) {
-        $missingFields += 'native_skill_entrypoint'
+        $missingFields += 'skill_md_path'
     }
     if ([string]::IsNullOrWhiteSpace($resolvedSkillRoot)) {
         $missingFields += 'skill_root'
     }
     if ([string]::IsNullOrWhiteSpace($Description)) {
-        $missingFields += 'native_skill_description'
+        $missingFields += 'skill_description'
     }
     $requiredInputsPresent = @($RequiredInputs | Where-Object {
         -not [string]::IsNullOrWhiteSpace([string]$_)
@@ -1901,9 +1849,6 @@ function Get-VgoSkillContractCompleteness {
     if ([string]::IsNullOrWhiteSpace($VerificationExpectation)) {
         $missingFields += 'verification_expectation'
     }
-    if (-not $NativeUsageRequired) {
-        $missingFields += 'native_usage_required'
-    }
     if (-not $MustPreserveWorkflow) {
         $missingFields += 'must_preserve_workflow'
     }
@@ -1917,10 +1862,10 @@ function Get-VgoSkillContractCompleteness {
 function Get-VgoDestructiveIntentAssessment {
     param(
         [AllowEmptyString()] [string]$Prompt = '',
-        [AllowNull()] [object]$PromotionPolicy = $null
+        [AllowNull()] [object]$ExecutionSafetyPolicy = $null
     )
 
-    $policy = Get-VgoSkillPromotionPolicy -Policy $PromotionPolicy
+    $policy = Get-VgoSkillExecutionSafetyPolicy -Policy $ExecutionSafetyPolicy
     $patterns = $policy.destructive_prompt_patterns
     $reasonCodes = @()
     $promptText = if ([string]::IsNullOrWhiteSpace($Prompt)) { '' } else { [string]$Prompt }
@@ -1951,7 +1896,7 @@ function Get-VgoDestructiveIntentAssessment {
     }
 }
 
-function Get-VgoSkillPromotionMetadata {
+function Get-VgoSkillExecutionSafetyMetadata {
     param(
         [AllowEmptyString()] [string]$Prompt = '',
         [AllowEmptyString()] [string]$SkillMdPath = '',
@@ -1960,13 +1905,12 @@ function Get-VgoSkillPromotionMetadata {
         [AllowNull()] [object]$RequiredInputs = $null,
         [AllowNull()] [object]$ExpectedOutputs = $null,
         [AllowEmptyString()] [string]$VerificationExpectation = '',
-        [bool]$NativeUsageRequired = $true,
         [bool]$MustPreserveWorkflow = $true,
-        [AllowNull()] [object]$PromotionPolicy = $null
+        [AllowNull()] [object]$ExecutionSafetyPolicy = $null
     )
 
-    $policy = Get-VgoSkillPromotionPolicy -Policy $PromotionPolicy
-    $destructive = Get-VgoDestructiveIntentAssessment -Prompt $Prompt -PromotionPolicy $policy
+    $policy = Get-VgoSkillExecutionSafetyPolicy -Policy $ExecutionSafetyPolicy
+    $destructive = Get-VgoDestructiveIntentAssessment -Prompt $Prompt -ExecutionSafetyPolicy $policy
     $contract = Get-VgoSkillContractCompleteness `
         -SkillMdPath $SkillMdPath `
         -SkillRoot $SkillRoot `
@@ -1974,38 +1918,15 @@ function Get-VgoSkillPromotionMetadata {
         -RequiredInputs $RequiredInputs `
         -ExpectedOutputs $ExpectedOutputs `
         -VerificationExpectation $VerificationExpectation `
-        -NativeUsageRequired $NativeUsageRequired `
         -MustPreserveWorkflow $MustPreserveWorkflow
 
-    $recommendedAction = 'surface_only'
-    if (-not [bool]$policy.promotion_enabled) {
-        $recommendedAction = 'disabled'
-    } elseif ([bool]$destructive.destructive) {
-        $recommendedAction = 'require_confirmation'
-    } elseif ([bool]$policy.require_contract_complete -and -not [bool]$contract.complete) {
-        $recommendedAction = 'degrade_missing_contract'
-    } elseif ([bool]$policy.allow_auto_dispatch_when_non_destructive) {
-        $recommendedAction = 'auto_dispatch'
-    }
-
-    $promotionEligible = [bool](
-        [bool]$policy.promotion_enabled -and
-        -not [bool]$destructive.destructive -and
-        (
-            -not [bool]$policy.require_contract_complete -or
-            [bool]$contract.complete
-        )
-    )
-
     return [pscustomobject]@{
-        promotion_enabled = [bool]$policy.promotion_enabled
-        promotion_eligible = $promotionEligible
         destructive = [bool]$destructive.destructive
         destructive_reason_codes = @($destructive.destructive_reason_codes)
         rollback_possible = [bool]$destructive.rollback_possible
         snapshot_required = [bool]$destructive.snapshot_required
+        contract_required = [bool]$policy.require_contract_complete
         contract_complete = [bool]$contract.complete
         contract_missing_fields = @($contract.missing_fields)
-        recommended_promotion_action = [string]$recommendedAction
     }
 }

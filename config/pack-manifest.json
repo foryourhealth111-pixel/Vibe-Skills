@@ -34,9 +34,6 @@
     },
     {
       "id": "code-quality",
-      "authority_tier": "broad_owner",
-      "fallback_owner_pack_id": "code-quality",
-      "fallback_owner_skill": "systematic-debugging",
       "priority": 95,
       "grade_allow": [
         "M",
@@ -701,9 +698,6 @@
     },
     {
       "id": "docs-media",
-      "authority_tier": "broad_owner",
-      "fallback_owner_pack_id": "docs-media",
-      "fallback_owner_skill": "pdf",
       "priority": 85,
       "grade_allow": [
         "M",
@@ -963,9 +957,6 @@
     },
     {
       "id": "integration-devops",
-      "authority_tier": "broad_owner",
-      "fallback_owner_pack_id": "integration-devops",
-      "fallback_owner_skill": "gh-fix-ci",
       "priority": 83,
       "grade_allow": [
         "M",
@@ -1698,9 +1689,6 @@
     },
     {
       "id": "scholarly-publishing-workflow",
-      "authority_tier": "narrow_specialist",
-      "fallback_owner_pack_id": "code-quality",
-      "fallback_owner_skill": "systematic-debugging",
       "priority": 97,
       "grade_allow": [
         "M",

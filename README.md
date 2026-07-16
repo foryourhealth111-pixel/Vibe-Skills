@@ -35,9 +35,9 @@ Start with `vibe`. The runtime handles scoping, task breakdown, skill coordinati
 
 Installed local skills are the only specialist reference surface in the public runtime story. Host-declared extra local roots extend that same local surface without a new central catalog. This is not a claim that the final architecture is complete.
 
-A skill counts as actually used only when execution evidence supports it, and `work_binding` records what was actually bound in the run.
+A skill counts as actually used only when the Agent returns its work in `module-execution.json` and canonical acceptance passes. `module_assignments` records the approved binding, not proof that the work ran.
 
-For this runtime boundary, Python owns final truth artifacts, canonical validation, task semantics, `work_binding`, specialist decision truth, and structured runtime result data. PowerShell still performs stage orchestration, environment setup, script bridging, host receipts, shell-native checks, and leaf execution. Do not add new task semantics to PowerShell; existing PowerShell stage scripts are transitional orchestration surfaces. A future full-Python runtime is optional, not required for this version.
+For this runtime boundary, Python owns canonical validation, task semantics, `module_assignments`, and the truth chain from `agent_skill_organization` through `module-work-plan.json`, `agent-execution-handoff.json`, and `module-execution.json`. PowerShell performs stage orchestration, environment setup, script bridging, host receipts, and shell-native checks. The current Agent performs the approved module work. Do not add new task semantics or task execution to PowerShell; existing PowerShell stage scripts are transitional orchestration surfaces. A future full-Python runtime is optional, not required for this version.
 
 </details>
 
@@ -123,7 +123,7 @@ For this runtime boundary, Python owns final truth artifacts, canonical validati
 | **Local skill roots** | The runtime reads declared local skill roots as the only source for additional Skills. A skill must have a readable `SKILL.md` before it can be selected. |
 | **TDD / verified delivery** | Work should be backed by tests, checks, artifacts, or explicit manual-review notes before completion is claimed. |
 | **Workspace memory** | Structured project information, decisions, and evidence are stored so later sessions can continue without starting over. |
-| **Actual binding record** | The final record of what skill was actually bound lives in `work_binding`, not in a discovery cache or a broad product claim. |
+| **Actual binding record** | The final record of what skill was actually bound lives in `module_assignments`, not in a discovery cache or a broad product claim. |
 
 </details>
 
@@ -132,9 +132,9 @@ For this runtime boundary, Python owns final truth artifacts, canonical validati
 >
 > VibeSkills is built for agents that need more than a tool list.
 >
-> The runtime clarifies the request, plans the work, binds local Skills where they fit, records the actual binding in `work_binding`, and keeps the proof needed for review or continuation.
+> The runtime clarifies the request, plans the work, binds local Skills where they fit, records the actual binding in `module_assignments`, and keeps the proof needed for review or continuation.
 >
-> In the current release, the public entry stays narrow: `vibe` is the public entry, additional Skills are discovered only from declared local skill roots, duplicate skill ids follow host root priority, and `work_binding` is the runtime record of what was actually bound.
+> In the current release, the public entry stays narrow: `vibe` is the public entry, additional Skills are discovered only from declared local skill roots, duplicate skill ids follow host root priority, and `module_assignments` is the runtime record of what was actually bound.
 
 <br/>
 
@@ -185,7 +185,7 @@ flowchart LR
 | `one entry` | Start with `vibe`; use `update` to refresh the same installed skills directory. |
 | `late skill binding` | Skills are attached after the work shape is clear, not used as the control plane. |
 | `local skill roots` | The runtime checks declared local skill roots and only considers entries with a readable `SKILL.md`. Duplicate skill ids keep the highest-priority root active. |
-| `actual binding record` | The runtime truth for selected skill provenance lives in `work_binding`, even when discovery or benchmark artifacts are also written. |
+| `actual binding record` | The Agent freezes `agent_skill_organization`; `module_assignments` is its validated execution projection. Discovery and benchmark artifacts remain audit evidence only. |
 | `proof trail` | Tests, checks, artifacts, or manual-review state support delivery claims. |
 | `memory plane` | Requirements, plans, decisions, and evidence survive the chat window. |
 
@@ -351,7 +351,7 @@ The discovery rules stay narrow:
 
 - additional Skills are discovered only from declared local skill roots
 - a skill without a readable `SKILL.md` can be diagnostic only, never selected or locked
-- `work_binding` is still the first runtime truth for what was bound
+- `module_assignments` is still the first runtime truth for what was bound
 
 <div align="center">
 
@@ -372,7 +372,7 @@ The discovery rules stay narrow:
 - **Bind Skills only where needed**: Requirement work, planning, implementation, testing, review, and cleanup can each use different Skills when they fit the bounded unit.
 - **Drive toward evidence**: TDD, targeted checks, artifact review, and delivery acceptance keep completion claims grounded.
 - **Preserve context**: The runtime stores enough structure for another session or agent to continue.
-- **Record the actual binding**: `work_binding` records which skill was actually chosen for each bounded unit.
+- **Record the actual binding**: `module_assignments` records which skill was actually chosen for each bounded unit.
 
 ---
 
@@ -414,7 +414,7 @@ After the runtime has a bounded work model, it still chooses how large the run s
 - Older stage aliases are not public entries and are not installed as host-visible command or skill wrappers.
 - The only lightweight public grade overrides are `--l` and `--xl`. Aliases like `vibe-l`, `vibe-xl`, or stage-plus-grade combinations are intentionally unsupported.
 - When Skills such as `tdd-guide` or `code-review` are selected, they work only inside the current phase or bounded unit. They do not take over global coordination.
-- In XL multi-agent work, worker lanes can surface candidate Skills, but the coordinator confirms the selected Skills.
+- Before `xl_plan`, the Agent searches declared local roots, reads candidate `SKILL.md` files, and freezes `agent_skill_organization`; XL worker lanes inherit that choice instead of selecting Skills again.
 
 </details>
 
@@ -566,7 +566,7 @@ VibeSkills does not claim to replace or fully reproduce every upstream project l
 >
 > This project references, adapts, or integrates ideas, workflows, or tooling from projects such as:
 >
-> `superpower` · `claude-scientific-skills` · `get-shit-done` · `OpenSpec` · `spec-kit` · `mem0` · `scrapling` · `claude-flow` · `serena`
+> `superpower` · `claude-scientific-skills` · `get-shit-done` · `OpenSpec` · `spec-kit` · `mem0` · `scrapling` · `serena`
 >
 > _We try to attribute upstream work carefully. If we missed a source or described a dependency inaccurately, please open an Issue and we will correct it._
 >

@@ -178,24 +178,13 @@ def test_runtime_delivery_acceptance_delegates_support_and_runtime_helpers() -> 
     assert 'def evaluate_delivery_acceptance(' in evaluator
 
 
-def test_runtime_freshness_delegates_support_and_runtime_helpers() -> None:
+def test_runtime_freshness_uses_the_install_receipt_directly() -> None:
     runtime = (REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'runtime_freshness.py').read_text(encoding='utf-8')
-    support = (REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'runtime_freshness_support.py').read_text(encoding='utf-8')
-    evaluator = (REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'runtime_freshness_runtime.py').read_text(encoding='utf-8')
 
-    assert 'from .runtime_freshness_runtime import evaluate_freshness_runtime' in runtime
-    assert 'from .runtime_freshness_support import (' in runtime
-
-    assert 'file_parity(' not in runtime
-    assert 'relative_file_list(' not in runtime
-    assert 'resolve_packaging_contract(' not in runtime
-    assert 'mirror_topology_targets(' not in runtime
-
-    assert 'def build_freshness_context(' in support
-    assert 'def write_freshness_artifacts(' in support
-    assert 'def write_freshness_receipt(' in support
-
-    assert 'def evaluate_freshness_runtime(' in evaluator
+    assert 'install-receipt.json' in runtime
+    assert 'hashlib.sha256' in runtime
+    assert not (REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'runtime_freshness_support.py').exists()
+    assert not (REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'runtime_freshness_runtime.py').exists()
 
 
 def test_policies_delegate_to_contract_mirror_topology_helper() -> None:

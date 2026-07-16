@@ -68,10 +68,10 @@ release only governs repo parity.
 That means:
 
 - release metadata and release-cut gates validate canonical repo state
-- install copies the governed payload into `${TARGET_ROOT}/skills/vibe` and writes a freshness receipt on success
+- install copies the governed payload into `<skills-dir>/vibe` and writes an install receipt with the owned file hashes
 - install-time compatibility flows may generate `${TARGET_ROOT}/skills/vibe/bundled/skills/vibe` even though no repo-level mirror exists
-- runtime freshness authoritatively validates the installed copy against canonical source
-- routine `check.ps1` / `check.sh` may execute the runtime freshness gate only when the canonical repo context is available
+- runtime freshness validates the receipt-owned installed files without requiring a full repository mirror
+- routine `check.ps1` / `check.sh` validate the same receipt contract on every supported shell
 
 ## Runtime Freshness Contract
 
@@ -82,26 +82,10 @@ That means:
 - `post_install_gate`
 - `coherence_gate`
 - `receipt_contract_version`
-- `shell_degraded_behavior`
-- `required_runtime_markers`
 
-The installed runtime freshness gate remains the receipt authority. The coherence gate validates that release/install/runtime documentation, scripts, and receipt expectations stay aligned.
+The installer owns the receipt. The installed runtime freshness gate verifies its file inventory and hashes. The coherence gate validates that release, install, runtime documentation, and scripts stay aligned.
 
 `require_nested_bundled_root = false` means installed-runtime freshness does not fail only because a nested compatibility surface is absent. If a nested layout is materialized for compatibility, install-time generation must keep it derived from the installed canonical payload and governed by the same parity and hygiene rules.
-
-## Shell Degraded Behavior
-
-Shell environments without authoritative PowerShell execution must not fake freshness success.
-
-The configured shell degraded behavior is:
-
-- `warn_and_skip_authoritative_runtime_gate`
-
-Operational meaning:
-
-- `check.sh` and `install.sh` warn when `pwsh` is unavailable
-- receipt absence in that degraded mode is reported as context, not misreported as a successful freshness run
-- once authoritative PowerShell is available, the freshness gate becomes blocking again
 
 ## Recommended Operational Flow
 
@@ -115,7 +99,7 @@ Example sequence:
 
 ```powershell
 pwsh -NoProfile -File .\scripts\verify\vibe-version-packaging-gate.ps1 -WriteArtifacts
-pwsh -NoProfile -File .\scripts\verify\vibe-installed-runtime-freshness-gate.ps1 -TargetRoot "$env:USERPROFILE\.codex" -WriteReceipt
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-installed-runtime-freshness-gate.ps1 -TargetRoot "$env:USERPROFILE\.codex"
 pwsh -NoProfile -File .\scripts\verify\vibe-release-install-runtime-coherence-gate.ps1 -TargetRoot "$env:USERPROFILE\.codex" -WriteArtifacts
 ```
 

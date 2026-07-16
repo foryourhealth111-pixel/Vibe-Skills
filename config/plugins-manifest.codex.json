@@ -9,11 +9,6 @@
       "install_hint": "Provision via Codex-native MCP tooling if your Codex host exposes official MCP registration."
     },
     {
-      "name": "context7",
-      "install_mode": "manual-codex",
-      "install_hint": "Provision via Codex-native MCP tooling if your Codex host exposes official MCP registration."
-    },
-    {
       "name": "github",
       "install_mode": "manual-codex",
       "install_hint": "Provision via Codex-native MCP tooling if your Codex host exposes official MCP registration."

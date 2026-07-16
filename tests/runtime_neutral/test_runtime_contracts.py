@@ -54,7 +54,6 @@ class RuntimeContractsTests(unittest.TestCase):
         self.assertTrue(contracts.is_ignored_runtime_artifact(Path("scripts/.coverage")))
         self.assertTrue(contracts.is_ignored_runtime_artifact(Path("scripts/.venv/bin/python")))
 
-        self.assertFalse(contracts.is_ignored_runtime_artifact(Path("scripts/runtime/native_specialist_runner.py")))
 
 
 if __name__ == "__main__":

@@ -80,7 +80,7 @@ tags:
     assert [entry["skill_id"] for entry in payload["skills"]] == ["code-review"]
     assert payload["skills"][0]["display_name"] == "Code Review"
     assert payload["skills"][0]["source_kind"] == "vibe_local"
-    assert payload["skills"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert payload["skills"][0]["skill_entrypoint"] == str(skill_path.resolve())
     assert payload["skills"][0]["tags"] == ["review", "testing"]
     assert index_path == vibe_root / "generated" / "skills-index.json"
     assert index_path.exists()
@@ -111,7 +111,7 @@ description: The Vibe local copy should stay inactive.
     assert [entry["skill_id"] for entry in payload["skills"]] == ["duplicate-skill"]
     assert payload["skills"][0]["display_name"] == "Host Duplicate Skill"
     assert payload["skills"][0]["source_kind"] == "host_installed"
-    assert payload["skills"][0]["native_skill_entrypoint"] == str(host_skill.resolve())
+    assert payload["skills"][0]["skill_entrypoint"] == str(host_skill.resolve())
     duplicate = payload["discovery_diagnostics"]["duplicates"][0]
     assert duplicate["skill_id"] == "duplicate-skill"
     assert duplicate["active_entrypoint"] == str(host_skill.resolve())

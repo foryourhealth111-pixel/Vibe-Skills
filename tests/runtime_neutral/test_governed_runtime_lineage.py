@@ -14,6 +14,46 @@ POLICY_PATH = REPO_ROOT / "config" / "runtime-input-packet-policy.json"
 RUNTIME_ENTRY = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
 
 
+def _ps_single_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _agent_direct_host_decision_json() -> str:
+    return json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "XL",
+                "modules": [
+                    {
+                        "module_id": "runtime_lineage",
+                        "goal": "Verify governed runtime lineage artifacts.",
+                        "candidate_skill_ids": [],
+                        "execution_mode": "agent_direct",
+                        "write_scope": "outputs/runtime-lineage/**",
+                        "expected_outputs": ["outputs/runtime-lineage/verification.json"],
+                        "verification": ["Check the governed lineage artifacts and record the result."],
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "lineage-result",
+                                "description": "The governed runtime lineage artifacts are verified.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Use one serial governed lane.",
+                    "XL": "Use bounded waves when the approved organization needs them.",
+                },
+            }
+        }
+    )
+
+
 def resolve_powershell() -> str | None:
     candidates = [
         shutil.which("pwsh"),
@@ -35,6 +75,7 @@ def run_governed_runtime(task: str, artifact_root: Path) -> dict[str, object]:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = "pytest-lineage-" + uuid.uuid4().hex[:10]
+    host_decision_json = _agent_direct_host_decision_json()
     completed = subprocess.run(
         [
             shell,
@@ -45,11 +86,12 @@ def run_governed_runtime(task: str, artifact_root: Path) -> dict[str, object]:
             "-Command",
             (
                 "& { "
-                f"$result = & '{RUNTIME_ENTRY}' "
-                f"-Task '{task}' "
+                f"$result = & {_ps_single_quote(str(RUNTIME_ENTRY))} "
+                f"-Task {_ps_single_quote(task)} "
                 "-Mode interactive_governed "
-                f"-RunId '{run_id}' "
-                f"-ArtifactRoot '{artifact_root}'; "
+                f"-RunId {_ps_single_quote(run_id)} "
+                f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+                f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                 "$result | ConvertTo-Json -Depth 20 }"
             ),
         ],
@@ -92,10 +134,12 @@ class GovernedRuntimeLineageTests(unittest.TestCase):
                     "requirement_doc",
                     "xl_plan",
                     "plan_execute",
-                    "phase_cleanup",
                 ],
                 [entry["stage_name"] for entry in lineage["stages"]],
             )
+            self.assertEqual("plan_execute", payload["summary"]["terminal_stage"])
+            self.assertIsNone(artifacts["cleanup_receipt"])
+            self.assertIsNone(artifacts["memory_activation_report"])
 
 
 if __name__ == "__main__":

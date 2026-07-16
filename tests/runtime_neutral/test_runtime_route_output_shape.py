@@ -74,6 +74,13 @@ def install_route_skills(target_root: Path) -> None:
 
 def assert_public_route_output_shape(testcase: unittest.TestCase, result: dict[str, Any]) -> None:
     retired_fields = set(json.loads(POLICY.read_text(encoding="utf-8"))["high_risk_retired_fields"])
+    testcase.assertNotIn("selected", result)
+    testcase.assertNotIn("primary_candidate", result)
+    testcase.assertNotIn("confirm_required", result)
+    testcase.assertNotIn("confirm_options", result)
+    testcase.assertNotIn("confirm_ui", result)
+    testcase.assertNotIn("selected", result["skill_routing"])
+    testcase.assertNotIn("primary_skill", result["skill_routing"])
     testcase.assertIn("ranked", result)
     testcase.assertIsInstance(result["ranked"], list)
     for pack_row in result["ranked"]:
@@ -90,45 +97,6 @@ def assert_public_route_output_shape(testcase: unittest.TestCase, result: dict[s
             testcase.assertIsInstance(candidate_row, dict)
             for field in retired_fields:
                 testcase.assertNotIn(field, candidate_row, candidate_row.get("skill"))
-
-
-def run_powershell_old_manifest_candidate_probe(testcase: unittest.TestCase) -> list[str]:
-    shell = resolve_powershell()
-    if shell is None:
-        testcase.skipTest("PowerShell executable not available")
-
-    module_path = REPO_ROOT / "scripts" / "router" / "modules" / "41-candidate-selection.ps1"
-    retired_candidate_fields = [
-        field
-        for field in json.loads(POLICY.read_text(encoding="utf-8"))["high_risk_retired_fields"]
-        if field.endswith("_candidates")
-    ]
-    retired_member_writes = " ".join(
-        "$pack | Add-Member -NotePropertyName '{field}' -NotePropertyValue @('primary','shared'); ".format(
-            field=field.replace("'", "''"),
-        )
-        for field in retired_candidate_fields
-    )
-    script = (
-        f". '{module_path}'; "
-        "$pack = [pscustomobject]@{}; "
-        f"{retired_member_writes}"
-        "$result = @(Get-PackSkillCandidates -Pack $pack); "
-        "$result | ConvertTo-Json -Depth 5"
-    )
-    completed = subprocess.run(
-        [shell, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=True,
-    )
-    output = completed.stdout.strip()
-    if not output:
-        return []
-    payload = json.loads(output)
-    return payload if isinstance(payload, list) else [payload]
 
 
 class RuntimeRouteOutputShapeTests(unittest.TestCase):
@@ -148,10 +116,32 @@ class RuntimeRouteOutputShapeTests(unittest.TestCase):
         self.assertIn("pre_fallback_top", result)
         self.assertEqual("no_local_candidate", result["route_mode"])
         self.assertEqual("local_index_no_match", result["truth_level"])
-        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["candidate_focus"])
 
-    def test_powershell_pack_skill_candidates_ignore_retired_role_fields(self) -> None:
-        self.assertEqual([], run_powershell_old_manifest_candidate_probe(self))
+    def test_retired_programmatic_candidate_selection_modules_are_absent(self) -> None:
+        retired_paths = [
+            REPO_ROOT / "scripts" / "router" / "modules" / "41-candidate-selection.ps1",
+            REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "router_contract_selection.py",
+            REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "router.py",
+            REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "execution.py",
+            REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "execution_snapshot.py",
+        ]
+        for path in retired_paths:
+            self.assertFalse(path.exists(), path)
+
+        for relative_path in (
+            "config/runtime-script-manifest.json",
+            "config/routing-terminology-hard-cleanup.json",
+            "config/kernel-boundary-demotion-matrix.json",
+        ):
+            text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            for path in retired_paths:
+                self.assertNotIn(path.name, text, relative_path)
+
+        router_runtime = (
+            REPO_ROOT / "packages" / "runtime-core" / "src" / "vgo_runtime" / "router_contract_runtime.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("def choose_authoritative_route", router_runtime)
 
     def test_python_route_output_has_only_current_skill_ranking_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -168,8 +158,8 @@ class RuntimeRouteOutputShapeTests(unittest.TestCase):
                         repo_root=REPO_ROOT,
                     )
 
-                    self.assertEqual("local-skill-index", result["selected"]["pack_id"])
-                    self.assertEqual(expected_skill, result["selected"]["skill"])
+                    self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
+                    self.assertEqual(expected_skill, result["candidate_focus"]["skill"])
                     assert_public_route_output_shape(self, result)
 
     def test_powershell_route_output_has_only_current_skill_ranking_fields(self) -> None:
@@ -206,12 +196,12 @@ class RuntimeRouteOutputShapeTests(unittest.TestCase):
                         text=True,
                         encoding="utf-8",
                         check=True,
-                        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                        env={**os.environ},
                     )
                     result = json.loads(completed.stdout)
 
-                    self.assertEqual("local-skill-index", result["selected"]["pack_id"])
-                    self.assertEqual(expected_skill, result["selected"]["skill"])
+                    self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
+                    self.assertEqual(expected_skill, result["candidate_focus"]["skill"])
                     assert_public_route_output_shape(self, result)
 
 

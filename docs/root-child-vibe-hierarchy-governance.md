@@ -8,7 +8,7 @@ Recursive use of `$vibe` inside child-agent prompts is desirable for discipline,
 
 - duplicate requirement freezes
 - duplicate execution-plan surfaces
-- repeated expert re-dispatch
+- repeated Skill reorganization
 - ambiguous completion authority
 - soft loss of governance despite every lane "using `vibe`"
 
@@ -19,17 +19,18 @@ The fix is to distinguish root governance from child execution.
 
 - Root `vibe`: the only top-level governor
 - Child `vibe`: a subordinate execution lane
-- Specialist skill: a bounded native helper
+- Agent: the executor of approved module work
+- Skill: module-bound workflow guidance, never runtime authority
 
 Short form:
 
-`root vibe governs, child vibe executes, specialists assist`
+`root vibe governs, child vibe stays subordinate, the Agent executes approved modules`
 
 ## Grade Execution Alignment
 
-- `L`: serial native execution from the frozen plan (sequence-first, no blanket fan-out).
+- `L`: serial execution of approved module work units (sequence-first, no blanket fan-out).
 - `XL`: wave-sequential execution, with step-level bounded parallelism only for independent units.
-- Specialist dispatch: executable as bounded native units only when root-approved in the frozen plan.
+- Both grades use the same module plan, handoff, result, and acceptance chain.
 
 ## Authority Layers
 
@@ -39,7 +40,7 @@ Only the root-governed lane may:
 
 - freeze the canonical requirement document
 - freeze the canonical execution plan
-- approve global specialist dispatch
+- approve the global Skill organization and module plan
 - aggregate overall execution status
 - issue final completion claims
 
@@ -50,7 +51,7 @@ Child-governed lanes must:
 - inherit frozen requirement and plan context from the root lane
 - stay inside assigned scope and write boundaries
 - emit local receipts and proof only
-- escalate when a new specialist is needed outside approved dispatch
+- escalate when a new Skill is needed outside the approved module plan
 
 Child-governed lanes must not:
 
@@ -59,54 +60,55 @@ Child-governed lanes must not:
 - widen the task silently
 - make final completion claims
 
-### Specialist-Native Lane
+### Agent Module Execution
 
-Specialists are not runtime owners.
+After plan approval, the current Agent receives temporary control of the approved module work.
 
-They may:
+The Agent must:
 
-- execute bounded professional subtasks
-- preserve native workflow expectations
-- preserve native input/output contracts
-- emit skill-specific verification notes
+- execute only the work units in `agent-execution-handoff.json`
+- read and follow each Skill assigned to a work unit
+- record work-unit results and evidence in `module-execution.json`
+- return those results through the canonical `vibe` entry
 
-They may not:
+The Agent must not:
 
-- take over stage ownership
-- replace `vibe` as runtime authority
-- create separate top-level planning truth
+- change the frozen requirement or module plan while executing
+- treat Skill selection or handoff as proof of a result
+- claim task completion before `vibe` accepts the returned module results
 
-## Dispatch Model
+## Control And Result Chain
 
-Approved specialist dispatch is phase-bound rather than “call it whenever”.
-The stable phase vocabulary is:
+The governed execution chain is:
 
-- `pre_execution`
-- `in_execution`
-- `post_execution`
-- `verification`
+```text
+agent_skill_organization
+-> module-work-plan.json
+-> execution-manifest.json: module_handoff
+-> agent-execution-handoff.json
+-> module-execution.json
+-> canonical vibe acceptance and cleanup
+```
 
-This keeps expert help aligned with the governed task stage instead of turning specialist calls into ad-hoc afterthoughts.
+Each artifact has one job:
 
-### Approved Specialist Dispatch
+- `module-work-plan.json` is the approved scheduling authority. It defines modules, dependencies, work units, Skill assignments, and acceptance criteria.
+- `module_handoff` records that execution control has moved to the Agent and summarizes the approved work units.
+- `agent-execution-handoff.json` gives the Agent the exact units, waves, boundaries, and canonical return path.
+- `module-execution.json` records actual work-unit and module results. It is the result input for acceptance; the handoff itself is not a result.
 
-Specialist usage approved by the root-governed lane and written into the frozen plan.
+Root and child lanes use this same chain. The difference is authority: a root lane can own canonical truth and final completion, while a child lane can only execute its inherited assignment and return local results.
 
-Properties:
+## Skill Organization And Escalation
 
-- executable without extra authority negotiation
-- carried into child-lane inputs
-- tracked in execution accounting
-- bound to an explicit phase, lane policy, write scope, and review mode
+Skills are selected for modules before the module plan is frozen. A selected Skill contributes workflow guidance to its assigned work unit; it does not become a runtime lane or gain governance authority.
 
-### Local Specialist Suggestion
-
-A child lane may detect that more specialist help is useful. The frozen packet keeps that request as a suggestion first, and the root-governed execute stage may same-round auto-approve safe suggestions without handing authority to the child lane.
+A child lane may detect that another Skill is needed. The request remains a suggestion until the root Agent explicitly updates the Skill organization and a new module plan is frozen.
 
 Properties:
 
 - advisory in the frozen packet
-- executable only after root-governed approval or same-round auto-absorb
+- executable only after explicit root approval and a newly frozen module plan
 - cannot mutate root authority by itself
 
 ## Conflict Prevention Rules
@@ -117,9 +119,9 @@ To prevent skills from "fighting", the system enforces:
 2. one canonical requirement surface
 3. one canonical execution-plan surface
 4. one final completion authority
-5. bounded specialist usage
+5. module-bound Skill usage
 6. explicit escalation instead of silent self-expansion
-7. stage-bound dispatch instead of random specialist timing
+7. explicit handoff and result return instead of implicit execution
 
 ## Artifact Rules
 
@@ -127,11 +129,14 @@ Canonical root artifacts:
 
 - `docs/requirements/YYYY-MM-DD-<topic>.md`
 - `docs/plans/YYYY-MM-DD-<topic>-execution-plan.md`
-- `outputs/runtime/vibe-sessions/<root-run-id>/...`
+- `outputs/runtime/vibe-sessions/<root-run-id>/module-work-plan.json`
+- `outputs/runtime/vibe-sessions/<root-run-id>/execution-manifest.json`
+- `outputs/runtime/vibe-sessions/<root-run-id>/agent-execution-handoff.json`
+- `outputs/runtime/vibe-sessions/<root-run-id>/module-execution.json`
 
 Child artifacts:
 
-- subordinate receipts and proof nested under the root runtime session
+- subordinate handoff, result, receipts, and proof tied to the root run
 - no child-owned canonical docs
 
 ## Safety Properties
@@ -141,8 +146,10 @@ This hierarchy must preserve:
 - explicit `vibe` runtime authority
 - no silent fallback guarantees
 - no duplicate truth surfaces
-- specialist boundedness
-- explicit escalation for new specialist needs
+- one approved module plan as execution authority
+- visible transfer and return of execution control
+- module results, not Skill selection, as completion evidence
+- explicit escalation for new Skill needs
 - root-owned completion claims only
 
 ## What Success Looks Like
@@ -151,10 +158,11 @@ When a root `vibe` task spawns children:
 
 - every child still behaves with `vibe` discipline
 - no child behaves like a second top-level governor
-- approved specialists can execute as bounded native units
+- the Agent executes only approved module work units
+- child results return through `module-execution.json`
 - root evidence remains the single source of completion truth
 
 ## Operator Rule Of Thumb
 
-If a child needs a new expert, it may ask.
+If a child needs another Skill, it may ask.
 It may not self-upgrade into a new governor.

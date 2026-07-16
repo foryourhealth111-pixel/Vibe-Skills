@@ -49,7 +49,7 @@ pwsh -NoProfile -File .\..\governance\phase-end-cleanup.ps1 -WriteArtifacts -Inc
 
 This default closure path stays intentionally small. Packaging, freshness, and retired-routing audit gates are still available when the change actually touches those surfaces.
 
-If the change touches retired-routing language or route-era cleanup, run `vibe-router-contract-gate.ps1` before `vibe-current-routing-debt-gate.ps1` as an opt-in current routing debt audit pair.
+If the change touches retired-routing language or route-era cleanup, run `vibe-pack-routing-smoke.ps1` and `vibe-current-routing-debt-gate.ps1`. The retired exact-output router golden gate is no longer part of the verification surface.
 
 ## High-Frequency Quick Starts
 
@@ -83,7 +83,7 @@ Version / packaging:
 Installed runtime freshness:
 
 ```powershell
-& ".\vibe-installed-runtime-freshness-gate.ps1" -WriteReceipt
+& ".\vibe-installed-runtime-freshness-gate.ps1" -TargetRoot "<host-root>"
 ```
 
 ## Legacy-Name Notes

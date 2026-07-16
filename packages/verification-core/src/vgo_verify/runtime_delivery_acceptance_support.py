@@ -129,6 +129,15 @@ def _resolve_artifact_review_payload(session_root: Path, execute_receipt: dict[s
 
 
 def _resolve_tdd_evidence_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
+    module_execution_path = session_root / "module-execution.json"
+    if module_execution_path.exists():
+        module_execution = load_json(module_execution_path)
+        module_execution_payload = module_execution.get("tdd_evidence")
+        if isinstance(module_execution_payload, dict) and module_execution_payload:
+            payload = dict(module_execution_payload)
+            payload["source_path"] = str(module_execution_path)
+            return payload
+
     return _resolve_optional_payload(
         session_root,
         execute_receipt,
@@ -146,29 +155,6 @@ def _resolve_tdd_evidence_payload(session_root: Path, execute_receipt: dict[str,
             "covered_code_task_tdd_evidence_requirements",
             "covered_code_task_tdd_exceptions",
         ),
-    )
-
-
-def _resolve_specialist_decision_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
-    return _resolve_optional_payload(
-        session_root,
-        execute_receipt,
-        inline_key="specialist_decision",
-        explicit_path_key="specialist_decision_path",
-        sidecar_filename="specialist-decision.json",
-        inline_presence_keys=("decision_state", "resolution_mode", "notes"),
-    )
-
-
-def _resolve_specialist_execution_payload(session_root: Path, execute_receipt: dict[str, Any]) -> dict[str, Any]:
-    return _resolve_optional_payload(
-        session_root,
-        execute_receipt,
-        inline_key="specialist_execution",
-        explicit_path_key="specialist_execution_path",
-        sidecar_filename="specialist-execution.json",
-        inline_presence_keys=("units", "source_run_id", "resolution_mode", "notes"),
-        report_invalid_payload=True,
     )
 
 

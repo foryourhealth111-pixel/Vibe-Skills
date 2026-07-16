@@ -95,12 +95,9 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
                 json.dumps(
                     {
                         "$schema": "https://opencode.ai/config.json",
-                        "mcp": {
-                            "playwright": {
-                                "enabled": True,
-                                "type": "local",
-                                "command": ["npx", "@playwright/mcp@latest"],
-                            }
+                        "theme": "system",
+                        "permission": {
+                            "read": "allow",
                         },
                         "vibeskills": {
                             "host_id": "opencode",
@@ -119,7 +116,8 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
 
             preserved = json.loads(settings_path.read_text(encoding="utf-8"))
             self.assertIn("vibeskills", preserved)
-            self.assertIn("mcp", preserved)
+            self.assertEqual("system", preserved["theme"])
+            self.assertNotIn("mcp", preserved)
             self.assertIsNone(payload["legacy_opencode_config_cleanup"])
 
     def test_shell_install_and_check_use_skills_dir_without_touching_real_opencode_config(self) -> None:
@@ -129,12 +127,9 @@ class OpenCodeManagedPreviewTests(unittest.TestCase):
             settings_path = target_root / "opencode.json"
             original = {
                 "$schema": "https://opencode.ai/config.json",
-                "mcp": {
-                    "playwright": {
-                        "enabled": True,
-                        "type": "local",
-                        "command": ["npx", "@playwright/mcp@latest"],
-                    }
+                "theme": "system",
+                "permission": {
+                    "read": "allow",
                 },
             }
             settings_path.write_text(json.dumps(original, indent=2) + "\n", encoding="utf-8")

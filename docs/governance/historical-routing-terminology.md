@@ -1,6 +1,6 @@
 # Historical Routing Terminology
 
-> Historical / Retired Note: This document is an index for retired routing language. The current work-first truth model is `task_card -> work_plan -> work_binding -> work_results -> verification`. `skill_routing.selected` may still appear only as an optional compatibility mirror.
+> Historical / Retired Note: This document is an index for retired routing language. The current work-first truth model is `task_card -> work_plan -> module_assignments -> work_results -> verification`. `skill_routing.selected` may still appear only as an optional compatibility mirror.
 
 This page exists so old routing vocabulary has one small place to live. It is not
 a runtime contract, and it does not add another routing layer.
@@ -16,7 +16,7 @@ Current work-first truth:
 
 - `task_card`
 - `work_plan`
-- `work_binding`
+- `module_assignments`
 - `work_results`
 - `verification`
 
@@ -24,13 +24,12 @@ Compatibility and execution fields that may still appear:
 
 - `skill_candidates`
 - `skill_routing.selected`
-- `skill_execution_lock`
-- `selected_skill_execution`
+- `module_skill_dispatch`
 - `skill_usage.used`
 - `skill_usage.unused`
 - `skill_usage.evidence`
 
-Read `work_binding` first when asking what work was actually bound. Read
+Read `module_assignments` first when asking what work was actually bound. Read
 `skill_routing.selected` only as an optional compatibility mirror for older
 readers and reports.
 

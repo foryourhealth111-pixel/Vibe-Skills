@@ -17,12 +17,10 @@ def test_summarize_compatibility_exit_covers_non_kernel_layers() -> None:
     payload = summarize_compatibility_exit(repo_root=REPO_ROOT)
 
     controlled = {entry["capability"]: entry for entry in payload["controlled_capabilities"]}
-    assert set(controlled) == {"public_entry", "compatibility_projection", "host_wiring"}
+    assert set(controlled) == {"public_entry", "host_wiring"}
     assert controlled["public_entry"]["authority_layer"] == "entry_wrapper"
-    assert controlled["compatibility_projection"]["authority_layer"] == "compatibility"
     assert controlled["host_wiring"]["authority_layer"] == "host_adapter"
     assert controlled["public_entry"]["primary_entry_file"] == "packages/runtime-core/src/vgo_runtime/canonical_entry.py"
-    assert controlled["compatibility_projection"]["primary_entry_file"] == "packages/runtime-core/src/vgo_runtime/execution.py"
 
     rules = {rule["id"] for rule in payload["non_negotiable_rules"]}
     assert "no-new-live-semantic-authority" in rules
@@ -40,3 +38,4 @@ def test_compatibility_exit_main_prints_json(capsys) -> None:
     captured = capsys.readouterr()
     payload = json.loads(captured.out)
     assert payload["controlled_capabilities"][0]["capability"] == "public_entry"
+    assert all(entry["capability"] != "compatibility_projection" for entry in payload["controlled_capabilities"])

@@ -173,12 +173,12 @@ try {
     foreach ($case in $cases) {
         $route = Invoke-Route -Prompt $case.Prompt -Grade $case.Grade -TaskType $case.TaskType -RequestedSkill $case.RequestedSkill
 
-        $results += Assert-True -Condition ($null -ne $route.selected) -Message "[$($case.Name)] selected route exists"
+        $results += Assert-True -Condition ($null -ne $route.candidate_focus) -Message "[$($case.Name)] selected route exists"
         if ($case.ExpectedPack) {
-            $results += Assert-True -Condition ($route.selected.pack_id -eq $case.ExpectedPack) -Message "[$($case.Name)] selected pack unchanged ($($case.ExpectedPack))"
+            $results += Assert-True -Condition ($route.candidate_focus.pack_id -eq $case.ExpectedPack) -Message "[$($case.Name)] selected pack unchanged ($($case.ExpectedPack))"
         }
         if ($case.BlockedPack) {
-            $results += Assert-True -Condition ($route.selected.pack_id -ne $case.BlockedPack) -Message "[$($case.Name)] blocked pack not selected ($($case.BlockedPack))"
+            $results += Assert-True -Condition ($route.candidate_focus.pack_id -ne $case.BlockedPack) -Message "[$($case.Name)] blocked pack not selected ($($case.BlockedPack))"
         }
         $results += Assert-True -Condition ($null -ne $route.openspec_advice) -Message "[$($case.Name)] openspec_advice exists"
         $results += Assert-True -Condition ($route.openspec_advice.enabled -eq $true) -Message "[$($case.Name)] openspec advice enabled"

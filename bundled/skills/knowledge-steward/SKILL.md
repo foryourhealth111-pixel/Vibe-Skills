@@ -262,12 +262,11 @@ ON SKILL ACTIVATION:
 1. 使用 ToolSearch 探测可用插件:
    - ToolSearch("github") → 发现 GitHub 相关工具（issue、PR、文件操作）
    - ToolSearch("serena") → 发现代码分析工具（符号查找、引用分析）
-   - ToolSearch("context7") → 发现文档查询工具
 
 2. 根据当前任务类型选择插件:
    - 保存代码模式 → 使用 Serena 分析符号和引用关系
    - GitHub 同步 → 使用 GitHub MCP 工具直接操作仓库
-   - 查找文档 → 使用 Context7 查询库文档
+   - 查找文档 → 先确认版本，再使用官方 primary docs
 ```
 
 ### 任务-插件智能映射
@@ -277,7 +276,7 @@ ON SKILL ACTIVATION:
 | 保存代码模式/架构经验 | `ToolSearch("+serena symbol")` | 分析代码符号结构，提取精确的模式描述 |
 | GitHub 同步笔记 | `ToolSearch("+github file")` | 直接通过 MCP 创建/更新 GitHub 文件 |
 | 创建 GitHub Issue 追踪 | `ToolSearch("+github issue")` | 为重要知识点创建追踪 Issue |
-| 查询库文档补充知识 | `ToolSearch("context7")` | 查询第三方库文档，丰富知识条目 |
+| 查询库文档补充知识 | 本地依赖信息与官方 primary docs | 查询第三方库文档，丰富知识条目 |
 | 浏览器截图保存 | `ToolSearch("+playwright screenshot")` | 截取网页内容作为知识附件 |
 | IDE 代码诊断 | `ToolSearch("getDiagnostics")` | 获取代码诊断信息辅助问题修复记录 |
 
@@ -302,8 +301,8 @@ ON SKILL ACTIVATION:
      → 直接通过 MCP 推送文件到 GitHub，无需本地 git 命令
 
    IF 需要查询库文档:
-     → ToolSearch("context7")
-     → 查询相关库的最新文档，丰富知识条目
+     → 先确认本地依赖版本，再查询官方 primary docs
+     → 只用已核实的资料丰富知识条目；无法核实时明确标注
 
 3. 将插件获取的信息整合到笔记内容中
 

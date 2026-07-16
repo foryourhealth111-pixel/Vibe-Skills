@@ -209,9 +209,9 @@ This makes fallback visible to operators instead of silently continuing.
 | Situation | Tool | Source |
 |-----------|------|--------|
 | Context getting large | everything-claude-code:strategic-compact | Everything-CC |
-| Preserve state before compact | ruflo session_save (or state_store) | Claude-flow |
-| Resume after compact | ruflo session_restore (or re-read state_store) | Claude-flow |
-| Store intermediate results | ruflo memory_store (or state_store) | Claude-flow |
+| Preserve state before compact | Write the durable task state file | Repository state |
+| Resume after compact | Re-read the durable task state file | Repository state |
+| Store intermediate results | Write bounded artifacts under the task workspace | Repository state |
 
 ### Context Budget Rules
 1. L+ 任务开始前，评估任务复杂度与当前对话长度

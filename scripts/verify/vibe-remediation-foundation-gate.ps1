@@ -62,20 +62,17 @@ $summary = & $runtimeEntryPath -Task 'remediation foundation runtime proof' -Mod
 $runtimeInputPacketPath = [string]$summary.summary.artifacts.runtime_input_packet
 $executeReceiptPath = [string]$summary.summary.artifacts.execute_receipt
 $executionManifestPath = [string]$summary.summary.artifacts.execution_manifest
-$proofManifestPath = [string]$summary.summary.artifacts.execution_proof_manifest
 $cleanupReceiptPath = [string]$summary.summary.artifacts.cleanup_receipt
 
 $runtimeInputPacket = Get-Content -LiteralPath $runtimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executeReceipt = Get-Content -LiteralPath $executeReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executionManifest = Get-Content -LiteralPath $executionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$proofManifest = Get-Content -LiteralPath $proofManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $cleanupReceipt = Get-Content -LiteralPath $cleanupReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.stage -eq 'runtime_input_freeze') -Message 'runtime input packet stage emitted'
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.provenance.proof_class -eq 'structure') -Message 'runtime input packet proof class is structure'
-Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$executeReceipt.plan_shadow_path)) -Message 'plan-derived execution shadow artifact exists' -Details ([string]$executeReceipt.plan_shadow_path)
 Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.proof_class -eq 'runtime') -Message 'execution manifest proof class is runtime'
-Add-Assertion -Results ([ref]$results) -Condition ($proofManifest.proof_class -eq 'runtime') -Message 'execution proof manifest proof class is runtime'
+Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$executeReceipt.agent_execution_handoff_path)) -Message 'Agent execution handoff exists' -Details ([string]$executeReceipt.agent_execution_handoff_path)
 Add-Assertion -Results ([ref]$results) -Condition (@('receipt_only', 'bounded_cleanup_executed', 'destructive_cleanup_applied', 'cleanup_degraded') -contains [string]$cleanupReceipt.cleanup_mode) -Message 'cleanup receipt uses approved taxonomy' -Details ([string]$cleanupReceipt.cleanup_mode)
 
 $pathBoard = Get-Content -LiteralPath (Join-Path $repoRoot 'config\path-ecology-board.json') -Raw -Encoding UTF8 | ConvertFrom-Json

@@ -101,7 +101,6 @@ def is_owned_legacy_opencode_vibeskills_node(node: object, target_root: Path) ->
         "command_root_compat",
         "agents_root",
         "agent_root_compat",
-        "specialist_wrapper",
     ):
         if path_points_inside_target_root(node.get(key), target_root):
             return True
@@ -173,11 +172,6 @@ def materialize_host_settings(
             "skills_root": str(((runtime_root or target_root) / "skills").resolve()),
             "runtime_skill_entry": str(((runtime_root or target_root) / "skills" / "vibe" / "SKILL.md").resolve()),
             "explicit_vibe_skill_invocation": ["$vibe", "/vibe"],
-            "specialist_execution": {
-                "mode": "same_session_path_only",
-                "path_source": "native_skill_entrypoint",
-                "hidden_subprocess_removed": True,
-            },
         }
         commands_root = target_root / "commands"
         agents_root = target_root / "agents"
@@ -249,16 +243,6 @@ def materialize_host_closure(
         "settings_materialized": settings_materialized,
         "direct_runtime": dict(runtime_readiness["direct_runtime"]),
         "bridge_runtime": dict(runtime_readiness["bridge_runtime"]),
-        "specialist_execution": {
-            "mode": "same_session_path_only",
-            "path_source": "native_skill_entrypoint",
-            "hidden_subprocess_removed": True,
-        },
-        "specialist_wrapper": {
-            "ready": False,
-            "removed": True,
-            "removal_reason": "same_session_path_only",
-        },
     }
     closure_path = target_root / ".vibeskills" / "host-closure.json"
     _write_json_file(closure_path, closure)

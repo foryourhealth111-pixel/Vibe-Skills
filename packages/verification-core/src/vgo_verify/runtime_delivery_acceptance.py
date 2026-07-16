@@ -127,24 +127,12 @@ def write_artifacts(artifact: dict[str, Any], output_directory: Path) -> None:
             lines.append(f"- Considered research source: {item}")
         for item in coverage.get("missing_research_augmentation_sources") or []:
             lines.append(f"- Missing research source: {item}")
-    execution_context = artifact.get("execution_context") or {}
-    lines += ["", "## Selected Skill Truth", ""]
-    lines.append(
-        "- Runtime packet selected skill source: "
-        f"`{execution_context.get('runtime_packet_selected_skill_source', 'none')}`"
-    )
-    lines.append(
-        "- Runtime packet selected skill ids: "
-        f"`{execution_context.get('runtime_packet_selected_skill_ids', [])}`"
-    )
-    lines.append(
-        "- Reported selected skill source: "
-        f"`{execution_context.get('selected_skill_ids_source', 'none')}`"
-    )
-    lines.append(
-        "- Reported selected skill ids: "
-        f"`{execution_context.get('selected_skill_ids', [])}`"
-    )
+    if artifact.get("completed_module_work"):
+        lines += ["", "## Completed Module Work", ""]
+        for item in artifact["completed_module_work"]:
+            lines.append(
+                f"- Module `{item['module_id']}` used `{item['skill_id']}` in unit `{item['unit_id']}`."
+            )
     if artifact["manual_spot_checks"]:
         lines += ["", "## Manual Spot Checks", ""]
         for item in artifact["manual_spot_checks"]:

@@ -81,7 +81,7 @@ param(
 ) },
     [pscustomobject]@{ path = 'references/browser-provider-scorecard.md'; keywords = @(
     'browser-use',
-    'playwright',
+    'browser-host-native',
     'route evidence'
 ) }
 )

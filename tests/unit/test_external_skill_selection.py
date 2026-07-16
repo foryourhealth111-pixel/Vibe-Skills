@@ -12,7 +12,7 @@ if str(RUNTIME_SRC) not in sys.path:
 from vgo_runtime.kernel.finder import find_skill_candidates
 from vgo_runtime.kernel.planner import build_work_plan
 from vgo_runtime.kernel.task_card import build_task_card
-from vgo_runtime.kernel.work_binding import build_work_binding
+from vgo_runtime.kernel.module_assignments import build_module_assignments
 
 
 def _skill(
@@ -112,7 +112,7 @@ def test_external_skill_beats_starter_when_both_match() -> None:
 
     candidates = find_skill_candidates(task_card, index_payload)
     plan = build_work_plan(task_card, candidates)
-    binding = build_work_binding(plan).model_dump()
+    binding = build_module_assignments(plan).model_dump()
 
     assert [candidate.skill_id for candidate in candidates] == [
         "diagram-review",
@@ -251,7 +251,7 @@ def test_local_skill_still_beats_external_output_owner() -> None:
     assert plan.work_units[0].preferred_skill == "local-review-override"
 
 
-def test_work_binding_carries_selected_skill_provenance() -> None:
+def test_module_assignments_carries_selected_skill_provenance() -> None:
     task_card = build_task_card(
         prompt="Review the chart annotations and produce a review report.",
         context={"deliverables": ["review report"]},
@@ -283,7 +283,7 @@ def test_work_binding_carries_selected_skill_provenance() -> None:
 
     candidates = find_skill_candidates(task_card, index_payload)
     plan = build_work_plan(task_card, candidates)
-    binding = build_work_binding(plan).model_dump()
+    binding = build_module_assignments(plan).model_dump()
 
     assert plan.work_units[0].selected_skill_provenance is not None
     assert plan.work_units[0].selected_skill_provenance.model_dump() == {

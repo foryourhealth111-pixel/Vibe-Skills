@@ -5,8 +5,10 @@ param(
     [AllowEmptyString()] [string]$RequestedStageStop = '',
     [AllowEmptyString()] [string]$RequestedGradeFloor = '',
     [AllowEmptyString()] [string]$RunId = '',
+    [AllowEmptyString()] [string]$WorkspaceRoot = '',
     [AllowEmptyString()] [string]$ArtifactRoot = '',
     [AllowEmptyString()] [string]$HostDecisionJson = '',
+    [AllowEmptyString()] [string]$ModuleExecutionJsonFile = '',
     [AllowEmptyString()] [string]$BridgeOutputJsonPath = ''
 )
 
@@ -78,17 +80,17 @@ function New-CanonicalRunId {
 
 function Resolve-CanonicalArtifactRoot {
     param(
-        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$BaseRoot,
         [AllowEmptyString()] [string]$ArtifactRoot
     )
 
     if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
-        return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot '.vibeskills'))
+        return [System.IO.Path]::GetFullPath((Join-Path $BaseRoot '.vibeskills'))
     }
     if ([System.IO.Path]::IsPathRooted($ArtifactRoot)) {
         return [System.IO.Path]::GetFullPath($ArtifactRoot)
     }
-    return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $ArtifactRoot))
+    return [System.IO.Path]::GetFullPath((Join-Path $BaseRoot $ArtifactRoot))
 }
 
 function Resolve-CanonicalSessionRoot {
@@ -145,7 +147,22 @@ function Assert-CanonicalTruthArtifacts {
 try {
     $env:VCO_HOST_ID = $HostId
     $resolvedRunId = if ([string]::IsNullOrWhiteSpace($RunId)) { New-CanonicalRunId } else { $RunId }
-    $resolvedArtifactRoot = Resolve-CanonicalArtifactRoot -RepoRoot $repoRoot -ArtifactRoot $ArtifactRoot
+    $resolvedWorkspaceRoot = if (-not [string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
+        if ([System.IO.Path]::IsPathRooted($WorkspaceRoot)) {
+            [System.IO.Path]::GetFullPath($WorkspaceRoot)
+        } else {
+            [System.IO.Path]::GetFullPath((Join-Path $repoRoot $WorkspaceRoot))
+        }
+    } elseif (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
+        Resolve-CanonicalArtifactRoot -BaseRoot $repoRoot -ArtifactRoot $ArtifactRoot
+    } else {
+        [System.IO.Path]::GetFullPath($repoRoot)
+    }
+    $resolvedArtifactRoot = if ([string]::IsNullOrWhiteSpace($WorkspaceRoot) -and -not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
+        $resolvedWorkspaceRoot
+    } else {
+        Resolve-CanonicalArtifactRoot -BaseRoot $resolvedWorkspaceRoot -ArtifactRoot $ArtifactRoot
+    }
     $sessionRoot = Resolve-CanonicalSessionRoot -ArtifactRoot $resolvedArtifactRoot -RunId $resolvedRunId
     $summaryPath = Join-Path $sessionRoot 'runtime-summary.json'
     $receiptPath = Join-Path $sessionRoot 'host-launch-receipt.json'
@@ -155,6 +172,7 @@ try {
         Mode = 'interactive_governed'
         EntryIntentId = $EntryId
         RunId = $resolvedRunId
+        WorkspaceRoot = $resolvedWorkspaceRoot
         ArtifactRoot = $resolvedArtifactRoot
     }
     if (-not [string]::IsNullOrWhiteSpace($RequestedStageStop)) {
@@ -165,6 +183,9 @@ try {
     }
     if (-not [string]::IsNullOrWhiteSpace($HostDecisionJson)) {
         $invokeArgs.HostDecisionJson = $HostDecisionJson
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
+        $invokeArgs.ModuleExecutionJsonFile = $ModuleExecutionJsonFile
     }
 
     $launchedReceipt = New-HostLaunchReceiptPayload `

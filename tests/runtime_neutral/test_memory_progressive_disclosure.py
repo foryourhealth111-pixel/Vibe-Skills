@@ -34,13 +34,62 @@ def resolve_powershell() -> str | None:
     return None
 
 
-def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | None = None) -> dict[str, object]:
+def run_governed_runtime(
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str] | None = None,
+    *,
+    workspace_root: Path | None = None,
+    complete_agent_handoff: bool = False,
+) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
     run_id = "pytest-memory-disclosure-" + uuid.uuid4().hex[:10]
+    workflow_level = "XL" if "XL" in task else "L"
+    host_decision_json = json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": workflow_level,
+                "modules": [
+                    {
+                        "module_id": "memory_runtime",
+                        "goal": "Exercise governed memory disclosure behavior.",
+                        "candidate_skill_ids": [],
+                        "required": True,
+                        "depends_on": [],
+                        "execution_mode": "agent_direct",
+                        "write_scope": "no task-file writes",
+                        "expected_outputs": ["A governed memory disclosure result."],
+                        "verification": ["Confirm the runtime emits the expected memory disclosure metadata."],
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "memory-disclosure-result",
+                                "description": "The governed memory disclosure is verified.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Use one bounded serial lane.",
+                    "XL": "Use bounded parallel lanes with governed review.",
+                },
+            }
+        },
+        separators=(",", ":"),
+    )
+    workspace_root_argument = (
+        f"-WorkspaceRoot {_ps_single_quote(str(workspace_root))} "
+        if workspace_root is not None
+        else ""
+    )
     command = [
         shell,
         "-NoLogo",
@@ -54,14 +103,15 @@ def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | N
             f"-Task '{task}' "
             "-Mode interactive_governed "
             f"-RunId '{run_id}' "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-ArtifactRoot '{artifact_root}' "
+            f"{workspace_root_argument}"
+            f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
     effective_env = os.environ.copy()
     if env:
         effective_env.update(env)
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         command,
@@ -78,7 +128,101 @@ def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | N
             "invoke-vibe-runtime returned null payload. "
             f"stderr={completed.stderr.strip()}"
         )
-    return json.loads(stdout)
+    payload = json.loads(stdout)
+    if not complete_agent_handoff:
+        return payload
+    return complete_module_execution(
+        payload,
+        task=task,
+        artifact_root=artifact_root,
+        workspace_root=workspace_root,
+        env=effective_env,
+    )
+
+
+def complete_module_execution(
+    payload: dict[str, object],
+    *,
+    task: str,
+    artifact_root: Path,
+    workspace_root: Path | None,
+    env: dict[str, str],
+) -> dict[str, object]:
+    handoff = json.loads(
+        Path(payload["summary"]["artifacts"]["agent_execution_handoff"]).read_text(encoding="utf-8")
+    )
+    result_contract = handoff["result_contract"]
+    module_execution_path = Path(handoff["module_execution_path"])
+    module_execution = json.loads(json.dumps(result_contract["submission_template"]))
+    criteria_by_module = {
+        str(module["module_id"]): [
+            {**criterion, "state": "passing"}
+            for criterion in module["criterion_results"]
+        ]
+        for module in module_execution["modules"]
+    }
+    for unit in module_execution["units"]:
+        unit["state"] = "completed"
+        unit["result_summary"] = "The Agent completed the approved memory-disclosure module."
+        unit["verification_results"] = criteria_by_module[str(unit["module_id"])]
+    for module in module_execution["modules"]:
+        module["state"] = "completed"
+        module["criterion_results"] = criteria_by_module[str(module["module_id"])]
+    if "tdd_evidence" in module_execution:
+        tdd_contract = result_contract["tdd_evidence"]
+        required_tdd = list(tdd_contract["required_code_task_tdd_evidence_requirements"])
+        evidence_path = str(module_execution_path)
+        module_execution["tdd_evidence"] = {
+            "state": "passing",
+            "evidence_paths": [evidence_path],
+            "red_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "green_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "refactor_phase_evidence_paths": [],
+            "covered_code_task_tdd_evidence_requirements": required_tdd,
+            "covered_code_task_tdd_exceptions": list(tdd_contract["required_code_task_tdd_exceptions"]),
+            "notes": "The simulated Agent completed the frozen TDD contract.",
+        }
+    module_execution_path.write_text(
+        json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+    workspace_root_argument = (
+        f"-WorkspaceRoot {_ps_single_quote(str(workspace_root))} "
+        if workspace_root is not None
+        else ""
+    )
+    command = [
+        resolve_powershell(),
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        (
+            "& { "
+            f"$result = & {_ps_single_quote(str(script_path))} "
+            f"-Task {_ps_single_quote(task)} "
+            "-Mode interactive_governed "
+            f"-RunId {_ps_single_quote(str(payload['run_id']))} "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"{workspace_root_argument}"
+            "-RequestedStageStop phase_cleanup "
+            f"-ModuleExecutionJsonFile {_ps_single_quote(str(module_execution_path))}; "
+            "$result | ConvertTo-Json -Depth 20 }"
+        ),
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=True,
+    )
+    return json.loads(completed.stdout.strip())
 
 
 def run_write_requirement_doc(
@@ -147,6 +291,52 @@ def run_write_xl_plan(
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "Write-XlPlan.ps1"
     run_id = "pytest-write-plan-" + uuid.uuid4().hex[:10]
+    runtime_input_packet_path = artifact_root / "runtime-input-packet.json"
+    runtime_input_packet_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_input_packet_path.write_text(
+        json.dumps(
+            {
+                "agent_skill_organization": {
+                    "schema_version": "agent_skill_organization_v1",
+                    "derived_by": "agent",
+                    "workflow_level": "L",
+                    "modules": [
+                        {
+                            "module_id": "memory_plan",
+                            "goal": "Render memory disclosure in the execution plan.",
+                            "candidate_skill_ids": [],
+                            "execution_mode": "blocked_gap",
+                            "acceptance_criteria": [
+                                {
+                                    "criterion_id": "memory-plan-rendered",
+                                    "description": "The plan renders the approved memory disclosure.",
+                                    "verification_mode": "automated",
+                                }
+                            ],
+                        }
+                    ],
+                    "selected_skills": [],
+                    "uncovered_modules": [
+                        {
+                            "module_id": "memory_plan",
+                            "reason": "No task skill is required for this memory-plan test.",
+                        }
+                    ],
+                    "workflow_level_contract": {
+                        "L": "Use one bounded serial lane.",
+                        "XL": "Use bounded parallel lanes with governed review.",
+                    },
+                },
+                "module_assignments": {"units": []},
+                "host_adapter": {
+                    "effective_host_id": "codex",
+                    "target_root": str(artifact_root / ".agents"),
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
     ps_command = (
         "& { "
         f"$result = & {_ps_single_quote(str(script_path))} "
@@ -155,6 +345,7 @@ def run_write_xl_plan(
         f"-RunId {_ps_single_quote(run_id)} "
         f"-RequirementDocPath {_ps_single_quote(str(requirement_doc_path))} "
         f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+        f"-RuntimeInputPacketPath {_ps_single_quote(str(runtime_input_packet_path))} "
     )
     if plan_memory_context_path is not None:
         ps_command += f"-PlanMemoryContextPath {_ps_single_quote(str(plan_memory_context_path))} "
@@ -266,33 +457,46 @@ def run_progressive_disclosure_context_pack(
 
 
 class MemoryProgressiveDisclosureTests(unittest.TestCase):
-    def test_related_runs_emit_disclosure_levels_and_capsule_metadata(self) -> None:
+    def test_related_runs_emit_capsule_metadata_before_agent_execution(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_root = Path(tempdir)
             env = {
                 "VIBE_MEMORY_BACKEND_ROOT": str(temp_root / "backends"),
                 "SERENA_PROJECT_KEY": "pytest-memory-disclosure-project",
             }
+            workspace_root = temp_root / "workspace"
 
             run_governed_runtime(
                 "XL approved decision: keep api worker runtime continuity and graph relationship between api worker and planner.",
                 artifact_root=temp_root / "seed-run",
                 env=env,
+                workspace_root=workspace_root,
+                complete_agent_handoff=True,
             )
             second = run_governed_runtime(
                 "XL follow-up api worker continuity review with decision reuse and graph dependency recall.",
                 artifact_root=temp_root / "follow-up-run",
                 env=env,
+                workspace_root=workspace_root,
             )
 
-            report = json.loads(
-                Path(second["summary"]["artifacts"]["memory_activation_report"]).read_text(encoding="utf-8")
+            summary = second["summary"]
+            requirement_receipt = json.loads(
+                Path(summary["artifacts"]["requirement_receipt"]).read_text(encoding="utf-8")
             )
-            stage_by_name = {stage["stage"]: stage for stage in report["stages"]}
-
-            requirement_context = stage_by_name["requirement_doc"]["context_injection"]
-            plan_context = stage_by_name["xl_plan"]["context_injection"]
-            execute_context = stage_by_name["plan_execute"]["context_injection"]
+            plan_receipt = json.loads(
+                Path(summary["artifacts"]["execution_plan_receipt"]).read_text(encoding="utf-8")
+            )
+            requirement_context = json.loads(
+                Path(requirement_receipt["memory_context_path"]).read_text(encoding="utf-8")
+            )
+            plan_context = json.loads(
+                Path(plan_receipt["plan_memory_context_path"]).read_text(encoding="utf-8")
+            )
+            context_paths = {
+                "requirement_doc": Path(requirement_receipt["memory_context_path"]),
+                "xl_plan": Path(plan_receipt["plan_memory_context_path"]),
+            }
 
             self.assertEqual(
                 DISCLOSURE_POLICY["stages"]["requirement_doc"]["level"],
@@ -302,15 +506,13 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
                 DISCLOSURE_POLICY["stages"]["xl_plan"]["level"],
                 plan_context["disclosure_level"],
             )
-            self.assertEqual(
-                DISCLOSURE_POLICY["stages"]["plan_execute"]["level"],
-                execute_context["disclosure_level"],
-            )
+            self.assertEqual("plan_execute", summary["terminal_stage"])
+            self.assertIsNotNone(summary["artifacts"]["agent_execution_handoff"])
+            self.assertIsNone(summary["artifacts"]["memory_activation_report"])
 
             for stage_name, context in (
                 ("requirement_doc", requirement_context),
                 ("xl_plan", plan_context),
-                ("plan_execute", execute_context),
             ):
                 with self.subTest(context=context["disclosure_level"]):
                     self.assertLessEqual(
@@ -318,7 +520,7 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
                         DISCLOSURE_POLICY["stages"][stage_name]["max_capsules"],
                     )
                     self.assertGreaterEqual(context["capsule_count"], 1)
-                    self.assertTrue(Path(context["artifact_path"]).exists())
+                    self.assertTrue(context_paths[stage_name].exists())
                     self.assertGreaterEqual(len(context["selected_capsules"]), 1)
                     first = context["selected_capsules"][0]
                     self.assertIn("capsule_id", first)
@@ -354,27 +556,41 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
                 "VIBE_MEMORY_BACKEND_ROOT": str(temp_root / "backends"),
                 "SERENA_PROJECT_KEY": "pytest-memory-disclosure-docs",
             }
+            workspace_root = temp_root / "workspace"
 
             run_governed_runtime(
                 "Approved decision: reuse bounded memory capsules for release planning and execution evidence.",
                 artifact_root=temp_root / "seed-run",
                 env=env,
+                workspace_root=workspace_root,
+                complete_agent_handoff=True,
             )
             second = run_governed_runtime(
                 "Plan the next release using bounded memory capsules and prior execution evidence.",
                 artifact_root=temp_root / "follow-up-run",
                 env=env,
+                workspace_root=workspace_root,
             )
 
             requirement_text = Path(second["summary"]["artifacts"]["requirement_doc"]).read_text(encoding="utf-8")
             plan_text = Path(second["summary"]["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
+            requirement_receipt = json.loads(
+                Path(second["summary"]["artifacts"]["requirement_receipt"]).read_text(encoding="utf-8")
+            )
+            plan_receipt = json.loads(
+                Path(second["summary"]["artifacts"]["execution_plan_receipt"]).read_text(encoding="utf-8")
+            )
 
-            self.assertIn("## Memory Context", requirement_text)
-            self.assertIn("Capsule", requirement_text)
-            self.assertIn("Expansion Ref", requirement_text)
-            self.assertIn("## Memory Context", plan_text)
-            self.assertIn("Capsule", plan_text)
-            self.assertIn("Expansion Ref", plan_text)
+            self.assertNotIn("## Memory Context", requirement_text)
+            self.assertNotIn("Capsule", requirement_text)
+            self.assertNotIn("Expansion Ref", requirement_text)
+            self.assertNotIn("## Memory Context", plan_text)
+            self.assertNotIn("Capsule", plan_text)
+            self.assertNotIn("Expansion Ref", plan_text)
+            self.assertGreaterEqual(requirement_receipt["memory_capsule_count"], 1)
+            self.assertTrue(bool(requirement_receipt["memory_context_path"]))
+            self.assertGreaterEqual(plan_receipt["plan_memory_capsule_count"], 1)
+            self.assertTrue(bool(plan_receipt["plan_memory_context_path"]))
 
     def test_selected_memory_capsules_do_not_require_ambient_stage_scope(self) -> None:
         capsules = run_selected_memory_capsules(
@@ -494,12 +710,16 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
             requirement_text = Path(requirement["requirement_doc_path"]).read_text(encoding="utf-8")
             plan_text = Path(plan["execution_plan_path"]).read_text(encoding="utf-8")
 
-            self.assertIn("## Memory Context", requirement_text)
-            self.assertIn("Capsule [cap-001] Quartz scheduler continuity", requirement_text)
-            self.assertIn("Expansion Ref", requirement_text)
-            self.assertIn("## Memory Context", plan_text)
-            self.assertIn("Capsule [cap-001] Quartz scheduler continuity", plan_text)
-            self.assertIn("Expansion Ref", plan_text)
+            self.assertNotIn("## Memory Context", requirement_text)
+            self.assertNotIn("Capsule [cap-001] Quartz scheduler continuity", requirement_text)
+            self.assertNotIn("Expansion Ref", requirement_text)
+            self.assertNotIn("## Memory Context", plan_text)
+            self.assertNotIn("Capsule [cap-001] Quartz scheduler continuity", plan_text)
+            self.assertNotIn("Expansion Ref", plan_text)
+            self.assertEqual(1, requirement["receipt"]["memory_capsule_count"])
+            self.assertEqual(str(context_path), requirement["receipt"]["memory_context_path"])
+            self.assertEqual(1, plan["receipt"]["plan_memory_capsule_count"])
+            self.assertEqual(str(context_path), plan["receipt"]["plan_memory_context_path"])
 
     def test_requirement_and_plan_receipts_treat_null_selected_capsules_as_zero(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -534,57 +754,6 @@ class MemoryProgressiveDisclosureTests(unittest.TestCase):
 
             self.assertEqual(0, requirement["receipt"]["memory_capsule_count"])
             self.assertEqual(0, plan["receipt"]["plan_memory_capsule_count"])
-
-    def test_write_requirement_doc_pending_specialist_resolution_mentions_legal_basis(self) -> None:
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_root = Path(tempdir)
-            runtime_input_packet_path = temp_root / "runtime-input-packet.json"
-            runtime_input_packet_path.write_text(
-                json.dumps(
-                    {
-                        "governance_scope": "root",
-                        "hierarchy": {"root_run_id": "pytest-root-run"},
-                        "route_snapshot": {
-                            "selected_pack": "vibe",
-                            "selected_skill": "vibe",
-                            "route_mode": "governed",
-                            "route_reason": "pytest specialist decision requirement coverage",
-                            "confirm_required": False,
-                        },
-                        "authority_flags": {
-                            "explicit_runtime_skill": "vibe",
-                        },
-                        "skill_routing": {
-                            "selected": []
-                        },
-                        "specialist_decision": {
-                            "decision_state": "no_specialist_recommendations",
-                            "resolution_mode": "pending_resolution",
-                            "notes": "Waiting for explicit no-match resolution before closeout.",
-                            "repo_asset_fallback": {
-                                "used": False,
-                                "asset_paths": [],
-                                "reason": "",
-                                "legal_basis": "",
-                                "traceability_basis": [],
-                            },
-                        }
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                ) + "\n",
-                encoding="utf-8",
-            )
-
-            requirement = run_write_requirement_doc(
-                "Plan a governed fallback path when no dedicated plotting specialist exists.",
-                temp_root / "requirement-specialist-decision-artifacts",
-                runtime_input_packet_path=runtime_input_packet_path,
-            )
-
-            requirement_text = Path(requirement["requirement_doc_path"]).read_text(encoding="utf-8")
-            self.assertIn("skill execution decision payload", requirement_text)
-            self.assertIn("legal basis", requirement_text)
 
 
 if __name__ == "__main__":

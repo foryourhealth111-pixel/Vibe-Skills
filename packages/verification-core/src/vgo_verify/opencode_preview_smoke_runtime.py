@@ -123,8 +123,10 @@ def evaluate_opencode_preview(repo_root: Path, write_artifacts: bool = False) ->
             else:
                 if 'vibeskills' in repaired_real_config:
                     failures.append('preview install injected a vibeskills node into the host-managed opencode.json')
-                if 'mcp' not in repaired_real_config:
-                    failures.append('preview install did not preserve host-managed mcp settings in the real opencode.json')
+                if repaired_real_config.get('theme') != 'system':
+                    failures.append('preview install did not preserve host-managed settings in the real opencode.json')
+                if 'mcp' in repaired_real_config:
+                    failures.append('preview smoke fixture must not provision MCP settings')
 
         cli_failures, cli_warnings, cli_probe = _probe_opencode_cli(
             repo_root=repo_root,

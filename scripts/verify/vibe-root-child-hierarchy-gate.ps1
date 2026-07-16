@@ -61,10 +61,10 @@ foreach ($token in @(
     'allow_plan_freeze',
     'allow_global_dispatch',
     'allow_completion_claim',
-    'specialist_dispatch',
-    'auto_promote_when_safe_same_round',
+    'agent_skill_organization',
+    'module_assignments',
     'escalation_required',
-    'auto_absorb_gate'
+    'root_approval_required'
 )) {
     Add-Assertion -Results ([ref]$results) -Condition ($policyText.Contains($token)) -Message ("runtime input policy contains hierarchy token: {0}" -f $token)
 }
@@ -75,12 +75,45 @@ $stableDocText = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\root-child-
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeText.Contains('runtime-selected skill stays `vibe`')) -Message 'runtime protocol documents explicit vibe authority preservation'
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeText.Contains('delegation-envelope.json')) -Message 'runtime protocol documents child delegation envelope'
 Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('`vibe` keeps final control')) -Message 'team protocol keeps vibe as final control'
-Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('delegation-validation-receipt.json')) -Message 'team protocol documents child delegation validation receipts'
-Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('root vibe governs, child vibe executes, specialists assist')) -Message 'stable hierarchy doc exposes root/child mental model'
+Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('child startup validates inherited requirement/plan truth against that envelope')) -Message 'team protocol documents child delegation validation'
+Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('root vibe governs, child vibe stays subordinate, the Agent executes approved modules')) -Message 'stable hierarchy doc exposes root/child mental model'
 
 $runId = "root-child-hierarchy-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\root-child-hierarchy-{0}" -f $runId)
-$summary = & $runtimeEntryPath -Task 'Root child hierarchy authority smoke.' -Mode interactive_governed -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot
+$hostDecisionJson = @{
+    agent_skill_organization = [ordered]@{
+        schema_version = 'agent_skill_organization_v1'
+        derived_by = 'agent'
+        workflow_level = 'L'
+        modules = @(
+            [ordered]@{
+                module_id = 'hierarchy_authority'
+                goal = 'Verify root and child governance boundaries.'
+                candidate_skill_ids = @()
+                execution_mode = 'blocked_gap'
+                acceptance_criteria = @(
+                    [ordered]@{
+                        criterion_id = 'hierarchy-authority-result'
+                        description = 'The hierarchy authority boundary is verified.'
+                        verification_mode = 'automated'
+                    }
+                )
+            }
+        )
+        selected_skills = @()
+        uncovered_modules = @(
+            [ordered]@{
+                module_id = 'hierarchy_authority'
+                reason = 'The hierarchy contract smoke does not require a task specialist.'
+            }
+        )
+        workflow_level_contract = [ordered]@{
+            L = 'Use one serial governed lane.'
+            XL = 'Use bounded waves when the approved organization needs them.'
+        }
+    }
+} | ConvertTo-Json -Depth 20 -Compress
+$summary = & $runtimeEntryPath -Task 'Root child hierarchy authority smoke.' -Mode interactive_governed -GovernanceScope root -RunId $runId -ArtifactRoot $artifactRoot -HostDecisionJson $hostDecisionJson
 
 Add-Assertion -Results ([ref]$results) -Condition ($null -ne $summary) -Message 'runtime smoke returned summary payload'
 $hasSummary = ($null -ne $summary) -and ($summary.PSObject.Properties.Name -contains 'summary')
@@ -92,26 +125,27 @@ if ($hasSummary) {
     $governanceCapsule = Get-Content -LiteralPath $summary.summary.artifacts.governance_capsule -Raw -Encoding UTF8 | ConvertFrom-Json
     $stageLineage = Get-Content -LiteralPath $summary.summary.artifacts.stage_lineage -Raw -Encoding UTF8 | ConvertFrom-Json
     $expectedStageIds = @($runtimeContract.stages | ForEach-Object { [string]$_.id })
-    $boundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
+    $observedStageIds = @($stageLineage.stages | ForEach-Object { [string]$_.stage_name })
+    $boundSkillIds = @(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
 
     Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'interactive_governed') -Message 'hierarchy smoke runs interactive_governed mode'
-    Add-Assertion -Results ([ref]$results) -Condition (@($boundSkillIds).Count -ge 1) -Message 'root hierarchy smoke records bounded specialist skill in work_binding'
+    Add-Assertion -Results ([ref]$results) -Condition (@($boundSkillIds).Count -eq 0) -Message 'root hierarchy smoke does not invent a specialist binding'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.agent_skill_organization.schema_version -eq 'agent_skill_organization_v1') -Message 'root hierarchy smoke carries Agent skill organization'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.module_assignments.source -eq 'agent_skill_organization') -Message 'root hierarchy module_assignments projects Agent organization'
+    Add-Assertion -Results ([ref]$results) -Condition (@($runtimeInputPacket.agent_skill_organization.uncovered_modules).Count -eq 1) -Message 'root hierarchy smoke preserves the explicit uncovered module'
     Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'root hierarchy smoke keeps vibe as runtime authority'
     Add-Assertion -Results ([ref]$results) -Condition ($governanceCapsule.runtime_selected_skill -eq 'vibe') -Message 'root hierarchy smoke governance capsule keeps vibe authority'
     Add-Assertion -Results ([ref]$results) -Condition ((
-        @($stageLineage.stages | ForEach-Object { [string]$_.stage_name }) -join '|'
-    ) -eq ($expectedStageIds -join '|')) -Message 'root hierarchy smoke stage-lineage preserves the fixed governed stage order'
+        $observedStageIds -join '|'
+    ) -eq (@($expectedStageIds | Select-Object -First $observedStageIds.Count) -join '|')) -Message 'root hierarchy smoke stage-lineage preserves the fixed governed stage prefix'
     Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.governance_scope -eq 'root') -Message 'runtime packet marks root governance scope'
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$runtimeInputPacket.authority_flags.allow_requirement_freeze) -Message 'root packet allows requirement freeze'
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$runtimeInputPacket.authority_flags.allow_plan_freeze) -Message 'root packet allows plan freeze'
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$runtimeInputPacket.authority_flags.allow_global_dispatch) -Message 'root packet allows global specialist dispatch'
     Add-Assertion -Results ([ref]$results) -Condition ([bool]$runtimeInputPacket.authority_flags.allow_completion_claim) -Message 'root packet allows final completion claim'
-    $legacySkillRouting = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'legacy_skill_routing') { $runtimeInputPacket.legacy_skill_routing } else { $null }
-    $legacySpecialistDispatch = if ($legacySkillRouting -and $legacySkillRouting.PSObject.Properties.Name -contains 'specialist_dispatch') { $legacySkillRouting.specialist_dispatch } else { $null }
-    $hasSpecialistDispatchSurface = ($runtimeInputPacket.PSObject.Properties.Name -contains 'skill_routing') -and ($runtimeInputPacket.PSObject.Properties.Name -contains 'legacy_skill_routing')
-    Add-Assertion -Results ([ref]$results) -Condition $hasSpecialistDispatchSurface -Message 'runtime packet includes canonical skill routing and legacy routing surfaces'
-    $hasEscalationSurface = ($runtimeInputPacket.PSObject.Properties.Name -contains 'escalation_required') -or ($legacySpecialistDispatch -and ($legacySpecialistDispatch.PSObject.Properties.Name -contains 'escalation_required'))
-    Add-Assertion -Results ([ref]$results) -Condition $hasEscalationSurface -Message 'runtime packet includes escalation marker surface'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.PSObject.Properties.Name -contains 'skill_routing') -Message 'runtime packet includes candidate-audit skill routing'
+    Add-Assertion -Results ([ref]$results) -Condition (-not ($runtimeInputPacket.PSObject.Properties.Name -contains 'legacy_skill_routing')) -Message 'runtime packet omits retired legacy skill routing'
+    Add-Assertion -Results ([ref]$results) -Condition (-not ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_dispatch')) -Message 'runtime packet omits retired specialist dispatch mirror'
 
     $hasCompletionAuthority = ($executionManifest.PSObject.Properties.Name -contains 'authority')
     Add-Assertion -Results ([ref]$results) -Condition $hasCompletionAuthority -Message 'execution manifest includes authority surface'

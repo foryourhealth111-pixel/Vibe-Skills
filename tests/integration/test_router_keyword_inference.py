@@ -59,7 +59,7 @@ def test_router_infers_grade_and_task_type_from_keyword_style_prompt() -> None:
     assert route["candidate_source"] == "local_skill_index"
     assert route["task_type"] == "planning"
     assert route["grade"] == "M"
-    assert route["selected"] is None
+    assert route["candidate_focus"] is None
 
 
 def test_router_keyword_style_prompt_does_not_fall_into_ml_or_clinical_pack() -> None:
@@ -67,7 +67,7 @@ def test_router_keyword_style_prompt_does_not_fall_into_ml_or_clinical_pack() ->
         "debug router confidence-low fallback misroute task-classification grade-selection candidate-scoring evidence"
     )
 
-    selected = route.get("selected") or {}
+    selected = route.get("candidate_focus") or {}
     assert selected.get("pack_id") not in {"data-ml", "science-clinical-regulatory"}
     assert route["route_mode"] == "no_local_candidate"
 
@@ -88,7 +88,7 @@ def test_router_does_not_promote_xlsx_prompt_to_xl() -> None:
 def test_router_keeps_clinical_grade_selection_prompt_in_clinical_pack() -> None:
     route = _invoke_route("clinical decision support grade selection evidence profile")
 
-    assert route["selected"] is None
+    assert route["candidate_focus"] is None
     assert route["route_mode"] == "no_local_candidate"
     assert route["pre_fallback_top"] == {"pack_id": None, "skill": None}
 
@@ -96,6 +96,6 @@ def test_router_keeps_clinical_grade_selection_prompt_in_clinical_pack() -> None
 def test_router_keeps_ml_pipeline_pack_prompt_in_ml_pack() -> None:
     route = _invoke_route("ml pipeline workflow pack artifacts for deployment")
 
-    assert route["selected"] is None
+    assert route["candidate_focus"] is None
     assert route["route_mode"] == "no_local_candidate"
     assert route["pre_fallback_top"] == {"pack_id": None, "skill": None}

@@ -16,6 +16,13 @@ if (-not (Test-Path -LiteralPath $mapPath)) {
 }
 
 $data = Get-Content -LiteralPath $mapPath -Raw | ConvertFrom-Json
+$forbiddenPolicyPath = Join-Path $RepoRoot 'config\forbidden-mcp-policy.json'
+if (-not (Test-Path -LiteralPath $forbiddenPolicyPath)) {
+  throw "forbidden MCP policy not found: $forbiddenPolicyPath"
+}
+$forbiddenPolicy = Get-Content -LiteralPath $forbiddenPolicyPath -Raw | ConvertFrom-Json
+$forbiddenSyncIds = @($forbiddenPolicy.forbidden_mcp_ids) + @($forbiddenPolicy.forbidden_sync_skill_ids)
+$forbiddenSyncIds = @($forbiddenSyncIds | ForEach-Object { ([string]$_).ToLowerInvariant() })
 
 function Copy-Compat {
   param([string]$Source, [string]$Target)
@@ -37,6 +44,13 @@ function Copy-Compat {
 }
 
 foreach ($it in $data.items) {
+  $sourceSegments = ([string]$it.source).Replace('\', '/').ToLowerInvariant().Split('/')
+  $targetSegments = ([string]$it.target).Replace('\', '/').ToLowerInvariant().Split('/')
+  foreach ($forbiddenSyncId in $forbiddenSyncIds) {
+    if ($sourceSegments -contains $forbiddenSyncId -or $targetSegments -contains $forbiddenSyncId) {
+      throw "dependency map contains forbidden sync id: $forbiddenSyncId"
+    }
+  }
   $resolvedSource = Resolve-VgoPathSpec -PathSpec ([string]$it.source)
   Copy-Compat -Source $resolvedSource -Target $it.target
 }

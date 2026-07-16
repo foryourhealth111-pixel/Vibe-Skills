@@ -449,7 +449,7 @@ def plan_uninstall(repo_root: Path, target_root: Path, adapter: dict) -> dict[st
             if candidate.exists() and candidate.is_dir() and not candidate.is_symlink():
                 continue
             managed_files.add(rel)
-        for rel in sorted(parse_path_list(ledger.get("specialist_wrapper_paths"), target_root)):
+        for rel in sorted(parse_path_list(ledger.get("host_visible_entry_paths"), target_root)):
             candidate = target_root / rel
             if candidate.exists() and candidate.is_dir() and not candidate.is_symlink():
                 continue

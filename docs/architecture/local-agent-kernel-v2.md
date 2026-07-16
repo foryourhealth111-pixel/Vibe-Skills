@@ -8,9 +8,23 @@ The public story for this pass is intentionally narrow:
 
 - declared local skill roots are the only specialist reference surface
 - a skill must have a readable `SKILL.md` before it can be selected
-- `work_binding` stays the first runtime truth for what was bound
+- `agent_skill_organization` is the Agent-owned skill plan, and `module_assignments` is its validated execution projection into Agent-owned work
 
 This is a practical next step, not a claim that the final architecture is complete.
+
+The binding flow is explicit:
+
+```text
+candidate discovery -> Agent reads `SKILL.md` -> `agent_skill_organization` -> `module_assignments` -> execution handoff -> Agent work -> module result return
+```
+
+Planner preference is candidate audit only. It cannot bind or execute a skill, and a run without `agent_skill_organization` stays at `awaiting_agent_skill_organization` with an empty `module_assignments`.
+
+At `plan_execute`, Vibe writes `agent-execution-handoff.json` and returns control
+to the current Agent. The Agent follows the assigned `SKILL.md` files, completes
+the modules, writes `module-execution.json`, and returns it through canonical
+`vibe` re-entry. Vibe organizes and validates this path; it never pretends to
+run a Skill itself.
 
 ## Why This Direction
 
@@ -21,14 +35,15 @@ The new cut is simpler:
 - the kernel owns process
 - user-owned installed skills own capability
 - discovery only finds candidates
-- planning chooses bounded work
-- `work_binding` records what was bound
+- planning defines bounded work modules
+- the Agent reads candidate contracts and publishes `agent_skill_organization`
+- `module_assignments` records the validated execution projection into Agent-owned work
 - verification states what the available evidence proves
 
 The runtime boundary for this pass is also explicit:
 
-- Python owns final truth artifacts, canonical validation, task semantics, `work_binding`, specialist decision truth, and structured runtime result data.
-- PowerShell still performs stage orchestration, environment setup, script bridging, host receipts, shell-native checks, and leaf execution.
+- Python owns final truth artifacts, canonical validation, task semantics, `module_assignments`, planning decisions, and structured runtime result data.
+- PowerShell still performs stage orchestration, environment setup, script bridging, host bookkeeping, and shell-native checks.
 - Scaffolds and drafts are `needs_execution` with `proof_ready = false`; they are not completed work.
 - A future full-Python runtime is optional. It is not required for this version.
 
@@ -38,10 +53,11 @@ This keeps problems local. If discovery quality is weak, we improve discovery. I
 
 - Install into `<SkillsDir>/vibe` and treat `<SkillsDir>` as the public skills directory.
 - Prefer convention over configuration.
-- Treat host-declared local skill roots as the only specialist source.
-- Exclude the controller entry `vibe` from the specialist pool.
-- Keep `work_binding` as the first runtime truth surface for bound skills.
-- Treat `skill_usage.bound` as binding only; material use requires `skill_usage.used` and evidence.
+- Treat host-declared local skill roots as the only task-Skill source.
+- Exclude the controller entry `vibe` from the task-Skill pool.
+- Require `agent_skill_organization` before any task skill can enter `module_assignments` or execution.
+- Treat `module_assignments` as the validated execution projection into Agent-owned work, not as proof that Vibe ran a Skill.
+- Derive Skill use from completed module work; do not create a separate usage ledger, Skill-file hash proof, or artifact-impact receipt.
 - Require `runtime-input-packet.json`, `governance-capsule.json`, and `stage-lineage.json` before calling a local-agent-kernel launch canonical verified.
 - Use generated catalog and index files only as derived artifacts.
 - Do not require a central skill registry for ordinary skills.
@@ -73,7 +89,7 @@ A deduplicated lookup cache projected from the catalog. It is the fast discovery
 
 ### Work Binding
 
-The runtime artifact that says which skill was bound to each bounded work unit. This is the first truth surface for binding provenance, not a material-use claim.
+The runtime artifact that projects the Agent-confirmed organization into bounded work units. It is the validated execution projection into Agent-owned work, not a discovery result or a claim that work already happened.
 
 ## Runtime Shape
 
@@ -96,7 +112,9 @@ The installed runtime should look like this:
       <run-id>/
         task-card.json
         plan.json
-        work-binding.json
+        module-assignments.json
+        agent-execution-handoff.json
+        module-execution.json
         run-state.json
         verification.json
 ```
@@ -107,8 +125,8 @@ Host-declared local skill roots may live outside the selected `<SkillsDir>`. The
 
 - `kernel/` is the semantic core. It owns process and bounded work.
 - `generated/` contains derived catalog and index artifacts.
-- `runs/` contains execution records, including `work_binding`.
-- host-declared local roots are the specialist reference surface.
+- `runs/` contains the work plan, Agent handoff, returned module results, and verification records.
+- host-declared local roots are the task-Skill reference surface.
 
 ## Discovery Rules
 
@@ -124,7 +142,7 @@ The system should discover skills by fixed declared roots, not by a layered rout
 6. Record invalid entries and inactive duplicates as diagnostics.
 7. Build `generated/skills-catalog.json` as the full discovered view.
 8. Project the active entries into `generated/skills-index.json` with schema `local_skill_index_v2`.
-9. Use `work_binding` as the runtime truth for what was bound.
+9. Keep discovered candidates out of `module_assignments` until the Agent publishes `agent_skill_organization`.
 
 ### Precedence
 
@@ -219,9 +237,10 @@ Retrieves candidate skills from the active index. The active index contains only
 
 Builds bounded work units from the task card and candidates.
 
-### Executor Module
+### Agent Handoff Module
 
-Runs work units and records artifacts, outputs, and failures.
+Turns the approved module plan into `agent-execution-handoff.json`, then waits
+for the current Agent to return `module-execution.json`. It does not run Skills.
 
 ### Verifier Module
 
@@ -231,7 +250,7 @@ Checks whether the available evidence satisfies the completion criteria or still
 
 Owns the runtime loop and current status.
 
-### Work Binding Artifact
+### Module Assignments Artifact
 
 Records which skill was bound to each work unit and where that skill came from.
 
@@ -263,11 +282,27 @@ This records goal, deliverables, constraints, missing information, completion cr
 
 This records bounded work units and the preferred skill choice for each unit.
 
-### Work Binding
+### Module Assignments
 
-`runs/<run-id>/work-binding.json`
+`runs/<run-id>/module-assignments.json`
 
-This is the first runtime truth for selected skill provenance. It records the final binding, alternatives, expected artifacts, verification needs, and selected-source details.
+This records approved Skill assignments, expected outputs, verification needs,
+and selected-source details. It does not claim that the assigned work ran.
+
+### Agent Execution Handoff
+
+`runs/<run-id>/agent-execution-handoff.json`
+
+This tells the current Agent which `SKILL.md` to read, what module to complete,
+what outputs to produce, how to verify them, and how to return the complete
+module result.
+
+### Module Execution Return
+
+`runs/<run-id>/module-execution.json`
+
+This is the Agent's complete return for the approved work units. Canonical
+re-entry validates it against the frozen plan before cleanup can begin.
 
 ### Run State
 
@@ -286,10 +321,10 @@ This records whether the work is done, needs rework, or needs replanning.
 The state machine should stay explicit and small.
 
 ```text
-capture -> clarify -> find_skills -> plan -> execute -> verify -> close
-                          ^              |         |
-                          |              v         v
-                          +--------- replan <- rework
+capture -> clarify -> find_skills -> organize_skills -> plan -> handoff -> await_agent -> accept_results -> verify -> close
+                          ^                                  |                    |
+                          |                                  v                    v
+                          +----------------------------- replan <------------ rework
 ```
 
 ### State Meanings
@@ -297,8 +332,11 @@ capture -> clarify -> find_skills -> plan -> execute -> verify -> close
 - `capture`: create the first task card from the user request
 - `clarify`: fill missing information when the task card is incomplete
 - `find_skills`: retrieve candidate skills from declared local roots only
+- `organize_skills`: the Agent reads retained `SKILL.md` files and publishes `agent_skill_organization`
 - `plan`: generate work units
-- `execute`: perform the work
+- `handoff`: write `agent-execution-handoff.json` and return control to the Agent
+- `await_agent`: the current Agent reads assigned Skills and completes the modules
+- `accept_results`: canonical re-entry validates `module-execution.json`
 - `verify`: compare outputs against completion criteria
 - `close`: summarize and persist results
 
@@ -316,7 +354,7 @@ PowerShell still performs stage orchestration where it has real leverage:
 - environment setup
 - script bridging
 - Windows host wiring
-- leaf execution when a specific step truly needs PowerShell
+- shell-native checks when a specific step truly needs PowerShell
 
 This keeps the final semantic authority in Python without pretending the current PowerShell runtime is only a thin host adapter.
 
@@ -328,10 +366,12 @@ The hot path should stay short:
 2. resolve eligible skill roots
 3. build or load the skill catalog and active index
 4. retrieve candidates
-5. build plan
-6. execute work units
-7. verify
-8. read `work_binding` when you need the runtime truth
+5. let the Agent read retained `SKILL.md` files and publish `agent_skill_organization`
+6. project `module_assignments`
+7. freeze the approved module work plan
+8. write `agent-execution-handoff.json` and return control to the Agent
+9. accept `module-execution.json` through canonical re-entry
+10. verify
 
 Anything not needed for that path should stay out of it.
 
@@ -382,7 +422,9 @@ This does not mean every old file must disappear on day one. It means those file
 - implement task card creation
 - implement finder against the active index
 - implement planner that outputs bounded work units
-- implement `work_binding` as the runtime truth artifact
+- require the Agent organization before binding
+- implement `module_assignments` as the validated execution projection into Agent-owned work
+- emit the Agent execution handoff and strictly accept the returned module result
 - implement verifier against completion criteria
 
 ### Phase 4: Demote The Router

@@ -9,9 +9,15 @@ For this pass, the public interface story should stay simple:
 - host-declared local skill roots are the only specialist source
 - a skill must have a readable `SKILL.md` before it can be selected
 - `skills-catalog.json` and `skills-index.json` are derived discovery artifacts
-- `work_binding` is the first runtime truth for what was actually selected
+- `agent_skill_organization` is the Agent-owned skill plan, and `module_assignments` is its validated execution projection
 
 This document describes the interfaces needed to make that story inspectable without overstating the maturity of the whole architecture.
+
+```text
+candidate discovery -> Agent reads `SKILL.md` -> `agent_skill_organization` -> `module_assignments` -> execution
+```
+
+Planner preference is candidate audit only. It cannot populate `module_assignments` or authorize execution.
 
 ## What We Keep
 
@@ -23,7 +29,8 @@ The practical result should be:
 - host-aware local discovery inputs
 - a catalog artifact for the full discovered surface
 - an active index for fast lookup
-- a `work_binding` artifact with selected source details and provenance
+- an Agent-confirmed `agent_skill_organization`
+- a `module_assignments` artifact with validated source details and provenance
 
 ## Ownership Shift
 
@@ -47,10 +54,11 @@ The new hot path should be:
 3. resolve eligible roots
 4. build catalog and active index
 5. find candidates
-6. plan bounded work
-7. execute
-8. verify
-9. read `work_binding` when you need the runtime truth
+6. let the Agent read retained `SKILL.md` files and publish `agent_skill_organization`
+7. project `module_assignments`
+8. plan bounded execution
+9. execute
+10. verify
 
 The route layer becomes discovery support instead of process owner.
 
@@ -71,14 +79,12 @@ packages/runtime-core/src/vgo_runtime/
     planner.py
     executor.py
     verifier.py
-    work_binding.py
+    module_assignments.py
     run_state.py
     loop.py
   canonical_entry.py
   planning.py
-  execution.py
   stage_machine.py
-  router.py
   runtime_bridge.py
   powershell_bridge.py
 ```
@@ -89,7 +95,8 @@ packages/runtime-core/src/vgo_runtime/
 - local skill roots should be declared by the host, not guessed
 - the controller entry `vibe` should stay out of the specialist pool
 - catalog and index artifacts should describe discovery, not replace runtime truth
-- `work_binding` should carry the selected source details and provenance needed for inspection
+- `agent_skill_organization` should be the only source allowed to create task-skill bindings
+- `module_assignments` should carry the validated source details and provenance needed for inspection
 - the public CLI should stay narrow and match real operator actions
 
 ## Root Resolution Interface
@@ -324,13 +331,13 @@ def build_work_plan(
 ) -> WorkPlan: ...
 ```
 
-The internal data can keep `preferred_skill` and `fallback_skills`, but exported run artifacts should also show neutral work-facing fields such as `bound_skill` and `alternative_skills`.
+The internal data can keep `preferred_skill` and `fallback_skills` as candidate-audit hints. They must not populate exported `bound_skill`; only the validated `agent_skill_organization` can do that.
 
 ## Work Binding Interface
 
 ### Purpose
 
-`work_binding` is the first runtime truth for what was actually selected.
+`module_assignments` is the validated execution projection of `agent_skill_organization`.
 
 ### Suggested Provenance Shape
 
@@ -352,7 +359,7 @@ class SkillProvenance:
 
 ```python
 @dataclass(frozen=True, slots=True)
-class WorkBindingUnit:
+class ModuleAssignmentsUnit:
     work_unit_id: str
     bound_skill: str | None
     binding_profile: str
@@ -365,14 +372,14 @@ class WorkBindingUnit:
 
 ### Required Export Meaning
 
-The exported `work_binding.json` should make it easy to inspect:
+The exported `module_assignments.json` should make it easy to inspect:
 
-- which skill was finally bound
+- which Agent-confirmed skill was bound
 - what alternatives existed
 - what source kind won
 - what source root and resolved paths produced that choice
 
-These work binding provenance or selected source details are more authoritative than catalog or benchmark summaries when you need to know what actually happened in a run.
+These validated binding details are more authoritative than catalog, planner preference, route, or benchmark summaries when you need to know what was authorized for execution.
 
 ## Loop Interface
 
@@ -391,6 +398,8 @@ def run_local_kernel(
     run_id: str | None = None,
     host_id: str = "codex",
     workspace_root: Path | None = None,
+    agent_skill_organization: dict[str, object] | None = None,
+    execute: bool = True,
 ) -> dict[str, object]: ...
 ```
 
@@ -399,8 +408,10 @@ def run_local_kernel(
 - resolve eligible roots from `host_id` and `workspace_root`
 - build `skills-catalog.json`
 - project `skills-index.json` from the same catalog view
-- plan and execute bounded work
-- write `work_binding.json` with selected source details
+- expose candidate modules without binding when `agent_skill_organization` is absent
+- validate `agent_skill_organization` against the discovered candidates
+- write `module_assignments.json` only as that organization's execution projection
+- execute bounded work only when the organization is present and `execute` is true
 
 The loop should not discover one set of roots for the catalog and a different set for the active index.
 
@@ -452,7 +463,7 @@ Host-declared local roots may live outside this tree, but the generated artifact
 <agent_root>/vibe/generated/skills-index.json
 <agent_root>/vibe/runs/<run-id>/task-card.json
 <agent_root>/vibe/runs/<run-id>/plan.json
-<agent_root>/vibe/runs/<run-id>/work-binding.json
+<agent_root>/vibe/runs/<run-id>/module-assignments.json
 <agent_root>/vibe/runs/<run-id>/run-state.json
 <agent_root>/vibe/runs/<run-id>/verification.json
 ```
@@ -462,7 +473,7 @@ Host-declared local roots may live outside this tree, but the generated artifact
 - `skills-catalog.json`: full discovered surface with source metadata
 - `skills-index.json`: active deduplicated lookup surface
 - `plan.json`: bounded work units and preferred choices
-- `work-binding.json`: runtime truth for final selected source details
+- `module-assignments.json`: runtime truth for final selected source details
 
 ## Mapping To Current Files
 
@@ -476,7 +487,7 @@ Reduce it to discovery support or compatibility shims. It should stop returning 
 
 ### `planning.py`
 
-Keep it temporarily, but move the durable contract toward bounded work and `work_binding`.
+Keep it temporarily, but move the durable contract toward bounded work and `module_assignments`.
 
 ### `execution.py`
 
@@ -498,14 +509,14 @@ Keep it as a thin state helper if useful, but do not let it pull discovery autho
 ### Slice 2
 
 - add source-aware candidate ranking
-- add selected source details to `work_binding`
+- add selected source details to `module_assignments`
 - keep unusable or duplicate skills in diagnostics, not in selected work
 
 ### Slice 3
 
 - tighten inspect-run so it validates requested host context
 - make resume behavior provenance-aware
-- keep `work_binding` as the first truth surface
+- keep `module_assignments` as the first truth surface
 
 ## Tests
 
@@ -518,7 +529,7 @@ Suggested order:
 3. active index projection
 4. source-aware candidate ranking
 5. CLI pass-through for `--host-id` and `--workspace-root`
-6. `work_binding` provenance export
+6. `module_assignments` provenance export
 7. inspect-run host-context validation
 
 ## Non-Negotiable Outcome

@@ -287,9 +287,8 @@ function ConvertTo-CustomAdmissionCandidate {
         trigger_mode = $triggerMode
         dispatch_phase = $dispatchPhase
         binding_profile = $ManifestKind
-        lane_policy = 'bounded_native_custom_skill'
+        lane_policy = 'agent_module_handoff'
         parallelizable_in_root_xl = [bool]($Entry.PSObject.Properties.Name -contains 'parallelizable_in_root_xl' -and $Entry.parallelizable_in_root_xl)
-        native_usage_required = $true
         must_preserve_workflow = $true
         _route_usable = [bool]$routeUsable
         skill_md_path = $skillMdPath
@@ -314,9 +313,8 @@ function ConvertTo-CustomAdmissionCandidate {
         preferred_stages = @($preferredStages)
         dispatch_phase = $dispatchPhase
         binding_profile = $ManifestKind
-        lane_policy = 'bounded_native_custom_skill'
+        lane_policy = 'agent_module_handoff'
         parallelizable_in_root_xl = [bool]($Entry.PSObject.Properties.Name -contains 'parallelizable_in_root_xl' -and $Entry.parallelizable_in_root_xl)
-        native_usage_required = $true
         must_preserve_workflow = $true
         _route_usable = [bool]$routeUsable
         pack = [pscustomobject]@{

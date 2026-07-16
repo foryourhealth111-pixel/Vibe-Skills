@@ -2,7 +2,7 @@ from .executor import WorkUnitResult, execute_work_unit
 from .finder import SkillCandidate, find_skill_candidates
 from .host_skill_roots import HostSkillRoot, resolve_host_skill_roots
 from .loop import inspect_local_run, run_local_kernel
-from .work_binding import WorkBinding, WorkBindingUnit, build_work_binding
+from .module_assignments import ModuleAssignments, ModuleAssignmentsUnit, build_module_assignments
 from .planner import build_work_plan
 from .run_state import RunState, load_run_state, write_run_state
 from .skill_index import build_skill_index, load_skill_index, write_skill_index
@@ -18,14 +18,14 @@ __all__ = [
     "TaskCard",
     "RunState",
     "VerificationResult",
-    "WorkBinding",
-    "WorkBindingUnit",
+    "ModuleAssignments",
+    "ModuleAssignmentsUnit",
     "WorkPlan",
     "WorkUnit",
     "WorkUnitResult",
     "build_skill_index",
     "build_task_card",
-    "build_work_binding",
+    "build_module_assignments",
     "build_work_plan",
     "execute_work_unit",
     "find_skill_candidates",

@@ -8,12 +8,14 @@ from pathlib import Path
 DEFAULT_SKILL_ROOTS = (
     "~/.agents/skills",
     "~/.codex/skills",
+    "~/.codex/plugins/cache",
     "~/.claude/skills",
 )
 DEFAULT_SKILL_ROOTS_BY_HOST = {
     "codex": (
         "~/.agents/skills",
         "~/.codex/skills",
+        "~/.codex/plugins/cache",
     ),
     "claude-code": (
         "~/.claude/skills",
@@ -154,5 +156,19 @@ def resolve_host_skill_roots(
                 source=f"skills_dir:{skills_dir}",
             )
         )
+
+    if normalized_host_id == "codex":
+        plugin_cache = (home_root / ".codex" / "plugins" / "cache").resolve()
+        plugin_cache_key = str(plugin_cache).casefold()
+        if plugin_cache.is_dir() and plugin_cache_key not in seen:
+            seen.add(plugin_cache_key)
+            roots.append(
+                HostSkillRoot(
+                    host_id=normalized_host_id,
+                    root_key="codex_plugin_cache",
+                    path=plugin_cache,
+                    source=f"codex_plugin_cache:{plugin_cache}",
+                )
+            )
 
     return tuple(roots)

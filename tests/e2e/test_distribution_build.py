@@ -84,7 +84,7 @@ def test_distribution_build_creates_generated_outputs(tmp_path) -> None:
     assert payload['runtime_config_payload_roles']['notes']['flat_projection_contract']
     governance_roles = payload['governance_runtime_roles']
     assert governance_roles['runtime_payload_roles']['notes']['flat_projection_contract']
-    assert 'packages/runtime-core/src/vgo_runtime/runtime_bridge.py' in governance_roles['required_runtime_marker_groups']['semantic_owners']
+    assert 'required_runtime_marker_groups' not in governance_roles
     runtime_core_roles = payload['runtime_core_payload_roles']['payload_roles']
     assert 'surface_contracts' not in runtime_core_roles
     assert runtime_core_roles['copy_directories']['active_sources'] == [{'source': 'commands', 'target': 'commands'}]
@@ -108,7 +108,7 @@ def test_distribution_build_creates_generated_outputs(tmp_path) -> None:
     assert bundle_payload['runtime_payload_roles']['notes']['flat_projection_contract']
     assert bundle_payload['runtime_config_payload_roles']['notes']['flat_projection_contract']
     assert bundle_payload['runtime_config_payload_roles']['role_groups']['directories']['preview_host_config_roots'] == []
-    assert bundle_payload['governance_runtime_roles']['required_runtime_marker_notes']['flat_projection_contract']
+    assert 'required_runtime_marker_notes' not in bundle_payload['governance_runtime_roles']
     assert 'surface_contracts' not in bundle_payload['runtime_core_payload_roles']['payload_roles']
     assert bundle['host_id'] == manifest['host_id']
     asset_root = tmp_path / 'bundle-out' / 'vibe-skills-3.2.0-public'

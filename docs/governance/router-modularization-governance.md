@@ -8,8 +8,7 @@ Refactor `scripts/router/resolve-pack-route.ps1` into maintainable modules while
 
 - Unified entrypoint remains: `scripts/router/resolve-pack-route.ps1`
 - Function modules live in: `scripts/router/modules/*.ps1`
-- Frozen contract baseline preserved for contract comparison:
-  - `tests/replay/route/router-contract-gate-golden.json`
+- The router is a compatibility candidate audit. Its scores and selected row are not runtime skill truth.
 
 ## Module Boundaries
 
@@ -18,7 +17,6 @@ Refactor `scripts/router/resolve-pack-route.ps1` into maintainable modules while
 - `20-routing-rules.ps1`: candidate rule filtering and defaults-by-task helpers
 - `30-39`: OpenSpec + all overlay advisory modules
 - `40-cuda-kernel-overlay.ps1`: CUDA-specific advisory module
-- `41-candidate-selection.ps1`: pack-candidate selection and fallback behavior
 - `42-ai-rerank-overlay.ps1`: constrained Top-K rerank logic
 
 ## Zero-Regression Contract
@@ -30,30 +28,21 @@ A modular change is allowed only when all conditions hold:
 3. Config parity gate remains 100%.
 4. No automatic rollback behavior is introduced.
 
-## Contract Gate
+## Candidate-Audit Verification
 
-Primary gate:
+Run both checks when router modules or routing policy change:
 
 ```powershell
-pwsh -File .\scripts\verify\vibe-router-contract-gate.ps1 -WriteArtifacts
+pwsh -File .\scripts\verify\vibe-pack-routing-smoke.ps1 -WriteArtifacts
+pwsh -File .\scripts\verify\vibe-current-routing-debt-gate.ps1 -WriteArtifacts
 ```
 
-The gate compares the current modular router against a frozen bilingual and cross-task contract fixture and fails on any **core routing contract** mismatch:
-
-- `route_mode`
-- `route_reason`
-- `selected.pack_id`
-- `selected.skill`
-- `confidence`
-- `top1_top2_gap`
-- `candidate_signal`
-
-Additive advisory payloads (e.g. post-route overlay advice blocks) are intentionally excluded from this gate to allow non-invasive enhancements without forcing legacy snapshot churn.
+The smoke check proves the candidate-audit command still runs. The debt check proves route output does not become requirement, planning, binding, or execution authority. Exact scores and selected rows are intentionally not frozen.
 
 ## Required Gate Chain
 
 1. `vibe-pack-regression-matrix.ps1`
-2. `vibe-router-contract-gate.ps1`
+2. `vibe-current-routing-debt-gate.ps1`
 3. `vibe-routing-stability-gate.ps1 -Strict`
 4. `vibe-config-parity-gate.ps1`
 5. `vibe-observability-gate.ps1`
@@ -81,6 +70,6 @@ includes the contract gate in the default pipeline.
 
 ## Progressive Migration Guidance
 
-1. Refresh `tests/replay/route/router-contract-gate-golden.json` only when a governed router contract change is intentionally approved.
-2. If a planned strategy change is needed, do it in a separate commit after contract-stable modularization.
+1. Do not add a frozen route-output golden. Candidate scoring is not canonical runtime truth.
+2. Keep route changes inside the compatibility candidate-audit boundary.
 3. Use `check.ps1 -Deep` / `check.sh --deep` before release.

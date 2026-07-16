@@ -14,7 +14,7 @@ Wave68 把 BrowserOps provider plane 推进到 **soft candidate**，但 soft can
 soft rollout 最少要接通以下证据面：
 
 - `telemetry`：记录 `provider`、`reason`、`confidence`、`confirm_required`、`fallback_provider`；
-- `fallback`：任何 `candidate_soft_only` provider 都必须可回退到 `playwright`；
+- `fallback`：任何 `candidate_soft_only` provider 都必须可回退到 `browser-host-native`；
 - `confirm bias`：高风险关键词命中后不得取消 `confirm_required`；
 - `pilot fixture`：`scripts/verify/fixtures/pilot-browserops.json` 作为最小演练样例。
 
@@ -26,9 +26,9 @@ soft rollout 最少要接通以下证据面：
 
 ## Rollback
 
-soft rollout 的 rollback 命令必须保持为：`set browserops mode to shadow/off and keep playwright baseline`。
+soft rollout 的 rollback 命令必须保持为：`set browserops mode to shadow/off and keep browser-host-native baseline`。
 
-换言之，BrowserOps soft candidate 的失败处理永远回到既有 `playwright` baseline，而不是把 `browser-use` 留在默认路径上。
+换言之，BrowserOps soft candidate 的失败处理永远回到宿主已经允许的原生能力，而不是把 `browser-use` 留在默认路径上，也不引入外部 MCP。
 
 ## Gate Coverage
 

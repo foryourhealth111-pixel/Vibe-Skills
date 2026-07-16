@@ -19,8 +19,7 @@ class MaterializationLedgerState:
     managed_json_paths: set[Path | str] = field(default_factory=set)
     merged_files: dict[str, dict[str, object]] = field(default_factory=dict)
     generated_from_template_if_absent: set[Path | str] = field(default_factory=set)
-    specialist_wrapper_paths: list[Path | str] = field(default_factory=list)
-    bridge_launcher_paths: list[Path | str] = field(default_factory=list)
+    host_visible_entry_paths: list[Path | str] = field(default_factory=list)
     runtime_roots: set[Path | str] = field(default_factory=set)
     compatibility_roots: set[Path | str] = field(default_factory=set)
     sidecar_roots: set[Path | str] = field(default_factory=set)
@@ -222,7 +221,7 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
         return candidate
 
     host_visible_entry_names: set[str] = set()
-    for raw_path in ledger.get('specialist_wrapper_paths') or []:
+    for raw_path in ledger.get('host_visible_entry_paths') or []:
         candidate = resolve_owned_candidate(str(raw_path))
         if not is_under_target_root(candidate) or not candidate.is_file():
             continue
@@ -274,7 +273,7 @@ def build_payload_summary(target_root: Path | str, ledger: dict) -> dict[str, ob
         collect_owned_file(raw_path)
     for raw_path in ledger.get('generated_from_template_if_absent') or []:
         collect_owned_file(raw_path)
-    for raw_path in ledger.get('specialist_wrapper_paths') or []:
+    for raw_path in ledger.get('host_visible_entry_paths') or []:
         collect_owned_file(raw_path)
     for entry in ledger.get('merged_files') or []:
         if isinstance(entry, dict):
@@ -311,7 +310,7 @@ def _sorted_merged_files(values: dict[str, dict[str, object]]) -> list[dict[str,
     return records
 
 
-def _sorted_wrapper_paths(values: list[Path | str]) -> list[str]:
+def _sorted_entry_paths(values: list[Path | str]) -> list[str]:
     seen: set[str] = set()
     ordered: list[str] = []
     for value in values:
@@ -370,8 +369,7 @@ def build_install_ledger(
         'managed_json_paths': _sorted_paths(state.managed_json_paths),
         'merged_files': _sorted_merged_files(state.merged_files),
         'generated_from_template_if_absent': _sorted_paths(state.generated_from_template_if_absent),
-        'specialist_wrapper_paths': _sorted_wrapper_paths(state.specialist_wrapper_paths),
-        'bridge_launcher_paths': _sorted_wrapper_paths(state.bridge_launcher_paths),
+        'host_visible_entry_paths': _sorted_entry_paths(state.host_visible_entry_paths),
         'runtime_roots': runtime_roots,
         'compatibility_roots': compatibility_roots,
         'sidecar_roots': sidecar_roots,

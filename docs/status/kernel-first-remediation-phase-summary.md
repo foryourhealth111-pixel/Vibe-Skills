@@ -41,30 +41,31 @@ Focused proof that passed during this phase:
 
 - `py -3 -m pytest tests/unit/test_canonical_vibe_entry_launcher.py tests/runtime_neutral/test_governed_runtime_bridge.py -q`
   observed result: `99 passed`
-- `py -3 -m pytest tests/unit/test_kernel_benchmark.py -q`
-  observed result: `9 passed, 1 warning`
-- a docs-oriented routing debt proof ran during this phase, but that retired cleanup test has since been removed from the live suite
+- `py -3 -m pytest tests/runtime_neutral/test_retired_agent_execution_surfaces.py -q`
+  observed result in this checkout: `5 passed`
+- `py -3 -m pytest tests/runtime_neutral/test_workflow_acceptance_runner.py -q`
+  observed result in this checkout: `6 passed`; direct fixture replay keeps L at `PASS` and XL at `MANUAL_REVIEW_REQUIRED`
 - `py -3 -m pytest tests/unit -q`
   observed result: `497 passed, 1 warning`
-- `py -3 -m pytest tests/unit/test_runtime_truth.py tests/unit/test_runtime_execution.py tests/runtime_neutral/test_bootstrap_shell_target_root_guard.py tests/runtime_neutral/test_check_installed_runtime_root.py tests/runtime_neutral/test_apps_surface_hygiene.py tests/runtime_neutral/test_binary_skill_usage_contract.py tests/runtime_neutral/test_current_routing_debt_gate.py tests/runtime_neutral/test_skill_execution_lock_contract.py tests/runtime_neutral/test_l_xl_native_execution_topology.py -q`
-  observed result: `83 passed`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-governed-runtime-contract-gate.ps1`
-  observed result: `gate_passed = True`, `assertion_count = 75`
+  observed result in this checkout: `gate_passed = True`, `98 assertions`, `0 failures`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-canonical-entry-truth-gate.ps1 -SessionRoot (Resolve-Path '.tmp\canonical-local-smoke\vibe\runs\canon-local-smoke') -WriteArtifacts`
   observed result: all printed assertions passed
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-runtime-execution-proof-gate.ps1`
-  observed result: `gate_passed = True`, `assertion_count = 60`
+  observed result in this checkout: `gate_passed = True`, `39 assertions`, `0 failures`; scope is the approved module plan, Agent handoff, and returned module-result contract
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/vibe-release-truth-consistency-gate.ps1`
   observed result: all printed assertions passed
 - `py -3 -m pytest tests/runtime_neutral/test_discoverable_wrapper_host_visibility.py::DiscoverableWrapperHostVisibilityTests::test_install_ledger_exposes_host_visible_discoverable_entries_for_supported_hosts tests/runtime_neutral/test_discoverable_wrapper_host_visibility.py::DiscoverableWrapperHostVisibilityTests::test_shell_check_accepts_supported_host_discoverable_surfaces tests/runtime_neutral/test_installed_runtime_uninstall.py::InstalledRuntimeUninstallTests::test_codex_uninstall_removes_issue_167_governed_runtime_dependency_surfaces -q`
   observed result: `3 passed`
 - `git diff --check`
   observed result: no whitespace or conflict-marker errors; only CRLF normalization warnings from Git
+- `py -3 -m pytest -q --maxfail=40`
+  observed result in this checkout: `1254 passed, 6 skipped`
 
 ## Next step
 
-If the goal is a fully green machine-level closeout, the remaining work is operational rather than architectural:
+The remaining release work is operational:
 
-- commit or otherwise reduce the current dirty worktree so `vibe-repo-cleanliness-gate.ps1` can pass honestly
-- isolate or serialize the remaining install/check tests that only go red under `pytest -n auto`
-- if needed, rerun the full `tests/unit` and `tests/runtime_neutral` suites in a non-parallel environment with a larger wall-clock budget than this interactive session
+- update both managed live installs from this checkout and prove source/receipt parity
+- run fresh Codex black-box tasks through requirement choice, plan approval, Agent work, canonical result re-entry, acceptance, and cleanup
+- repeat the research-document and XL composite scenarios in new tasks before making a final completion claim

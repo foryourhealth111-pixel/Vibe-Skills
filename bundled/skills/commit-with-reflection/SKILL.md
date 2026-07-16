@@ -733,7 +733,6 @@ ON SKILL ACTIVATION:
    - ToolSearch("getDiagnostics") → 发现 IDE 诊断工具
    - ToolSearch("+serena symbol") → 发现代码符号分析工具
    - ToolSearch("+github") → 发现 GitHub 操作工具
-   - ToolSearch("context7") → 发现文档查询工具
 
 2. 将发现的工具记录到工作上下文中，后续步骤直接调用
 ```
@@ -768,8 +767,8 @@ ON SKILL ACTIVATION:
 
 增强流程 (使用 ToolSearch):
   1. IF 涉及第三方库问题:
-     → ToolSearch("context7")
-     → 查询库文档，补充正确用法到报告中
+     → 先确认本地依赖版本，再查询官方 primary docs
+     → 只把已核实的正确用法补充到报告中
 
   2. IF 需要代码结构分析:
      → ToolSearch("+serena find_symbol")
@@ -802,7 +801,7 @@ ON SKILL ACTIVATION:
 |-------------|----------------|------|
 | 错误分析 | `ToolSearch("getDiagnostics")` | 获取精确的 IDE 诊断信息 |
 | 代码结构分析 | `ToolSearch("+serena symbol")` | 分析修改的代码符号和引用关系 |
-| 库文档查询 | `ToolSearch("context7")` | 查询第三方库正确用法 |
+| 库文档查询 | 本地依赖信息与官方 primary docs | 查询第三方库正确用法 |
 | GitHub Issue | `ToolSearch("+github issue")` | 创建 Bug 追踪 Issue |
 | 应用截图 | `ToolSearch("+playwright screenshot")` | 截取应用状态作为报告附件 |
 | 代码执行验证 | `ToolSearch("executeCode")` | 执行代码片段验证修复效果 |

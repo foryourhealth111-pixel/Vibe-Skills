@@ -19,167 +19,34 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'VibeRuntime.Common.ps1')
-. (Join-Path $PSScriptRoot 'VibeSkillUsage.Common.ps1')
 . (Join-Path $PSScriptRoot 'VibeSkillRouting.Common.ps1')
 . (Join-Path $PSScriptRoot '..\common\AntiProxyGoalDrift.ps1')
 
-function Get-VibeExplicitNonUiSignalRegex {
-    return 'non[- ]?ui|non[- ]?interactive|without ui|without user interface|headless|runtime[- ]?only|pure runtime|infrastructure( fix| repair| task| change)?|infra[- ]?(fix|repair|task|change)?|backend[- ]?only|cli[- ]?only|automation[- ]?only|非\s*ui|非交互|无界面|纯运行时|基础设施(修复|任务|改动)?|仅自动化|纯后端|命令行'
-}
-
-function Test-VibeTaskNeedsManualSpotChecks {
+function Add-VibeMarkdownSection {
     param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
+        [Parameter(Mandatory)] [ref]$Lines,
+        [Parameter(Mandatory)] [string]$Heading,
+        [AllowEmptyCollection()] [string[]]$BodyLines = @()
     )
 
-    if (Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable $Deliverable) {
-        return $false
+    $filteredBodyLines = @($BodyLines | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    if (@($filteredBodyLines).Count -eq 0) {
+        return
     }
 
-    if (-not (Test-VibeTaskHasUiArtifactSignals -Task $Task -Deliverable $Deliverable)) {
-        return $false
-    }
-
-    if (-not (Test-VibeTaskHasExplicitNonUiSignals -Task $Task -Deliverable $Deliverable)) {
-        return $true
-    }
-
-    return (Test-VibeTaskHasStrongInteractiveUiSignals -Task $Task -Deliverable $Deliverable)
+    $Lines.Value += @('', ('## {0}' -f $Heading))
+    $Lines.Value += @($filteredBodyLines)
 }
 
-function Get-VibeTaskSignalText {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
+function New-VibeBulletLines {
+    param([AllowEmptyCollection()] [string[]]$Items = @())
+
+    return @(
+        $Items |
+            ForEach-Object { [string]$_ } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            ForEach-Object { '- ' + $_ }
     )
-
-    return ('{0} {1}' -f $Task, $Deliverable).ToLowerInvariant()
-}
-
-function Get-VibeDefaultGovernedDeliverableText {
-    return 'Governed implementation artifacts, verification evidence, and cleanup receipts'
-}
-
-function Get-VibeCodeTaskSignalText {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $parts = @([string]$Task)
-    if (
-        -not [string]::IsNullOrWhiteSpace($Deliverable) -and
-        [string]$Deliverable -ne (Get-VibeDefaultGovernedDeliverableText)
-    ) {
-        $parts += [string]$Deliverable
-    }
-
-    return (@($parts) -join ' ').ToLowerInvariant()
-}
-
-function Test-VibeTaskHasExplicitNonUiSignals {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = Get-VibeTaskSignalText -Task $Task -Deliverable $Deliverable
-    return $text -match (Get-VibeExplicitNonUiSignalRegex)
-}
-
-function Get-VibeTaskSignalTextWithoutExplicitNonUiPhrases {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = Get-VibeTaskSignalText -Task $Task -Deliverable $Deliverable
-    return ($text -replace (Get-VibeExplicitNonUiSignalRegex), ' ')
-}
-
-function Test-VibeTaskHasUiArtifactSignals {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = Get-VibeTaskSignalText -Task $Task -Deliverable $Deliverable
-    return $text -match '(?<!non[-\s])\bui\b|(?<!non[-\s])\bux\b|frontend|browser|page|screen|dashboard|dialog|modal|layout|responsive|user[- ]?facing|visual|interface|用户|界面|交互|可视化|体验'
-}
-
-function Test-VibeTaskHasStrongInteractiveUiSignals {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = Get-VibeTaskSignalTextWithoutExplicitNonUiPhrases -Task $Task -Deliverable $Deliverable
-    return $text -match '(?<!non[-\s])\bui\b|(?<!non[-\s])\bux\b|frontend|page|screen|dashboard|dialog|modal|layout|responsive|user[- ]?facing|visual|interface|click|tap|form|navigation|用户|界面|交互|可视化|体验'
-}
-
-function Test-VibeTaskNeedsBaselineUiQualityDimensions {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    return (Test-VibeTaskNeedsManualSpotChecks -Task $Task -Deliverable $Deliverable)
-}
-
-function Test-VibeTaskNeedsDocumentArtifactBaseline {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = ('{0} {1}' -f $Task, $Deliverable).ToLowerInvariant()
-    $docOnlySignals = 'without changing (application )?code|without code changes|document-only'
-    $documentArtifactSignals = 'readme|documentation|docx|pdf|pptx|headings|spacing|formatting|markdown|slide|slides|presentation|deck|\bdocument\b|\bdocs\b'
-    $codeImplementationSignals = 'failing test|stack trace|debug|bug|fix|refactor|script|function|class|endpoint|api|component|module|backend|frontend|dashboard|page|screen|unit test|integration test|parser|exporter|renderer|pipeline|service|library|cli'
-
-    if ($text -match $docOnlySignals) {
-        return $true
-    }
-
-    if (-not ($text -match $documentArtifactSignals)) {
-        return $false
-    }
-
-    return -not ($text -match $codeImplementationSignals)
-}
-
-function Test-VibeTaskNeedsCodeTaskTddEvidence {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [AllowEmptyString()] [string]$Deliverable = ''
-    )
-
-    $text = Get-VibeCodeTaskSignalText -Task $Task -Deliverable $Deliverable
-    $testFirstSignals = '\btdd\b|red green refactor|test[- ]first|failing[- ]first'
-    $defectCorrectionSignals = 'failing test|stack trace|\bdebug\b|\bbug\b|\bfix\b|\brepair\b|\bpatch\b|regression|compile|syntax error|exception'
-    $implementationSignals = '\bimplement\b|\bbuild\b|\bwire\b|\bintegrate\b|\bpatch\b|\bmodify\b|\bchange\b|\badd\b|\brefactor\b'
-    $implementationTargetSignals = 'script|function|class|endpoint|api|component|module|frontend|backend|dashboard|page|screen|parser|exporter|renderer|service|library|cli|runtime|router|wrapper|installer|plugin'
-    $reviewOnlySignals = '\breview\b|code review|pull request|\bpr\b|audit|assess'
-    $hasImplementationActionAndTarget = ($text -match $implementationSignals) -and ($text -match $implementationTargetSignals)
-
-    if ((Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable $Deliverable) -or ($text -match 'image|logo|illustration|diagram')) {
-        return $false
-    }
-
-    if ($text -match $testFirstSignals) {
-        return $true
-    }
-
-    if (($text -match $reviewOnlySignals) -and -not $hasImplementationActionAndTarget) {
-        return $false
-    }
-
-    if ($text -match $defectCorrectionSignals) {
-        return $true
-    }
-
-    return $hasImplementationActionAndTarget
 }
 
 function Get-VibeDefaultCodeTaskTddEvidenceRequirements {
@@ -207,59 +74,11 @@ function Get-VibeProductAcceptanceCriteria {
     return @($criteria | Select-Object -Unique)
 }
 
-function Get-VibeManualSpotChecks {
-    param(
-        [Parameter(Mandatory)] [string]$Task,
-        [Parameter(Mandatory)] [object]$IntentContract
-    )
-
-    if (Test-VibeTaskNeedsManualSpotChecks -Task $Task -Deliverable ([string]$IntentContract.deliverable)) {
-        return @(
-            'Open the primary user-facing flow and confirm the main path works from entry to completion.',
-            'Exercise one meaningful unhappy-path or validation-path interaction and record whether behavior matches the frozen requirement.'
-        )
-    }
-
-    return @(
-        'None required beyond automated verification for this task unless the execution scope expands to a user-visible or interactive flow.'
-    )
-}
-
 function Get-VibeCompletionLanguagePolicy {
     return @(
         'Full completion wording is allowed only when governance truth, engineering verification truth, workflow completion truth, and product acceptance truth are all passing.',
         '`completed_with_failures`, degraded execution, or pending manual actions must be reported as non-complete states.',
         'If manual spot checks remain pending, the run must be described as requiring manual review rather than fully ready.'
-    )
-}
-
-function Get-VibeDefaultBaselineUiQualityDimensions {
-    return @(
-        'Structure Completeness',
-        'Interaction Feedback',
-        'State Coverage',
-        'Design System Consistency',
-        'Responsive Stability',
-        'Spec Fidelity'
-    )
-}
-
-function Get-VibeDefaultBaselineDocumentQualityDimensions {
-    return @(
-        'Structure Integrity',
-        'Formatting Consistency',
-        'Content Completeness',
-        'Link and Reference Integrity',
-        'Layout and Asset Stability',
-        'Output Fidelity'
-    )
-}
-
-function Get-VibeDefaultDocumentArtifactReviewRequirements {
-    return @(
-        'Review the touched document artifact directly against each frozen baseline document quality dimension.',
-        'Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.',
-        'For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.'
     )
 }
 
@@ -324,7 +143,8 @@ $hierarchyState = Get-VibeHierarchyState `
     -InheritedExecutionPlanPath $InheritedExecutionPlanPath `
     -DelegationEnvelopePath $DelegationEnvelopePath `
     -HierarchyContract $runtime.runtime_input_packet_policy.hierarchy_contract
-if (-not [string]::IsNullOrWhiteSpace($IntentContractPath) -and (Test-Path -LiteralPath $IntentContractPath)) {
+$hasFrozenIntentContract = -not [string]::IsNullOrWhiteSpace($IntentContractPath) -and (Test-Path -LiteralPath $IntentContractPath)
+if ($hasFrozenIntentContract) {
     $intentContract = Get-Content -LiteralPath $IntentContractPath -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
     $intentContract = New-VibeIntentContractObject -Task $Task -Mode $Mode
@@ -341,7 +161,6 @@ $docPath = if ($isChildScope) {
 }
 $antiDriftDraft = New-VgoAntiProxyGoalDriftDraft -PrimaryObjective $intentContract.goal
 $productAcceptanceCriteria = Get-VibeProductAcceptanceCriteria -IntentContract $intentContract
-$manualSpotChecks = Get-VibeManualSpotChecks -Task $Task -IntentContract $intentContract
 $completionLanguagePolicy = Get-VibeCompletionLanguagePolicy
 $deliveryTruthContract = Get-VibeDeliveryTruthContractLines
 $artifactReviewRequirements = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('artifact_review_requirements', 'artifactReviewRequirements')
@@ -351,6 +170,14 @@ $taskSpecificAcceptanceExtensions = Get-VibeOptionalFrozenItems -IntentContract 
 $researchAugmentationSources = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('research_augmentation_sources', 'researchAugmentationSources')
 $baselineDocumentQualityDimensions = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('baseline_document_quality_dimensions', 'baselineDocumentQualityDimensions')
 $baselineUiQualityDimensions = Get-VibeOptionalFrozenItems -IntentContract $intentContract -PropertyNames @('baseline_ui_quality_dimensions', 'baselineUiQualityDimensions')
+$manualSpotChecks = if (@($baselineUiQualityDimensions).Count -gt 0) {
+    @(
+        'Open the primary user-facing flow and confirm the main path works from entry to completion.',
+        'Exercise one meaningful unhappy-path or validation-path interaction and record whether behavior matches the frozen requirement.'
+    )
+} else {
+    @('None required beyond automated verification for this task unless the execution scope expands to a user-visible or interactive flow.')
+}
 $runtimeInputPath = if (-not [string]::IsNullOrWhiteSpace($RuntimeInputPacketPath)) {
     $RuntimeInputPacketPath
 } else {
@@ -361,31 +188,13 @@ $runtimeInputPacket = if (-not [string]::IsNullOrWhiteSpace($runtimeInputPath) -
 } else {
     $null
 }
-$skillUsage = if ($runtimeInputPacket -and $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_usage') {
-    $runtimeInputPacket.skill_usage
-} else {
-    $null
-}
-$selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket)
-$selectedTaskSkillText = if (@($selectedTaskSkillIds).Count -gt 0) {
-    @($selectedTaskSkillIds | ForEach-Object { ('`{0}`' -f [string]$_) }) -join ', '
-} else {
-    'none'
-}
-$runtimeTaskType = if (
-    $runtimeInputPacket -and
-    $runtimeInputPacket.PSObject.Properties.Name -contains 'route_snapshot' -and
-    $runtimeInputPacket.route_snapshot -and
-    $runtimeInputPacket.route_snapshot.PSObject.Properties.Name -contains 'task_type' -and
-    -not [string]::IsNullOrWhiteSpace([string]$runtimeInputPacket.route_snapshot.task_type)
+$codeTaskTddDecision = if (
+    $hasFrozenIntentContract -and
+    $intentContract.PSObject.Properties.Name -contains 'code_task_tdd_decision' -and
+    $null -ne $intentContract.code_task_tdd_decision
 ) {
-    ([string]$runtimeInputPacket.route_snapshot.task_type).Trim().ToLowerInvariant()
-} else {
-    ''
-}
-$needsDocumentArtifactBaseline = Test-VibeTaskNeedsDocumentArtifactBaseline -Task $Task -Deliverable ([string]$intentContract.deliverable)
-$heuristicRequiresCodeTaskTddEvidence = Test-VibeTaskNeedsCodeTaskTddEvidence -Task $Task -Deliverable ([string]$intentContract.deliverable)
-$packetCodeTaskTddDecision = if (
+    $intentContract.code_task_tdd_decision
+} elseif (
     $runtimeInputPacket -and
     $runtimeInputPacket.PSObject.Properties.Name -contains 'code_task_tdd_decision' -and
     $null -ne $runtimeInputPacket.code_task_tdd_decision
@@ -394,49 +203,23 @@ $packetCodeTaskTddDecision = if (
 } else {
     $null
 }
-$codeTaskTddDecision = if ($packetCodeTaskTddDecision) {
-    $packetMode = Normalize-VibeCodeTaskTddMode -Value $(if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'mode') { $packetCodeTaskTddDecision.mode } else { '' })
-    $packetSource = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'source') { [string]$packetCodeTaskTddDecision.source } else { 'runtime_inference' }
-    if ($needsDocumentArtifactBaseline -and [string]$packetSource -ne 'host_decision') {
-        Resolve-VibeCodeTaskTddDecision `
-            -Task $Task `
-            -Deliverable ([string]$intentContract.deliverable) `
-            -TaskType $runtimeTaskType `
-            -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
-            -DocumentArtifactBaseline $true
-    } else {
-        [pscustomobject]@{
-            mode = if ([string]::IsNullOrWhiteSpace($packetMode)) { 'not_applicable' } else { [string]$packetMode }
-            source = $packetSource
-            reason = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'reason') { [string]$packetCodeTaskTddDecision.reason } else { 'Runtime packet supplied the code-task TDD decision.' }
-            exception = if ($packetCodeTaskTddDecision.PSObject.Properties.Name -contains 'exception') { $packetCodeTaskTddDecision.exception } else { $null }
-        }
-    }
-} else {
-    Resolve-VibeCodeTaskTddDecision `
-        -Task $Task `
-        -Deliverable ([string]$intentContract.deliverable) `
-        -TaskType $runtimeTaskType `
-        -HeuristicRequiresTdd $heuristicRequiresCodeTaskTddEvidence `
-        -DocumentArtifactBaseline $needsDocumentArtifactBaseline
-}
 $hostExplicitTddNotApplicable = (
     $codeTaskTddDecision -and
     [string]$codeTaskTddDecision.source -eq 'host_decision' -and
     [string]$codeTaskTddDecision.mode -eq 'not_applicable'
 )
-if (@($codeTaskTddEvidenceRequirements).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
+if ($codeTaskTddDecision -and @($codeTaskTddEvidenceRequirements).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
     $codeTaskTddDecision.mode = 'required'
     $codeTaskTddDecision.source = 'intent_contract'
     $codeTaskTddDecision.reason = 'Explicit code-task TDD evidence requirements were supplied by the intent contract.'
-} elseif (@($codeTaskTddExceptions).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
+} elseif ($codeTaskTddDecision -and @($codeTaskTddExceptions).Count -gt 0 -and -not $hostExplicitTddNotApplicable) {
     $codeTaskTddDecision.mode = 'exception_approved'
     $codeTaskTddDecision.source = 'intent_contract'
     $codeTaskTddDecision.reason = 'Explicit code-task TDD exception requirements were supplied by the intent contract.'
 }
-if ([string]$codeTaskTddDecision.mode -eq 'required' -and @($codeTaskTddEvidenceRequirements).Count -eq 0) {
+if ($codeTaskTddDecision -and [string]$codeTaskTddDecision.mode -eq 'required' -and @($codeTaskTddEvidenceRequirements).Count -eq 0) {
     $codeTaskTddEvidenceRequirements = Get-VibeDefaultCodeTaskTddEvidenceRequirements
-} elseif ([string]$codeTaskTddDecision.mode -eq 'exception_approved') {
+} elseif ($codeTaskTddDecision -and [string]$codeTaskTddDecision.mode -eq 'exception_approved') {
     $codeTaskTddEvidenceRequirements = @()
     if (@($codeTaskTddExceptions).Count -eq 0) {
         $exceptionReason = if ($codeTaskTddDecision -and -not [string]::IsNullOrWhiteSpace([string]$codeTaskTddDecision.exception)) {
@@ -446,154 +229,47 @@ if ([string]$codeTaskTddDecision.mode -eq 'required' -and @($codeTaskTddEvidence
         }
         $codeTaskTddExceptions = @($exceptionReason)
     }
-} elseif ([string]$codeTaskTddDecision.mode -eq 'not_applicable') {
+} elseif ($codeTaskTddDecision -and [string]$codeTaskTddDecision.mode -eq 'not_applicable') {
     $codeTaskTddEvidenceRequirements = @()
     if ($hostExplicitTddNotApplicable) {
         $codeTaskTddExceptions = @()
     }
-}
-if (@($baselineDocumentQualityDimensions).Count -eq 0 -and $needsDocumentArtifactBaseline) {
-    $baselineDocumentQualityDimensions = Get-VibeDefaultBaselineDocumentQualityDimensions
-}
-if (@($artifactReviewRequirements).Count -eq 0 -and @($baselineDocumentQualityDimensions).Count -gt 0) {
-    $artifactReviewRequirements = Get-VibeDefaultDocumentArtifactReviewRequirements
-}
-if (@($baselineUiQualityDimensions).Count -eq 0 -and (Test-VibeTaskNeedsBaselineUiQualityDimensions -Task $Task -Deliverable ([string]$intentContract.deliverable))) {
-    $baselineUiQualityDimensions = Get-VibeDefaultBaselineUiQualityDimensions
 }
 $memoryContextPack = if (-not [string]::IsNullOrWhiteSpace($MemoryContextPath) -and (Test-Path -LiteralPath $MemoryContextPath)) {
     Get-Content -LiteralPath $MemoryContextPath -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
     $null
 }
-$stageLifecycleDisclosure = New-VibeSpecialistLifecycleDisclosureProjection `
-    -RuntimeInputPacket $runtimeInputPacket
-$lines = @(
-    "# $($intentContract.title)",
-    '',
-    '## Summary',
-    $intentContract.goal,
-    '',
-    '## Goal',
-    $intentContract.goal,
-    '',
-    '## Deliverable',
-    $intentContract.deliverable,
-    '',
-    '## Constraints'
-)
-$lines += @($intentContract.constraints | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Acceptance Criteria'
-)
-$lines += @($intentContract.acceptance_criteria | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Product Acceptance Criteria'
-)
-$lines += @($productAcceptanceCriteria | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Manual Spot Checks'
-)
-$lines += @($manualSpotChecks | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Completion Language Policy'
-)
-$lines += @($completionLanguagePolicy | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Delivery Truth Contract'
-)
-$lines += @($deliveryTruthContract | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Artifact Review Requirements'
-)
-if (@($artifactReviewRequirements).Count -gt 0) {
-    $lines += @($artifactReviewRequirements | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No additional artifact review requirements were frozen for this run.'
+$lines = @("# $($intentContract.title)")
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Goal' -BodyLines @([string]$intentContract.goal)
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Deliverable' -BodyLines @([string]$intentContract.deliverable)
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Constraints' -BodyLines (New-VibeBulletLines -Items @($intentContract.constraints))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Acceptance Criteria' -BodyLines (New-VibeBulletLines -Items @($intentContract.acceptance_criteria))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Product Acceptance Criteria' -BodyLines (New-VibeBulletLines -Items @($productAcceptanceCriteria))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Manual Spot Checks' -BodyLines (New-VibeBulletLines -Items @($manualSpotChecks))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Completion Language Policy' -BodyLines (New-VibeBulletLines -Items @($completionLanguagePolicy))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Delivery Truth Contract' -BodyLines (New-VibeBulletLines -Items @($deliveryTruthContract))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Artifact Review Requirements' -BodyLines (New-VibeBulletLines -Items @($artifactReviewRequirements))
+
+if ($codeTaskTddDecision -and [string]$codeTaskTddDecision.mode -ne 'not_applicable') {
+    Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Code Task TDD Mode' -BodyLines @(
+        ('TDD mode: {0}' -f [string]$codeTaskTddDecision.mode),
+        ('Decision source: {0}' -f [string]$codeTaskTddDecision.source),
+        ('Reason: {0}' -f [string]$codeTaskTddDecision.reason)
+    )
 }
-$lines += @(
-    '',
-    '## Code Task TDD Mode',
-    ('TDD mode: {0}' -f [string]$codeTaskTddDecision.mode),
-    ('Decision source: {0}' -f [string]$codeTaskTddDecision.source),
-    ('Reason: {0}' -f [string]$codeTaskTddDecision.reason),
-    '',
-    '## Code Task TDD Evidence Requirements'
-)
-if (@($codeTaskTddEvidenceRequirements).Count -gt 0) {
-    $lines += @($codeTaskTddEvidenceRequirements | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No code-task TDD evidence requirements were frozen for this run.'
+
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Code Task TDD Evidence Requirements' -BodyLines (New-VibeBulletLines -Items @($codeTaskTddEvidenceRequirements))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Code Task TDD Exceptions' -BodyLines (New-VibeBulletLines -Items @($codeTaskTddExceptions))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Baseline Document Quality Dimensions' -BodyLines (New-VibeBulletLines -Items @($baselineDocumentQualityDimensions))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Baseline UI Quality Dimensions' -BodyLines (New-VibeBulletLines -Items @($baselineUiQualityDimensions))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Task-Specific Acceptance Extensions' -BodyLines (New-VibeBulletLines -Items @($taskSpecificAcceptanceExtensions))
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Research Augmentation Sources' -BodyLines (New-VibeBulletLines -Items @($researchAugmentationSources))
+$nonGoalLines = @(New-VibeBulletLines -Items @($intentContract.non_goals))
+if (@($nonGoalLines).Count -gt 0) {
+    $lines += @('', 'Non-goals:')
+    $lines += @($nonGoalLines)
 }
-$lines += @(
-    '',
-    '## Code Task TDD Exceptions'
-)
-if (@($codeTaskTddExceptions).Count -gt 0) {
-    $lines += @($codeTaskTddExceptions | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No code-task TDD exceptions were frozen for this run.'
-}
-$lines += @(
-    '',
-    '## Baseline Document Quality Dimensions'
-)
-if (@($baselineDocumentQualityDimensions).Count -gt 0) {
-    $lines += @($baselineDocumentQualityDimensions | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No baseline document quality dimensions were frozen for this run.'
-}
-$lines += @(
-    '',
-    '## Baseline UI Quality Dimensions'
-)
-if (@($baselineUiQualityDimensions).Count -gt 0) {
-    $lines += @($baselineUiQualityDimensions | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No baseline UI quality dimensions were frozen for this run.'
-}
-$lines += @(
-    '',
-    '## Task-Specific Acceptance Extensions'
-)
-if (@($taskSpecificAcceptanceExtensions).Count -gt 0) {
-    $lines += @($taskSpecificAcceptanceExtensions | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No additional task-specific acceptance extensions were frozen for this run.'
-}
-$lines += @(
-    '',
-    '## Research Augmentation Sources'
-)
-if (@($researchAugmentationSources).Count -gt 0) {
-    $lines += @($researchAugmentationSources | ForEach-Object { "- $_" })
-} else {
-    $lines += 'No research augmentation sources were frozen for this run.'
-}
-$lines += @(
-    '',
-    '> Fill the anti-drift fields once here. Downstream governed plan and completion surfaces should reuse them rather than restate them.',
-    ''
-)
-$lines += @(Get-VgoAntiProxyGoalDriftRequirementLines -Packet $antiDriftDraft)
-$lines += @(
-    '',
-    '## Non-Goals'
-)
-$lines += @($intentContract.non_goals | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Autonomy Mode',
-    $intentContract.autonomy_mode,
-    '',
-    '## Workflow Level Confirmation'
-)
 $workflowLevelConfirmation = if (
     $intentContract.PSObject.Properties.Name -contains 'workflow_level_confirmation' -and
     $null -ne $intentContract.workflow_level_confirmation
@@ -603,35 +279,25 @@ $workflowLevelConfirmation = if (
     $null
 }
 if ($workflowLevelConfirmation) {
-    if ($runtimeInputPacket) {
-        $workflowLevelSkillSelection = if (
-            $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_selection' -and
-            $null -ne $runtimeInputPacket.skill_selection
-        ) {
-            $runtimeInputPacket.skill_selection
-        } else {
-            $null
-        }
-        $lines += @(Get-VibeWorkflowLevelSkillSelectionLines `
-                -SelectedSkillIds (Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $runtimeInputPacket) `
-                -SkillSelection $workflowLevelSkillSelection)
+    $skillSearchGuide = if (
+        $runtimeInputPacket -and
+        $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_search_guide' -and
+        $null -ne $runtimeInputPacket.skill_search_guide
+    ) {
+        $runtimeInputPacket.skill_search_guide
+    } else {
+        New-VibeSkillSearchGuideProjection -RepoRoot $runtime.repo_root
     }
-    $lines += @(Get-VibeWorkflowLevelConfirmationLines -WorkflowLevelConfirmation $workflowLevelConfirmation)
+    $skillSearchGuideLines = @()
+    $workflowLevelLines = @()
+    $skillSearchGuideLines += @(Get-VibeSkillSearchGuideLines -SkillSearchGuide $skillSearchGuide)
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Skill Search Guide' -BodyLines @($skillSearchGuideLines)
+    $workflowLevelLines += @(Get-VibeWorkflowLevelConfirmationLines -WorkflowLevelConfirmation $workflowLevelConfirmation)
+    Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Workflow Level Confirmation' -BodyLines @($workflowLevelLines)
 } else {
-    $lines += 'No workflow level confirmation was recorded in the intent contract.'
+    Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Workflow Level Confirmation' -BodyLines @('No workflow level confirmation was recorded in the intent contract.')
 }
-$lines += @(
-    '',
-    '## Assumptions'
-)
-$lines += @($intentContract.assumptions | ForEach-Object { "- $_" })
-$lines += @(
-    '',
-    '## Evidence Inputs',
-    "- Source task: $Task",
-    "- Intent contract: $([System.IO.Path]::GetFileName((Join-Path $sessionRoot 'intent-contract.json')))",
-    "- Runtime input packet: $([System.IO.Path]::GetFileName($runtimeInputPath))"
-)
+Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Assumptions' -BodyLines (New-VibeBulletLines -Items @($intentContract.assumptions))
 
 if ($runtimeInputPacket) {
     $entryIntentId = if (
@@ -658,20 +324,6 @@ if ($runtimeInputPacket) {
     } else {
         'none'
     }
-
-    $lines += @(
-        '',
-        '## Runtime Input Truth',
-        "- Governance scope: $([string]$runtimeInputPacket.governance_scope)",
-        "- Root run id: $([string]$runtimeInputPacket.hierarchy.root_run_id)",
-        "- Entry intent: $entryIntentId",
-        "- Requested stop stage: $requestedStageStop",
-        "- Requested grade floor: $requestedGradeFloor",
-        "- Selected task skills: $selectedTaskSkillText",
-        "- Runtime-selected skill: $([string]$runtimeInputPacket.authority_flags.explicit_runtime_skill)",
-        "- Route mode: $([string]$runtimeInputPacket.route_snapshot.route_mode)",
-        "- Confirm required: $([bool]$runtimeInputPacket.route_snapshot.confirm_required)"
-    )
 
     $hostReentryAction = if (
         $runtimeInputPacket.PSObject.Properties.Name -contains 'continuation_context' -and
@@ -716,164 +368,16 @@ if ($runtimeInputPacket) {
         @()
     }
     if ([string]$hostReentryAction -eq 'revise' -and @($hostRevisionDelta).Count -gt 0) {
-        $lines += @(
-            '',
-            '## Host Revision Delta',
+        Add-VibeMarkdownSection -Lines ([ref]$lines) -Heading 'Host Revision Delta' -BodyLines @(
             ('- Re-entry action: {0}' -f [string]$hostReentryAction),
-            ('- Revision target stage: {0}' -f $(if ([string]::IsNullOrWhiteSpace($hostRevisionTargetStage)) { 'requirement_doc' } else { [string]$hostRevisionTargetStage }))
+            ('- Revision target stage: {0}' -f $(if ([string]::IsNullOrWhiteSpace($hostRevisionTargetStage)) { 'requirement_doc' } else { [string]$hostRevisionTargetStage })),
+            @(New-VibeBulletLines -Items @($hostRevisionDelta))
         )
-        $lines += @($hostRevisionDelta | ForEach-Object { "- $_" })
     }
 
-    $executionPhaseDecomposition = if (
-        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_decision' -and
-        $null -ne $runtimeInputPacket.host_decision -and
-        $runtimeInputPacket.host_decision.PSObject.Properties.Name -contains 'phase_decomposition' -and
-        $null -ne $runtimeInputPacket.host_decision.phase_decomposition
-    ) {
-        $runtimeInputPacket.host_decision.phase_decomposition
-    } elseif (
-        $runtimeInputPacket.PSObject.Properties.Name -contains 'execution_phase_decomposition' -and
-        $null -ne $runtimeInputPacket.execution_phase_decomposition
-    ) {
-        $runtimeInputPacket.execution_phase_decomposition
-    } else {
-        $null
-    }
-    $executionPhaseLines = @(Get-VibeExecutionPhaseMarkdownLines -PhaseDecomposition $executionPhaseDecomposition)
-    if (@($executionPhaseLines).Count -gt 0) {
-        $lines += @(
-            '',
-            '## Execution Phase Decomposition'
-        )
-        $lines += @($executionPhaseLines)
-    }
-
-    if ($skillUsage -and @($selectedTaskSkillIds).Count -gt 0) {
-        foreach ($selectedTaskSkillId in @($selectedTaskSkillIds)) {
-            $skillUsage = Update-VibeSkillUsageArtifactImpact `
-                -SkillUsage $skillUsage `
-                -SkillId ([string]$selectedTaskSkillId) `
-                -Stage 'requirement_doc' `
-                -ArtifactRef ([System.IO.Path]::GetFileName($docPath)) `
-                -ImpactSummary ('Requirement doc adopts the loaded {0} SKILL.md as the workflow authority for downstream planning and completion evidence.' -f [string]$selectedTaskSkillId)
-        }
-        $lines += @(
-            '',
-            '## Skill Usage',
-            '- Skill usage state model: binary `used` / `unused`.',
-            ('- Used skill candidates: {0} are promoted only because full `SKILL.md` load evidence exists and this requirement doc adopts them as workflow authority.' -f $selectedTaskSkillText),
-            '- Routing, hints, recommendations, consultation, and dispatch do not by themselves prove skill use.',
-            '- Final completion must read `skill_usage.used` and `skill_usage.evidence` before claiming a skill was used.'
-        )
-        Write-VibeJsonArtifact -Path (Get-VibeSkillUsagePath -SessionRoot $sessionRoot) -Value $skillUsage
-    }
-
-    $specialistDecision = if (
-        $runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision' -and
-        $null -ne $runtimeInputPacket.specialist_decision
-    ) {
-        $runtimeInputPacket.specialist_decision
-    } else {
-        $null
-    }
-    if ($specialistDecision) {
-        $lines += @(
-            '',
-            '## Skill Execution Decision',
-            '- Governed `vibe` must explicitly record whether selected skill execution is happening, stayed advisory, or remained unresolved before closeout.',
-            ('- Decision state: {0}' -f [string]$specialistDecision.decision_state),
-            ('- Resolution mode: {0}' -f [string]$specialistDecision.resolution_mode),
-            ('- Notes: {0}' -f [string]$specialistDecision.notes)
-        )
-        if ([string]$specialistDecision.resolution_mode -eq 'repo_asset_fallback') {
-            $lines += @(
-                ('- Repo-asset fallback used: {0}' -f [bool]$specialistDecision.repo_asset_fallback.used),
-                ('- Repo-asset fallback assets: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.asset_paths))),
-                ('- Repo-asset fallback reason: {0}' -f [string]$specialistDecision.repo_asset_fallback.reason),
-                ('- Repo-asset fallback legal basis: {0}' -f [string]$specialistDecision.repo_asset_fallback.legal_basis),
-                ('- Repo-asset fallback traceability basis: {0}' -f [string]::Join(', ', @($specialistDecision.repo_asset_fallback.traceability_basis)))
-            )
-        } elseif ([string]$specialistDecision.resolution_mode -eq 'pending_resolution') {
-            $lines += '- If execution later relies on repo-local assets instead of a dedicated selected skill, phase execute must record the skill execution decision payload with the asset paths, fallback reason, legal basis, and traceability basis before closure.'
-        }
-    }
-
-    $hostSkillExecutionDecision = if (
-        $runtimeInputPacket.PSObject.Properties.Name -contains 'host_skill_execution_decision' -and
-        $null -ne $runtimeInputPacket.host_skill_execution_decision
-    ) {
-        $runtimeInputPacket.host_skill_execution_decision
-    } else {
-        $null
-    }
-    $hostSkillExecutionLines = @(Get-VibeHostSkillExecutionDecisionMarkdownLines -Decision $hostSkillExecutionDecision)
-    if (@($hostSkillExecutionLines).Count -gt 0) {
-        $lines += @(
-            '',
-            '## Host Skill Execution Decision'
-        )
-        $lines += @($hostSkillExecutionLines)
-    }
-
-    $selectedSkillRouting = @(Get-VibeSkillRoutingSelected -RuntimeInputPacket $runtimeInputPacket)
-    # Compatibility variable name; bounded-work truth lives in work_binding and is mirrored here for specialist dispatch compatibility.
-    $approvedSpecialistDispatch = @(Convert-VibeSkillRoutingSelectedToDispatch -RuntimeInputPacket $runtimeInputPacket)
-    $legacySpecialistRecommendations = @(Get-VibeRuntimeSpecialistRecommendations -RuntimeInputPacket $runtimeInputPacket)
-    if (@($selectedSkillRouting).Count -gt 0 -or @($approvedSpecialistDispatch).Count -gt 0) {
-        $lines += @(
-            '',
-            '## Selected Skill',
-            'Router candidates remain in `runtime-input-packet.json` for audit. The current work surface records selected skills here and material use in `skill_usage.used` / `skill_usage.unused`.',
-            'Rejected candidates stay out of the requirement surface.'
-        )
-        if (@($approvedSpecialistDispatch).Count -eq 0) {
-            $lines += 'No selected skill was adopted for user-facing execution in this run.'
-        }
-        foreach ($recommendation in $approvedSpecialistDispatch) {
-            $lines += @(
-                "- Selected Skill: $([string]$recommendation.skill_id)",
-                "  Role: $([string]$recommendation.bounded_role); native usage required: $([bool]$recommendation.native_usage_required); preserve workflow: $([bool]$recommendation.must_preserve_workflow)",
-                "  Binding: profile=$([string]$recommendation.binding_profile); phase=$([string]$recommendation.dispatch_phase); lane policy=$([string]$recommendation.lane_policy); parallel in XL=$([bool]$recommendation.parallelizable_in_root_xl)",
-                "  Write scope: $([string]$recommendation.write_scope); review mode: $([string]$recommendation.review_mode); execution priority: $([int]$recommendation.execution_priority)",
-                "  Reason: $([string]$recommendation.reason)",
-                "  Required inputs: $([string]::Join(', ', @($recommendation.required_inputs)))",
-                "  Expected outputs: $([string]::Join(', ', @($recommendation.expected_outputs)))",
-                "  Verification expectation: $([string]$recommendation.verification_expectation)"
-            )
-        }
-    }
-}
-
-$lifecycleLines = Get-VibeSpecialistLifecycleDisclosureMarkdownLines `
-    -LifecycleDisclosure $stageLifecycleDisclosure `
-    -IncludeLayerIds @('discussion_routing')
-if (@($lifecycleLines).Count -gt 0) {
-    $lines += @('', @($lifecycleLines))
 }
 
 $selectedMemoryCapsules = @(Get-VibeSelectedCapsuleList -ContextPack $memoryContextPack)
-if ($memoryContextPack -and ((@($memoryContextPack.items).Count -gt 0) -or (@($selectedMemoryCapsules).Count -gt 0))) {
-    $lines += @(
-        '',
-        '## Memory Context',
-        'Bounded stage-aware memory context injected into requirement freezing:',
-        ('- Disclosure level: {0}' -f [string]$memoryContextPack.disclosure_level)
-    )
-    if (@($selectedMemoryCapsules).Count -gt 0) {
-        foreach ($capsule in @($selectedMemoryCapsules)) {
-            $lines += @(
-                ('- Capsule [{0}] {1}' -f [string]$capsule.capsule_id, [string]$capsule.title),
-                ('  Owner: {0}' -f [string]$capsule.owner),
-                ('  Why now: {0}' -f [string]$capsule.why_now),
-                ('  Expansion Ref: {0}' -f [string]$capsule.expansion_ref)
-            )
-            $lines += @($capsule.summary_lines | ForEach-Object { '  Summary: ' + [string]$_ })
-        }
-    } else {
-        $lines += @($memoryContextPack.items | ForEach-Object { "- $_" })
-    }
-}
 
 $childHandoffPath = $null
 if ($isChildScope) {
@@ -910,8 +414,6 @@ $receipt = [pscustomobject]@{
     inherited_requirement_doc_path = if ($isChildScope) { $docPath } else { $null }
     runtime_input_packet_path = $runtimeInputPath
     code_task_tdd_decision = $codeTaskTddDecision
-    skill_usage_path = if ($skillUsage) { Get-VibeSkillUsagePath -SessionRoot $sessionRoot } else { $null }
-    skill_usage = $skillUsage
     memory_context_path = if ($memoryContextPack) { $MemoryContextPath } else { $null }
     memory_context_item_count = if ($memoryContextPack) { @($memoryContextPack.items).Count } else { 0 }
     memory_context_estimated_tokens = if ($memoryContextPack) { [int]$memoryContextPack.estimated_tokens } else { 0 }

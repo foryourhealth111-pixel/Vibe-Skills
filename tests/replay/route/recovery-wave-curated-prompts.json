@@ -47,8 +47,8 @@
       "prompt": "我想做一个二分类机器学习任务：用 scikit-learn 做特征工程、交叉验证和模型评估",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "scikit-learn"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "scikit-learn"
       }
     },
     {
@@ -58,8 +58,8 @@
       "prompt": "我要做科研绘图：matplotlib 多子图、色盲友好、投稿 PDF/TIFF 600dpi 输出",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "scientific-visualization"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "scientific-visualization"
       }
     },
     {
@@ -69,8 +69,8 @@
       "prompt": "请你作为机器学习专家和我进行三轮批判式讨论：这个分类方案有没有数据泄漏、基线是否充分、是否该先用简单模型",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "ml-data-leakage-guard"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "ml-data-leakage-guard"
       }
     },
     {
@@ -80,8 +80,8 @@
       "prompt": "请帮我做 full-text 文献检索，提取样本量、effect size、方法学细节，做系统综述证据表",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "literature-review"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "literature-review"
       }
     },
     {
@@ -91,8 +91,8 @@
       "prompt": "请检查这个特征工程流程有没有数据泄漏，尤其是 fit before split 和 prediction time 问题",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "ml-data-leakage-guard"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "ml-data-leakage-guard"
       }
     },
     {
@@ -102,8 +102,8 @@
       "prompt": "请根据 pytest 和 coverage 输出生成测试报告，整理失败摘要、覆盖率和质量门禁结论",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "generating-test-reports"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "generating-test-reports"
       }
     },
     {
@@ -113,8 +113,8 @@
       "prompt": "请对这个实验数据做回归分析：线性回归或 GLM 建模、残差诊断、系数解释和拟合优度比较",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "scikit-learn"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "scikit-learn"
       }
     },
     {
@@ -124,8 +124,8 @@
       "prompt": "我要做 deep research，多跳浏览网页并保留 trace.jsonl 和 sources.json 证据链",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "webthinker-deep-research"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "webthinker-deep-research"
       }
     },
     {
@@ -135,8 +135,8 @@
       "prompt": "请把我们现有实验结果整理成 research report，带 executive summary、appendix、Quarto/PDF 导出",
       "expected": {
         "route_mode": "local_skill_overlay",
-        "selected_pack": "local-skill-index",
-        "selected_skill": "scientific-reporting"
+        "candidate_focus_pack": "local-skill-index",
+        "candidate_focus_skill": "scientific-reporting"
       }
     }
   ]

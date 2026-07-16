@@ -59,7 +59,7 @@ tags:
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    assert result["selected"]["skill"] == "local-stats-helper"
+    assert result["candidate_focus"]["skill"] == "local-stats-helper"
     assert "statistics.regression" in result["task_card"]["required_capabilities"]
     assert result["ranked"][0]["role"] == "primary_owner"
     assert "research.study_plan_pool" in result["task_card"]["rejected_capabilities"]
@@ -151,7 +151,7 @@ tags:
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    assert result["selected"]["skill"] == "statistical-analysis"
+    assert result["candidate_focus"]["skill"] == "statistical-analysis"
     assert "statistics.regression" in result["ranked"][0]["matched_capabilities"]
     assert result["ranked"][0]["capability_evidence_level"] == "weak_text"
 
@@ -200,7 +200,7 @@ Use for correlation plots, regression figures, data quality charts, and visual r
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    assert result["selected"]["skill"] == "statistical-analysis"
+    assert result["candidate_focus"]["skill"] == "statistical-analysis"
     assert result["ranked"][0]["role"] == "primary_owner"
     assert "statistics.regression" in result["ranked"][0]["matched_capabilities"]
 
@@ -296,10 +296,10 @@ tags:
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    selected_skills = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
 
-    assert result["selected"]["skill"] in selected_skills
-    assert result["skill_routing"]["primary_skill"] == result["selected"]["skill"]
+    assert result["candidate_focus"]["skill"] in selected_skills
+    assert result["skill_routing"]["primary_candidate_skill"] == result["candidate_focus"]["skill"]
     assert set(selected_skills) >= {
         "exploratory-data-analysis",
         "statistical-analysis",
@@ -376,7 +376,7 @@ tags:
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    selected_skills = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
 
     assert "scikit-learn" in selected_skills
     assert "statistical-analysis" in selected_skills
@@ -509,7 +509,7 @@ tags:
         repo_root=Path(__file__).resolve().parents[4],
     )
 
-    selected_skills = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
 
     assert "pptx-collab-integrated" in selected_skills
     assert "ppt-image-first" not in selected_skills

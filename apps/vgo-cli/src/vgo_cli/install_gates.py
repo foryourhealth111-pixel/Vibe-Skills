@@ -14,11 +14,11 @@ from .process import (
 from .repo import get_installed_runtime_config, resolve_canonical_repo_root
 
 
-def run_runtime_neutral_freshness_gate(repo_root: Path, target_root: Path, gate_relpath: str) -> subprocess.CompletedProcess[str] | None:
+def run_runtime_neutral_freshness_gate(repo_root: Path, target_root: Path, gate_relpath: str) -> subprocess.CompletedProcess[str]:
     gate_path = repo_root / gate_relpath
     if not gate_path.exists():
-        return None
-    return run_subprocess([sys.executable, str(gate_path), '--target-root', str(target_root), '--write-receipt'])
+        raise CliError(f'Runtime-neutral freshness gate script missing: {gate_path}')
+    return run_subprocess([sys.executable, str(gate_path), '--target-root', str(target_root)])
 
 
 def run_runtime_freshness_gate(repo_root: Path, target_root: Path, *, skip_gate: bool, include_frontmatter: bool) -> None:
@@ -32,24 +32,10 @@ def run_runtime_freshness_gate(repo_root: Path, target_root: Path, *, skip_gate:
         return
 
     runtime_cfg = get_installed_runtime_config(canonical_root)
-    gate_path = canonical_root / str(runtime_cfg['post_install_gate'])
-    if not gate_path.exists():
-        raise CliError(f'Runtime freshness gate script missing: {gate_path}')
-
     neutral_result = run_runtime_neutral_freshness_gate(canonical_root, target_root, str(runtime_cfg['neutral_freshness_gate']))
-    if neutral_result is not None:
-        print_process_output(neutral_result)
-        if neutral_result.returncode != 0:
-            raise CliError('Runtime freshness gate failed after install.')
-    else:
-        shell_path = choose_powershell()
-        if not shell_path:
-            print('[WARN] runtime freshness gate skipped: neither Python runtime-neutral gate nor a PowerShell fallback is available.')
-            return
-        result = run_powershell_file(gate_path, '-TargetRoot', str(target_root), '-WriteReceipt')
-        print_process_output(result)
-        if result.returncode != 0:
-            raise CliError('Runtime freshness gate failed after install.')
+    print_process_output(neutral_result)
+    if neutral_result.returncode != 0:
+        raise CliError('Runtime freshness gate failed after install.')
 
     receipt_path = target_root / str(runtime_cfg['receipt_relpath'])
     if not receipt_path.exists():

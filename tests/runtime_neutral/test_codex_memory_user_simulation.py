@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import stat
 import subprocess
 import tempfile
 import unittest
@@ -26,6 +25,45 @@ INSTALL_TIMEOUT_SECONDS = 180
 
 def _ps_single_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
+
+
+def _all_uncovered_host_decision_json() -> str:
+    return json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "XL",
+                "modules": [
+                    {
+                        "module_id": "memory_runtime_simulation",
+                        "goal": "Exercise governed memory continuity without a task specialist.",
+                        "candidate_skill_ids": [],
+                        "execution_mode": "blocked_gap",
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "memory-continuity-result",
+                                "description": "Workspace memory continuity is verified.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [],
+                "uncovered_modules": [
+                    {
+                        "module_id": "memory_runtime_simulation",
+                        "reason": "The simulation verifies runtime memory behavior, not specialist execution.",
+                    }
+                ],
+                "workflow_level_contract": {
+                    "L": "Use one serial governed lane.",
+                    "XL": "Use bounded waves when the approved organization needs them.",
+                },
+            }
+        },
+        ensure_ascii=False,
+    )
 
 
 def memory_benchmarks_enabled(env: Mapping[str, str] | None = None) -> bool:
@@ -135,57 +173,6 @@ def load_json(path: str | Path) -> dict[str, object]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def create_fake_codex_command(directory: Path) -> Path:
-    suffix = ".cmd" if os.name == "nt" else ""
-    command_path = directory / f"codex{suffix}"
-    if os.name == "nt":
-        command_path.write_text(
-            "@echo off\r\n"
-            "setlocal EnableDelayedExpansion\r\n"
-            "set OUT=\r\n"
-            ":loop\r\n"
-            "if \"%~1\"==\"\" goto done\r\n"
-            "if /I \"%~1\"==\"-o\" (\r\n"
-            "  set OUT=%~2\r\n"
-            "  shift\r\n"
-            "  shift\r\n"
-            "  goto loop\r\n"
-            ")\r\n"
-            "shift\r\n"
-            "goto loop\r\n"
-            ":done\r\n"
-            "if \"%OUT%\"==\"\" exit /b 2\r\n"
-            "> \"%OUT%\" echo {\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}\r\n"
-            "echo fake codex ok\r\n"
-            "exit /b 0\r\n",
-            encoding="utf-8",
-        )
-    else:
-        command_path.write_text(
-            "#!/usr/bin/env sh\n"
-            "OUT=''\n"
-            "while [ \"$#\" -gt 0 ]; do\n"
-            "  case \"$1\" in\n"
-            "    -o)\n"
-            "      OUT=\"$2\"\n"
-            "      shift 2\n"
-            "      ;;\n"
-            "    *)\n"
-            "      shift\n"
-            "      ;;\n"
-            "  esac\n"
-            "done\n"
-            "if [ -z \"$OUT\" ]; then\n"
-            "  exit 2\n"
-            "fi\n"
-            "printf '%s' '{\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}' > \"$OUT\"\n"
-            "printf 'fake codex ok\\n'\n",
-            encoding="utf-8",
-        )
-        command_path.chmod(command_path.stat().st_mode | stat.S_IXUSR)
-    return command_path
-
-
 def require_codex_test_prereqs() -> str:
     if resolve_powershell() is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
@@ -221,15 +208,22 @@ def run_installed_runtime(
     task: str,
     artifact_root: Path,
     env: dict[str, str],
+    workspace_root: Path | None = None,
     host_id: str = "codex",
+    complete_agent_handoff: bool = True,
 ) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = f"pytest-codex-memory-sim-{host_id}-{uuid.uuid4().hex[:8]}"
+    host_decision_json = _all_uncovered_host_decision_json()
+    workspace_root_argument = (
+        f"-WorkspaceRoot {_ps_single_quote(str(workspace_root))} "
+        if workspace_root is not None
+        else ""
+    )
     effective_env = dict(env)
-    effective_env.setdefault("VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION", "1")
     command = [
         shell,
         "-NoLogo",
@@ -243,7 +237,9 @@ def run_installed_runtime(
             f"-Task {_ps_single_quote(task)} "
             "-Mode interactive_governed "
             f"-RunId {_ps_single_quote(run_id)} "
-            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))}; "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"{workspace_root_argument}"
+            f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -263,16 +259,125 @@ def run_installed_runtime(
             "installed invoke-vibe-runtime returned null payload. "
             f"stderr={completed.stderr.strip()}"
         )
-    return json.loads(stdout)
+    payload = json.loads(stdout)
+    if not complete_agent_handoff:
+        return payload
+    return complete_module_execution(
+        installed_root,
+        task=task,
+        artifact_root=artifact_root,
+        env=effective_env,
+        payload=payload,
+        workspace_root=workspace_root,
+    )
 
 
-def run_repo_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | None = None) -> dict[str, object]:
+def complete_module_execution(
+    installed_root: Path,
+    *,
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str],
+    payload: dict[str, object],
+    workspace_root: Path | None = None,
+) -> dict[str, object]:
+    shell = resolve_powershell()
+    if shell is None:
+        raise unittest.SkipTest("PowerShell executable not available in PATH")
+
+    summary = payload["summary"]
+    handoff = load_json(summary["artifacts"]["agent_execution_handoff"])
+    module_execution_path = Path(handoff["module_execution_path"])
+    if module_execution_path.exists():
+        raise AssertionError("plan_execute must leave module-execution.json for the Agent")
+    result_contract = handoff["result_contract"]
+    module_execution = json.loads(json.dumps(result_contract["submission_template"]))
+    for unit in module_execution["units"]:
+        unit["state"] = "completed"
+        unit["result_summary"] = "The Agent completed the approved module work."
+    for module in module_execution["modules"]:
+        blocked = module["execution_mode"] == "blocked_gap"
+        module["state"] = "blocked" if blocked else "completed"
+        for criterion in module["criterion_results"]:
+            criterion["state"] = "blocked" if blocked else "passing"
+    if "tdd_evidence" in module_execution:
+        tdd_contract = result_contract["tdd_evidence"]
+        required_tdd = list(tdd_contract["required_code_task_tdd_evidence_requirements"])
+        evidence_path = str(module_execution_path)
+        module_execution["tdd_evidence"] = {
+            "state": "passing",
+            "evidence_paths": [evidence_path],
+            "red_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "green_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "refactor_phase_evidence_paths": [],
+            "covered_code_task_tdd_evidence_requirements": required_tdd,
+            "covered_code_task_tdd_exceptions": list(
+                tdd_contract["required_code_task_tdd_exceptions"]
+            ),
+            "notes": "The simulated Agent completed the frozen TDD contract.",
+        }
+    module_execution_path.write_text(
+        json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    run_id = str(payload["run_id"])
+    workspace_root_argument = (
+        f"-WorkspaceRoot {_ps_single_quote(str(workspace_root))} "
+        if workspace_root is not None
+        else ""
+    )
+    command = [
+        shell,
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        (
+            "& { "
+            f"$result = & {_ps_single_quote(str(installed_root / 'scripts' / 'runtime' / 'invoke-vibe-runtime.ps1'))} "
+            f"-Task {_ps_single_quote(task)} "
+            "-Mode interactive_governed "
+            f"-RunId {_ps_single_quote(run_id)} "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"{workspace_root_argument}"
+            "-RequestedStageStop phase_cleanup "
+            f"-ModuleExecutionJsonFile {_ps_single_quote(str(module_execution_path))}; "
+            "$result | ConvertTo-Json -Depth 20 }"
+        ),
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=installed_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=True,
+        timeout=RUNTIME_INVOCATION_TIMEOUT_SECONDS,
+    )
+    return json.loads(completed.stdout.strip())
+
+
+def run_repo_governed_runtime(
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str] | None = None,
+    workspace_root: Path | None = None,
+) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
     run_id = "pytest-codex-shared-memory-" + uuid.uuid4().hex[:10]
+    host_decision_json = _all_uncovered_host_decision_json()
+    workspace_root_argument = (
+        f"-WorkspaceRoot {_ps_single_quote(str(workspace_root))} "
+        if workspace_root is not None
+        else ""
+    )
     command = [
         shell,
         "-NoLogo",
@@ -286,14 +391,15 @@ def run_repo_governed_runtime(task: str, artifact_root: Path, env: dict[str, str
             f"-Task {_ps_single_quote(task)} "
             "-Mode interactive_governed "
             f"-RunId {_ps_single_quote(run_id)} "
-            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))}; "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"{workspace_root_argument}"
+            f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
     effective_env = os.environ.copy()
     if env:
         effective_env.update(env)
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         command,
@@ -311,7 +417,15 @@ def run_repo_governed_runtime(task: str, artifact_root: Path, env: dict[str, str
             "invoke-vibe-runtime returned null payload. "
             f"stderr={completed.stderr.strip()}"
         )
-    return json.loads(stdout)
+    payload = json.loads(stdout)
+    return complete_module_execution(
+        REPO_ROOT,
+        task=task,
+        artifact_root=artifact_root,
+        env=effective_env,
+        payload=payload,
+        workspace_root=workspace_root,
+    )
 
 
 def selected_capsule_text(context_pack: dict[str, object] | None) -> str:
@@ -381,13 +495,10 @@ def extract_memory_metrics(payload: dict[str, object]) -> dict[str, object]:
 class CodexMemoryUserSimulationTests(unittest.TestCase):
     def _install_codex_context(self, root: Path, name: str) -> tuple[Path, Path, dict[str, str]]:
         target_root = root / name
-        bridge_root = root / f"{name}-bridges"
         target_root.mkdir(parents=True, exist_ok=True)
-        bridge_root.mkdir(parents=True, exist_ok=True)
 
         env = os.environ.copy()
         env["CODEX_HOME"] = str(target_root)
-        env["VGO_CODEX_EXECUTABLE"] = str(create_fake_codex_command(bridge_root))
         install_codex(target_root, env=env)
 
         installed_root = target_root / "skills" / "vibe"
@@ -428,6 +539,7 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
             project_key=project_key,
             backend_root=backend_root,
         )
+        workspace_root = target_root / "workspaces" / artifact_prefix
 
         for index, task in enumerate(seed_tasks):
             run_installed_runtime(
@@ -435,6 +547,7 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                 task=task,
                 artifact_root=target_root / ".vibeskills" / f"{artifact_prefix}-seed-{index}",
                 env=runtime_env,
+                workspace_root=workspace_root,
             )
         for index, task in enumerate(filler_tasks or []):
             run_installed_runtime(
@@ -442,6 +555,7 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                 task=task,
                 artifact_root=target_root / ".vibeskills" / f"{artifact_prefix}-filler-{index}",
                 env=runtime_env,
+                workspace_root=workspace_root,
             )
 
         payload = run_installed_runtime(
@@ -449,6 +563,7 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
             task=follow_up_task,
             artifact_root=target_root / ".vibeskills" / f"{artifact_prefix}-follow-up",
             env=runtime_env,
+            workspace_root=workspace_root,
         )
         metrics = extract_memory_metrics(payload)
         metrics["payload"] = payload
@@ -484,32 +599,6 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
         self.assertTrue(memory_benchmarks_enabled({RUN_MEMORY_BENCHMARKS_ENV: "1"}))
         require_memory_benchmarks_enabled({RUN_MEMORY_BENCHMARKS_ENV: "1"})
 
-    def test_installed_memory_runtime_disables_native_specialist_execution_by_default(self) -> None:
-        with tempfile.TemporaryDirectory() as tempdir:
-            installed_root = Path(tempdir)
-            caller_env = {"EXISTING_FLAG": "1"}
-            completed = subprocess.CompletedProcess(
-                args=[],
-                returncode=0,
-                stdout='{"summary":{"artifacts":{}}}',
-                stderr="",
-            )
-            with mock.patch(
-                f"{__name__}.resolve_powershell",
-                return_value=r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-            ), mock.patch("subprocess.run", return_value=completed) as run_mock:
-                run_installed_runtime(
-                    installed_root,
-                    task="XL follow-up memory-only recall check. $vibe",
-                    artifact_root=installed_root / "artifacts",
-                    env=caller_env,
-                )
-
-            runtime_env = run_mock.call_args.kwargs["env"]
-            self.assertEqual("1", runtime_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"])
-            self.assertEqual(RUNTIME_INVOCATION_TIMEOUT_SECONDS, run_mock.call_args.kwargs["timeout"])
-            self.assertNotIn("VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION", caller_env)
-
     def test_installed_runtime_helper_escapes_single_quotes_in_task_and_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_root = Path(tempdir)
@@ -542,24 +631,28 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                 "SERENA_PROJECT_KEY": "pytest-codex-user-sim",
                 "VIBE_MEMORY_BACKEND_ROOT": str(target_root / ".vibeskills" / "memory-backend"),
             }
+            workspace_root = target_root / "workspaces" / "memory-sim"
 
             run_installed_runtime(
                 installed_root,
                 task="XL approved decision: keep quartz-scheduler runtime continuity and graph relationship between quartz-scheduler and planner. $vibe",
                 artifact_root=target_root / ".vibeskills" / "memory-sim-relevant-seed",
                 env=runtime_env,
+                workspace_root=workspace_root,
             )
             run_installed_runtime(
                 installed_root,
                 task="XL approved decision: retain billing-export continuity and graph relationship between billing-export and audit-ledger. $vibe",
                 artifact_root=target_root / ".vibeskills" / "memory-sim-irrelevant-seed",
                 env=runtime_env,
+                workspace_root=workspace_root,
             )
             follow_up = run_installed_runtime(
                 installed_root,
                 task="XL follow-up quartz-scheduler continuity review with planner dependency recall before the next implementation step. $vibe",
                 artifact_root=target_root / ".vibeskills" / "memory-sim-follow-up",
                 env=runtime_env,
+                workspace_root=workspace_root,
             )
 
             report = load_json(follow_up["summary"]["artifacts"]["memory_activation_report"])
@@ -602,9 +695,14 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
 
             requirement_text = Path(follow_up["summary"]["artifacts"]["requirement_doc"]).read_text(encoding="utf-8").lower()
             plan_text = Path(follow_up["summary"]["artifacts"]["execution_plan"]).read_text(encoding="utf-8").lower()
-            self.assertIn("## memory context", requirement_text)
-            self.assertIn("## memory context", plan_text)
-            self.assertIn("quartz-scheduler", plan_text)
+            requirement_receipt = load_json(follow_up["summary"]["artifacts"]["requirement_receipt"])
+            plan_receipt = load_json(follow_up["summary"]["artifacts"]["execution_plan_receipt"])
+            self.assertNotIn("## memory context", requirement_text)
+            self.assertNotIn("## memory context", plan_text)
+            self.assertGreaterEqual(int(requirement_receipt["memory_capsule_count"]), 1)
+            self.assertTrue(bool(requirement_receipt["memory_context_path"]))
+            self.assertGreaterEqual(int(plan_receipt["plan_memory_capsule_count"]), 1)
+            self.assertTrue(bool(plan_receipt["plan_memory_context_path"]))
 
     def test_workspace_memory_is_shared_between_codex_and_claude_code_in_same_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -613,16 +711,19 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                 "VIBE_MEMORY_BACKEND_ROOT": str(temp_root / "backends"),
                 "SERENA_PROJECT_KEY": "pytest-shared-workspace-hosts",
             }
+            shared_workspace_root = temp_root / "shared-workspace"
 
             run_repo_governed_runtime(
                 "XL approved decision: keep atlas-cache runtime continuity and graph relationship between atlas-cache and planner. $vibe",
                 artifact_root=temp_root / "codex-seed",
                 env={**shared_env, "VCO_HOST_ID": "codex"},
+                workspace_root=shared_workspace_root,
             )
             follow_up = run_repo_governed_runtime(
                 "XL follow-up atlas-cache continuity review with planner dependency recall before the next step. $vibe",
                 artifact_root=temp_root / "claude-follow-up",
                 env={**shared_env, "VCO_HOST_ID": "claude-code"},
+                workspace_root=shared_workspace_root,
             )
 
             report = load_json(follow_up["summary"]["artifacts"]["memory_activation_report"])
@@ -651,6 +752,8 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
 
             target_a, installed_a, env_a = self._install_codex_context(temp_root, "codex-workspace-a")
             target_b, installed_b, env_b = self._install_codex_context(temp_root, "codex-workspace-b")
+            workspace_root_a = target_a / "workspace"
+            workspace_root_b = target_b / "workspace"
 
             runtime_env_a = {
                 **env_a,
@@ -670,12 +773,14 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                 task="XL approved decision: keep orion-rewrite runtime continuity and graph relationship between orion-rewrite and reviewer. $vibe",
                 artifact_root=target_a / ".vibeskills" / "workspace-a-seed",
                 env=runtime_env_a,
+                workspace_root=workspace_root_a,
             )
             follow_up = run_installed_runtime(
                 installed_b,
                 task="XL follow-up orion-rewrite continuity review with reviewer dependency recall before the next implementation step. $vibe",
                 artifact_root=target_b / ".vibeskills" / "workspace-b-follow-up",
                 env=runtime_env_b,
+                workspace_root=workspace_root_b,
             )
 
             report = load_json(follow_up["summary"]["artifacts"]["memory_activation_report"])
@@ -839,17 +944,21 @@ class CodexMemoryUserSimulationTests(unittest.TestCase):
                     project_key=f"pytest-codex-leak-{index}",
                     backend_root=shared_backend_root,
                 )
+                workspace_root_a = target_a / "workspaces" / f"leak-{index}"
+                workspace_root_b = target_b / "workspaces" / f"leak-{index}"
                 run_installed_runtime(
                     installed_a,
                     task=f"XL approved decision: keep {topic} runtime continuity and graph relationship between {topic} and {dependency}. $vibe",
                     artifact_root=target_a / ".vibeskills" / f"workspace-a-bench-seed-{index}",
                     env=metrics_a,
+                    workspace_root=workspace_root_a,
                 )
                 payload = run_installed_runtime(
                     installed_b,
                     task=f"XL follow-up {topic} continuity review with {dependency} dependency recall before the next implementation step. $vibe",
                     artifact_root=target_b / ".vibeskills" / f"workspace-b-bench-follow-up-{index}",
                     env=metrics_b,
+                    workspace_root=workspace_root_b,
                 )
                 metrics = extract_memory_metrics(payload)
                 if int(metrics["backend_hit_count"]) > 0 or int(metrics["plan_context"]["capsule_count"]) > 0:

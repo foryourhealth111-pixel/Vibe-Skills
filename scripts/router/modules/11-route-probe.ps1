@@ -215,8 +215,8 @@ function Get-RouteRuntimeStatePrompt {
         [bool]$FoldOutsideScope = $true
     )
 
-    $selectedPack = if ($Result.selected) { [string]$Result.selected.pack_id } else { "none" }
-    $selectedSkill = if ($Result.selected) { [string]$Result.selected.skill } else { "none" }
+    $selectedPack = if ($Result.candidate_focus) { [string]$Result.candidate_focus.pack_id } else { "none" }
+    $selectedSkill = if ($Result.candidate_focus) { [string]$Result.candidate_focus.skill } else { "none" }
     $protocolHint = Get-RouteProbeProtocolHint -Grade ([string]$Result.grade) -TaskType ([string]$Result.task_type)
 
     $overlayLines = @()
@@ -330,8 +330,8 @@ function Write-RouteProbeArtifact {
         -PromptText $promptForRuntime `
         -Result $Result `
         -FoldOutsideScope ([bool]$Context.runtime_prompt_fold_outside_scope)
-    $selectedPack = if ($Result.selected) { [string]$Result.selected.pack_id } else { "none" }
-    $selectedSkill = if ($Result.selected) { [string]$Result.selected.skill } else { "none" }
+    $selectedPack = if ($Result.candidate_focus) { [string]$Result.candidate_focus.pack_id } else { "none" }
+    $selectedSkill = if ($Result.candidate_focus) { [string]$Result.candidate_focus.skill } else { "none" }
 
     $safeLabel = if ($Context.label) { [Regex]::Replace([string]$Context.label, "[^a-zA-Z0-9\-_]+", "-").Trim("-") } else { "trace" }
     if (-not $safeLabel) { $safeLabel = "trace" }
@@ -428,4 +428,3 @@ function Write-RouteProbeArtifact {
         runtime_state_prompt = $runtimeStatePrompt
     }
 }
-

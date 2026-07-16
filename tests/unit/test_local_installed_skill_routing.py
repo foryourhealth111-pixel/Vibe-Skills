@@ -56,7 +56,7 @@ dependencies:
     assert index["skills"][0]["skill_id"] == "accelerate"
     assert index["skills"][0]["display_name"] == "Accelerate"
     assert index["skills"][0]["description"] == "Use Hugging Face Accelerate for distributed training."
-    assert index["skills"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert index["skills"][0]["skill_entrypoint"] == str(skill_path.resolve())
     assert index["skills"][0]["skill_root"] == str(skill_path.parent.resolve())
     assert index["skills"][0]["source_kind"] == "host_installed"
     assert index["skills"][0]["active"] is True
@@ -93,7 +93,7 @@ def test_local_skill_index_uses_agents_then_codex_then_claude_duplicate_priority
     )
     rows = [entry for entry in catalog["entries"] if entry["skill_id"] == "statistical-analysis"]
 
-    assert [row["native_skill_entrypoint"] for row in rows] == [
+    assert [row["skill_entrypoint"] for row in rows] == [
         str(agents_path.resolve()),
         str(codex_path.resolve()),
         str(claude_path.resolve()),
@@ -106,6 +106,48 @@ def test_local_skill_index_uses_agents_then_codex_then_claude_duplicate_priority
     ]
     assert build_skill_index_from_catalog(catalog)["skills"][0]["display_name"] == "Stats Agents"
     assert catalog["discovery_diagnostics"]["duplicates"][0]["active_entrypoint"] == str(agents_path.resolve())
+
+
+def test_local_skill_index_discovers_a_unique_skill_inside_the_codex_plugin_cache(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    plugin_cache = tmp_path / "home" / ".codex" / "plugins" / "cache"
+    skill_path = _write_skill(
+        plugin_cache / "openai-primary-runtime" / "documents" / "1" / "skills",
+        "documents",
+        _frontmatter("Documents", "Render and verify formal documents."),
+    )
+
+    catalog = build_skill_catalog(agent_root=agent_root, host_roots=(plugin_cache,))
+    index = build_skill_index_from_catalog(catalog)
+
+    assert [entry["skill_id"] for entry in index["skills"]] == ["documents"]
+    assert index["skills"][0]["skill_entrypoint"] == str(skill_path.resolve())
+
+
+def test_local_skill_index_does_not_choose_between_ambiguous_plugin_cache_skills(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    plugin_cache = tmp_path / "home" / ".codex" / "plugins" / "cache"
+    first = _write_skill(
+        plugin_cache / "provider-a" / "documents" / "1" / "skills",
+        "documents",
+        _frontmatter("Documents A", "Render formal documents."),
+    )
+    second = _write_skill(
+        plugin_cache / "provider-b" / "documents" / "1" / "skills",
+        "documents",
+        _frontmatter("Documents B", "Render formal documents."),
+    )
+
+    catalog = build_skill_catalog(agent_root=agent_root, host_roots=(plugin_cache,))
+    index = build_skill_index_from_catalog(catalog)
+
+    assert index["skills"] == []
+    ambiguous = [
+        row
+        for row in catalog["discovery_diagnostics"]["invalid_entries"]
+        if row["reason"] == "ambiguous_plugin_skill_id"
+    ]
+    assert {row["path"] for row in ambiguous} == {str(first.resolve()), str(second.resolve())}
 
 
 def test_local_skill_index_records_invalid_and_excludes_only_canonical_controller_entry(tmp_path: Path) -> None:
@@ -154,14 +196,14 @@ def test_local_router_selects_new_installed_skill_not_present_in_old_pack_files(
     )
 
     assert result["candidate_source"] == "local_skill_index"
-    assert result["selected"]["skill"] == "sleep-stress-focus"
-    assert result["selected"]["native_skill_entrypoint"] == str(skill_path.resolve())
-    assert result["selected"]["pack_id"] == "local-skill-index"
+    assert result["candidate_focus"]["skill"] == "sleep-stress-focus"
+    assert result["candidate_focus"]["skill_entrypoint"] == str(skill_path.resolve())
+    assert result["candidate_focus"]["pack_id"] == "local-skill-index"
     assert result["ranked"][0]["candidate_source"] == "local_skill_index"
-    assert result["ranked"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert result["ranked"][0]["skill_entrypoint"] == str(skill_path.resolve())
 
 
-def test_local_router_offers_confirm_for_plausible_local_near_match(tmp_path: Path) -> None:
+def test_local_router_focuses_plausible_local_near_match_without_confirm_ui(tmp_path: Path) -> None:
     home = tmp_path / "home"
     agent_root = home / ".agents"
     skills_root = agent_root / "skills"
@@ -185,10 +227,9 @@ def test_local_router_offers_confirm_for_plausible_local_near_match(tmp_path: Pa
     )
 
     assert result["route_reason"] == "candidate_signal_confirm_override"
-    assert result["confirm_required"] is True
-    assert result["selected"]["skill"] == "sleep-stress-focus"
-    assert result["confirm_options"][0]["skill"] == "sleep-stress-focus"
-    assert result["confirm_options"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert "confirm_required" not in result
+    assert result["candidate_focus"]["skill"] == "sleep-stress-focus"
+    assert "confirm_options" not in result
 
 
 def test_local_router_uses_declared_capability_bridge_for_semantic_near_match(tmp_path: Path) -> None:
@@ -215,10 +256,9 @@ def test_local_router_uses_declared_capability_bridge_for_semantic_near_match(tm
     )
 
     assert result["route_reason"] in {"auto_route", "candidate_signal_host_selection", "candidate_signal_confirm_override"}
-    assert result["confirm_required"] is (result["route_reason"] != "auto_route")
-    assert result["selected"]["skill"] == "vercel-helper"
-    assert result["confirm_options"][0]["skill"] == "vercel-helper"
-    assert result["confirm_options"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert "confirm_required" not in result
+    assert result["candidate_focus"]["skill"] == "vercel-helper"
+    assert "confirm_options" not in result
 
 
 def test_local_router_uses_body_intent_weak_capability_bridge_for_semantic_near_match(tmp_path: Path) -> None:
@@ -245,11 +285,9 @@ def test_local_router_uses_body_intent_weak_capability_bridge_for_semantic_near_
     )
 
     assert result["route_reason"] in {"auto_route", "candidate_signal_host_selection", "candidate_signal_confirm_override"}
-    assert result["confirm_required"] is (result["route_reason"] != "auto_route")
-    assert result["selected"]["skill"] == "managed-release-helper"
-    if result["confirm_required"]:
-        assert result["confirm_options"][0]["skill"] == "managed-release-helper"
-        assert result["confirm_options"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert "confirm_required" not in result
+    assert result["candidate_focus"]["skill"] == "managed-release-helper"
+    assert "confirm_options" not in result
 
 
 def test_local_router_does_not_use_metadata_only_weak_capability_bridge_for_semantic_near_match(tmp_path: Path) -> None:
@@ -274,11 +312,11 @@ def test_local_router_does_not_use_metadata_only_weak_capability_bridge_for_sema
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"] is None
+    assert result["candidate_focus"] is None
     assert result["route_reason"] == "no_local_candidate_above_threshold"
     assert result["top1_top2_gap"] == 0.0
-    assert result["confirm_required"] is False
-    assert result["confirm_options"] == []
+    assert "confirm_required" not in result
+    assert "confirm_options" not in result
 
 
 def test_local_router_does_not_treat_metadata_only_training_mentions_as_route_active_capabilities(tmp_path: Path) -> None:
@@ -313,7 +351,7 @@ def test_local_router_does_not_treat_metadata_only_training_mentions_as_route_ac
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "scikit-learn"
+    assert result["candidate_focus"]["skill"] == "scikit-learn"
     assert ranked["scikit-learn"]["matched_capabilities"] == ["model.training"]
     assert "optimize-for-gpu" not in ranked
 
@@ -348,7 +386,7 @@ def test_local_router_uses_named_when_to_use_sections_for_sparse_training_prompt
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "scikit-learn"
+    assert result["candidate_focus"]["skill"] == "scikit-learn"
     assert "model.training" in ranked["scikit-learn"]["matched_capabilities"]
     assert ranked["scikit-learn"]["capability_evidence_level"] == "weak_text"
 
@@ -385,7 +423,7 @@ def test_local_router_uses_explicit_description_intent_for_debug_regression_prom
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "diagnosing-bugs"
+    assert result["candidate_focus"]["skill"] == "diagnosing-bugs"
     assert "debug.systematic_workflow" in ranked["diagnosing-bugs"]["matched_capabilities"]
     assert ranked["diagnosing-bugs"]["candidate_selection_reason"] == "capability_ranked"
 
@@ -423,7 +461,7 @@ def test_local_router_does_not_infer_statistical_regression_from_generic_model_t
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "scikit-learn"
+    assert result["candidate_focus"]["skill"] == "scikit-learn"
     assert "statistics.regression" not in result["task_card"]["required_capabilities"]
     assert "statistical-analysis" not in ranked
 
@@ -461,7 +499,7 @@ def test_local_router_does_not_infer_statistical_regression_from_software_perfor
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "diagnosing-bugs"
+    assert result["candidate_focus"]["skill"] == "diagnosing-bugs"
     assert "statistics.regression" not in result["task_card"]["required_capabilities"]
     assert ranked["statistical-analysis"]["matched_capabilities"] == []
 
@@ -489,7 +527,7 @@ def test_local_router_keeps_statistical_regression_for_explicit_regression_analy
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"]["skill"] == "statistical-analysis"
+    assert result["candidate_focus"]["skill"] == "statistical-analysis"
     assert "statistics.regression" in result["task_card"]["required_capabilities"]
     assert "statistics.regression" in result["ranked"][0]["matched_capabilities"]
 
@@ -524,7 +562,7 @@ def test_local_router_does_not_route_generic_help_prompt_from_task_type_alone(tm
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"] is None
+    assert result["candidate_focus"] is None
     assert result["route_mode"] == "no_local_candidate"
     assert result["route_reason"] == "no_local_candidate_above_threshold"
 
@@ -561,7 +599,7 @@ def test_local_router_treats_machine_learning_result_figure_requests_as_visualiz
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"]["skill"] == "scientific-visualization"
+    assert result["candidate_focus"]["skill"] == "scientific-visualization"
     assert "model.training" not in result["task_card"]["required_capabilities"]
     assert "visualization.figure" in result["task_card"]["required_capabilities"]
 
@@ -598,7 +636,7 @@ def test_local_router_treats_data_leakage_audit_requests_as_guard_not_training(t
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"]["skill"] == "ml-data-leakage-guard"
+    assert result["candidate_focus"]["skill"] == "ml-data-leakage-guard"
     assert "model.training" not in result["task_card"]["required_capabilities"]
     assert "model.data_leakage_guard" in result["task_card"]["required_capabilities"]
 
@@ -641,7 +679,7 @@ def test_local_router_keeps_latex_submission_owned_by_latex_pipeline_when_figure
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "document.latex_submission" not in ranked["scientific-visualization"]["matched_capabilities"]
     assert "latex-submission-pipeline" in selected_ids
 
@@ -683,7 +721,7 @@ def test_local_router_prefers_scientific_reporting_for_report_authoring_prompts(
     )
 
     ranked = {row["skill"]: row for row in result["ranked"]}
-    assert result["selected"]["skill"] == "scientific-reporting"
+    assert result["candidate_focus"]["skill"] == "scientific-reporting"
     assert "writing.scientific_report" in ranked["scientific-reporting"]["matched_capabilities"]
 
 
@@ -720,9 +758,9 @@ def test_local_router_reports_actual_top1_top2_gap_for_selected_candidate(tmp_pa
     )
 
     expected_gap = round(result["ranked"][0]["score"] - result["ranked"][1]["score"], 4)
-    assert result["selected"]["skill"] == "vercel-helper"
+    assert result["candidate_focus"]["skill"] == "vercel-helper"
     assert result["top1_top2_gap"] == expected_gap
-    assert result["selected"]["top1_top2_gap"] == expected_gap
+    assert result["candidate_focus"]["top1_top2_gap"] == expected_gap
 
 
 def test_local_router_does_not_auto_route_when_top_gap_is_below_threshold(tmp_path: Path) -> None:
@@ -760,8 +798,8 @@ def test_local_router_does_not_auto_route_when_top_gap_is_below_threshold(tmp_pa
 
     assert result["top1_top2_gap"] == 0.0
     assert result["route_reason"] == "candidate_signal_host_selection"
-    assert result["confirm_required"] is True
-    assert result["selected"]["skill"] == "test-report-alpha"
+    assert "confirm_required" not in result
+    assert result["candidate_focus"]["skill"] == "test-report-alpha"
 
 
 def test_local_router_allows_explicit_existing_skill_and_rejects_absent_old_skill(tmp_path: Path) -> None:
@@ -793,9 +831,9 @@ def test_local_router_allows_explicit_existing_skill_and_rejects_absent_old_skil
         repo_root=REPO_ROOT,
     )
 
-    assert selected["selected"]["skill"] == "fresh-local-skill"
-    assert selected["selected"]["native_skill_entrypoint"] == str(skill_path.resolve())
-    assert missing["selected"] is None
+    assert selected["candidate_focus"]["skill"] == "fresh-local-skill"
+    assert selected["candidate_focus"]["skill_entrypoint"] == str(skill_path.resolve())
+    assert missing["candidate_focus"] is None
     assert missing["route_reason"] == "requested_local_skill_not_found"
     assert "manuscript-as-code" in missing["rejected_specialist_reasons"]
 
@@ -815,13 +853,13 @@ def test_local_router_does_not_fallback_when_no_local_candidate_matches(tmp_path
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"] is None
+    assert result["candidate_focus"] is None
     assert result["route_mode"] == "no_local_candidate"
     assert result["route_reason"] == "no_local_candidate_above_threshold"
     assert result["ranked"][0]["skill"] == "spreadsheet-cleanup"
     assert result["ranked"][0]["selected_candidate"] is None
-    assert result["confirm_required"] is False
-    assert result["confirm_options"] == []
+    assert "confirm_required" not in result
+    assert "confirm_options" not in result
     assert "confirm_ui" not in result
 
 
@@ -856,7 +894,7 @@ def test_local_router_augments_sparse_chinese_research_prompts_before_scoring(tm
     )
 
     assert result["route_mode"] == "local_skill_overlay"
-    assert result["selected"] is not None
+    assert result["candidate_focus"] is not None
     assert any(
         row["skill"] == "research" and float(row["score"]) > 0.0
         for row in result["ranked"]
@@ -929,13 +967,13 @@ def test_local_router_selects_architecture_bundle_from_generic_engineering_skill
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "domain-modeling" in selected_ids
     assert "codebase-design" in selected_ids
     assert "prototype" in selected_ids
     assert "to-prd" in selected_ids
     assert "to-issues" in selected_ids
-    assert result["selected"]["skill"] != "implement"
+    assert result["candidate_focus"]["skill"] != "implement"
 
 
 def test_local_router_splits_artifact_delivery_and_model_training_for_game_plus_ml_prompt(tmp_path: Path) -> None:
@@ -983,11 +1021,11 @@ def test_local_router_splits_artifact_delivery_and_model_training_for_game_plus_
     assert len(result["task_card"]["modules"]) >= 2
 
     assert result["route_reason"] == "composite_module_confirm_override"
-    assert result["confirm_required"] is True
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    assert "confirm_required" not in result
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "implement" in selected_ids
     assert "scikit-learn" in selected_ids
-    assert result["selected"]["skill"] == "implement"
+    assert result["candidate_focus"]["skill"] == "implement"
 
 
 def test_local_router_uses_earliest_module_owner_as_primary_for_architecture_bundle(tmp_path: Path) -> None:
@@ -1044,8 +1082,8 @@ def test_local_router_uses_earliest_module_owner_as_primary_for_architecture_bun
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"]["skill"] == "domain-modeling"
-    assert result["skill_routing"]["primary_skill"] == "domain-modeling"
+    assert result["candidate_focus"]["skill"] == "domain-modeling"
+    assert result["skill_routing"]["primary_candidate_skill"] == "domain-modeling"
 
 
 def test_local_router_prefers_direct_prd_owner_over_review_support_owner_inside_prd_module(tmp_path: Path) -> None:
@@ -1142,7 +1180,7 @@ def test_local_router_allows_l_routes_to_surface_multiple_reader_facing_skills(t
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "deep-reading-analyst" in selected_ids
     assert "first-principles-explorer" in selected_ids
     assert "qu-ai-wei" in selected_ids
@@ -1203,7 +1241,7 @@ def test_local_router_selects_manuscript_review_audit_and_chinese_humanization_b
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "sciwrite" in selected_ids
     assert "scientific-critical-thinking" in selected_ids
     assert "qu-ai-wei" in selected_ids
@@ -1251,7 +1289,7 @@ def test_local_router_composes_multimodule_route_from_module_candidates_not_skil
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     module_candidates = {
         row["module_id"]: [candidate["skill"] for candidate in row["candidates"]]
         for row in result["skill_routing"]["module_candidates"]
@@ -1298,7 +1336,7 @@ def test_local_router_reports_uncovered_modules_when_the_local_corpus_has_a_real
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     uncovered_ids = [row["module_id"] for row in result["skill_routing"]["uncovered_modules"]]
 
     assert "source-digger" in selected_ids
@@ -1376,14 +1414,14 @@ def test_local_router_routes_frontend_preview_and_report_bundle_from_direct_modu
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     module_candidates = {
         row["module_id"]: [candidate["skill"] for candidate in row["candidates"]]
         for row in result["skill_routing"]["module_candidates"]
     }
 
-    assert result["selected"]["skill"] == "frontend-builder"
-    assert result["skill_routing"]["primary_skill"] == "frontend-builder"
+    assert result["candidate_focus"]["skill"] == "frontend-builder"
+    assert result["skill_routing"]["primary_candidate_skill"] == "frontend-builder"
     assert selected_ids == ["frontend-builder", "preview-ship", "test-report-brief"]
     assert module_candidates["frontend.build"][0] == "frontend-builder"
     assert module_candidates["deploy.preview"][0] == "preview-ship"
@@ -1414,9 +1452,10 @@ def test_local_router_does_not_auto_select_explicit_only_frontend_style_skill_fo
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"] is None
+    assert result["candidate_focus"] is None
     assert result["route_reason"] == "no_local_candidate_above_threshold"
-    assert [row["module_id"] for row in result["skill_routing"]["uncovered_modules"]] == ["frontend.build"]
+    assert result["skill_routing"]["uncovered_modules"] == []
+    assert result["skill_routing"]["module_candidates"][0]["candidates"][0]["skill"] == "design-taste-frontend"
 
 
 def test_local_router_does_not_promote_below_threshold_explicit_only_module_candidate_into_selected_stack(tmp_path: Path) -> None:
@@ -1451,8 +1490,8 @@ def test_local_router_does_not_promote_below_threshold_explicit_only_module_cand
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
-    assert result["selected"]["skill"] == "diagnose"
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
+    assert result["candidate_focus"]["skill"] == "diagnose"
     assert selected_ids == ["diagnose"]
     assert "frontend.build" not in result["task_card"]["required_capabilities"]
     assert [row["module_id"] for row in result["skill_routing"]["uncovered_modules"]] == []
@@ -1593,7 +1632,7 @@ def test_local_router_prefers_applicable_route_evidence_over_example_only_deck_h
         for row in result["skill_routing"]["module_candidates"]
     }
 
-    assert result["selected"]["skill"] == "workshop-helper"
+    assert result["candidate_focus"]["skill"] == "workshop-helper"
     assert module_candidates["presentation.deck"][0]["skill"] == "workshop-helper"
     assert module_candidates["presentation.deck"][0]["evidence"][0]["role"] == "applicable"
     assert module_candidates["presentation.deck"][1]["skill"] == "deck-archive"
@@ -1646,8 +1685,8 @@ def test_local_router_prefers_cv_analysis_and_figures_over_map_token_noise(tmp_p
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
-    assert result["selected"]["skill"] == "senior-computer-vision"
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
+    assert result["candidate_focus"]["skill"] == "senior-computer-vision"
     assert "scientific-visualization" in selected_ids
     assert "context-keeper" not in selected_ids
 
@@ -1698,7 +1737,7 @@ def test_local_router_selects_debug_training_and_gpu_migration_for_cpu_bound_pip
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     assert "diagnose" in selected_ids
     assert "scikit-learn" in selected_ids
     assert "optimize-for-gpu" in selected_ids
@@ -1742,8 +1781,8 @@ def test_local_router_uses_earliest_module_owner_as_primary_for_cpu_gpu_triage(t
         repo_root=REPO_ROOT,
     )
 
-    assert result["selected"]["skill"] == "diagnose"
-    assert result["skill_routing"]["primary_skill"] == "diagnose"
+    assert result["candidate_focus"]["skill"] == "diagnose"
+    assert result["skill_routing"]["primary_candidate_skill"] == "diagnose"
 
 
 def test_local_router_prefers_direct_training_owner_over_gpu_support_owner_inside_training_module(tmp_path: Path) -> None:
@@ -1927,7 +1966,7 @@ def test_local_router_prefers_primary_source_research_stack_for_public_db_review
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     ranked_ids = [row["skill"] for row in result["ranked"]]
     uncovered_ids = [row["module_id"] for row in result["skill_routing"]["uncovered_modules"]]
     assert "research" in selected_ids
@@ -2125,7 +2164,7 @@ Do not use this skill for:
         repo_root=REPO_ROOT,
     )
 
-    selected_ids = [row["skill"] for row in result["skill_routing"]["selected"]]
+    selected_ids = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
     ranked_ids = [row["skill"] for row in result["ranked"]]
     uncovered_ids = [row["module_id"] for row in result["skill_routing"]["uncovered_modules"]]
     assert "research" in selected_ids

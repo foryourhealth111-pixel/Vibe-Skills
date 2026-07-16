@@ -48,37 +48,15 @@ def _write_valid_canonical_entry_artifacts(
     session_root: Path,
     *,
     entry_intent_id: str = "vibe",
-    canonical_router_requested_skill: str | None = None,
     router_selected_skill: str = "systematic-debugging",
     route_task_type: str = "debug",
     requested_stage_stop: str = "phase_cleanup",
     interactive_pause: dict[str, object] | None = None,
     terminal_stage: str | None = None,
 ) -> None:
-    canonical_router = {
-        "host_id": "codex",
-        "prompt": "validate proof",
-        "route_script_path": "scripts/router/resolve-pack-route.ps1",
-        "target_root": "/tmp/target",
-        "unattended": False,
-    }
-    if canonical_router_requested_skill is not None:
-        canonical_router["requested_skill"] = canonical_router_requested_skill
-
     route_snapshot = {
-        "selected_pack": "vibe",
         "task_type": route_task_type,
         "route_mode": "governed",
-        "route_reason": "explicit vibe invocation",
-        "confirm_required": False,
-        "confidence": 1.0,
-        "truth_level": "authoritative",
-        "degradation_state": "none",
-        "non_authoritative": False,
-        "fallback_active": False,
-        "hazard_alert_required": False,
-        "unattended_override_applied": False,
-        "custom_admission_status": "not_required",
     }
 
     _write_json(
@@ -102,51 +80,67 @@ def _write_valid_canonical_entry_artifacts(
             "entry_intent_id": entry_intent_id,
             "requested_stage_stop": requested_stage_stop,
             "interactive_pause": interactive_pause,
-            "canonical_router": canonical_router,
             "route_snapshot": route_snapshot,
             "skill_routing": {
                 "schema_version": "simplified_skill_routing_v1",
                 "candidates": [{"skill_id": router_selected_skill}],
-                "selected": [{"skill_id": router_selected_skill, "skill_md_path": "skills/systematic-debugging/SKILL.md"}],
                 "rejected": [],
             },
-            "work_binding": {
-                "schema_version": "runtime_work_binding_v1",
-                "source": "approved_dispatch",
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "XL",
+                "modules": [
+                    {
+                        "module_id": "proof_validation",
+                        "goal": "Validate the proof bundle.",
+                        "candidate_skill_ids": [router_selected_skill],
+                        "execution_mode": "skill_assigned",
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "proof-validation-result",
+                                "description": "The proof bundle is present and verified.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [
+                    {
+                        "skill_id": router_selected_skill,
+                        "module_ids": ["proof_validation"],
+                        "responsibility": "Validate the proof bundle.",
+                        "reason": "The selected skill owns the bounded validation work.",
+                    }
+                ],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Use one serial governed lane.",
+                    "XL": "Use bounded waves for the approved organization.",
+                },
+            },
+            "module_assignments": {
+                "schema_version": "runtime_module_assignments_v1",
+                "source": "agent_skill_organization",
                 "task": "validate proof",
                 "run_id": "pytest-truth-gate",
                 "unit_count": 1,
-                "status": "projected_from_approved_dispatch",
+                "status": "projected_from_agent_skill_organization",
                 "units": [
                     {
                         "work_unit_id": "runtime-bound-skill-1",
                         "bound_skill": router_selected_skill,
                         "task_slice": "Use systematic-debugging for bounded specialist work.",
                         "skill_md_path": "skills/systematic-debugging/SKILL.md",
-                        "native_skill_entrypoint": None,
+                        "skill_entrypoint": None,
                         "dispatch_phase": "in_execution",
                         "bounded_role": "selected_skill",
                         "binding_profile": "selected_skill",
                     }
                 ],
             },
-            "skill_usage": {
-                "state_model": "binary_used_unused",
-                "used": [],
-                "unused": [{"skill_id": router_selected_skill}],
-                "evidence": [],
-            },
-            "specialist_decision": {
-                "decision_state": "no_specialist_recommendations",
-                "resolution_mode": "no_specialist_needed",
-                "recommendation_count": 0,
-                "candidate_skill_ids_reviewed": [router_selected_skill],
-                "selected_skill_ids": [],
-                "rejected_candidates": [],
-            },
             "divergence_shadow": {
                 "skill_mismatch": entry_intent_id != "vibe",
-                "confirm_required": False,
                 "governance_scope_mismatch": False,
                 "explicit_runtime_override_applied": False,
                 "explicit_runtime_override_reason": "",
@@ -197,7 +191,7 @@ def _write_retired_legacy_truth_artifacts(session_root: Path) -> None:
         "specialist_recommendations": [
             {
                 "skill_id": "systematic-debugging",
-                "native_skill_entrypoint": "skills/systematic-debugging/SKILL.md",
+                "skill_entrypoint": "skills/systematic-debugging/SKILL.md",
             }
         ],
         "stage_assistant_hints": [],
@@ -238,8 +232,7 @@ def test_truth_gate_rejects_missing_runtime_packet_proof_fields(tmp_path: Path) 
     _write_json(
         session_root / "runtime-input-packet.json",
         {
-            "canonical_router": {"host_id": "codex"},
-            "legacy_skill_routing": {"specialist_recommendations": []},
+            "skill_routing": {"candidates": []},
         },
     )
 
@@ -247,24 +240,16 @@ def test_truth_gate_rejects_missing_runtime_packet_proof_fields(tmp_path: Path) 
 
     combined = result.stdout + result.stderr
     assert result.returncode != 0
-    assert "route_snapshot" in combined
-    assert "work_binding" in combined
-    assert "specialist_decision" in combined
+    assert "module_assignments" in combined
 
 
-def test_truth_gate_rejects_missing_specialist_decision(tmp_path: Path) -> None:
+def test_truth_gate_accepts_agent_organized_module_truth(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(session_root)
-    runtime_packet_path = session_root / "runtime-input-packet.json"
-    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet.pop("specialist_decision", None)
-    _write_json(runtime_packet_path, runtime_packet)
 
     result = _run_truth_gate(session_root)
 
-    combined = result.stdout + result.stderr
-    assert result.returncode != 0
-    assert "specialist_decision" in combined
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_truth_gate_accepts_missing_route_snapshot_packet_summary(tmp_path: Path) -> None:
@@ -278,21 +263,19 @@ def test_truth_gate_accepts_missing_route_snapshot_packet_summary(tmp_path: Path
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet route_snapshot stays optional compatibility control summary" in result.stdout
 
 
-def test_truth_gate_accepts_missing_canonical_router_compatibility_mirror(tmp_path: Path) -> None:
+def test_truth_gate_accepts_agent_organized_truth_without_retired_router_fields(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(session_root)
     runtime_packet_path = session_root / "runtime-input-packet.json"
     runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet.pop("canonical_router", None)
-    _write_json(runtime_packet_path, runtime_packet)
+    assert "canonical_router" not in runtime_packet
 
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet canonical_router stays optional compatibility mirror" in result.stdout
+    assert "[PASS] runtime packet module_assignments matches the Agent skill organization" in result.stdout
 
 
 def test_truth_gate_rejects_missing_entry_intent_id(tmp_path: Path) -> None:
@@ -310,7 +293,7 @@ def test_truth_gate_rejects_missing_entry_intent_id(tmp_path: Path) -> None:
     assert "runtime packet preserves entry_intent_id independently from router authority" in combined
 
 
-def test_truth_gate_enforces_confirm_required_skeleton_stop_without_requested_stage_stop(tmp_path: Path) -> None:
+def test_truth_gate_has_no_retired_route_confirmation_contract(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(
         session_root,
@@ -319,58 +302,14 @@ def test_truth_gate_enforces_confirm_required_skeleton_stop_without_requested_st
     )
     runtime_packet_path = session_root / "runtime-input-packet.json"
     runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet["route_snapshot"]["confirm_required"] = True
-    _write_json(runtime_packet_path, runtime_packet)
+    assert "confirm_required" not in runtime_packet["route_snapshot"]
+    assert "confirm_required" not in runtime_packet["divergence_shadow"]
+    assert "route confirmation" not in TRUTH_GATE.read_text(encoding="utf-8").lower()
 
     result = _run_truth_gate(session_root)
 
     combined = result.stdout + result.stderr
-    assert result.returncode != 0
-    assert "confirm-required routing stops before governed stage progression" in combined
-
-
-def test_truth_gate_accepts_explicit_no_specialist_decision(tmp_path: Path) -> None:
-    session_root = tmp_path / "session"
-    _write_valid_canonical_entry_artifacts(session_root)
-    runtime_packet_path = session_root / "runtime-input-packet.json"
-    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet["specialist_decision"] = {
-        "decision_state": "no_specialist_recommendations",
-        "resolution_mode": "no_specialist_needed",
-        "recommendation_count": 0,
-        "candidate_skill_ids_reviewed": [],
-        "selected_skill_ids": [],
-        "rejected_candidates": [],
-    }
-    _write_json(runtime_packet_path, runtime_packet)
-
-    result = _run_truth_gate(session_root)
-
-    assert result.returncode == 0, result.stdout + result.stderr
-
-
-def test_truth_gate_accepts_explicit_degraded_specialist_decision(tmp_path: Path) -> None:
-    session_root = tmp_path / "session"
-    _write_valid_canonical_entry_artifacts(session_root)
-    runtime_packet_path = session_root / "runtime-input-packet.json"
-    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet["work_binding"]["units"] = []
-    runtime_packet["specialist_decision"] = {
-        "decision_state": "degraded",
-        "resolution_mode": "degraded",
-        "recommendation_count": 1,
-        "candidate_skill_ids_reviewed": ["gpt-image"],
-        "selected_skill_ids": [],
-        "surfaced_skill_ids": ["gpt-image"],
-        "degraded_skill_ids": ["gpt-image"],
-        "rejected_candidates": [],
-    }
-    runtime_packet["skill_routing"]["selected"] = []
-    _write_json(runtime_packet_path, runtime_packet)
-
-    result = _run_truth_gate(session_root)
-
-    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.returncode == 0, combined
 
 
 def test_truth_gate_accepts_verified_canonical_entry_session(tmp_path: Path) -> None:
@@ -381,7 +320,7 @@ def test_truth_gate_accepts_verified_canonical_entry_session(tmp_path: Path) -> 
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "[PASS] host-launch-receipt.json exists" in result.stdout
-    assert "[PASS] runtime packet route_snapshot stays an optional compatibility control summary" in result.stdout
+    assert "[PASS] runtime packet module_assignments matches the Agent skill organization" in result.stdout
 
 
 def test_truth_gate_accepts_current_skill_routing_without_legacy_fields(tmp_path: Path) -> None:
@@ -391,42 +330,37 @@ def test_truth_gate_accepts_current_skill_routing_without_legacy_fields(tmp_path
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet skill_routing stays an optional compatibility shell" in result.stdout
-    assert "[PASS] runtime packet includes work_binding" in result.stdout
-    assert "[PASS] runtime packet exposes kernel-native work_binding" in result.stdout
+    assert "[PASS] runtime packet includes module_assignments" in result.stdout
+    assert "[PASS] runtime packet exposes module_assignments units" in result.stdout
 
 
-def test_truth_gate_accepts_fallback_skill_usage_shape(tmp_path: Path) -> None:
+def test_truth_gate_accepts_runtime_packet_without_retired_skill_usage(tmp_path: Path) -> None:
+    session_root = tmp_path / "session"
+    _write_valid_canonical_entry_artifacts(session_root)
+
+    result = _run_truth_gate(session_root)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "[PASS] runtime packet omits retired skill_usage ledger" in result.stdout
+
+
+def test_truth_gate_rejects_retired_skill_usage_truth_artifact(tmp_path: Path) -> None:
     session_root = tmp_path / "session"
     _write_valid_canonical_entry_artifacts(session_root)
     runtime_packet_path = session_root / "runtime-input-packet.json"
     runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
     runtime_packet["skill_usage"] = {
         "state_model": "binary_used_unused",
-        "used_skills": [],
-        "unused_skills": [{"skill_id": "systematic-debugging"}],
+        "used": [],
+        "unused": [{"skill_id": "systematic-debugging"}],
         "evidence": [],
     }
     _write_json(runtime_packet_path, runtime_packet)
 
     result = _run_truth_gate(session_root)
 
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet skill_usage includes used/unused or used_skills/unused_skills" in result.stdout
-
-
-def test_truth_gate_rejects_missing_skill_usage_truth_artifact(tmp_path: Path) -> None:
-    session_root = tmp_path / "session"
-    _write_valid_canonical_entry_artifacts(session_root)
-    runtime_packet_path = session_root / "runtime-input-packet.json"
-    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet.pop("skill_usage", None)
-    _write_json(runtime_packet_path, runtime_packet)
-
-    result = _run_truth_gate(session_root)
-
     assert result.returncode != 0
-    assert "[FAIL] runtime packet includes skill_usage truth artifact" in result.stdout
+    assert "[FAIL] runtime packet omits retired skill_usage ledger" in result.stdout
 
 
 def test_truth_gate_accepts_canonical_entry_intent_with_canonical_authority(tmp_path: Path) -> None:
@@ -440,23 +374,24 @@ def test_truth_gate_accepts_canonical_entry_intent_with_canonical_authority(tmp_
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet canonical_router stays an optional compatibility host-launch mirror" in result.stdout
+    assert "[PASS] runtime packet module_assignments matches the Agent skill organization" in result.stdout
     assert "[PASS] runtime packet preserves entry_intent_id independently from router authority" in result.stdout
 
 
-def test_truth_gate_accepts_legacy_canonical_router_requested_skill_when_work_truth_is_intact(
+def test_truth_gate_accepts_candidate_audit_mismatch_when_agent_work_truth_is_intact(
     tmp_path: Path,
 ) -> None:
     session_root = tmp_path / "session"
-    _write_valid_canonical_entry_artifacts(
-        session_root,
-        canonical_router_requested_skill="scientific-reporting",
-    )
+    _write_valid_canonical_entry_artifacts(session_root)
+    runtime_packet_path = session_root / "runtime-input-packet.json"
+    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
+    runtime_packet["skill_routing"]["candidates"] = [{"skill_id": "scientific-reporting"}]
+    _write_json(runtime_packet_path, runtime_packet)
 
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet canonical_router stays an optional compatibility host-launch mirror" in result.stdout
+    assert "[PASS] runtime packet module_assignments matches the Agent skill organization" in result.stdout
 
 
 def test_truth_gate_accepts_missing_route_snapshot_task_type_when_work_truth_is_intact(
@@ -472,27 +407,9 @@ def test_truth_gate_accepts_missing_route_snapshot_task_type_when_work_truth_is_
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet route_snapshot stays an optional compatibility control summary" in result.stdout
 
 
-def test_truth_gate_accepts_missing_route_snapshot_selected_skill_when_skill_routing_preserves_selection(
-    tmp_path: Path,
-) -> None:
-    session_root = tmp_path / "session"
-    _write_valid_canonical_entry_artifacts(session_root)
-    runtime_packet_path = session_root / "runtime-input-packet.json"
-    runtime_packet = json.loads(runtime_packet_path.read_text(encoding="utf-8"))
-    runtime_packet["route_snapshot"]["selected_skill"] = ""
-    _write_json(runtime_packet_path, runtime_packet)
-
-    result = _run_truth_gate(session_root)
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet skill_routing stays an optional compatibility shell" in result.stdout
-    assert "[PASS] runtime packet route_snapshot selected_skill stays a removable optional compatibility summary" in result.stdout
-
-
-def test_truth_gate_accepts_missing_skill_routing_when_work_binding_preserves_selection(
+def test_truth_gate_accepts_missing_skill_routing_when_module_assignments_preserves_selection(
     tmp_path: Path,
 ) -> None:
     session_root = tmp_path / "session"
@@ -505,9 +422,7 @@ def test_truth_gate_accepts_missing_skill_routing_when_work_binding_preserves_se
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet includes work_binding" in result.stdout
-    assert "[PASS] runtime packet records work_binding, no-specialist resolution, or degraded specialist evidence" in result.stdout
-    assert "[PASS] runtime packet skill_routing stays optional compatibility mirror" in result.stdout
+    assert "[PASS] runtime packet includes module_assignments" in result.stdout
 
 
 def test_truth_gate_accepts_missing_divergence_shadow_compatibility_mirror(
@@ -523,4 +438,3 @@ def test_truth_gate_accepts_missing_divergence_shadow_compatibility_mirror(
     result = _run_truth_gate(session_root)
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "[PASS] runtime packet divergence_shadow stays optional compatibility shadow" in result.stdout

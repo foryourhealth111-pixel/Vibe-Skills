@@ -1,50 +1,10 @@
 ﻿{
     "version":  1,
-    "updated":  "2026-02-25",
-    "weights":  {
-                    "intent_match":  0.4,
-                    "trigger_keyword_match":  0.25,
-                    "workspace_signal_match":  0.2,
-                    "skill_keyword_signal":  0.25,
-                    "recent_success_prior":  0.1,
-                    "conflict_penalty_inverse":  0.05
-                },
+    "updated":  "2026-07-11",
     "thresholds":  {
-                       "auto_route":  0.7,
-                       "confirm_required":  0.45,
-                       "fallback_to_legacy_below":  0.45,
+                       "candidate_focus":  0.45,
                        "min_top1_top2_gap":  0.06,
-                       "min_candidate_signal_for_confirm_override":  0.2,
-                       "min_candidate_signal_for_auto_route":  0.6
-                   },
-    "safety":  {
-                   "enforce_grade_boundary":  true,
-                   "enforce_task_boundary":  true,
-                   "max_skill_candidates_per_pack":  80,
-                   "allow_pack_override_by_explicit_user_command":  true,
-                   "enforce_confirm_on_legacy_fallback":  true
-               },
-    "candidate_selection":  {
-                                "rule_positive_keyword_bonus":  0.2,
-                                "rule_negative_keyword_penalty":  0.25,
-                                "canonical_for_task_bonus":  0.12
-                            },
-    "authority":  {
-                      "default_requires_positive_keyword_match_for_narrow":  true,
-                      "supporting_keyword_weight":  0.35,
-                      "minimum_candidate_signal_by_tier":  {
-                                                               "broad_owner":  0.18,
-                                                               "narrow_specialist":  0.32
-                                                           },
-                      "global_safe_fallback_by_task":  {
-                                                          "debug":  {
-                                                                        "pack_id":  "code-quality",
-                                                                        "skill":  "systematic-debugging"
-                                                                    },
-                                                          "review":  {
-                                                                         "pack_id":  "code-quality",
-                                                                         "skill":  "code-reviewer"
-                                                                     }
-                                                      }
-                  }
+                       "min_candidate_signal_for_near_match":  0.2,
+                       "min_candidate_signal_for_focus":  0.6
+                   }
 }

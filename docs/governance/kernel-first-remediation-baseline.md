@@ -17,11 +17,12 @@ This note freezes the cleanup boundary before semantic authority is moved again.
 ## Measured Hotspots
 
 - `scripts/router/**`
-- `packages/runtime-core/src/vgo_runtime/router*.py`
+- `packages/runtime-core/src/vgo_runtime/router_contract*.py`
 - `packages/runtime-core/src/vgo_runtime/task_intent.py`
 - `packages/runtime-core/src/vgo_runtime/planning.py`
 - `packages/runtime-core/src/vgo_runtime/stage_machine.py`
-- `packages/runtime-core/src/vgo_runtime/execution.py`
+- `packages/runtime-core/src/vgo_runtime/runtime_truth.py`
+- `packages/runtime-core/src/vgo_runtime/kernel/**`
 - `bundled/skills/**`
 - `docs/governance/**`
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from .executor import WorkUnitResult, execute_work_unit
@@ -12,8 +13,8 @@ from .run_state import load_run_state, write_run_state
 from .skill_index import build_skill_catalog, build_skill_index_from_catalog, write_skill_catalog, write_skill_index
 from .task_card import TaskCard, TaskRevision, build_task_card
 from .verifier import verify_run
-from .work_binding import build_skill_usage_projection, build_work_binding
-from .work_plan import SkillProvenance, WorkPlan, WorkUnit
+from .module_assignments import ModuleAssignments, build_module_assignments
+from .work_plan import AcceptanceCriterion, SkillProvenance, WorkPlan, WorkUnit
 
 
 def _write_json(path: Path, payload: object) -> Path:
@@ -52,6 +53,210 @@ def _resolve_host_root_paths(
             agent_root=agent_root,
             workspace_root=workspace_root,
         )
+    )
+
+
+def _skill_provenance(candidate: object) -> SkillProvenance:
+    return SkillProvenance(
+        source_kind=str(getattr(candidate, "source_kind")),
+        source_root=str(getattr(candidate, "source_root")),
+        resolved_skill_file=str(getattr(candidate, "resolved_skill_file")),
+        source_priority=int(getattr(candidate, "source_priority")),
+        source_order=int(getattr(candidate, "source_order")),
+        path_contract=str(getattr(candidate, "path_contract")),
+        path_base=str(getattr(candidate, "path_base")),
+    )
+
+
+def _unbound_plan_for_agent(plan: WorkPlan) -> WorkPlan:
+    return WorkPlan(
+        task_id=plan.task_id,
+        work_units=tuple(
+            replace(
+                unit,
+                preferred_skill=None,
+                binding_profile="agent_selection_required",
+                binding_reason="Agent skill organization is required before this work unit can be bound.",
+                fallback_skills=tuple(
+                    dict.fromkeys(
+                        [
+                            *([unit.preferred_skill] if unit.preferred_skill else []),
+                            *unit.fallback_skills,
+                        ]
+                    )
+                ),
+                selected_skill_provenance=None,
+            )
+            for unit in plan.work_units
+        ),
+        superseded_work_units=plan.superseded_work_units,
+    )
+
+
+def _apply_agent_skill_organization(
+    plan: WorkPlan,
+    candidates: tuple[object, ...],
+    organization: dict[str, object],
+) -> WorkPlan:
+    if organization.get("schema_version") != "agent_skill_organization_v1":
+        raise ValueError("agent_skill_organization.schema_version must be agent_skill_organization_v1")
+    if organization.get("derived_by") != "agent":
+        raise ValueError("agent_skill_organization.derived_by must be agent")
+
+    raw_modules = organization.get("modules")
+    raw_selected = organization.get("selected_skills")
+    raw_uncovered = organization.get("uncovered_modules")
+    if not isinstance(raw_modules, list) or not isinstance(raw_selected, list) or not isinstance(raw_uncovered, list):
+        raise ValueError("agent_skill_organization modules, selected_skills, and uncovered_modules must be lists")
+
+    modules: dict[str, dict[str, object]] = {}
+    for row in raw_modules:
+        if not isinstance(row, dict):
+            raise ValueError("agent_skill_organization modules must contain objects")
+        module_id = str(row.get("module_id") or "").strip()
+        if not module_id or module_id in modules:
+            raise ValueError("agent_skill_organization modules must use unique non-empty module_id values")
+        raw_criteria = row.get("acceptance_criteria")
+        if not isinstance(raw_criteria, list) or not raw_criteria:
+            raise ValueError(f"agent_skill_organization module {module_id} must include acceptance_criteria")
+        criterion_ids: set[str] = set()
+        for criterion in raw_criteria:
+            if not isinstance(criterion, dict):
+                raise ValueError(
+                    f"agent_skill_organization module {module_id} acceptance_criteria must contain objects"
+                )
+            criterion_id = str(criterion.get("criterion_id") or "").strip()
+            description = str(criterion.get("description") or "").strip()
+            verification_mode = str(criterion.get("verification_mode") or "").strip()
+            if not criterion_id or not description:
+                raise ValueError(
+                    f"agent_skill_organization module {module_id} acceptance criteria require criterion_id and description"
+                )
+            if criterion_id in criterion_ids:
+                raise ValueError(
+                    f"agent_skill_organization module {module_id} has duplicate acceptance criterion {criterion_id}"
+                )
+            if verification_mode not in {"automated", "manual"}:
+                raise ValueError(
+                    f"agent_skill_organization module {module_id} acceptance criterion verification_mode must be automated or manual"
+                )
+            criterion_ids.add(criterion_id)
+        modules[module_id] = row
+
+    work_unit_ids = {unit.id for unit in plan.work_units}
+    if set(modules) != work_unit_ids:
+        raise ValueError("agent_skill_organization module ids must match the local kernel work units")
+
+    candidate_by_id = {str(getattr(candidate, "skill_id")): candidate for candidate in candidates}
+    selected_by_module: dict[str, dict[str, object]] = {}
+    for row in raw_selected:
+        if not isinstance(row, dict):
+            raise ValueError("agent_skill_organization selected_skills must contain objects")
+        skill_id = str(row.get("skill_id") or "").strip()
+        module_ids = row.get("module_ids")
+        if not skill_id or skill_id not in candidate_by_id:
+            raise ValueError(f"agent_skill_organization selected unknown candidate skill: {skill_id}")
+        if not isinstance(module_ids, list) or not module_ids:
+            raise ValueError(f"agent_skill_organization selected skill {skill_id} must include module_ids")
+        for raw_module_id in module_ids:
+            module_id = str(raw_module_id).strip()
+            module = modules.get(module_id)
+            if module is None:
+                raise ValueError(f"agent_skill_organization selected skill {skill_id} references unknown module {module_id}")
+            declared_candidates = [str(value).strip() for value in module.get("candidate_skill_ids", [])]
+            if skill_id not in declared_candidates:
+                raise ValueError(f"agent_skill_organization selected skill {skill_id} is not a candidate for {module_id}")
+            if module_id in selected_by_module:
+                raise ValueError(f"agent_skill_organization module {module_id} has more than one selected skill")
+            selected_by_module[module_id] = row
+
+    uncovered_by_module: dict[str, dict[str, object]] = {}
+    for row in raw_uncovered:
+        if not isinstance(row, dict):
+            raise ValueError("agent_skill_organization uncovered_modules must contain objects")
+        module_id = str(row.get("module_id") or "").strip()
+        if module_id not in modules or module_id in uncovered_by_module:
+            raise ValueError(f"agent_skill_organization has invalid uncovered module {module_id}")
+        uncovered_by_module[module_id] = row
+
+    organized_units: list[WorkUnit] = []
+    for unit in plan.work_units:
+        selected = selected_by_module.get(unit.id)
+        uncovered = uncovered_by_module.get(unit.id)
+        execution_mode = str(modules[unit.id].get("execution_mode") or "").strip()
+        acceptance_criteria = tuple(
+            AcceptanceCriterion(
+                criterion_id=str(criterion["criterion_id"]).strip(),
+                description=str(criterion["description"]).strip(),
+                verification_mode=str(criterion["verification_mode"]).strip(),
+            )
+            for criterion in modules[unit.id]["acceptance_criteria"]
+        )
+        if selected is not None and uncovered is not None:
+            raise ValueError(f"agent_skill_organization module {unit.id} cannot be selected and uncovered")
+        if execution_mode == "skill_assigned" and selected is None:
+            raise ValueError(f"agent_skill_organization module {unit.id} declares skill_assigned without a selected skill")
+        if execution_mode == "blocked_gap" and uncovered is None:
+            raise ValueError(f"agent_skill_organization module {unit.id} declares blocked_gap without an uncovered module")
+        if execution_mode == "agent_direct" and (selected is not None or uncovered is not None):
+            raise ValueError(f"agent_skill_organization agent_direct module {unit.id} cannot be selected or uncovered")
+        if execution_mode not in {"skill_assigned", "agent_direct", "blocked_gap"}:
+            raise ValueError(f"agent_skill_organization module {unit.id} has invalid execution_mode")
+        if execution_mode == "agent_direct":
+            organized_units.append(
+                replace(
+                    unit,
+                    preferred_skill=None,
+                    binding_profile="agent_direct",
+                    binding_reason="The current Agent directly owns this approved module.",
+                    acceptance_criteria=acceptance_criteria,
+                    selected_skill_provenance=None,
+                )
+            )
+            continue
+        if selected is None:
+            organized_units.append(
+                replace(
+                    unit,
+                    preferred_skill=None,
+                    binding_profile="uncovered_by_agent",
+                    binding_reason=str(uncovered.get("reason") or "The Agent left this module uncovered."),
+                    acceptance_criteria=acceptance_criteria,
+                    selected_skill_provenance=None,
+                )
+            )
+            continue
+
+        skill_id = str(selected["skill_id"])
+        module_candidates = tuple(
+            value
+            for value in (str(item).strip() for item in modules[unit.id].get("candidate_skill_ids", []))
+            if value and value != skill_id
+        )
+        organized_units.append(
+            replace(
+                unit,
+                preferred_skill=skill_id,
+                binding_profile="agent_selected",
+                binding_reason=str(selected.get("reason") or "The Agent selected this skill."),
+                fallback_skills=module_candidates,
+                acceptance_criteria=acceptance_criteria,
+                selected_skill_provenance=_skill_provenance(candidate_by_id[skill_id]),
+            )
+        )
+
+    return WorkPlan(
+        task_id=plan.task_id,
+        work_units=tuple(organized_units),
+        superseded_work_units=plan.superseded_work_units,
+    )
+
+
+def _bound_module_assignments(plan: WorkPlan) -> ModuleAssignments:
+    binding = build_module_assignments(plan)
+    return ModuleAssignments(
+        task_id=binding.task_id,
+        units=tuple(unit for unit in binding.units if unit.bound_skill),
     )
 
 
@@ -137,6 +342,15 @@ def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
         fallback_skills=tuple(str(value) for value in payload.get("fallback_skills", [])),
         expected_artifacts=tuple(str(value) for value in payload.get("expected_artifacts", [])),
         verification=tuple(str(value) for value in payload.get("verification", [])),
+        acceptance_criteria=tuple(
+            AcceptanceCriterion(
+                criterion_id=str(item["criterion_id"]),
+                description=str(item["description"]),
+                verification_mode=str(item["verification_mode"]),
+            )
+            for item in payload.get("acceptance_criteria", [])
+            if isinstance(item, dict)
+        ),
         selected_skill_provenance=_coerce_skill_provenance(payload.get("selected_skill_provenance")),
         status=str(payload.get("status") or "pending"),
         lifecycle_state=str(payload.get("lifecycle_state") or "active"),
@@ -185,6 +399,7 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
     return (
         previous_work_unit.preferred_skill == current_work_unit.preferred_skill
         and previous_work_unit.selected_skill_provenance == current_work_unit.selected_skill_provenance
+        and previous_work_unit.acceptance_criteria == current_work_unit.acceptance_criteria
     )
 
 
@@ -355,7 +570,7 @@ def _build_work_dossier(
     run_id: str,
     task_card: dict[str, object],
     work_plan: dict[str, object],
-    work_binding: dict[str, object],
+    module_assignments: dict[str, object],
     work_results: dict[str, object],
     verification: dict[str, object],
     run_state: dict[str, object],
@@ -367,15 +582,10 @@ def _build_work_dossier(
     superseded_rows = superseded_work_units if isinstance(superseded_work_units, list) else []
     work_results_rows = work_results.get("work_results", [])
     result_rows = work_results_rows if isinstance(work_results_rows, list) else []
-    skill_usage = build_skill_usage_projection(
-        work_binding=work_binding,
-        work_results=result_rows,
-        include_binary_compat_fields=True,
-    )
     bound_skill_ids = _unique_non_empty(
         [
             str(unit.get("bound_skill") or "")
-            for unit in work_binding.get("units", [])
+            for unit in module_assignments.get("units", [])
             if isinstance(unit, dict)
         ]
     )
@@ -454,7 +664,7 @@ def _build_work_dossier(
         "reading_order": [
             "task_card",
             "work_plan",
-            "work_binding",
+            "module_assignments",
             "work_results",
             "verification",
             "proof",
@@ -462,7 +672,7 @@ def _build_work_dossier(
         "artifact_paths": artifact_paths,
         "task_card": task_card,
         "work_plan": work_plan,
-        "work_binding": work_binding,
+        "module_assignments": module_assignments,
         "work_results": work_results,
         "verification": verification,
         "closure": {
@@ -485,17 +695,6 @@ def _build_work_dossier(
             },
             "skills": {
                 "bound_skill_ids": bound_skill_ids,
-                "used_skill_ids": [
-                    str(item.get("skill_id") or "")
-                    for item in skill_usage.get("used", [])
-                    if isinstance(item, dict) and str(item.get("skill_id") or "").strip()
-                ],
-                "unused_skill_ids": [
-                    str(item.get("skill_id") or "")
-                    for item in skill_usage.get("unused", [])
-                    if isinstance(item, dict) and str(item.get("skill_id") or "").strip()
-                ],
-                "skill_usage": skill_usage,
             },
             "outputs": {
                 "artifacts": delivered_artifacts,
@@ -519,8 +718,8 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
     task_card = task_card_payload if isinstance(task_card_payload, dict) else {}
     work_plan_payload = work_dossier.get("work_plan")
     work_plan = work_plan_payload if isinstance(work_plan_payload, dict) else {}
-    work_binding_payload = work_dossier.get("work_binding")
-    work_binding = work_binding_payload if isinstance(work_binding_payload, dict) else {}
+    module_assignments_payload = work_dossier.get("module_assignments")
+    module_assignments = module_assignments_payload if isinstance(module_assignments_payload, dict) else {}
     work_results_payload = work_dossier.get("work_results")
     work_results = work_results_payload if isinstance(work_results_payload, dict) else {}
     work_payload = closure_payload.get("work")
@@ -596,7 +795,7 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
             "",
         ]
     )
-    binding_units = work_binding.get("units", [])
+    binding_units = module_assignments.get("units", [])
     if isinstance(binding_units, list) and binding_units:
         for unit in binding_units:
             if not isinstance(unit, dict):
@@ -703,6 +902,8 @@ def run_local_kernel(
     run_id: str | None = None,
     host_id: str | None = None,
     workspace_root: Path | None = None,
+    agent_skill_organization: dict[str, object] | None = None,
+    execute: bool = True,
 ) -> dict[str, object]:
     resolved_agent_root = agent_root.resolve()
     resolved_workspace_root = workspace_root.resolve() if workspace_root is not None else None
@@ -760,6 +961,10 @@ def run_local_kernel(
 
     candidates = find_skill_candidates(task_card, index_payload)
     plan = build_work_plan(task_card, candidates)
+    if agent_skill_organization is not None:
+        plan = _apply_agent_skill_organization(plan, candidates, agent_skill_organization)
+    else:
+        plan = _unbound_plan_for_agent(plan)
 
     previous_results_by_artifacts: dict[tuple[str, ...], WorkUnitResult] = {}
     previous_work_units_by_artifacts: dict[tuple[str, ...], WorkUnit] = {
@@ -796,6 +1001,7 @@ def run_local_kernel(
                 fallback_skills=work_unit.fallback_skills,
                 expected_artifacts=work_unit.expected_artifacts,
                 verification=work_unit.verification,
+                acceptance_criteria=work_unit.acceptance_criteria,
                 selected_skill_provenance=work_unit.selected_skill_provenance,
                 status=work_unit.status,
                 lifecycle_state="reused",
@@ -815,6 +1021,7 @@ def run_local_kernel(
             fallback_skills=work_unit.fallback_skills,
             expected_artifacts=work_unit.expected_artifacts,
             verification=work_unit.verification,
+            acceptance_criteria=work_unit.acceptance_criteria,
             selected_skill_provenance=work_unit.selected_skill_provenance,
             status=work_unit.status,
             lifecycle_state="superseded",
@@ -828,16 +1035,29 @@ def run_local_kernel(
         work_units=tuple(planned_work_units),
         superseded_work_units=superseded_work_units,
     )
-    work_binding = build_work_binding(plan)
+    module_assignments = _bound_module_assignments(plan)
     work_plan_payload = plan.model_dump()
     plan_path = _write_json(run_root / "plan.json", work_plan_payload)
-    work_binding_payload = work_binding.model_dump()
-    work_binding_path = _write_json(run_root / "work-binding.json", work_binding_payload)
+    module_assignments_payload = module_assignments.model_dump()
+    module_assignments_payload = {
+        "schema_version": "runtime_module_assignments_v1",
+        "source": "agent_skill_organization" if agent_skill_organization is not None else None,
+        "task_id": module_assignments_payload["task_id"],
+        "unit_count": len(module_assignments_payload["units"]),
+        "status": (
+            "projected_from_agent_skill_organization"
+            if agent_skill_organization is not None
+            else "no_bound_skills"
+        ),
+        "units": module_assignments_payload["units"],
+    }
+    module_assignments_path = _write_json(run_root / "module-assignments.json", module_assignments_payload)
 
     work_results: list[WorkUnitResult] = []
     completed_work_units: list[str] = []
     failed_work_units: list[str] = []
-    for work_unit in plan.work_units:
+    should_execute = bool(execute and agent_skill_organization is not None)
+    for work_unit in (plan.work_units if should_execute else ()):
         reused_result = previous_results_by_artifacts.get(work_unit.expected_artifacts)
         previous_work_unit = previous_work_units_by_artifacts.get(work_unit.expected_artifacts)
         if reused_result is not None and _can_reuse_previous_work(
@@ -893,11 +1113,20 @@ def run_local_kernel(
     verification = verify_run(task_card, plan, tuple(work_results))
     verification_payload = verification.model_dump()
     verification_path = _write_json(run_root / "verification.json", verification_payload)
+    final_state = (
+        "awaiting_agent_skill_organization"
+        if agent_skill_organization is None
+        else "ready_for_execution"
+        if not should_execute
+        else "close"
+        if verification.result == "done"
+        else "verify"
+    )
     run_state = write_run_state(
         run_root / "run-state.json",
         run_id=resolved_run_id,
         task_id=task_card.id,
-        state="close" if verification.result == "done" else "verify",
+        state=final_state,
         continuation_mode=continuation_mode,
         accepted_revision_count=len(task_card.accepted_revisions),
         completed_work_units=tuple(completed_work_units),
@@ -914,7 +1143,7 @@ def run_local_kernel(
         "task_card": str(task_card_path),
         "work_plan": str(plan_path),
         "plan": str(plan_path),
-        "work_binding": str(work_binding_path),
+        "module_assignments": str(module_assignments_path),
         "work_results": str(work_results_path),
         "run_state": str(run_root / "run-state.json"),
         "verification": str(verification_path),
@@ -923,7 +1152,7 @@ def run_local_kernel(
         run_id=resolved_run_id,
         task_card=task_card_payload,
         work_plan=work_plan_payload,
-        work_binding=work_binding_payload,
+        module_assignments=module_assignments_payload,
         work_results=work_results_payload,
         verification=verification_payload,
         run_state=run_state.model_dump(),
@@ -931,7 +1160,7 @@ def run_local_kernel(
             "skills_catalog": artifacts["skills_catalog"],
             "task_card": artifacts["task_card"],
             "work_plan": artifacts["work_plan"],
-            "work_binding": artifacts["work_binding"],
+            "module_assignments": artifacts["module_assignments"],
             "work_results": artifacts["work_results"],
             "verification": artifacts["verification"],
             "proof": artifacts["work_dossier"],
@@ -966,10 +1195,12 @@ def run_local_kernel(
         "artifacts": artifacts,
         "work_summary": work_summary,
         "skills_catalog": skills_catalog_payload,
+        "candidates": [candidate.model_dump() for candidate in candidates],
+        "agent_skill_organization": agent_skill_organization,
         "task_card": task_card_payload,
         "work_plan": work_plan_payload,
         "plan": work_plan_payload,
-        "work_binding": work_binding_payload,
+        "module_assignments": module_assignments_payload,
         "work_results": work_results_payload,
         "work_dossier_path": str(work_dossier_path),
         "work_dossier_markdown_path": str(work_dossier_markdown_path),
@@ -977,7 +1208,7 @@ def run_local_kernel(
         "task_card_path": str(task_card_path),
         "plan_path": str(plan_path),
         "work_plan_path": str(plan_path),
-        "work_binding_path": str(work_binding_path),
+        "module_assignments_path": str(module_assignments_path),
         "work_results_path": str(work_results_path),
         "run_state_path": str(run_root / "run-state.json"),
         "verification": verification_payload,
@@ -1007,7 +1238,7 @@ def inspect_local_run(
     skills_catalog_path = run_root / "skills-catalog.json"
     task_card_path = run_root / "task-card.json"
     plan_path = run_root / "plan.json"
-    work_binding_path = run_root / "work-binding.json"
+    module_assignments_path = run_root / "module-assignments.json"
     run_state_path = run_root / "run-state.json"
     work_results_path = run_root / "work-results.json"
     verification_path = run_root / "verification.json"
@@ -1018,7 +1249,7 @@ def inspect_local_run(
     work_dossier = _load_required_json(work_dossier_path)
     task_card = _load_required_json(task_card_path)
     plan = _load_required_json(plan_path)
-    work_binding = _load_required_json(work_binding_path)
+    module_assignments = _load_required_json(module_assignments_path)
     work_results = _load_required_json(work_results_path)
     verification = _load_required_json(verification_path)
     run_state = load_run_state(run_state_path)
@@ -1064,7 +1295,7 @@ def inspect_local_run(
             "task_card": str(task_card_path),
             "work_plan": str(plan_path),
             "plan": str(plan_path),
-            "work_binding": str(work_binding_path),
+            "module_assignments": str(module_assignments_path),
             "work_results": str(work_results_path),
             "run_state": str(run_state_path),
             "verification": str(verification_path),
@@ -1073,7 +1304,7 @@ def inspect_local_run(
         "task_card": task_card,
         "work_plan": plan,
         "plan": plan,
-        "work_binding": work_binding,
+        "module_assignments": module_assignments,
         "work_results": work_results,
         "run_state": run_state.model_dump(),
         "verification": verification,

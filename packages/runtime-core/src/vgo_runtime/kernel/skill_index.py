@@ -145,12 +145,23 @@ def _discover_skill_dirs_for_source(source_spec: dict[str, object]) -> list[Path
     dirs: list[Path] = []
     if not source_root.exists():
         return dirs
+    if _is_codex_plugin_cache_root(source_root):
+        return sorted({path.parent.resolve() for path in source_root.rglob("SKILL.md") if path.is_file()})
     for child_dir in DISCOVERY_CHILD_DIRS:
         root = source_root / child_dir if child_dir else source_root
         if not root.exists():
             continue
         dirs.extend(sorted(path for path in root.iterdir() if path.is_dir()))
     return dirs
+
+
+def _is_codex_plugin_cache_root(path: Path) -> bool:
+    resolved = path.resolve()
+    return (
+        resolved.name.casefold() == "cache"
+        and resolved.parent.name.casefold() == "plugins"
+        and resolved.parent.parent.name.casefold() == ".codex"
+    )
 
 
 def _relative_to_source(path: Path, source_spec: dict[str, object]) -> str:
@@ -203,7 +214,7 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
         "skill_file": skill_file_value,
         "resolved_root_dir": str(Path(manifest.root_dir).resolve()),
         "resolved_skill_file": str(Path(manifest.skill_file).resolve()),
-        "native_skill_entrypoint": str(Path(manifest.skill_file).resolve()),
+        "skill_entrypoint": str(Path(manifest.skill_file).resolve()),
         "skill_root": str(Path(manifest.root_dir).resolve()),
         "path_contract": source_spec["path_contract"],
         "path_base": source_spec["path_base"],
@@ -637,10 +648,30 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
 def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     entries: list[dict[str, object]] = []
     diagnostics: list[dict[str, object]] = []
-    for skill_dir in _discover_skill_dirs_for_source(source_spec):
+    skill_dirs = _discover_skill_dirs_for_source(source_spec)
+    ambiguous_plugin_ids: set[str] = set()
+    if _is_codex_plugin_cache_root(Path(str(source_spec["resolved_source_root"]))):
+        counts: dict[str, int] = {}
+        for skill_dir in skill_dirs:
+            skill_id = _normalize_skill_id(skill_dir.name)
+            counts[skill_id] = counts.get(skill_id, 0) + 1
+        ambiguous_plugin_ids = {skill_id for skill_id, count in counts.items() if skill_id and count > 1}
+
+    for skill_dir in skill_dirs:
         skill_id = skill_dir.name
         normalized_skill_id = _normalize_skill_id(skill_id)
         skill_file = skill_dir / "SKILL.md"
+        if normalized_skill_id in ambiguous_plugin_ids:
+            diagnostics.append(
+                _invalid_entry(
+                    skill_id,
+                    source_spec,
+                    "ambiguous_plugin_skill_id",
+                    path=skill_file,
+                    message=f"Multiple cached plugin Skills use id {skill_id!r}",
+                )
+            )
+            continue
         if normalized_skill_id in CONTROLLER_SKILL_IDS:
             diagnostics.append(_invalid_entry(skill_id, source_spec, "controller_entry_excluded", path=skill_file))
             continue
@@ -681,9 +712,9 @@ def _duplicate_diagnostics(entries: list[dict[str, object]]) -> list[dict[str, o
         diagnostics.append(
             {
                 "skill_id": skill_id,
-                "active_entrypoint": active["native_skill_entrypoint"],
+                "active_entrypoint": active["skill_entrypoint"],
                 "inactive_entrypoints": [
-                    row["native_skill_entrypoint"]
+                    row["skill_entrypoint"]
                     for row in rows
                     if not bool(row.get("active"))
                 ],
@@ -720,7 +751,7 @@ def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) 
             int(row["source_priority"]),
             int(row["source_order"]),
             str(row["skill_id"]),
-            str(row["native_skill_entrypoint"]),
+            str(row["skill_entrypoint"]),
         )
     )
     _apply_duplicate_resolution(entries)

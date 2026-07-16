@@ -162,10 +162,17 @@ def merge_runtime_config(governance: dict[str, Any], defaults: dict[str, Any]) -
 
 
 def installed_runtime_materialized(repo_root: Path, runtime_cfg: dict[str, Any]) -> bool:
-    required_markers = list(runtime_cfg.get("required_runtime_markers") or [])
-    if not required_markers:
+    receipt_path = repo_root / ".vibeskills" / "install-receipt.json"
+    if not receipt_path.is_file():
         return False
-    return all((repo_root / marker).exists() for marker in required_markers)
+    try:
+        receipt = load_json(receipt_path)
+    except (OSError, ValueError, TypeError):
+        return False
+    return (
+        receipt.get("receipt_kind") == "vibe-skill-install"
+        and Path(str(receipt.get("install_root") or "")).resolve() == repo_root.resolve()
+    )
 
 
 def enforce_execution_context(context: GovernanceContext, script_path: Path) -> None:

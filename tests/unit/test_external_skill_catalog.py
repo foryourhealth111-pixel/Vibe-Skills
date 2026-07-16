@@ -65,7 +65,7 @@ def test_build_skill_catalog_collects_host_installed_and_vibe_local_entries(tmp_
     ]
     assert [entry["skill_id"] for entry in catalog["entries"]] == ["external-debugger", "code-review"]
     assert [entry["source_kind"] for entry in catalog["entries"]] == ["host_installed", "vibe_local"]
-    assert [entry["native_skill_entrypoint"] for entry in catalog["entries"]] == [
+    assert [entry["skill_entrypoint"] for entry in catalog["entries"]] == [
         str(host_skill.resolve()),
         str(local_skill.resolve()),
     ]
@@ -116,7 +116,7 @@ description: Same declared id in one root.
     catalog = build_skill_catalog(agent_root=agent_root, host_roots=(host_root,))
 
     assert [row["skill_id"] for row in catalog["entries"]] == ["one", "two"]
-    assert [row["native_skill_entrypoint"] for row in catalog["entries"]] == [
+    assert [row["skill_entrypoint"] for row in catalog["entries"]] == [
         str(first_skill.resolve()),
         str(second_skill.resolve()),
     ]
@@ -140,4 +140,4 @@ def test_build_skill_index_includes_active_host_installed_skill_when_host_roots_
     assert payload["active_source_kinds"] == ["host_installed"]
     assert [entry["skill_id"] for entry in payload["skills"]] == ["external-debugger"]
     assert payload["skills"][0]["source_kind"] == "host_installed"
-    assert payload["skills"][0]["native_skill_entrypoint"] == str(skill_path.resolve())
+    assert payload["skills"][0]["skill_entrypoint"] == str(skill_path.resolve())

@@ -18,7 +18,7 @@ When the change is runtime-affecting or crosses into `Z0` or `Z2`, expect to
 justify the result with the relevant subset of:
 
 - `scripts/verify/vibe-pack-routing-smoke.ps1`
-- `scripts/verify/vibe-router-contract-gate.ps1`
+- `scripts/verify/vibe-current-routing-debt-gate.ps1`
 - `scripts/verify/vibe-version-packaging-gate.ps1`
 - `scripts/verify/vibe-output-artifact-boundary-gate.ps1`
 - `scripts/verify/vibe-repo-cleanliness-gate.ps1`

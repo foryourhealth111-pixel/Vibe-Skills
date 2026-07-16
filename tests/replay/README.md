@@ -33,7 +33,6 @@ Artifacts are written to `outputs/verify/` when `-WriteArtifacts` is provided.
 
 - `tests/replay/platform/linux-without-pwsh.json` (runtime-neutral router-bridge fixture for Linux without PowerShell degradation handling)
 - `tests/replay/route/recovery-wave-curated-prompts.json` (curated prompt pack consumed by router-bridge runtime tests)
-- `tests/replay/route/router-contract-gate-golden.json` (retained normalized route contract reference used by active docs)
 - `tests/replay/promotion/claude-code-managed-closure.json` (proof-bundle-backed promotion candidate)
 
 ## OpenClaw Runtime-Core-Preview Fixtures

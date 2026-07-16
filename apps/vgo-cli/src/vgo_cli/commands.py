@@ -290,6 +290,8 @@ def canonical_entry_command(args: argparse.Namespace) -> int:
         command.extend(['--requested-grade-floor', args.requested_grade_floor])
     if args.run_id:
         command.extend(['--run-id', args.run_id])
+    if getattr(args, 'workspace_root', None):
+        command.extend(['--workspace-root', args.workspace_root])
     if args.artifact_root:
         command.extend(['--artifact-root', args.artifact_root])
     if getattr(args, 'local_agent_root', None):
@@ -298,6 +300,8 @@ def canonical_entry_command(args: argparse.Namespace) -> int:
         command.extend(['--continue-from-run-id', args.continue_from_run_id])
     if getattr(args, 'bounded_reentry_token', None):
         command.extend(['--bounded-reentry-token', args.bounded_reentry_token])
+    if getattr(args, 'module_execution_json_file', None):
+        command.extend(['--module-execution-json-file', args.module_execution_json_file])
     if getattr(args, 'host_decision_json', None):
         command.extend(['--host-decision-json', args.host_decision_json])
     if getattr(args, 'host_decision_json_file', None):

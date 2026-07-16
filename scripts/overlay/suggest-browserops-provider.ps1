@@ -81,29 +81,39 @@ $scriptPath = Normalize-PathString -Path $scriptPath
 $scriptDirectory = Split-Path -Parent $scriptPath
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $scriptDirectory '..\..'))
 $policyPath = Join-Path $repoRoot 'config\browserops-provider-policy.json'
+$forbiddenPolicyPath = Join-Path $repoRoot 'config\forbidden-mcp-policy.json'
 $policy = Get-Content -Raw $policyPath -Encoding UTF8 | ConvertFrom-Json
+$forbiddenPolicy = Get-Content -Raw $forbiddenPolicyPath -Encoding UTF8 | ConvertFrom-Json
+$forbiddenProviderIds = @($forbiddenPolicy.forbidden_mcp_ids | ForEach-Object { ([string]$_).Trim().ToLowerInvariant() })
+$configuredProviderIds = @(
+  [string]$policy.default_provider
+  @($policy.provider_priority)
+  @($policy.providers.PSObject.Properties.Name)
+  @($policy.providers.PSObject.Properties | ForEach-Object { [string]$_.Value.fallback_provider })
+) | ForEach-Object { $_.Trim().ToLowerInvariant() } | Select-Object -Unique
+$blockedProviderIds = @($configuredProviderIds | Where-Object { $forbiddenProviderIds -contains $_ })
+if ($blockedProviderIds.Count -gt 0) {
+  throw ("BrowserOps policy contains forbidden MCP provider ids: {0}" -f ($blockedProviderIds -join ', '))
+}
 $text = Normalize-Text -Text $Task
 
 $scores = @{
   'api' = 0.0
-  'playwright' = 0.0
-  'chrome-devtools' = 0.0
+  'browser-host-native' = 0.0
   'turix-cua' = 0.0
   'browser-use' = 0.0
 }
 
 $reasons = @{
   'api' = @()
-  'playwright' = @()
-  'chrome-devtools' = @()
+  'browser-host-native' = @()
   'turix-cua' = @()
   'browser-use' = @()
 }
 
 $signalMap = @{
   'api' = @('api', 'rest', 'graphql', 'endpoint', 'http', 'json', '接口', '结构化接口', '结构化数据', '服务调用', '拉取数据')
-  'playwright' = @('login', 'form', 'submit', 'click', 'button', 'navigate', 'dom', 'download', 'upload', '登录', '表单', '提交', '点击', '按钮', '页面元素', '抓取页面')
-  'chrome-devtools' = @('network', 'console', 'devtools', 'performance', 'request', 'response', 'header', 'cookie', 'waterfall', '调试', '控制台', '性能', '请求', '响应', '报错')
+  'browser-host-native' = @('login', 'form', 'submit', 'click', 'button', 'navigate', 'dom', 'download', 'upload', 'network', 'console', 'performance', 'request', 'response', 'header', 'cookie', 'waterfall', '登录', '表单', '提交', '点击', '按钮', '页面元素', '抓取页面', '调试', '控制台', '性能', '请求', '响应', '报错')
   'turix-cua' = @('visual', 'gui', 'screen', 'desktop', 'computer use', '真实界面', '视觉', '屏幕', '桌面', '弱结构')
   'browser-use' = @('browse', 'browser agent', 'research navigation', 'open web', 'crawl', '多步浏览', '开放式浏览', '探索网页', '跨网站', '网页研究', 'research')
 }
@@ -113,8 +123,7 @@ foreach ($provider in $policy.provider_priority) {
     Add-Score -Scores $scores -Provider $provider -Delta 1.0
     switch ($provider) {
       'api' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中结构化接口信号，符合 API-first 原则' }
-      'playwright' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中可脚本化网页动作信号，适合确定性浏览器基线' }
-      'chrome-devtools' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中 request/console/性能诊断信号，适合 DevTools 场景' }
+      'browser-host-native' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中浏览器交互或诊断信号，使用宿主已允许的原生浏览器能力' }
       'turix-cua' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中视觉与真实界面信号，适合 GUI/弱结构页面' }
       'browser-use' { Add-Reason -ReasonMap $reasons -Provider $provider -Reason '命中开放式浏览与多步导航信号，适合作为候选 provider' }
     }
@@ -122,13 +131,13 @@ foreach ($provider in $policy.provider_priority) {
 }
 
 if (Test-AnyKeyword -Text $text -Keywords @('request', 'response', 'network', 'console', 'header', '调试', '报错', '控制台')) {
-  Add-Score -Scores $scores -Provider 'chrome-devtools' -Delta 1.2
-  Add-Reason -ReasonMap $reasons -Provider 'chrome-devtools' -Reason '调试信号强，诊断优先于通用执行'
+  Add-Score -Scores $scores -Provider 'browser-host-native' -Delta 1.2
+  Add-Reason -ReasonMap $reasons -Provider 'browser-host-native' -Reason '调试信号强，使用宿主原生诊断能力'
 }
 
 if (Test-AnyKeyword -Text $text -Keywords @('登录', '表单', '提交', '点击', 'button', 'dom', '下载', '上传')) {
-  Add-Score -Scores $scores -Provider 'playwright' -Delta 1.1
-  Add-Reason -ReasonMap $reasons -Provider 'playwright' -Reason '任务具备明确可脚本化步骤，优先保留 deterministic baseline'
+  Add-Score -Scores $scores -Provider 'browser-host-native' -Delta 1.1
+  Add-Reason -ReasonMap $reasons -Provider 'browser-host-native' -Reason '任务具备明确浏览器动作，优先使用宿主原生能力'
 }
 
 if (Test-AnyKeyword -Text $text -Keywords @('跨网站', '多步浏览', '开放式浏览', '探索网页', 'research navigation', 'crawl', 'research')) {
@@ -142,7 +151,7 @@ if (Test-AnyKeyword -Text $text -Keywords @('视觉', '真实界面', '屏幕', 
 }
 
 if ($scores['api'] -gt 0) {
-  Add-Reason -ReasonMap $reasons -Provider 'playwright' -Reason '如 API 路径不可用，可回退到 Playwright 基线'
+  Add-Reason -ReasonMap $reasons -Provider 'browser-host-native' -Reason '如 API 路径不可用，可回退到宿主原生浏览器能力'
 }
 
 if (($scores['browser-use'] -gt 0) -and (Test-AnyKeyword -Text $text -Keywords @('表单', '提交', '点击', 'dom', '结构化', 'api'))) {
@@ -189,7 +198,7 @@ if ($selectedProvider -eq 'browser-use') {
 }
 
 if ($selectedProvider -eq 'turix-cua') {
-  Add-Reason -ReasonMap $reasons -Provider $selectedProvider -Reason 'turix-cua 属于视觉候选路径，必须保留 Playwright 回退'
+  Add-Reason -ReasonMap $reasons -Provider $selectedProvider -Reason 'turix-cua 属于视觉候选路径，必须保留宿主原生回退'
 }
 
 if ($confirmRequired) {

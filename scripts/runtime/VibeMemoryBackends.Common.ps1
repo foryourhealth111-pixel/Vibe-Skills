@@ -38,6 +38,20 @@ function Test-VibeMemoryTruthyEnvironmentValue {
     return $Value.Trim().ToLowerInvariant() -in @('1', 'true', 'yes', 'on')
 }
 
+function Get-VibeMemoryWorkspaceRoot {
+    param(
+        [Parameter(Mandatory)] [object]$Runtime
+    )
+
+    if (
+        $Runtime.PSObject.Properties.Name -contains 'workspace_root' -and
+        -not [string]::IsNullOrWhiteSpace([string]$Runtime.workspace_root)
+    ) {
+        return [System.IO.Path]::GetFullPath([string]$Runtime.workspace_root)
+    }
+    return [System.IO.Path]::GetFullPath([string]$Runtime.repo_root)
+}
+
 function Resolve-VibeMemoryBackendRoot {
     param(
         [Parameter(Mandatory)] [object]$Runtime
@@ -59,7 +73,7 @@ function Resolve-VibeMemoryBackendRoot {
         return [System.IO.Path]::GetFullPath($rootOverride)
     }
 
-    return [string]$Runtime.repo_root
+    return Get-VibeMemoryWorkspaceRoot -Runtime $Runtime
 }
 
 function Get-VibeMemoryLaneConfig {
@@ -103,7 +117,7 @@ function Resolve-VibeMemoryProjectKey {
     }
 
     if ([string]$lane.project_key_fallback -eq 'repo_slug') {
-        $repoDir = Split-Path -Leaf ([string]$Runtime.repo_root)
+        $repoDir = Split-Path -Leaf (Get-VibeMemoryWorkspaceRoot -Runtime $Runtime)
         return [pscustomobject]@{
             project_key = $repoDir
             source = 'repo_slug'
@@ -241,7 +255,7 @@ function Invoke-VibeMemoryBackendAction {
         $driverScript,
         '--lane', $LaneId,
         '--action', $Action,
-        '--repo-root', ([string]$Runtime.repo_root),
+        '--repo-root', (Get-VibeMemoryWorkspaceRoot -Runtime $Runtime),
         '--session-root', $SessionRoot,
         '--store-path', ([string]$laneResolution.store_path),
         '--payload-path', $payloadPath,

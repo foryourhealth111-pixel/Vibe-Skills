@@ -1,6 +1,6 @@
 {
   "scenario_id": "xl-composite-manual-review",
-  "task_class": "xl_composite_specialist_delivery",
+  "task_class": "xl_composite_module_delivery",
   "runtime": {
     "status": "completed",
     "readiness_state": "ready"
@@ -16,26 +16,21 @@
       "state": "passing",
       "evidence": [
         "automation suite passes",
-        "specialist outputs are structurally valid"
+        "module outputs are structurally valid"
       ]
     },
-    "specialist_disclosure_truth": {
+    "module_acceptance_truth": {
       "state": "passing",
       "evidence": [
-        "approved specialist units were disclosed before execution"
-      ]
-    },
-    "specialist_decision_truth": {
-      "state": "passing",
-      "evidence": [
-        "root-owned specialist decision evidence was retained"
+        "module-work-plan.json and agent-execution-handoff.json agree on dependency-ready waves",
+        "module-execution.json records every required module as completed"
       ]
     },
     "workflow_completion_truth": {
       "state": "passing",
       "evidence": [
-        "all planned waves completed",
-        "approved specialist units executed"
+        "all dependency-ready waves reconcile through module-execution.json",
+        "required outputs emitted"
       ]
     },
     "code_task_tdd_evidence_truth": {

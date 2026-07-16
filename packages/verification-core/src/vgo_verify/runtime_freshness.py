@@ -1,86 +1,119 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sys
 from pathlib import Path
 from typing import Any
 
-from .policies import (
-    GovernanceContext,
-    default_freshness_runtime_config,
-    load_governance_context as _load_governance_context,
-    merge_runtime_config,
-)
-from .runtime_freshness_runtime import evaluate_freshness_runtime
-from .runtime_freshness_support import (
-    build_freshness_context,
-    write_freshness_artifacts,
-    write_freshness_receipt,
-)
+from .policies import utc_now, write_text
 
 
-def runtime_config(governance: dict[str, Any]) -> dict[str, Any]:
-    return merge_runtime_config(governance, default_freshness_runtime_config())
-
-
-
-def load_governance_context(script_path: Path, enforce_context: bool = True) -> GovernanceContext:
-    return _load_governance_context(script_path, default_freshness_runtime_config(), enforce_context=enforce_context)
-
+def _load_receipt(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"Expected a JSON object in the Vibe install receipt: {path}")
+    return payload
 
 
 def evaluate_freshness(
-    repo_root: Path,
-    governance: dict[str, Any],
-    canonical_root: Path,
     target_root: Path,
-    script_path: Path,
+    *,
     write_artifacts: bool = False,
-    write_receipt: bool = False,
 ) -> tuple[bool, dict[str, Any]]:
-    context = build_freshness_context(
-        repo_root=repo_root,
-        governance=governance,
-        canonical_root=canonical_root,
-        target_root=target_root,
-        runtime=runtime_config(governance),
-    )
-    gate_pass, artifact = evaluate_freshness_runtime(context, script_path)
+    installed_root = (target_root / "skills" / "vibe").resolve()
+    receipt_path = installed_root / ".vibeskills" / "install-receipt.json"
+    failures: list[str] = []
+    verified_file_count = 0
+
+    receipt: dict[str, Any] = {}
+    if not receipt_path.is_file():
+        failures.append(f"Vibe install receipt is missing: {receipt_path}")
+    else:
+        try:
+            receipt = _load_receipt(receipt_path)
+        except (OSError, ValueError, RuntimeError) as exc:
+            failures.append(str(exc))
+
+    if receipt:
+        if receipt.get("receipt_kind") != "vibe-skill-install":
+            failures.append(f"unexpected Vibe install receipt kind: {receipt.get('receipt_kind')}")
+        if receipt.get("skill_id") != "vibe":
+            failures.append(f"unexpected installed skill id: {receipt.get('skill_id')}")
+        if Path(str(receipt.get("install_root") or "")).resolve() != installed_root:
+            failures.append(f"install receipt root does not match: {receipt.get('install_root')}")
+
+        files = receipt.get("files")
+        if not isinstance(files, list) or not files:
+            failures.append("Vibe install receipt owns no runtime files")
+        else:
+            for entry in files:
+                if not isinstance(entry, dict):
+                    failures.append("invalid receipt file entry")
+                    continue
+                relative_path = str(entry.get("path") or "")
+                expected_hash = str(entry.get("sha256") or "").lower()
+                if not relative_path or len(expected_hash) != 64:
+                    failures.append(f"invalid receipt entry: {relative_path}")
+                    continue
+                file_path = (installed_root / relative_path).resolve()
+                try:
+                    file_path.relative_to(installed_root)
+                except ValueError:
+                    failures.append(f"receipt path escapes installed runtime: {relative_path}")
+                    continue
+                if not file_path.is_file():
+                    failures.append(f"missing receipt-owned file: {relative_path}")
+                    continue
+                actual_hash = hashlib.sha256(file_path.read_bytes()).hexdigest()
+                if actual_hash != expected_hash:
+                    failures.append(f"hash mismatch: {relative_path}")
+                    continue
+                verified_file_count += 1
+
+    gate_pass = not failures
+    artifact = {
+        "generated_at": utc_now(),
+        "gate_result": "PASS" if gate_pass else "FAIL",
+        "results": {
+            "target_root": str(target_root.resolve()),
+            "installed_root": str(installed_root),
+            "receipt_path": str(receipt_path),
+            "verified_file_count": verified_file_count,
+            "failures": failures,
+        },
+    }
+
+    for failure in failures:
+        print(f"[FAIL] {failure}")
+    if gate_pass:
+        print(f"[PASS] installed runtime receipt verified ({verified_file_count} files)")
 
     if write_artifacts:
-        write_freshness_artifacts(repo_root, artifact)
-
-    if write_receipt:
-        write_freshness_receipt(context, gate_pass, artifact)
+        write_text(
+            installed_root / "outputs" / "verify" / "installed-runtime-freshness.json",
+            json.dumps(artifact, ensure_ascii=False, indent=2) + "\n",
+        )
 
     return gate_pass, artifact
 
 
-
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Runtime-neutral installed runtime freshness gate.')
-    parser.add_argument('--target-root', default=str(Path.home() / '.vibeskills' / 'targets' / 'codex'))
-    parser.add_argument('--write-artifacts', action='store_true')
-    parser.add_argument('--write-receipt', action='store_true')
+    parser = argparse.ArgumentParser(description="Verify the installed Vibe payload against its install receipt.")
+    parser.add_argument("--target-root", default=str(Path.home() / ".agents"))
+    parser.add_argument("--write-artifacts", action="store_true")
     return parser.parse_args(argv)
-
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    script_path = Path(__file__)
     try:
-        context = load_governance_context(script_path, enforce_context=True)
         gate_pass, _ = evaluate_freshness(
-            repo_root=context.repo_root,
-            governance=context.governance,
-            canonical_root=context.canonical_root,
-            target_root=Path(args.target_root),
-            script_path=script_path,
+            Path(args.target_root),
             write_artifacts=args.write_artifacts,
-            write_receipt=args.write_receipt,
         )
     except Exception as exc:  # pragma: no cover
-        print(f'[FAIL] {exc}', file=sys.stderr)
+        print(f"[FAIL] {exc}", file=sys.stderr)
         return 1
     return 0 if gate_pass else 1

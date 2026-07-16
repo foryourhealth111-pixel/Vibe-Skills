@@ -74,8 +74,19 @@ class CursorManagedPreviewTests(unittest.TestCase):
             self.assertEqual(str(target_root.resolve()), payload["host_bridge_root"])
             self.assertNotEqual(str(target_root.resolve()), payload["desired_shared_runtime_root"])
             self.assertEqual("legacy-host-root-override", payload["runtime_layout_mode"])
-            self.assertIn("specialist_wrapper_ready", payload)
-            self.assertIsInstance(payload["specialist_wrapper_ready"], bool)
+            self.assertEqual(
+                [str((target_root / "skills" / "vibe" / "SKILL.md").resolve())],
+                payload["host_visible_entry_paths"],
+            )
+            retired_fields = {
+                "specialist_execution",
+                "specialist_wrapper",
+                "specialist_wrapper_ready",
+                "same_session_specialist_routing",
+            }
+            self.assertTrue(retired_fields.isdisjoint(payload))
+            self.assertTrue(retired_fields.isdisjoint(closure))
+            self.assertTrue(retired_fields.isdisjoint(host_settings))
 
 
 if __name__ == "__main__":

@@ -133,7 +133,7 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
                 f". '{common_dir / 'vibe-governance-helpers.ps1'}'; "
                 "$fallback = Get-VgoInstalledRuntimeFallbackDefaults; "
                 f"$resolved = Get-VgoRuntimeEntrypointPath -RepoRoot '{root}' -RuntimeConfig $null; "
-                "[pscustomobject]@{ markers = @($fallback.required_runtime_markers); resolved = $resolved } | ConvertTo-Json -Depth 5 }"
+                "[pscustomobject]@{ receipt_relpath = $fallback.receipt_relpath; resolved = $resolved } | ConvertTo-Json -Depth 5 }"
             )
 
             completed = subprocess.run(
@@ -145,16 +145,7 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
             )
 
             payload = json.loads(completed.stdout)
-            self.assertEqual(
-                [
-                    "SKILL.md",
-                    "config/version-governance.json",
-                    "scripts/common/vibe-governance-helpers.ps1",
-                    "scripts/runtime/invoke-vibe-runtime.ps1",
-                    "scripts/router/resolve-pack-route.ps1",
-                ],
-                payload["markers"],
-            )
+            self.assertEqual("skills/vibe/.vibeskills/install-receipt.json", payload["receipt_relpath"])
             self.assertEqual(
                 str((root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").resolve()),
                 payload["resolved"],

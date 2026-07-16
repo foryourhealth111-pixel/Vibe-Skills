@@ -27,12 +27,12 @@
 
 | task_shape | 说明 | 首选 provider | 回退 provider |
 |---|---|---|---|
-| `api_call` | 可直接通过 API / HTTP 完成 | `api` | `playwright` |
-| `form_fill` | 登录、输入、点击、提交、下载 | `playwright` | `chrome-devtools` |
-| `dom_extraction` | 结构化抓取 DOM 文本、属性、表格 | `playwright` | `chrome-devtools` |
-| `network_debug` | 查看 request/response、console、性能 | `chrome-devtools` | `playwright` |
-| `visual_ui_workflow` | 依赖视觉布局、真实 GUI、弱结构页面 | `turix-cua` | `playwright` |
-| `open_web_navigation` | 开放式浏览、跨站导航、research navigation | `browser-use` | `playwright` |
+| `api_call` | 可直接通过 API / HTTP 完成 | `api` | `browser-host-native` |
+| `form_fill` | 登录、输入、点击、提交、下载 | `browser-host-native` | `api` |
+| `dom_extraction` | 结构化抓取 DOM 文本、属性、表格 | `browser-host-native` | `api` |
+| `network_debug` | 查看 request/response、console、性能 | `browser-host-native` | `api` |
+| `visual_ui_workflow` | 依赖视觉布局、真实 GUI、弱结构页面 | `turix-cua` | `browser-host-native` |
+| `open_web_navigation` | 开放式浏览、跨站导航、research navigation | `browser-use` | `browser-host-native` |
 
 ## 4. 输出字段（建议脚本必须返回）
 
@@ -71,6 +71,7 @@
 4. 任一 provider 都不得 takeover `pack selection / task decomposition / team orchestration / promotion decision`。
 5. 任一 provider 建议都必须带 `fallback_provider`。
 6. `browser-use` 与 `turix-cua` 默认带 `confirm_required` 偏置。
+7. `provider`、`fallback_provider` 与 `considered` 不得包含 forbidden MCP id。
 
 ## 6.1 Browser-use bounded guidance
 

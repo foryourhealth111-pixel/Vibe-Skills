@@ -73,9 +73,13 @@ $results += Assert-True -Condition ($runtimeContract.authority.PSObject.Properti
 $results += Assert-True -Condition ([string]$runtimeContract.authority.local_installed_skill_recommender_bridge -eq "scripts/router/resolve-pack-route.ps1") -Message "local installed specialist recommender bridge points at resolve-pack-route.ps1"
 $results += Assert-True -Condition ($runtimeContract.authority.PSObject.Properties.Name -contains "canonical_router") -Message "runtime contract keeps canonical_router compatibility field"
 
-$results += Assert-True -Condition ($skillMd -match "Local installed specialist recommender") -Message "SKILL.md names local installed specialist recommender owner before bridge"
+$results += Assert-True -Condition (
+    $skillMd -match 'packages/runtime-core/src/vgo_runtime/router_contract_runtime.py' -and
+    $skillMd -match 'compatibility bridge' -and
+    $skillMd -match 'scripts/router/resolve-pack-route.ps1'
+) -Message "SKILL.md names the candidate-audit owner before its compatibility bridge"
 $results += Assert-True -Condition ($skillMd -notmatch "(?m)^\s*Canonical router:") -Message "SKILL.md no longer labels router as the canonical entry"
-$results += Assert-True -Condition ($runtimeProtocol -match "Local installed specialist recommender") -Message "runtime protocol defines local installed specialist recommender owner before bridge"
+$results += Assert-True -Condition ($runtimeProtocol -match 'semantic owner `packages/runtime-core/src/vgo_runtime/router_contract_runtime.py`') -Message "runtime protocol defines the candidate-audit owner before its bridge"
 $results += Assert-True -Condition ($runtimeProtocol -match 'compatibility bridge `scripts/router/resolve-pack-route.ps1`') -Message "runtime protocol keeps resolve-pack-route.ps1 as compatibility bridge"
 $results += Assert-True -Condition ($runtimeProtocol -notmatch "Canonical router authority stays intact") -Message "runtime protocol no longer gives router authority priority over vibe"
 
@@ -87,13 +91,11 @@ $blockedRoutes = @(
 
 foreach ($case in $blockedRoutes) {
     $route = Invoke-Route -Prompt $case.Prompt -Grade $case.Grade -TaskType $case.TaskType
-    $selectedPack = if ($route.selected) { [string]$route.selected.pack_id } else { "" }
+    $selectedPack = if ($route.candidate_focus) { [string]$route.candidate_focus.pack_id } else { "" }
     $rankedPackIds = @($route.ranked | ForEach-Object { [string]$_.pack_id })
-    $confirmPack = if ($route.confirm_ui) { [string]$route.confirm_ui.pack_id } else { "" }
-    $selectedSkill = if ($route.selected) { [string]$route.selected.skill } else { "" }
+    $selectedSkill = if ($route.candidate_focus) { [string]$route.candidate_focus.skill } else { "" }
     $results += Assert-True -Condition ($selectedPack -ne "orchestration-core") -Message "[$($case.Name)] selected pack is not orchestration-core" -Details ("selected={0}/{1}" -f $selectedPack, $selectedSkill)
     $results += Assert-True -Condition (-not ($rankedPackIds -contains "orchestration-core")) -Message "[$($case.Name)] ranked packs exclude orchestration-core" -Details ("ranked={0}" -f ($rankedPackIds -join ", "))
-    $results += Assert-True -Condition ($confirmPack -ne "orchestration-core") -Message "[$($case.Name)] confirm UI does not expose orchestration-core"
 }
 
 $passCount = @($results | Where-Object { $_ }).Count

@@ -22,7 +22,7 @@ def write_artifacts(repo_root: Path, artifact: dict[str, Any]) -> None:
     ]
     for row in artifact["results"]:
         lines.append(
-            f"- `{row['id']}` -> mode=`{row['route_mode']}` pack=`{row['selected_pack']}` skill=`{row['selected_skill']}`"
+            f"- `{row['id']}` -> mode=`{row['route_mode']}` pack=`{row['candidate_focus_pack']}` skill=`{row['candidate_focus_skill']}`"
         )
     lines.append("")
     write_text(output_dir / "runtime-neutral-router-bridge-gate.md", "\n".join(lines))

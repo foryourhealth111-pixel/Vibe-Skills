@@ -1,6 +1,6 @@
 # Root/Child Vibe Hierarchy Governance
 
-> Historical / Retired Note: This document discusses retired or cleanup-context routing terminology. The current routing model is `skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage`; old terms here are historical only and are not current runtime states.
+> Historical / Retired Note: This document discusses retired or cleanup-context routing terminology. The current routing model is `skill_candidates -> skill_routing.selected -> module_skill_dispatch -> skill_usage`; old terms here are historical only and are not current runtime states.
 
 ## Summary
 Resolve the governance ambiguity introduced by recursive `vibe` usage in XL multi-agent work. Keep `vibe` as the only governed runtime authority at the root task level while allowing child agents to inherit `vibe` discipline as subordinate execution lanes instead of reopening a second top-level governed runtime.

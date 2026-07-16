@@ -31,8 +31,12 @@ Required fields:
 - `internal_grade`
 - `hierarchy`
 - `host_adapter`
-- `work_binding`
-- `specialist_decision`
+- `module_assignments`
+- `agent_skill_organization`
+  - every module includes at least one structured `acceptance_criteria` item
+  - each item requires a unique `criterion_id`, a non-empty `description`, and
+    `verification_mode` set to `automated` or `manual`
+- `skill_search_guide`
 - `authority_flags`
 - `provenance`
 
@@ -44,14 +48,8 @@ Required field groups:
   - `parent_unit_id`
   - `inherited_requirement_doc_path`
   - `inherited_execution_plan_path`
-- `canonical_router`
-  - `prompt`
-  - `task_type`
-  - `requested_skill`
-  - `host_id`
-  - `target_root`
-  - `unattended`
-  - `route_script_path`
+- `route_snapshot`
+  - compatibility candidate audit only; it is not work or Skill-use truth
 - `host_adapter`
   - `requested_host_id`
   - `effective_host_id`
@@ -61,33 +59,21 @@ Required field groups:
   - `bootstrap_mode`
   - `target_root`
   - `closure_path`
-- `work_binding`
+- `module_assignments`
   - `task_id` or packet-level task binding identity
   - `units`
-- `specialist_decision`
-  - `decision_state`
-  - `resolution_mode`
-  - `truth_level`
-  - `degradation_state`
-  - `non_authoritative`
-  - `fallback_active`
-  - `hazard_alert_required`
-  - `unattended_override_applied`
-  - `custom_admission_status`
-- `specialist_dispatch`
-  - `approved_dispatch`
-  - `local_specialist_suggestions`
-  - `blocked`
-  - `degraded`
-  - `approved_skill_ids`
-  - `local_suggestion_skill_ids`
-  - `matched_skill_ids`
-  - `surfaced_skill_ids`
-  - `blocked_skill_ids`
-  - `degraded_skill_ids`
-  - `ghost_match_skill_ids`
-  - `promotion_outcomes`
-  - `escalation_required`
+- `agent_skill_organization`
+  - `schema_version`
+  - `workflow_level`
+  - `modules`
+  - `selected_skills`
+  - `uncovered_modules`
+- `skill_search_guide`
+  - `schema_version`
+  - `skill_roots`
+  - `search_protocol`
+  - `selection_rules`
+  - `disclosure_rules`
   - `escalation_status`
   - `approval_owner`
   - `status`
@@ -109,13 +95,15 @@ Optional compatibility fields:
 - `canonical_router`
 - `route_snapshot`
 - `skill_routing`
-- `skill_usage`
 - `divergence_shadow`
 
 Allowed deprecations:
 - None active.
 
 ## Execution Manifest
+
+The approved Agent work chain is `module-work-plan.json` ->
+`agent-execution-handoff.json` -> `module-execution.json`.
 
 Artifact:
 - `outputs/runtime/vibe-sessions/<run-id>/execution-manifest.json`
@@ -130,23 +118,18 @@ Required fields:
 - `profile_id`
 - `requirement_doc_path`
 - `execution_plan_path`
-- `execution_topology_path`
 - `runtime_input_packet_path`
 - `generated_at`
-- `planned_wave_count`
-- `planned_unit_count`
-- `executed_unit_count`
-- `successful_unit_count`
+- `module_work_plan_path`
+- `module_execution_path`
+- `completed_unit_count`
 - `failed_unit_count`
-- `timed_out_unit_count`
+- `blocked_unit_count`
 - `proof_class`
 - `promotion_suitable`
 - `hierarchy`
 - `authority`
-- `route_runtime_alignment`
-- `execution_topology`
-- `plan_shadow`
-- `specialist_accounting`
+- `module_handoff`
 - `dispatch_integrity`
 - `status`
 - `waves`
@@ -157,38 +140,20 @@ Required field groups:
   - `canonical_plan_write_allowed`
   - `global_dispatch_allowed`
   - `completion_claim_allowed`
-- `route_runtime_alignment`
-  - `router_selected_skill`
-  - `runtime_selected_skill`
-  - `skill_mismatch`
-  - `confirm_required`
+- `module_handoff`
+  - `status`
+  - `control_owner`
+  - `workflow_level`
+  - `work_units`
+  - `waves`
   - `requested_host_adapter_id`
   - `effective_host_adapter_id`
-- `execution_topology`
-  - `delegation_mode`
-  - `wave_execution`
-  - `step_execution`
-  - `unit_execution`
-  - `review_mode`
-- `specialist_accounting`
-  - `recommendation_count`
-  - `dispatch_unit_count`
-  - `matched_skill_ids`
-  - `surfaced_skill_ids`
-  - `specialist_skills`
-  - `execution_mode`
-  - `effective_execution_status`
-  - `requested_host_adapter_id`
   - `effective_host_adapter_id`
   - `phase_binding_counts`
-  - `promotion_funnel`
+  - `dispatch_funnel`
 
-Optional compatibility fields:
+Optional execution context field:
 - `execution_memory_context_path`
-- `parallelizable_specialist_unit_count`
-- `execution_topology.dispatch_resolution`
-- `execution_topology.two_stage_review`
-- detailed `specialist_accounting` outcome arrays
 
 Promotion funnel fields:
 - `matched`

@@ -14,14 +14,12 @@ Wave123 moves the repository toward a clean boundary:
 
 - `external-corpus/`: external-corpus candidate and routing baseline fixture material
 - `retro-compare/`: safety, sample-run, and smoke retro-compare baseline fixture snapshots
-- `runtime-contract/`: governed runtime packet / execution manifest curated golden fixtures
 - `verify/routing-stability/`: routing-stability baseline fixture snapshots
 
 ## Consumer Ledger
 
 - family-level consumer map: [`consumer-ledger.md`](./consumer-ledger.md)
 - `external-corpus/`, `retro-compare/`, and `verify/routing-stability/` are active canonical fixture roots under `config/outputs-boundary-policy.json`
-- `runtime-contract/` remains active through `tests/runtime_neutral/test_runtime_contract_goldens.py`
 - `anti-proxy-goal-drift/` has been retired from the live fixture surface after the verify-gate family was removed; historical copies now rely on git history rather than tracked live fixture retention
 
 ## Reading rule

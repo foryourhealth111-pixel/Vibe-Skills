@@ -23,7 +23,7 @@ The cleanup program is allowed to simplify structure. It is not allowed to silen
 | Domain | Preserve Mode | Key Surfaces | Proof Command | Rollback Anchor |
 | --- | --- | --- | --- | --- |
 | Pack routing | exact behavior preserve | `scripts/router/resolve-pack-route.ps1`, `config/pack-manifest.json`, `config/router-thresholds.json`, `config/skill-alias-map.json` | `powershell -NoProfile -File scripts/verify/vibe-pack-routing-smoke.ps1` | restore router/config edits |
-| Router contract | exact behavior preserve | routing configs + gate inputs | `powershell -NoProfile -File scripts/verify/vibe-router-contract-gate.ps1` | restore router contract edits |
+| Router compatibility boundary | candidate-audit behavior preserve; no runtime authority | router output shape + current routing debt policy | `powershell -NoProfile -File scripts/verify/vibe-current-routing-debt-gate.ps1` | remove any route-to-binding authority or retired field reintroduction |
 | Packaging contract | exact behavior preserve | `config/version-governance.json`, runtime packaging configs, `scripts/verify/vibe-version-packaging-gate.ps1` | `powershell -NoProfile -File scripts/verify/vibe-version-packaging-gate.ps1` | keep canonical-only repo truth and generated compatibility contract |
 | Compatibility hygiene | exact behavior preserve | no repo-tracked bundled mirror reintroduction | `powershell -NoProfile -File scripts/verify/vibe-mirror-edit-hygiene-gate.ps1` | reject recreated mirror-first edits |
 | Install flow | exact behavior preserve | `install.ps1`, `install.sh` | `powershell -NoProfile -File scripts/verify/vibe-installed-runtime-freshness-gate.ps1` | restore install behavior or re-enable transitional compatibility |

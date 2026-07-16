@@ -20,42 +20,58 @@ def _load_section_headings(path: Path) -> set[str]:
 class GovernedTemplateTests(unittest.TestCase):
     def test_requirement_template_covers_policy_sections_and_artifact_fields(self) -> None:
         policy = json.loads((REPO_ROOT / "config" / "requirement-doc-policy.json").read_text(encoding="utf-8"))
-        headings = _load_section_headings(REPO_ROOT / "templates" / "requirements" / "governed-requirement-template.md")
+        template_path = REPO_ROOT / "templates" / "requirements" / "governed-requirement-template.md"
+        headings = _load_section_headings(template_path)
 
         for section in policy["required_sections"]:
             self.assertIn(section, headings)
 
-        self.assertIn("Artifact Review Requirements", headings)
-        self.assertIn("Code Task TDD Evidence Requirements", headings)
-        self.assertIn("Code Task TDD Exceptions", headings)
-        self.assertIn("Baseline Document Quality Dimensions", headings)
-        self.assertIn("Baseline UI Quality Dimensions", headings)
-        self.assertIn("Task-Specific Acceptance Extensions", headings)
-        self.assertIn("Research Augmentation Sources", headings)
+        for optional_heading in (
+            "Artifact Review Requirements",
+            "Code Task TDD Evidence Requirements",
+            "Code Task TDD Exceptions",
+            "Baseline Document Quality Dimensions",
+            "Baseline UI Quality Dimensions",
+            "Task-Specific Acceptance Extensions",
+            "Research Augmentation Sources",
+        ):
+            self.assertNotIn(optional_heading, headings)
+        self.assertIn(
+            "Task-specific sections are emitted only when the frozen requirement makes them applicable.",
+            template_path.read_text(encoding="utf-8"),
+        )
 
     def test_plan_template_covers_policy_sections_and_artifact_planning_fields(self) -> None:
         policy = json.loads((REPO_ROOT / "config" / "plan-execution-policy.json").read_text(encoding="utf-8"))
-        headings = _load_section_headings(REPO_ROOT / "templates" / "plans" / "governed-execution-plan-template.md")
+        template_path = REPO_ROOT / "templates" / "plans" / "governed-execution-plan-template.md"
+        headings = _load_section_headings(template_path)
 
         for section in policy["required_plan_sections"]:
             self.assertIn(section, headings)
 
-        self.assertIn("Artifact Review Strategy", headings)
-        self.assertIn("Code Task TDD Evidence Plan", headings)
-        self.assertIn("Baseline Document Quality Mapping", headings)
-        self.assertIn("Baseline UI Quality Mapping", headings)
-        self.assertIn("Task-Specific Acceptance Mapping", headings)
-        self.assertIn("Research Augmentation Plan", headings)
+        for optional_heading in (
+            "Artifact Review Strategy",
+            "Code Task TDD Evidence Plan",
+            "Baseline Document Quality Mapping",
+            "Baseline UI Quality Mapping",
+            "Task-Specific Acceptance Mapping",
+            "Research Augmentation Plan",
+        ):
+            self.assertNotIn(optional_heading, headings)
+        self.assertIn(
+            "Task-specific sections are emitted only when the frozen requirement makes them applicable.",
+            template_path.read_text(encoding="utf-8"),
+        )
 
     def test_write_xl_plan_script_emits_artifact_planning_sections(self) -> None:
         script_text = (REPO_ROOT / "scripts" / "runtime" / "Write-XlPlan.ps1").read_text(encoding="utf-8")
 
-        self.assertIn("## Artifact Review Strategy", script_text)
-        self.assertIn("## Code Task TDD Evidence Plan", script_text)
-        self.assertIn("## Baseline Document Quality Mapping", script_text)
-        self.assertIn("## Baseline UI Quality Mapping", script_text)
-        self.assertIn("## Task-Specific Acceptance Mapping", script_text)
-        self.assertIn("## Research Augmentation Plan", script_text)
+        self.assertIn("-Heading 'Artifact Review Strategy'", script_text)
+        self.assertIn("-Heading 'Code Task TDD Evidence Plan'", script_text)
+        self.assertIn("-Heading 'Baseline Document Quality Mapping'", script_text)
+        self.assertIn("-Heading 'Baseline UI Quality Mapping'", script_text)
+        self.assertIn("-Heading 'Task-Specific Acceptance Mapping'", script_text)
+        self.assertIn("-Heading 'Research Augmentation Plan'", script_text)
 
 
     def test_project_delivery_contract_requires_artifact_and_tdd_coverage_fields(self) -> None:
@@ -74,10 +90,3 @@ class GovernedTemplateTests(unittest.TestCase):
 
         version = int(contract.get("version") or 0)
         self.assertTrue(str(contract.get("contract_id") or "").endswith(f"-v{version}"))
-
-    def test_frozen_specialist_decision_requirement_doc_defines_specialist_decision_section(self) -> None:
-        headings = _load_section_headings(
-            REPO_ROOT / "docs" / "requirements" / "2026-04-15-vibe-specialist-decision-fallback.md"
-        )
-
-        self.assertIn("Specialist Decision", headings)

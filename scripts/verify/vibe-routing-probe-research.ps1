@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$OutputDirectory,
     [switch]$DefaultIncludePrompt,
     [switch]$KeepFixtures
@@ -91,7 +91,7 @@ function New-XlsxPlaceholder {
 
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
     # Placeholder content to provide a real .xlsx path signal for router probes.
-    "PK`u0003`u0004PLACEHOLDER-XLSX" | Set-Content -LiteralPath $Path -Encoding UTF8
+    ("PK" + [char]3 + [char]4 + "PLACEHOLDER-XLSX") | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
 function Get-AdviceDigest {
@@ -645,8 +645,8 @@ try {
             route_reason = [string]$route.route_reason
             confidence = [double]$route.confidence
             top1_top2_gap = [double]$route.top1_top2_gap
-            selected_pack = if ($route.selected) { [string]$route.selected.pack_id } else { "none" }
-            selected_skill = if ($route.selected) { [string]$route.selected.skill } else { "none" }
+            selected_pack = if ($route.candidate_focus) { [string]$route.candidate_focus.pack_id } else { "none" }
+            selected_skill = if ($route.candidate_focus) { [string]$route.candidate_focus.skill } else { "none" }
             deep_discovery_trigger_active = [bool]($route.deep_discovery_advice -and $route.deep_discovery_advice.trigger_active)
             deep_discovery_confirm_required = [bool]($route.deep_discovery_advice -and $route.deep_discovery_advice.confirm_required)
             deep_discovery_contract_completeness = if ($route.intent_contract) { [double]$route.intent_contract.completeness } else { 0.0 }
@@ -771,4 +771,3 @@ if (-not $KeepFixtures) {
         Remove-Item -LiteralPath $fixtureDir -Recurse -Force
     }
 }
-

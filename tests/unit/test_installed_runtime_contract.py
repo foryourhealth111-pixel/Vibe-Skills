@@ -19,52 +19,32 @@ def _load_module():
     return module
 
 
-def test_installed_runtime_contract_owns_freshness_defaults() -> None:
+def test_installed_runtime_contract_uses_the_simple_install_receipt() -> None:
     module = _load_module()
-    defaults = module.default_freshness_runtime_config()
+    defaults = module.default_installed_runtime_config()
 
     assert defaults["target_relpath"] == "skills/vibe"
-    assert defaults["receipt_relpath"] == "skills/vibe/outputs/runtime-freshness-receipt.json"
+    assert defaults["receipt_relpath"] == "skills/vibe/.vibeskills/install-receipt.json"
     assert defaults["post_install_gate"] == "scripts/verify/vibe-installed-runtime-freshness-gate.ps1"
+    assert defaults["coherence_gate"] == "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
     assert defaults["frontmatter_gate"] == "scripts/verify/vibe-bom-frontmatter-gate.ps1"
+    assert defaults["neutral_freshness_gate"] == "scripts/verify/runtime_neutral/freshness_gate.py"
     assert defaults["runtime_entrypoint"] == "scripts/runtime/invoke-vibe-runtime.ps1"
-    assert defaults["required_runtime_markers"] == [
-        "SKILL.md",
-        "config/version-governance.json",
-        "scripts/runtime/Invoke-VibeCanonicalEntry.ps1",
-        "scripts/verify/vibe-canonical-entry-truth-gate.ps1",
-        "scripts/router/resolve-pack-route.ps1",
-        "scripts/common/vibe-governance-helpers.ps1",
-    ]
-    assert defaults["require_nested_bundled_root"] is False
     assert defaults["receipt_contract_version"] == 1
+    assert defaults["require_nested_bundled_root"] is False
+    assert "required_runtime_markers" not in defaults
+    assert "shell_degraded_behavior" not in defaults
 
 
-def test_installed_runtime_contract_owns_coherence_defaults_with_fresh_lists_copied() -> None:
-    module = _load_module()
-    defaults = module.default_coherence_runtime_config()
-    defaults["required_runtime_markers"].append("local-only")
-
-    fresh = module.default_coherence_runtime_config()
-    assert fresh["coherence_gate"] == "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
-    assert fresh["frontmatter_gate"] == "scripts/verify/vibe-bom-frontmatter-gate.ps1"
-    assert fresh["runtime_entrypoint"] == "scripts/runtime/invoke-vibe-runtime.ps1"
-    assert fresh["shell_degraded_behavior"] == "warn_and_skip_authoritative_runtime_gate"
-    assert "scripts/verify/vibe-installed-runtime-freshness-gate.ps1" in fresh["required_runtime_markers"]
-    assert "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1" in fresh["required_runtime_markers"]
-    assert "scripts/verify/vibe-canonical-entry-truth-gate.ps1" in fresh["required_runtime_markers"]
-    assert "scripts/runtime/Invoke-VibeCanonicalEntry.ps1" in fresh["required_runtime_markers"]
-    assert "scripts/runtime/invoke-vibe-runtime.ps1" in fresh["required_runtime_markers"]
-    assert "local-only" not in fresh["required_runtime_markers"]
-
-
-def test_merge_installed_runtime_config_overrides_scalar_fields_and_copies_marker_lists() -> None:
+def test_merge_installed_runtime_config_does_not_restore_retired_marker_fields() -> None:
     module = _load_module()
     governance = {
         "runtime": {
             "installed_runtime": {
                 "post_install_gate": "scripts/verify/custom-gate.ps1",
-                "required_runtime_markers": ["custom-marker"],
+                "required_runtime_markers": ["retired-marker"],
+                "required_runtime_marker_groups": {"retired": ["retired-marker"]},
+                "shell_degraded_behavior": "warn_and_skip_authoritative_runtime_gate",
             }
         }
     }
@@ -72,6 +52,7 @@ def test_merge_installed_runtime_config_overrides_scalar_fields_and_copies_marke
     merged = module.merge_installed_runtime_config(governance, module.default_installed_runtime_config())
 
     assert merged["post_install_gate"] == "scripts/verify/custom-gate.ps1"
-    assert merged["frontmatter_gate"] == "scripts/verify/vibe-bom-frontmatter-gate.ps1"
-    assert merged["runtime_entrypoint"] == "scripts/runtime/invoke-vibe-runtime.ps1"
-    assert merged["required_runtime_markers"] == ["custom-marker"]
+    assert merged["receipt_relpath"] == "skills/vibe/.vibeskills/install-receipt.json"
+    assert "required_runtime_markers" not in merged
+    assert "required_runtime_marker_groups" not in merged
+    assert "shell_degraded_behavior" not in merged

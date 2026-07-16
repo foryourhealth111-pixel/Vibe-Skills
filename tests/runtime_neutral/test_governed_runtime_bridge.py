@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests.runtime_neutral.test_l_xl_agent_execution_handoff import run_runtime
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_STAGE_IDS = [
@@ -72,10 +74,10 @@ def selected_skill_ids_from_packet(runtime_input_packet: dict[str, object]) -> l
         selected = routing.get("selected")
         if isinstance(selected, list) and selected:
             return [str(item.get("skill_id") or "") for item in selected if isinstance(item, dict) and str(item.get("skill_id") or "")]
-    work_binding = runtime_input_packet.get("work_binding")
-    if not isinstance(work_binding, dict):
+    module_assignments = runtime_input_packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
         return []
-    units = work_binding.get("units")
+    units = module_assignments.get("units")
     if not isinstance(units, list):
         return []
     return [str(item.get("bound_skill") or "") for item in units if isinstance(item, dict) and str(item.get("bound_skill") or "")]
@@ -86,6 +88,8 @@ UI_TASK = "Build a responsive dashboard UI with clear interaction feedback, mean
 DOC_TASK = "Reformat the project README headings and spacing without changing application code."
 DOC_CODE_TASK = "Implement the markdown export pipeline for the docs renderer and add targeted verification for the parser."
 DOC_DECK_TASK = "Build the release deck slides and refine presentation spacing without changing application code."
+CHINESE_RESEARCH_DOC_TASK = "研究 TRIZ 方法及其适用边界，按用户批准的要求交付中文 Word 综述报告。"
+NON_UI_CODE_DIAGNOSIS_TASK = "Diagnose a failing Python interface contract with TDD and add a regression test."
 RESEARCH_EXECUTION_TASK = (
     "execute governed-plan facial-recognition dataset-download literature-review "
     "few-shot-modeling baseline-training algorithm-enhancement experiment-run gpu-aware latex-paper"
@@ -185,68 +189,10 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             set(config_manifest["role_groups"]["files"]["runtime_governance_files"]),
         )
 
-        required_markers = set(runtime["required_runtime_markers"])
-        self.assertIn("config/plugins-manifest.codex.json", required_markers)
-        self.assertIn("config/runtime-script-manifest.json", required_markers)
-        self.assertIn("config/runtime-config-manifest.json", required_markers)
-        self.assertIn("config/secrets-policy.json", required_markers)
-        self.assertIn("config/tool-registry.json", required_markers)
-        self.assertIn("config/vibe-entry-surfaces.json", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/__init__.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/main.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/errors.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/hosts.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/process.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/workspace.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/commands.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/repo.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/external.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/output.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/skill_surface.py", required_markers)
-        self.assertIn("apps/vgo-cli/src/vgo_cli/core_bridge.py", required_markers)
-        self.assertNotIn("apps/vgo-cli/src/vgo_cli/install_support.py", required_markers)
-        self.assertNotIn("apps/vgo-cli/src/vgo_cli/install_gates.py", required_markers)
-        self.assertNotIn("apps/vgo-cli/src/vgo_cli/installer_bridge.py", required_markers)
-        self.assertIn("packages/contracts/src/vgo_contracts/__init__.py", required_markers)
-        self.assertIn("packages/contracts/src/vgo_contracts/install_ledger.py", required_markers)
-        self.assertIn("packages/installer-core/src/vgo_installer/__init__.py", required_markers)
-        self.assertIn("packages/installer-core/src/vgo_installer/install_runtime.py", required_markers)
-        self.assertIn("packages/installer-core/src/vgo_installer/uninstall_runtime.py", required_markers)
-        self.assertIn("packages/installer-core/src/vgo_installer/ledger_service.py", required_markers)
-        self.assertIn("packages/runtime-core/src/vgo_runtime/runtime_bridge.py", required_markers)
-        self.assertIn("packages/runtime-core/src/vgo_runtime/router_contract_runtime.py", required_markers)
-        self.assertIn("packages/runtime-core/src/vgo_runtime/custom_admission.py", required_markers)
-        self.assertIn("scripts/runtime/VibeRuntime.Common.ps1", required_markers)
-        self.assertIn("scripts/runtime/VibeExecution.Common.ps1", required_markers)
-        self.assertIn("scripts/runtime/VibeMemoryActivation.Common.ps1", required_markers)
-        self.assertIn("scripts/runtime/Freeze-RuntimeInputPacket.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-SkeletonCheck.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-DeepInterview.ps1", required_markers)
-        self.assertIn("scripts/runtime/Write-RequirementDoc.ps1", required_markers)
-        self.assertIn("scripts/runtime/Write-XlPlan.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-VibeCanonicalEntry.ps1", required_markers)
-        self.assertIn("scripts/runtime/invoke-vibe-runtime.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-AntiProxyGoalDriftCompaction.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-DelegatedLaneUnit.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-PlanExecute.ps1", required_markers)
-        self.assertIn("scripts/runtime/Invoke-PhaseCleanup.ps1", required_markers)
-        self.assertIn("scripts/verify/vibe-bootstrap-doctor-gate.ps1", required_markers)
-        self.assertIn("scripts/verify/vibe-canonical-entry-truth-gate.ps1", required_markers)
-        self.assertIn("scripts/verify/vibe-governed-runtime-contract-gate.ps1", required_markers)
-        self.assertIn("config/runtime-contract.json", required_markers)
-        self.assertIn("config/runtime-modes.json", required_markers)
-        self.assertIn("config/runtime-input-packet-policy.json", required_markers)
-        self.assertIn("config/proof-class-registry.json", required_markers)
-        self.assertIn("config/requirement-doc-policy.json", required_markers)
-        self.assertIn("config/plan-execution-policy.json", required_markers)
-        self.assertIn("config/phase-cleanup-policy.json", required_markers)
-
-        execution_policy = json.loads(
-            (REPO_ROOT / "config" / "execution-runtime-policy.json").read_text(encoding="utf-8")
-        )
-        first_unit = execution_policy["profiles"][0]["waves"][0]["units"][0]
-        self.assertEqual("python_command", first_unit["kind"])
-        self.assertEqual("${VGO_PYTHON}", first_unit["command"])
+        self.assertEqual("skills/vibe/.vibeskills/install-receipt.json", runtime["receipt_relpath"])
+        self.assertNotIn("required_runtime_markers", runtime)
+        self.assertNotIn("required_runtime_marker_groups", runtime)
+        self.assertNotIn("shell_degraded_behavior", runtime)
 
         linux_no_pwsh_gate = (REPO_ROOT / "scripts" / "verify" / "vibe-linux-router-no-pwsh-gate.ps1").read_text(
             encoding="utf-8"
@@ -259,7 +205,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             [stage["id"] for stage in contract["stages"]],
         )
 
-    def test_invoke_vibe_runtime_produces_six_stage_closure_under_temp_artifact_root(self) -> None:
+    def test_invoke_vibe_runtime_returns_agent_handoff_under_temp_artifact_root(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
         run_id = "pytest-governed-runtime"
         shell = resolve_powershell()
@@ -270,6 +216,44 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             artifact_root = Path(tempdir)
             target_root = artifact_root / ".agents"
             write_installed_skill(target_root, "systematic-debugging")
+            host_decision_json = json.dumps(
+                {
+                    "agent_skill_organization": {
+                        "schema_version": "agent_skill_organization_v1",
+                        "derived_by": "agent",
+                        "workflow_level": "L",
+                        "modules": [
+                            {
+                                "module_id": "debug_failure",
+                                "goal": "Debug the failing test and stack trace systematically.",
+                                "candidate_skill_ids": ["systematic-debugging"],
+                                "execution_mode": "skill_assigned",
+                                "acceptance_criteria": [
+                                    {
+                                        "criterion_id": "debug-result",
+                                        "description": "The failure diagnosis identifies a verified root cause.",
+                                        "verification_mode": "automated",
+                                    }
+                                ],
+                            }
+                        ],
+                        "selected_skills": [
+                            {
+                                "skill_id": "systematic-debugging",
+                                "module_ids": ["debug_failure"],
+                                "responsibility": "Own the systematic debugging workflow.",
+                                "reason": "Its SKILL.md directly owns failing-test and stack-trace diagnosis.",
+                            }
+                        ],
+                        "uncovered_modules": [],
+                        "workflow_level_contract": {
+                            "L": "Use one bounded serial debugging lane.",
+                            "XL": "Use bounded parallel diagnosis and review lanes.",
+                        },
+                    }
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -283,7 +267,8 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{SPECIALIST_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]
@@ -298,7 +283,6 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 env={
                     **os.environ,
                     "VIBE_AGENTS_HOME": str(target_root),
-                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1",
                 },
             )
 
@@ -351,8 +335,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 "execution_plan_receipt",
                 "execute_receipt",
                 "execution_manifest",
-                "execution_proof_manifest",
-                "cleanup_receipt",
+                "agent_execution_handoff",
             ):
                 self.assertFalse(str(Path(artifacts[key])).lower().startswith(repo_root_text), key)
                 if key in relative_artifacts:
@@ -364,171 +347,97 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             execution_plan_path = resolve_artifact_path("execution_plan")
             execute_receipt_path = resolve_artifact_path("execute_receipt")
             execution_manifest_path = resolve_artifact_path("execution_manifest")
-            execution_proof_path = resolve_artifact_path("execution_proof_manifest")
+            agent_execution_handoff_path = resolve_artifact_path("agent_execution_handoff")
             runtime_input_packet_path = resolve_artifact_path("runtime_input_packet")
             governance_capsule_path = resolve_artifact_path("governance_capsule")
             stage_lineage_path = resolve_artifact_path("stage_lineage")
+            handoff = json.loads(agent_execution_handoff_path.read_text(encoding="utf-8"))
+            module_execution_path = Path(handoff["module_execution_path"])
+            self.assertIsNone(artifacts["module_execution"])
+            self.assertFalse(module_execution_path.exists())
+            self.assertEqual("module_execution_v1", handoff["result_contract"]["schema_version"])
 
             if requirement_doc_path.exists():
                 requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
                 self.assertIn("## Acceptance Criteria", requirement_doc)
                 self.assertIn("## Assumptions", requirement_doc)
-                self.assertIn("## Runtime Input Truth", requirement_doc)
-                self.assertIn("## Skill Execution Decision", requirement_doc)
-                self.assertIn("## Selected Skill", requirement_doc)
-                self.assertIn("## Artifact Review Requirements", requirement_doc)
+                self.assertIn("## Code Task TDD Mode", requirement_doc)
                 self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
                 self.assertIn("- Record failing-first evidence for the changed behavior before implementation or defect correction.", requirement_doc)
-                self.assertIn("## Code Task TDD Exceptions", requirement_doc)
-                self.assertIn("No code-task TDD exceptions were frozen for this run.", requirement_doc)
-                self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
-                self.assertIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
-                self.assertIn("## Baseline UI Quality Dimensions", requirement_doc)
-                self.assertIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
-                self.assertIn("## Task-Specific Acceptance Extensions", requirement_doc)
-                self.assertIn("## Research Augmentation Sources", requirement_doc)
-                self.assertIn("The current work surface records selected skills here", requirement_doc)
+                self.assertNotIn("## Runtime Input Truth", requirement_doc)
+                self.assertNotIn("## Skill Execution Decision", requirement_doc)
+                self.assertNotIn("## Selected Skill", requirement_doc)
+                self.assertNotIn("## Artifact Review Requirements", requirement_doc)
+                self.assertNotIn("## Code Task TDD Exceptions", requirement_doc)
+                self.assertNotIn("## Baseline Document Quality Dimensions", requirement_doc)
+                self.assertNotIn("## Baseline UI Quality Dimensions", requirement_doc)
+                self.assertNotIn("## Task-Specific Acceptance Extensions", requirement_doc)
+                self.assertNotIn("## Research Augmentation Sources", requirement_doc)
+                self.assertNotIn("The current work surface records selected skills here", requirement_doc)
             self.assertEqual("requirements", requirement_doc_path.parent.name)
             self.assertEqual("plans", execution_plan_path.parent.name)
             execution_plan = execution_plan_path.read_text(encoding="utf-8")
-            self.assertIn("## Skill Execution Decision Plan", execution_plan)
+            self.assertIn("## Execution Summary", execution_plan)
+            self.assertIn("## Frozen Inputs", execution_plan)
+            self.assertIn("## Module Work Plan", execution_plan)
             self.assertNotIn("## Specialist Consultation", execution_plan)
-            self.assertIn("## Binary Skill Usage Plan", execution_plan)
-            self.assertIn("## Skill Routing And Usage Evidence", execution_plan)
             self.assertIn("## Code Task TDD Evidence Plan", execution_plan)
-            self.assertIn("## Baseline Document Quality Mapping", execution_plan)
-            self.assertIn("## Baseline UI Quality Mapping", execution_plan)
+            self.assertNotIn("## Skill Execution Decision Plan", execution_plan)
+            self.assertNotIn("## Binary Skill Usage Plan", execution_plan)
+            self.assertNotIn("## Skill Routing And Usage Evidence", execution_plan)
+            self.assertNotIn("## Baseline Document Quality Mapping", execution_plan)
+            self.assertNotIn("## Baseline UI Quality Mapping", execution_plan)
 
             runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
             selected_skill_ids = selected_skill_ids_from_packet(runtime_input_packet)
             candidate_skill_ids = [item["skill_id"] for item in runtime_input_packet["skill_routing"]["candidates"]]
-            bound_skill_ids = [item["bound_skill"] for item in runtime_input_packet["work_binding"]["units"]]
+            bound_skill_ids = [item["bound_skill"] for item in runtime_input_packet["module_assignments"]["units"]]
             governance_capsule = json.loads(governance_capsule_path.read_text(encoding="utf-8"))
             stage_lineage = json.loads(stage_lineage_path.read_text(encoding="utf-8"))
             execute_receipt = json.loads(execute_receipt_path.read_text(encoding="utf-8"))
             execution_manifest = json.loads(execution_manifest_path.read_text(encoding="utf-8"))
-            execution_proof = json.loads(execution_proof_path.read_text(encoding="utf-8"))
+            agent_execution_handoff = json.loads(
+                agent_execution_handoff_path.read_text(encoding="utf-8")
+            )
 
             self.assertEqual("vibe", governance_capsule["runtime_selected_skill"])
             self.assertEqual(summary["run_id"], governance_capsule["run_id"])
-            self.assertEqual(EXPECTED_STAGE_IDS, [item["stage_name"] for item in stage_lineage["stages"]])
+            self.assertEqual(EXPECTED_STAGE_IDS[:-1], [item["stage_name"] for item in stage_lineage["stages"]])
             self.assertEqual("runtime_input_freeze", runtime_input_packet["stage"])
             self.assertEqual("interactive_governed", runtime_input_packet["runtime_mode"])
             self.assertFalse(runtime_input_packet["canonical_router"]["unattended"])
             self.assertEqual("structure", runtime_input_packet["provenance"]["proof_class"])
             self.assertEqual("vibe", runtime_input_packet["authority_flags"]["explicit_runtime_skill"])
+            self.assertEqual("skill_search_guide_v1", runtime_input_packet["skill_search_guide"]["schema_version"])
+            self.assertIn("先拆任务，再拆模块", runtime_input_packet["skill_search_guide"]["search_protocol"])
             self.assertEqual("systematic-debugging", bound_skill_ids[0])
             self.assertEqual(bound_skill_ids, summary["bound_skill_ids"])
             self.assertNotIn("runtime_selected_skill", runtime_input_packet["divergence_shadow"])
-            self.assertTrue(runtime_input_packet["divergence_shadow"]["skill_mismatch"])
-            self.assertNotIn("specialist_recommendations", runtime_input_packet)
+            self.assertNotIn("skill_mismatch", runtime_input_packet["divergence_shadow"])
             self.assertNotIn("stage_assistant_hints", runtime_input_packet)
-            self.assertNotIn("specialist_dispatch", runtime_input_packet)
             self.assertNotIn("legacy_skill_routing", runtime_input_packet)
             self.assertGreaterEqual(len(candidate_skill_ids), 1)
-            self.assertIn("specialist_decision", runtime_input_packet)
             self.assertNotIn("selected", runtime_input_packet["skill_routing"])
             self.assertIn("systematic-debugging", selected_skill_ids)
             self.assertIn("systematic-debugging", bound_skill_ids)
             self.assertIn("systematic-debugging", candidate_skill_ids)
-            self.assertNotEqual("execution-contract-prepared", execute_receipt["status"])
-            self.assertGreaterEqual(execute_receipt["executed_unit_count"], 2)
-            self.assertTrue(Path(execute_receipt["plan_shadow_path"]).exists())
-            self.assertEqual("runtime", execute_receipt["proof_class"])
-            self.assertGreaterEqual(execute_receipt["specialist_recommendation_count"], 1)
-            self.assertGreaterEqual(execute_receipt["skill_execution_unit_count"], 1)
-            self.assertIn("systematic-debugging", execute_receipt["specialist_skills"])
-            self.assertIn("specialist_decision", execute_receipt)
-            self.assertEqual(execute_receipt["executed_unit_count"], execution_manifest["executed_unit_count"])
-            self.assertEqual("completed", execution_manifest["status"])
-            self.assertGreaterEqual(execution_manifest["successful_unit_count"], 2)
-            self.assertEqual(0, execution_manifest["failed_unit_count"])
-            self.assertEqual("runtime", execution_manifest["proof_class"])
-            self.assertTrue(Path(execution_manifest["plan_shadow"]["path"]).exists())
+            self.assertEqual("plan_execute", summary["terminal_stage"])
+            self.assertEqual("agent_action_required", agent_execution_handoff["status"])
+            self.assertEqual("agent", agent_execution_handoff["control_owner"])
             self.assertEqual(
-                bound_skill_ids[0],
-                execution_manifest["route_runtime_alignment"]["router_selected_skill"],
+                ["systematic-debugging"],
+                [unit["skill_id"] for unit in agent_execution_handoff["units"]],
             )
-            self.assertEqual("vibe", execution_manifest["route_runtime_alignment"]["runtime_selected_skill"])
-            self.assertTrue(execution_manifest["route_runtime_alignment"]["skill_mismatch"])
-            self.assertGreaterEqual(execution_manifest["specialist_accounting"]["recommendation_count"], 1)
-            self.assertGreaterEqual(execution_manifest["specialist_accounting"]["skill_execution_unit_count"], 1)
-            self.assertIn("systematic-debugging", execution_manifest["specialist_accounting"]["specialist_skills"])
-            self.assertGreaterEqual(execution_manifest["plan_shadow"]["skill_execution_unit_count"], 1)
-            self.assertIn("specialist_decision", execution_manifest)
-            self.assertIn("specialist_decision", summary)
-
-            specialist_disclosure = execution_manifest["specialist_user_disclosure"]
-            self.assertEqual("selected_skill_execution_only", specialist_disclosure["scope"])
-            self.assertEqual("before_execution", specialist_disclosure["timing"])
-            self.assertEqual("native_skill_entrypoint", specialist_disclosure["path_source"])
-            self.assertGreaterEqual(specialist_disclosure["routed_skill_count"], 1)
-            self.assertEqual(specialist_disclosure["routed_skill_count"], len(specialist_disclosure["routed_skills"]))
-            routed_entry = next(
-                item for item in specialist_disclosure["routed_skills"] if item["skill_id"] == "systematic-debugging"
-            )
-            self.assertTrue(Path(routed_entry["native_skill_entrypoint"]).is_absolute())
-            self.assertTrue(Path(routed_entry["native_skill_entrypoint"]).exists())
-            self.assertIn("systematic-debugging", specialist_disclosure["rendered_text"])
-            self.assertIn(routed_entry["native_skill_entrypoint"], specialist_disclosure["rendered_text"])
-            self.assertEqual(specialist_disclosure, execute_receipt["specialist_user_disclosure"])
-            self.assertEqual(specialist_disclosure, summary["specialist_user_disclosure"])
-            specialist_decision = execution_manifest["specialist_decision"]
-            self.assertEqual("approved_dispatch", specialist_decision["decision_state"])
-            self.assertEqual("approved_dispatch", specialist_decision["resolution_mode"])
+            self.assertFalse(module_execution_path.exists())
             self.assertEqual(
-                selected_skill_ids,
-                specialist_decision["surfaced_skill_ids"],
+                ["owner"],
+                [unit["role"] for unit in agent_execution_handoff["units"]],
             )
-            self.assertIn("systematic-debugging", specialist_decision["surfaced_skill_ids"])
-            self.assertEqual(
-                specialist_decision["approved_dispatch_skill_ids"],
-                execute_receipt["specialist_decision"]["approved_dispatch_skill_ids"],
-            )
-            self.assertEqual(specialist_decision, summary["specialist_decision"])
-
-            self.assertIsNone(summary.get("specialist_consultation"))
-            self.assertIsNone(artifacts.get("discussion_specialist_consultation"))
-            self.assertIsNone(artifacts.get("planning_specialist_consultation"))
-            self.assertIn("specialist_lifecycle_disclosure", artifacts)
-            self.assertIn("host_stage_disclosure", artifacts)
-            lifecycle_disclosure = json.loads(
-                resolve_artifact_path("specialist_lifecycle_disclosure").read_text(encoding="utf-8")
-            )
-            host_stage_disclosure = json.loads(resolve_artifact_path("host_stage_disclosure").read_text(encoding="utf-8"))
-            self.assertEqual("skill_routing_usage_evidence", lifecycle_disclosure["truth_model"])
-            self.assertEqual(
-                ["discussion_routing", "execution_dispatch"],
-                [str(layer["layer_id"]) for layer in list(lifecycle_disclosure["layers"])],
-            )
-            self.assertIn("systematic-debugging", lifecycle_disclosure["rendered_text"])
-            self.assertEqual(lifecycle_disclosure, summary["specialist_lifecycle_disclosure"])
-            self.assertEqual("progressive_host_stage_disclosure", host_stage_disclosure["mode"])
-            self.assertEqual(
-                ["discussion_routing", "execution_dispatch"],
-                [str(event["segment_id"]) for event in list(host_stage_disclosure["events"])],
-            )
-            self.assertEqual([1, 2], [int(event["sequence"]) for event in list(host_stage_disclosure["events"])])
-            self.assertEqual(host_stage_disclosure, summary["host_stage_disclosure"])
-
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
-            self.assertFalse(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_resolved"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["executed_specialists_subset_of_approved_dispatch"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["routed_specialists_subset_of_approved_dispatch"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["local_suggestions_contained"]))
-            self.assertTrue(execution_proof["proof_passed"])
-            self.assertGreaterEqual(execution_proof["executed_unit_count"], 2)
-            self.assertEqual("runtime", execution_proof["proof_class"])
-            self.assertTrue(Path(execution_proof["plan_shadow_path"]).exists())
-            self.assertGreaterEqual(execution_proof["specialist_recommendation_count"], 1)
-            self.assertGreaterEqual(execution_proof["skill_execution_unit_count"], 1)
-            self.assertTrue(bool(execution_proof["dispatch_integrity_proof_passed"]))
-
-            cleanup_receipt = json.loads(resolve_artifact_path("cleanup_receipt").read_text(encoding="utf-8"))
-            self.assertEqual("receipt_only", cleanup_receipt["cleanup_mode"])
-            self.assertEqual("runtime", cleanup_receipt["proof_class"])
-            self.assertFalse(cleanup_receipt["default_bounded_cleanup_applied"])
+            self.assertEqual("agent_action_required", execute_receipt["status"])
+            self.assertEqual("agent_action_required", execution_manifest["status"])
+            self.assertEqual(bound_skill_ids, execution_manifest["module_handoff"]["assigned_skill_ids"])
+            self.assertEqual("agent", execution_manifest["module_handoff"]["control_owner"])
+            self.assertIsNone(artifacts.get("cleanup_receipt"))
 
     def test_invoke_vibe_canonical_entry_writes_receipt_and_passes_truth_gate(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Invoke-VibeCanonicalEntry.ps1"
@@ -556,7 +465,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     "-EntryId",
                     "vibe",
                     "-RequestedStageStop",
-                    "xl_plan",
+                    "requirement_doc",
                     "-RunId",
                     run_id,
                     "-ArtifactRoot",
@@ -568,7 +477,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -582,7 +491,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
             self.assertEqual("canonical-entry", receipt["launch_mode"])
             self.assertEqual("verified", receipt["launch_status"])
-            self.assertEqual("xl_plan", receipt["requested_stage_stop"])
+            self.assertEqual("requirement_doc", receipt["requested_stage_stop"])
             summary = json.loads((session_root / "runtime-summary.json").read_text(encoding="utf-8"))
             self.assertEqual("python", summary["truth_owner"])
             self.assertIsInstance(summary["bound_skill_ids"], list)
@@ -610,6 +519,32 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertIn("[PASS] host-launch-receipt.json exists", gate.stdout)
             self.assertIn("[PASS] host launch receipt launch_status is verified", gate.stdout)
 
+    def test_non_ui_code_diagnosis_does_not_inherit_ui_requirements(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            payload = run_runtime(
+                task=NON_UI_CODE_DIAGNOSIS_TASK,
+                artifact_root=Path(tempdir),
+                governance_scope="root",
+                entry_intent_id="vibe",
+                requested_stage_stop="requirement_doc",
+            )
+            requirement_doc = Path(payload["summary"]["artifacts"]["requirement_doc"]).read_text(encoding="utf-8")
+
+        forbidden_fragments = [
+            "## Baseline UI Quality Dimensions",
+            "Responsive Stability",
+            "Open the primary user-facing flow",
+            "unhappy-path or validation-path interaction",
+        ]
+        leaked_fragments = [fragment for fragment in forbidden_fragments if fragment in requirement_doc]
+
+        self.assertEqual(
+            [],
+            leaked_fragments,
+            "A non-UI code diagnosis/TDD task must not inherit UI or responsive acceptance requirements: "
+            f"{leaked_fragments}",
+        )
+
     def test_invoke_vibe_runtime_freezes_default_ui_baseline_dimensions_for_ui_task(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
         run_id = "pytest-governed-runtime-ui"
@@ -619,6 +554,19 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "baseline_ui_quality_dimensions": [
+                        "Structure Completeness",
+                        "Interaction Feedback",
+                        "State Coverage",
+                        "Design System Consistency",
+                        "Responsive Stability",
+                        "Spec Fidelity",
+                    ],
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -632,7 +580,9 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{UI_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]
@@ -644,7 +594,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -674,6 +624,25 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "baseline_document_quality_dimensions": [
+                        "Structure Integrity",
+                        "Formatting Consistency",
+                        "Content Completeness",
+                        "Link and Reference Integrity",
+                        "Layout and Asset Stability",
+                        "Output Fidelity",
+                    ],
+                    "artifact_review_requirements": [
+                        "Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                        "Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.",
+                        "For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
+                    ],
+                    "code_task_tdd_decision": {"mode": "not_applicable"},
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -687,7 +656,9 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{DOC_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]
@@ -699,7 +670,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -722,8 +693,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 requirement_doc,
             )
             self.assertNotIn("No additional artifact review requirements were frozen for this run.", requirement_doc)
-            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
-            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Code Task TDD Evidence Requirements", requirement_doc)
             self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
             self.assertIn("- Structure Integrity", requirement_doc)
             self.assertIn("- Formatting Consistency", requirement_doc)
@@ -732,8 +702,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertIn("- Layout and Asset Stability", requirement_doc)
             self.assertIn("- Output Fidelity", requirement_doc)
             self.assertNotIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
-            self.assertIn("## Baseline UI Quality Dimensions", requirement_doc)
-            self.assertIn("No baseline UI quality dimensions were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Baseline UI Quality Dimensions", requirement_doc)
 
     def test_invoke_vibe_runtime_keeps_markdown_code_tasks_on_code_tdd_path(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
@@ -749,6 +718,12 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     "decision_kind": "approval_response",
                     "decision_action": "approve_requirement",
                     "approval_decision": "approve",
+                    "baseline_document_quality_dimensions": [],
+                    "artifact_review_requirements": [],
+                    "code_task_tdd_decision": {
+                        "mode": "required",
+                        "reason": "The host explicitly classified this as a code change that requires TDD.",
+                    },
                 },
                 separators=(",", ":"),
             )
@@ -766,6 +741,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
                     f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
                     f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
@@ -778,7 +754,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -787,15 +763,15 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertTrue(requirement_doc_path.exists())
 
             requirement_doc = requirement_doc_path.read_text(encoding="utf-8")
-            self.assertIn("## Artifact Review Requirements", requirement_doc)
-            self.assertIn("No additional artifact review requirements were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Artifact Review Requirements", requirement_doc)
+            self.assertNotIn("No additional artifact review requirements were frozen for this run.", requirement_doc)
+            self.assertIn("## Code Task TDD Mode", requirement_doc)
             self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
             self.assertIn(
                 "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
                 requirement_doc,
             )
-            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
-            self.assertIn("No baseline document quality dimensions were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Baseline Document Quality Dimensions", requirement_doc)
 
     def test_invoke_vibe_runtime_treats_presentation_artifact_tasks_as_non_code_document_work(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
@@ -806,6 +782,25 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "baseline_document_quality_dimensions": [
+                        "Structure Integrity",
+                        "Formatting Consistency",
+                        "Content Completeness",
+                        "Link and Reference Integrity",
+                        "Layout and Asset Stability",
+                        "Output Fidelity",
+                    ],
+                    "artifact_review_requirements": [
+                        "Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                        "Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.",
+                        "For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
+                    ],
+                    "code_task_tdd_decision": {"mode": "not_applicable"},
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -819,7 +814,9 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{DOC_DECK_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]
@@ -831,7 +828,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -845,11 +842,79 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 "- Review the touched document artifact directly against each frozen baseline document quality dimension.",
                 requirement_doc,
             )
-            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
-            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Code Task TDD Evidence Requirements", requirement_doc)
             self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
             self.assertIn("- Structure Integrity", requirement_doc)
             self.assertIn("- Output Fidelity", requirement_doc)
+
+    def test_invoke_vibe_runtime_treats_chinese_word_report_as_document_not_ui(self) -> None:
+        script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+        run_id = "pytest-governed-runtime-chinese-word-report"
+        shell = resolve_powershell()
+        if shell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "baseline_document_quality_dimensions": [
+                        "Structure Integrity",
+                        "Formatting Consistency",
+                        "Content Completeness",
+                        "Link and Reference Integrity",
+                        "Layout and Asset Stability",
+                        "Output Fidelity",
+                    ],
+                    "artifact_review_requirements": [
+                        "Review the touched document artifact directly against each frozen baseline document quality dimension.",
+                        "Open, render, or export the touched document artifact at least once and confirm the touched scope remains intact.",
+                        "For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
+                    ],
+                    "code_task_tdd_decision": {"mode": "not_applicable"},
+                },
+                separators=(",", ":"),
+            )
+            command = [
+                shell,
+                "-NoLogo",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                (
+                    "& { "
+                    f"$result = & '{script_path}' "
+                    f"-Task {_ps_single_quote(CHINESE_RESEARCH_DOC_TASK)} "
+                    "-Mode interactive_governed "
+                    f"-RunId '{run_id}' "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
+                    "$result | ConvertTo-Json -Depth 20 }"
+                ),
+            ]
+            completed = subprocess.run(
+                command,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+                env={**os.environ},
+            )
+
+            payload = json.loads(completed.stdout)
+            relative_artifacts = payload["summary"]["artifacts_relative"]
+            requirement_doc = (artifact_root / Path(relative_artifacts["requirement_doc"])).read_text(
+                encoding="utf-8"
+            )
+
+            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertNotIn("## Baseline UI Quality Dimensions", requirement_doc)
+            self.assertNotIn("## Code Task TDD Mode", requirement_doc)
+            self.assertNotIn("## Code Task TDD Evidence Requirements", requirement_doc)
 
     def test_invoke_vibe_runtime_keeps_research_execution_tasks_off_default_code_tdd_path(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
@@ -860,6 +925,12 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
+            host_decision_json = json.dumps(
+                {
+                    "code_task_tdd_decision": {"mode": "not_applicable"},
+                },
+                separators=(",", ":"),
+            )
             command = [
                 shell,
                 "-NoLogo",
@@ -873,7 +944,9 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                     f"-Task '{RESEARCH_EXECUTION_TASK}' "
                     "-Mode interactive_governed "
                     f"-RunId '{run_id}' "
-                    f"-ArtifactRoot '{artifact_root}'; "
+                    f"-ArtifactRoot '{artifact_root}' "
+                    "-RequestedStageStop requirement_doc "
+                    f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
                     "$result | ConvertTo-Json -Depth 20 }"
                 ),
             ]
@@ -885,7 +958,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 encoding="utf-8",
                 errors="replace",
                 check=True,
-                env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+                env={**os.environ},
             )
 
             payload = json.loads(completed.stdout)
@@ -899,14 +972,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
 
             self.assertEqual("research", runtime_input_packet["route_snapshot"]["task_type"])
-            self.assertIn("## Code Task TDD Evidence Requirements", requirement_doc)
-            self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+            self.assertNotIn("## Code Task TDD Evidence Requirements", requirement_doc)
+            self.assertNotIn("## Code Task TDD Mode", requirement_doc)
             self.assertNotIn(
                 "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
                 requirement_doc,
             )
 
-    def test_write_requirement_doc_preserves_explicit_document_artifact_review_requirements(self) -> None:
+    def test_write_requirement_doc_preserves_explicit_artifact_review_without_adding_document_dimensions(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
         run_id = "pytest-requirement-doc-explicit-artifact-review"
         shell = resolve_powershell()
@@ -992,10 +1065,10 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 "- For formatting-only or layout-only work, confirm content fidelity explicitly before full completion wording is allowed.",
                 requirement_doc,
             )
-            self.assertIn("## Baseline Document Quality Dimensions", requirement_doc)
-            self.assertIn("- Structure Integrity", requirement_doc)
+            self.assertNotIn("## Baseline Document Quality Dimensions", requirement_doc)
+            self.assertNotIn("- Structure Integrity", requirement_doc)
 
-    def test_write_requirement_doc_does_not_require_tdd_for_review_only_bug_audit(self) -> None:
+    def test_write_requirement_doc_uses_only_explicit_code_task_tdd_decision(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
         shell = resolve_powershell()
         if shell is None:
@@ -1003,33 +1076,59 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
         cases = [
             (
-                "pytest-requirement-doc-review-bug-audit",
-                "Review CodeRabbit PR bug comments and audit which findings are real bugs.",
+                "pytest-requirement-doc-code-without-tdd-decision",
+                "Fix bug in parser module and add targeted verification.",
+                None,
                 False,
             ),
             (
-                "pytest-requirement-doc-fix-parser-bug",
+                "pytest-requirement-doc-explicit-code-tdd-decision",
                 "Fix bug in parser module and add targeted verification.",
+                {
+                    "mode": "required",
+                    "source": "host_decision",
+                    "reason": "The host explicitly requires TDD for this code change.",
+                },
                 True,
             ),
         ]
 
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
-            for run_id, task, should_require_tdd in cases:
+            for run_id, task, tdd_decision, should_require_tdd in cases:
+                intent_contract_argument = ""
+                if tdd_decision is not None:
+                    intent_contract = {
+                        "title": "Parser bug correction",
+                        "goal": task,
+                        "deliverable": "Corrected parser behavior with targeted verification.",
+                        "constraints": ["Keep the change scoped to the parser behavior."],
+                        "acceptance_criteria": ["The parser regression is covered by targeted verification."],
+                        "non_goals": ["Do not refactor unrelated modules."],
+                        "autonomy_mode": "interactive_governed",
+                        "assumptions": [],
+                        "code_task_tdd_decision": tdd_decision,
+                    }
+                    intent_contract_path = artifact_root / f"{run_id}-intent-contract.json"
+                    intent_contract_path.write_text(
+                        json.dumps(intent_contract, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                    intent_contract_argument = f"-IntentContractPath '{intent_contract_path}' "
                 command = [
-                shell,
-                "-NoLogo",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                (
+                    shell,
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    (
                         "& { "
                         f"$result = & '{script_path}' "
                         f"-Task {_ps_single_quote(task)} "
                         "-Mode interactive_governed "
                         f"-RunId '{run_id}' "
+                        f"{intent_contract_argument}"
                         f"-ArtifactRoot '{artifact_root}'; "
                         "$result | ConvertTo-Json -Depth 20 }"
                     ),
@@ -1053,14 +1152,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                         requirement_doc,
                     )
                 else:
-                    self.assertIn("TDD mode: not_applicable", requirement_doc)
-                    self.assertIn("No code-task TDD evidence requirements were frozen for this run.", requirement_doc)
+                    self.assertNotIn("## Code Task TDD Mode", requirement_doc)
+                    self.assertNotIn("## Code Task TDD Evidence Requirements", requirement_doc)
                     self.assertNotIn(
                         "- Record failing-first evidence for the changed behavior before implementation or defect correction.",
                         requirement_doc,
                     )
 
-    def test_write_requirement_doc_renders_detailed_workflow_level_confirmation(self) -> None:
+    def test_write_requirement_doc_renders_skill_search_guide_before_workflow_level_confirmation(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
         run_id = "pytest-requirement-doc-workflow-level-details"
         shell = resolve_powershell()
@@ -1097,14 +1196,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 },
                 "level_details": {
                     "L": {
-                        "workflow": "冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。",
-                        "skills": "优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。",
+                        "workflow": "冻结需求与计划后，由一个主流程串行推进 Agent 组织出的方案。",
+                        "skills": "会先按模块搜索本地 skills、阅读候选 `SKILL.md`，再给出较轻量的 L 级组织方案；如需代码改动，再补充 tdd 这类验证 skill。",
                         "why_this_fit": "适合仍然是一个主交付物、并行收益不高的任务。",
                         "confirm_reply": "如果你认可这个流程，请回复：走 L 级。",
                     },
                     "XL": {
-                        "workflow": "冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。",
-                        "skills": "会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。",
+                        "workflow": "冻结需求与计划后，把 Agent 组织出的方案拆成分波次执行，并在依赖安全时做受控并行。",
+                        "skills": "会先按模块组织更完整的 skills 覆盖；若任务确实需要多代理，再进入 subagent-driven-development。",
                         "why_this_fit": "适合多技能协作、多产物或高风险任务。",
                         "confirm_reply": "如果你要更重的分波次流程，请回复：走 XL 级。",
                     },
@@ -1125,7 +1224,7 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 json.dumps(
                     {
                         "governance_scope": "root",
-                        "work_binding": {
+                        "module_assignments": {
                             "unit_count": 0,
                             "status": "no_bound_skills",
                             "units": [],
@@ -1140,12 +1239,6 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                             "task_type": "research",
                             "route_mode": "no_local_candidate",
                             "confirm_required": False,
-                        },
-                        "specialist_decision": {
-                            "decision_state": "no_specialist_recommendations",
-                            "resolution_mode": "no_matching_specialist",
-                            "notes": "No concrete task skills matched this run.",
-                            "selected_skill_ids": [],
                         },
                     },
                     ensure_ascii=False,
@@ -1186,22 +1279,26 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             payload = json.loads(completed.stdout)
             requirement_doc = Path(payload["requirement_doc_path"]).read_text(encoding="utf-8")
 
+            self.assertIn("## Skill Search Guide", requirement_doc)
+            self.assertIn("先拆任务，再拆模块", requirement_doc)
+            self.assertIn("按模块搜索本地 skills", requirement_doc)
+            self.assertIn("阅读候选 `SKILL.md`", requirement_doc)
+            self.assertIn("给出 `L` / `XL` 两套 skills 组织方案", requirement_doc)
+            self.assertIn("明确标出缺口", requirement_doc)
+            self.assertNotIn("Screened task-skill shortlist size", requirement_doc)
+            self.assertNotIn("shortlist", requirement_doc.lower())
+            self.assertNotIn("selected task skills", requirement_doc)
             self.assertIn("## Workflow Level Confirmation", requirement_doc)
-            self.assertIn("Current selected task skills: none yet.", requirement_doc)
-            self.assertIn(
-                "No concrete task skill matched this run yet, so the L / XL explanation below is the default coordination skeleton.",
-                requirement_doc,
-            )
             self.assertIn("Recommendation reason: L keeps the work on one serial governed lane for this scope.", requirement_doc)
             self.assertIn("Why this decision matters: L 和 XL 会直接改变后续协作深度、执行波次和证据压力。", requirement_doc)
-            self.assertIn("L workflow: 冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。", requirement_doc)
-            self.assertIn("L skills: 优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。", requirement_doc)
-            self.assertIn("XL workflow: 冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。", requirement_doc)
-            self.assertIn("XL skills: 会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。", requirement_doc)
+            self.assertIn("L workflow: 冻结需求与计划后，由一个主流程串行推进 Agent 组织出的方案。", requirement_doc)
+            self.assertIn("L skills: 会先按模块搜索本地 skills、阅读候选 `SKILL.md`，再给出较轻量的 L 级组织方案；如需代码改动，再补充 tdd 这类验证 skill。", requirement_doc)
+            self.assertIn("XL workflow: 冻结需求与计划后，把 Agent 组织出的方案拆成分波次执行，并在依赖安全时做受控并行。", requirement_doc)
+            self.assertIn("XL skills: 会先按模块组织更完整的 skills 覆盖；若任务确实需要多代理，再进入 subagent-driven-development。", requirement_doc)
 
-    def test_write_requirement_doc_prefers_skill_selection_ids_for_workflow_level_disclosure(self) -> None:
+    def test_write_requirement_doc_uses_skill_search_guide_from_runtime_packet(self) -> None:
         script_path = REPO_ROOT / "scripts" / "runtime" / "Write-RequirementDoc.ps1"
-        run_id = "pytest-requirement-doc-skill-selection-details"
+        run_id = "pytest-requirement-doc-skill-search-guide"
         shell = resolve_powershell()
         if shell is None:
             self.skipTest("PowerShell executable not available in PATH")
@@ -1236,14 +1333,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 },
                 "level_details": {
                     "L": {
-                        "workflow": "冻结需求与计划后，由一个主流程串行推进已选中的任务 skills。",
-                        "skills": "优先使用已选中的任务 skills；如需代码改动，再补充 tdd 这类验证 skill。",
+                        "workflow": "冻结需求与计划后，由一个主流程串行推进 Agent 组织出的方案。",
+                        "skills": "会先按模块搜索本地 skills、阅读候选 `SKILL.md`，再给出较轻量的 L 级组织方案；如需代码改动，再补充 tdd 这类验证 skill。",
                         "why_this_fit": "适合仍然是一个主交付物、并行收益不高的任务。",
                         "confirm_reply": "如果你认可这个流程，请回复：走 L 级。",
                     },
                     "XL": {
-                        "workflow": "冻结需求与计划后，把任务拆成分波次执行，并在依赖安全时做受控并行。",
-                        "skills": "会先组织已选中的任务 skills；若任务确实需要多代理，再进入 subagent-driven-development。",
+                        "workflow": "冻结需求与计划后，把 Agent 组织出的方案拆成分波次执行，并在依赖安全时做受控并行。",
+                        "skills": "会先按模块组织更完整的 skills 覆盖；若任务确实需要多代理，再进入 subagent-driven-development。",
                         "why_this_fit": "适合多技能协作、多产物或高风险任务。",
                         "confirm_reply": "如果你要更重的分波次流程，请回复：走 XL 级。",
                     },
@@ -1264,59 +1361,10 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                 json.dumps(
                     {
                         "governance_scope": "root",
-                        "work_binding": {
+                        "module_assignments": {
                             "unit_count": 0,
                             "status": "no_bound_skills",
                             "units": [],
-                        },
-                        "skill_selection": {
-                            "schema_version": "skill_selection_v1",
-                            "workflow_level": "L",
-                            "selection_limit": 3,
-                            "primary_skill_id": "research",
-                            "candidate_skill_ids": [
-                                "research",
-                                "humanizer",
-                                "paper-writer",
-                                "statistical-analysis",
-                                "matplotlib",
-                                "pptx-collab-integrated",
-                            ],
-                            "selected_skill_ids": ["research", "humanizer", "paper-writer"],
-                            "rejected_candidate_skill_ids": [],
-                            "workflow_level_schemes": {
-                                "shortlist_skill_ids": [
-                                    "research",
-                                    "humanizer",
-                                    "paper-writer",
-                                    "statistical-analysis",
-                                    "matplotlib",
-                                    "pptx-collab-integrated",
-                                ],
-                                "shortlist_size": 6,
-                                "levels": {
-                                    "L": {
-                                        "workflow_level": "L",
-                                        "selection_limit": 3,
-                                        "primary_skill_id": "research",
-                                        "selected_skill_ids": ["research", "humanizer", "paper-writer"],
-                                        "reason": "L keeps the smallest usable skill set on one serial governed lane.",
-                                    },
-                                    "XL": {
-                                        "workflow_level": "XL",
-                                        "selection_limit": 5,
-                                        "primary_skill_id": "research",
-                                        "selected_skill_ids": [
-                                            "research",
-                                            "humanizer",
-                                            "paper-writer",
-                                            "statistical-analysis",
-                                            "matplotlib",
-                                        ],
-                                        "reason": "XL keeps the broader usable skill set so the plan can open extra bounded lanes after freeze.",
-                                    },
-                                },
-                            },
                         },
                         "hierarchy": {
                             "root_run_id": run_id,
@@ -1329,26 +1377,28 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
                             "route_mode": "candidate_discovery_only",
                             "confirm_required": False,
                         },
-                        "skill_usage": {
-                            "schema_version": 2,
-                            "state_model": "binary_used_unused",
-                            "used": [],
-                            "unused": [],
-                            "used_skills": [],
-                            "unused_skills": [],
-                            "loaded_skills": [
-                                {"skill_id": "research", "skill_md_path": "skills/research/SKILL.md", "skill_md_sha256": "sha-research"},
-                                {"skill_id": "humanizer", "skill_md_path": "skills/humanizer/SKILL.md", "skill_md_sha256": "sha-humanizer"},
-                                {"skill_id": "paper-writer", "skill_md_path": "skills/paper-writer/SKILL.md", "skill_md_sha256": "sha-paper-writer"},
+                        "skill_search_guide": {
+                            "schema_version": "skill_search_guide_v1",
+                            "skill_roots": [
+                                {"kind": "host_local", "path": "C:/Users/demo/.agents/skills"},
+                                {"kind": "repo_bundled", "path": "D:/Documents/vibeskills/Vibe-Skills-main/bundled/skills"},
                             ],
-                            "evidence": [],
-                            "unused_reasons": [],
-                        },
-                        "specialist_decision": {
-                            "decision_state": "no_specialist_recommendations",
-                            "resolution_mode": "no_matching_specialist",
-                            "notes": "Use route candidates for selection and disclosure first.",
-                            "selected_skill_ids": [],
+                            "search_protocol": [
+                                "先拆任务，再拆模块",
+                                "每个模块单独搜索本地 skills",
+                                "先看 skill 名、短描述，再打开候选 `SKILL.md`",
+                            ],
+                            "selection_rules": [
+                                "优先选真 owner，不选只沾边的 helper",
+                                "没有 owner 时要明确标出缺口",
+                            ],
+                            "disclosure_rules": [
+                                "requirement 阶段只公开搜索办法，不公开程序候选排名或预选结果",
+                                "xl_plan 阶段公开模块、候选、最终采用和缺口",
+                            ],
+                            "workflow_level_contract": {
+                                "levels": ["L", "XL"],
+                            },
                         },
                     },
                     ensure_ascii=False,
@@ -1389,23 +1439,19 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             payload = json.loads(completed.stdout)
             requirement_doc = Path(payload["requirement_doc_path"]).read_text(encoding="utf-8")
 
-            self.assertIn("Screened task-skill shortlist size: `6`", requirement_doc)
-            self.assertIn(
-                "The L / XL plans below already choose usable task skills from that shortlist; they do not simply repeat the raw route results.",
-                requirement_doc,
-            )
-            self.assertIn("L selected task skills: `research`, `humanizer`, `paper-writer`", requirement_doc)
-            self.assertIn(
+            self.assertIn("## Skill Search Guide", requirement_doc)
+            self.assertIn("先拆任务，再拆模块", requirement_doc)
+            self.assertIn("按模块搜索本地 skills", requirement_doc)
+            self.assertIn("打开候选 `SKILL.md`", requirement_doc)
+            self.assertIn("明确标出缺口", requirement_doc)
+            self.assertIn("## Workflow Level Confirmation", requirement_doc)
+            self.assertNotIn("Screened task-skill shortlist size: `6`", requirement_doc)
+            self.assertNotIn("L selected task skills: `research`, `humanizer`, `paper-writer`", requirement_doc)
+            self.assertNotIn(
                 "XL selected task skills: `research`, `humanizer`, `paper-writer`, `statistical-analysis`, `matplotlib`",
                 requirement_doc,
             )
-            self.assertIn("- Selected task skills: `research`, `humanizer`, `paper-writer`", requirement_doc)
-            self.assertNotIn("- Bounded work skill:", requirement_doc)
-            self.assertIn("## Skill Usage", requirement_doc)
-            self.assertIn(
-                "- Used skill candidates: `research`, `humanizer`, `paper-writer` are promoted only because full `SKILL.md` load evidence exists and this requirement doc adopts them as workflow authority.",
-                requirement_doc,
-            )
+            self.assertNotIn("## Skill Usage", requirement_doc)
             self.assertIn("Selection prompt: 请根据上面的说明选择并确认这次任务级别。", requirement_doc)
 
     def test_resolve_vgo_python_command_spec_falls_back_to_python3(self) -> None:
@@ -1500,7 +1546,6 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
 
     def test_verification_gates_use_governed_python_helper(self) -> None:
         gate_paths = [
-            REPO_ROOT / "scripts" / "verify" / "vibe-installed-runtime-freshness-gate.ps1",
             REPO_ROOT / "scripts" / "verify" / "vibe-release-install-runtime-coherence-gate.ps1",
             REPO_ROOT / "scripts" / "verify" / "vibe-release-notes-quality-gate.ps1",
             REPO_ROOT / "scripts" / "verify" / "vibe-release-truth-gate.ps1",
@@ -1512,6 +1557,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
             self.assertIn("Get-VgoPythonCommand", content, str(gate_path))
             self.assertIn("prefix_arguments", content, str(gate_path))
             self.assertNotIn("Get-Command python3 -ErrorAction SilentlyContinue", content, str(gate_path))
+
+    def test_installed_freshness_gate_uses_install_receipt_hashes(self) -> None:
+        gate_path = REPO_ROOT / "scripts" / "verify" / "vibe-installed-runtime-freshness-gate.ps1"
+        content = gate_path.read_text(encoding="utf-8")
+
+        self.assertIn(".vibeskills\\install-receipt.json", content)
+        self.assertIn("Get-FileHash", content)
+        self.assertNotIn("runtime_neutral\\freshness_gate.py", content)
 
 
 if __name__ == "__main__":

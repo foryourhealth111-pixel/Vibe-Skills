@@ -1110,7 +1110,6 @@ git checkout -b rollback-to-v0.1.0
 - `references/loop-prevention.md`: **CRITICAL** - Anti-infinite-loop detection and token management
 - `references/session-continuity.md`: **CRITICAL** - Auto-resume and continuous operation across sessions
 - `references/skill-scheduling.md`: **CRITICAL** - Automatic skill discovery, planning, and dispatch
-- `references/mcp-auto-integration.md`: **CRITICAL** - MCP auto-discovery, installation, and human-like computer control
 - `references/github-integration.md`: **NEW** - GitHub integration for remote push, issue tracking, and release automation
 
 ### Implementation Guides
@@ -1119,7 +1118,6 @@ git checkout -b rollback-to-v0.1.0
 - `references/architecture-patterns.md`: Clean Architecture, Hexagonal, DDD
 - `references/multi-language.md`: Language-specific patterns (Python, Node.js, Go, Rust)
 - `references/error-recovery.md`: Detailed error handling strategies
-- `references/mcp-integration.md`: MCP tool usage guide
 - `references/testing-patterns.md`: Unit, integration, E2E testing
 
 ## Plugin 智能发现与自动使用 (ToolSearch Auto-Discovery)
@@ -1134,20 +1132,16 @@ autonomous-builder 在执行任务时，**必须主动使用 ToolSearch** 动态
 ON SESSION START (Step 0 - 在 Step 1 之前执行):
 
 1. 使用 ToolSearch 探测所有可用插件:
-   - ToolSearch("+playwright") → 浏览器自动化工具
    - ToolSearch("+github") → GitHub 操作工具
    - ToolSearch("+serena") → 代码语义分析工具
-   - ToolSearch("context7") → 文档查询工具
    - ToolSearch("getDiagnostics") → IDE 诊断工具
    - ToolSearch("executeCode") → 代码执行工具
 
 2. 构建能力矩阵并存入 .builder/state.json:
    {
      "discovered_plugins": {
-       "playwright": true/false,
        "github_mcp": true/false,
        "serena": true/false,
-       "context7": true/false,
        "ide_diagnostics": true/false,
        "ide_execute": true/false
      },
@@ -1162,13 +1156,12 @@ ON SESSION START (Step 0 - 在 Step 1 之前执行):
 | Builder Step | ToolSearch 查询 | 用途 |
 |-------------|----------------|------|
 | Step 1: Get Context | `ToolSearch("+serena get_symbols_overview")` | 语义级代码结构分析，比 ls/grep 更精确 |
-| Step 2: Start Server | `ToolSearch("+playwright navigate")` | 用 Playwright 代替 Puppeteer 验证服务 |
+| Step 2: Start Server | 项目原生启动命令 | 启动待验证服务 |
 | Step 3: Regression Check | `ToolSearch("getDiagnostics")` | IDE 诊断检查类型错误和 lint 问题 |
-| Step 4: Select Feature | `ToolSearch("context7")` | 查询相关库文档辅助实现决策 |
+| Step 4: Select Feature | 本地依赖信息与官方 primary docs | 查询相关库文档辅助实现决策 |
 | Step 5: Implement | `ToolSearch("+serena find_symbol")` | 精确定位需要修改的代码符号 |
 | Step 5: Implement | `ToolSearch("+serena replace_symbol_body")` | 语义级代码编辑 |
-| Step 6: Browser Test | `ToolSearch("+playwright snapshot")` | 获取页面快照进行 UI 验证 |
-| Step 6: Browser Test | `ToolSearch("+playwright click")` | 模拟用户交互 |
+| Step 6: Browser Test | 项目已有测试命令 | 执行当前项目声明的验证 |
 | Step 7: Update Status | `ToolSearch("+github update_issue")` | 更新 GitHub Issue 状态 |
 | Step 8: Report | `ToolSearch("+github create_or_update_file")` | 直接推送报告到 GitHub |
 | Step 9: Git Push | `ToolSearch("+github push_files")` | 通过 MCP 推送代码 |
@@ -1194,22 +1187,13 @@ DURING FEATURE IMPLEMENTATION:
      → 回退到 Edit 工具
 
 3. 测试阶段:
-   IF playwright 可用:
-     → ToolSearch("+playwright navigate") 打开应用
-     → ToolSearch("+playwright snapshot") 获取页面状态
-     → ToolSearch("+playwright click") 模拟交互
-     → ToolSearch("+playwright browser_evaluate") 执行 JS 验证
-   ELSE IF puppeteer 可用:
-     → 使用 puppeteer MCP 工具
-   ELSE:
-     → 回退到 Bash 执行测试命令
+   → 使用项目已有测试命令和宿主允许的原生工具
+   → 不安装、搜索或启用浏览器 MCP
 
 4. 文档查询阶段:
-   IF context7 可用:
-     → ToolSearch("context7") 查询库文档
-     → 获取最新 API 用法和最佳实践
-   ELSE:
-     → 使用 WebSearch/WebFetch
+   → 先确认本地依赖版本并读取包内文档
+   → 需要外部资料时，只使用官方 primary source 的可用连接器、API 或 CLI
+   → 当前官方资料不可用时，明确说明未核实，不猜测 API 用法
 
 5. 代码质量检查:
    IF ide_diagnostics 可用:

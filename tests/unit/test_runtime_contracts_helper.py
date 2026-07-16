@@ -34,7 +34,7 @@ def test_runtime_contracts_cli_emits_coherence_defaults() -> None:
     )
 
     payload = json.loads(result.stdout)
-    assert "scripts/verify/vibe-installed-runtime-freshness-gate.ps1" in payload["required_runtime_markers"]
-    assert "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1" in payload["required_runtime_markers"]
-    assert "scripts/runtime/invoke-vibe-runtime.ps1" in payload["required_runtime_markers"]
+    assert payload["receipt_relpath"] == "skills/vibe/.vibeskills/install-receipt.json"
     assert payload["coherence_gate"] == "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
+    assert "required_runtime_markers" not in payload
+    assert "shell_degraded_behavior" not in payload

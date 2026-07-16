@@ -49,7 +49,6 @@ $currentRuntimeFiles = @(
 )
 
 $legacyAllowedFiles = @(
-    'scripts/runtime/VibeConsultation.Common.ps1',
     'tests/runtime_neutral/test_active_consultation_simplification.py'
 )
 
@@ -78,8 +77,8 @@ $oldFormatFallbackPatterns = @(
 )
 
 $allowedCurrentExecutionPhrases = @(
-    'derived_from_work_binding',
-    'source = ''work_binding.units[*].bound_skill''',
+    'derived_from_module_assignments',
+    'source = ''module_assignments.units[*].bound_skill''',
     'no_specialist_recommendations'
 )
 

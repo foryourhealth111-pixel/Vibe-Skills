@@ -13,11 +13,13 @@ if str(CLI_SRC) not in sys.path:
     sys.path.insert(0, str(CLI_SRC))
 
 from vgo_cli.install_gates import run_offline_gate, run_runtime_neutral_freshness_gate
+from vgo_cli.errors import CliError
 import vgo_cli.install_gates as install_gates
 
 
-def test_run_runtime_neutral_freshness_gate_returns_none_when_script_missing(tmp_path: Path) -> None:
-    assert run_runtime_neutral_freshness_gate(tmp_path, tmp_path / 'target', 'scripts/verify/runtime_neutral/freshness_gate.py') is None
+def test_run_runtime_neutral_freshness_gate_fails_when_script_missing(tmp_path: Path) -> None:
+    with pytest.raises(CliError, match='Runtime-neutral freshness gate script missing'):
+        run_runtime_neutral_freshness_gate(tmp_path, tmp_path / 'target', 'scripts/verify/runtime_neutral/freshness_gate.py')
 
 
 def test_run_runtime_neutral_freshness_gate_executes_python_gate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -37,7 +39,7 @@ def test_run_runtime_neutral_freshness_gate_executes_python_gate(monkeypatch: py
     result = run_runtime_neutral_freshness_gate(tmp_path, tmp_path / 'target', gate_relpath)
 
     assert result is not None
-    assert recorded['command'] == [sys.executable, str(gate_path), '--target-root', str(tmp_path / 'target'), '--write-receipt']
+    assert recorded['command'] == [sys.executable, str(gate_path), '--target-root', str(tmp_path / 'target')]
 
 
 def test_run_offline_gate_uses_required_skills_audit_seam(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

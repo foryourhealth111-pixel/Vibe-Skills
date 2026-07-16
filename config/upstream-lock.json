@@ -20,7 +20,7 @@
       "decision_class": "admit",
       "admission_scope": "compatibility-and-policy-refresh-only",
       "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
-      "next_action": "Use as reference material only; specialist execution comes from locally installed skills."
+      "next_action": "Use as reference material only; the current Agent executes work under the approved module plan and follows any assigned local SKILL.md."
     },
     {
       "id": "frankbria/ralph-claude-code",
@@ -110,22 +110,7 @@
       "decision_class": "admit",
       "admission_scope": "compatibility-and-methodology-refresh-only",
       "packet_memo": "docs/external-tooling/shipped-local-adaptation-upstream-delta-2026-03-17.md",
-      "next_action": "Keep spec-kit in methodology/reference posture; specialist execution comes from locally installed skills."
-    },
-    {
-      "id": "ruvnet/claude-flow",
-      "upstream_repo": "https://github.com/ruvnet/claude-flow",
-      "upstream_ref": "main",
-      "integration_mode": "upstream-locked",
-      "local_rewrite_required": false,
-      "notes": "Optional external runtime dependency",
-      "disclosure_required": true,
-      "shipped_by_default": false,
-      "distribution_tier": "external-optional",
-      "canonical_slug": "claude-flow",
-      "redistribution_posture": "optional-external-install",
-      "local_retention_allowed": false,
-      "license_spdx": "MIT"
+      "next_action": "Keep spec-kit in methodology/reference posture; the current Agent executes work under the approved module plan and follows any assigned local SKILL.md."
     },
     {
       "id": "medialab/xan",

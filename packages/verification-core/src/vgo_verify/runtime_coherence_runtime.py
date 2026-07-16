@@ -55,20 +55,8 @@ def evaluate_runtime_coherence(repo_root: Path, target_root: Path, runtime: dict
     add_assertion(coherence_gate_path.exists(), "[runtime] coherence gate script exists")
     add_assertion(frontmatter_gate_path.exists(), "[runtime] BOM/frontmatter gate script exists")
     add_assertion(
-        str(runtime["post_install_gate"]) in list(runtime["required_runtime_markers"]),
-        "[runtime] required_runtime_markers includes post-install freshness gate",
-    )
-    add_assertion(
-        str(runtime["coherence_gate"]) in list(runtime["required_runtime_markers"]),
-        "[runtime] required_runtime_markers includes coherence gate",
-    )
-    add_assertion(
         int(runtime["receipt_contract_version"]) >= 1,
         "[runtime] receipt_contract_version is declared and >= 1",
-    )
-    add_assertion(
-        str(runtime["shell_degraded_behavior"]) == "warn_and_skip_authoritative_runtime_gate",
-        "[runtime] shell_degraded_behavior declares warn-and-skip semantics",
     )
 
     add_assertion(version_doc.exists(), "[docs] version-packaging-governance.md exists")
@@ -86,8 +74,8 @@ def evaluate_runtime_coherence(repo_root: Path, target_root: Path, runtime: dict
         "[docs] runtime SOP documents receipt contract",
     )
     add_assertion(
-        content_contains(runtime_doc, "shell degraded behavior"),
-        "[docs] runtime SOP documents shell degraded behavior",
+        content_contains(runtime_doc, "does not require the installed folder to be a full repository mirror"),
+        "[docs] runtime SOP limits freshness to the receipt-owned payload",
     )
 
     ps_wrappers = (
@@ -161,7 +149,6 @@ def evaluate_runtime_coherence(repo_root: Path, target_root: Path, runtime: dict
             "frontmatter_gate": str(runtime["frontmatter_gate"]),
             "neutral_freshness_gate": str(runtime["neutral_freshness_gate"]),
             "receipt_contract_version": int(runtime["receipt_contract_version"]),
-            "shell_degraded_behavior": str(runtime["shell_degraded_behavior"]),
         },
         "summary": {
             "failures": failures,

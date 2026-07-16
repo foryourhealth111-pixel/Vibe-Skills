@@ -14,10 +14,6 @@
       "target": "bundled/skills/spec-kit-vibe-compat"
     },
     {
-      "source": "${CODEX_HOME}/skills/superclaude-framework-compat",
-      "target": "bundled/skills/superclaude-framework-compat"
-    },
-    {
       "source": "${CODEX_HOME}/skills/ralph-loop",
       "target": "bundled/skills/ralph-loop"
     },

@@ -25,7 +25,7 @@
     "execution_plan": "structure",
     "verification_gate": "fixture",
     "execution_manifest": "runtime",
-    "execution_proof_manifest": "runtime",
+    "module_execution": "runtime",
     "cleanup_receipt": "runtime",
     "messy_task_corpus_report": "field",
     "simulated_usability_report": "field",

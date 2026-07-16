@@ -204,9 +204,8 @@ def _build_admitted_candidate(
         "preferred_stages": preferred_stages,
         "dispatch_phase": dispatch_phase,
         "binding_profile": manifest_kind,
-        "lane_policy": "bounded_native_custom_skill",
+        "lane_policy": "agent_module_handoff",
         "parallelizable_in_root_xl": bool(entry.get("parallelizable_in_root_xl", False)),
-        "native_usage_required": True,
         "must_preserve_workflow": True,
         "_route_usable": _route_usable(trigger_mode, requested_canonical, skill_id),
     }
@@ -219,7 +218,6 @@ def _build_admitted_candidate(
         "binding_profile": admitted["binding_profile"],
         "lane_policy": admitted["lane_policy"],
         "parallelizable_in_root_xl": admitted["parallelizable_in_root_xl"],
-        "native_usage_required": admitted["native_usage_required"],
         "must_preserve_workflow": admitted["must_preserve_workflow"],
         "_route_usable": admitted["_route_usable"],
         "skill_md_path": admitted["skill_md_path"],

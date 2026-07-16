@@ -1,11 +1,13 @@
 # Vibe-Governed Project Delivery Acceptance Governance
 
-> Historical / Retired Note: This document may reference older cleanup terminology, but the current work-first truth model is `task_card -> work_plan -> work_binding -> work_results -> verification`. `skill_routing.selected` remains only as an optional compatibility mirror when older readers still expose it.
+The current work truth is `module-work-plan.json -> agent-execution-handoff.json
+-> module-execution.json -> delivery-acceptance-report.json`.
 
 This document defines the stable rule set for judging work completed under `vibe` as a delivered project rather than as a merely well-governed runtime session.
 
-When this page talks about runtime truth, read `work_binding` first. Delivery
-acceptance sits above runtime truth; it does not replace it.
+When this page talks about runtime truth, read the approved module work plan and
+the Agent's returned module results first. Delivery acceptance sits above that
+truth; it does not replace it.
 
 ## Why This Exists
 
@@ -21,7 +23,7 @@ Without a delivery-acceptance layer, the system can over-report success whenever
 - runtime stages completed
 - requirement and plan artifacts exist
 - some tests passed
-- specialist units ran
+- some module results were returned
 - cleanup receipts were emitted
 
 Those signals prove process health.
@@ -40,7 +42,10 @@ Every governed project run must distinguish four truths:
 
 No lower truth may be reported as if it automatically implies a higher one.
 
-Runtime reports may expose additional sub-truths such as specialist disclosure truth, specialist decision truth, code-task TDD evidence truth, and artifact-review truth. These do not replace the four delivery truths; they explain why one of the four truths is passing, degraded, failing, or manual-review-required.
+Runtime reports may expose additional sub-truths such as module assignment and
+result truth, code-task TDD evidence truth, and artifact-review truth. These do
+not replace the four delivery truths; they explain why one of the four truths is
+passing, degraded, failing, or manual-review-required.
 
 ## Mental Model
 
@@ -73,9 +78,12 @@ Proves that:
 
 - the planned work items were actually executed
 - required artifacts and outputs were produced
-- specialist and child-lane work reconciled back into the root-governed task
+- module and child-lane work reconciled back into the root-governed task
 
-For direct current-session specialist dispatch, this reconciliation must include `specialist-execution.json`. If the runtime approved a direct routed specialist unit but the sidecar is missing or incomplete, workflow completion must remain manual-review-required.
+The approved `module-work-plan.json` must produce
+`agent-execution-handoff.json`, and workflow completion must reconcile every
+required work unit from `module-execution.json`. A missing or incomplete result
+keeps workflow completion manual-review-required.
 
 ### Product Acceptance Truth
 
@@ -117,7 +125,7 @@ At minimum, the frozen acceptance contract should identify:
 - functional checklist
 - important edge cases
 - regression expectations
-- specialist-specific validation expectations
+- assigned-Skill domain validation expectations
 - manual spot checks when automation is insufficient
 
 This is now a main-chain rule, not only an external verification convention:
@@ -149,9 +157,10 @@ not:
 
 - “done”
 
-## Specialist Acceptance Rule
+## Skill-Guided Module Acceptance Rule
 
-If a specialist skill meaningfully contributes to project delivery, acceptance must check the output in the specialist's own domain terms.
+If an assigned Skill meaningfully contributes to a module, acceptance must check
+that module's output in the Skill's own domain terms.
 
 Examples:
 
@@ -159,22 +168,29 @@ Examples:
 - scientific analysis must be checked for method/output sanity
 - data-processing work must be checked for functional correctness and regression safety
 
-The system must not flatten all specialist output into a generic “some unit executed” success signal.
+The system must not flatten module results into a generic "some unit completed"
+success signal.
 
-## Specialist Execution Sidecar Rule
+## Module Execution Result Rule
 
-When `phase-execute.json` or runtime disclosure reports direct current-session specialist units, delivery acceptance reads:
+Delivery acceptance reads the approved plan, the Agent handoff, and the returned
+result:
 
-`outputs/runtime/vibe-sessions/<run-id>/specialist-execution.json`
+- `outputs/runtime/vibe-sessions/<run-id>/module-work-plan.json`
+- `outputs/runtime/vibe-sessions/<run-id>/agent-execution-handoff.json`
+- `outputs/runtime/vibe-sessions/<run-id>/module-execution.json`
 
-Allowed unit outcomes are:
+Allowed unit states are:
 
-- `executed`: the host ran the bounded specialist workflow and recorded evidence
-- `degraded`: the host ran a reduced but explicit specialist workflow and recorded why it is not fully green
-- `blocked`: the specialist could not be run, with the blocking reason recorded
-- `not_applicable`: the routed specialist was demonstrably unrelated to the final approved scope
+- `pending`: the Agent has not started the work unit
+- `working`: the Agent has started but not finished the work unit
+- `completed`: the Agent finished the work unit and recorded its result
+- `failed`: the work unit failed, with the failure recorded
+- `blocked`: the work unit could not proceed, with the blocking reason recorded
 
-Only `executed` units count as fully resolved. `degraded`, `blocked`, missing units, and unexplained `not_applicable` units must keep completion wording downgraded until the host refreshes delivery acceptance and the report returns passing.
+Only `completed` units count as resolved. `pending`, `working`, `failed`,
+`blocked`, and missing required units keep completion wording downgraded until
+the Agent returns a complete result and delivery acceptance passes.
 
 The required refresh command is:
 
@@ -209,7 +225,7 @@ Therefore delivery reports must state, in plain terms:
 The acceptance framework should also judge whether the governed system made good choices, including:
 
 - grade selection
-- specialist selection
+- module decomposition and assigned-Skill fit
 - verification depth
 - escalation behavior
 - honesty of completion-language downgrades

@@ -33,7 +33,7 @@ def test_get_installed_runtime_config_merges_defaults_with_governance_overrides(
     payload = get_installed_runtime_config(repo_root)
 
     assert payload['post_install_gate'] == 'scripts/verify/custom-gate.ps1'
-    assert payload['receipt_relpath'] == 'skills/vibe/outputs/runtime-freshness-receipt.json'
+    assert payload['receipt_relpath'] == 'skills/vibe/.vibeskills/install-receipt.json'
     assert payload['frontmatter_gate'] == 'scripts/verify/vibe-bom-frontmatter-gate.ps1'
     assert payload['coherence_gate'] == 'scripts/verify/vibe-release-install-runtime-coherence-gate.ps1'
     assert payload['runtime_entrypoint'] == 'scripts/runtime/invoke-vibe-runtime.ps1'

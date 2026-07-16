@@ -1,4 +1,4 @@
-﻿param(
+param(
     [ValidateSet("shadow", "soft", "strict")]
     [string]$Mode = "shadow",
     [string]$OutputDirectory,
@@ -195,8 +195,8 @@ try {
             task_type = [string]$route.task_type
             route_mode = [string]$route.route_mode
             route_reason = [string]$route.route_reason
-            selected_pack = if ($route.selected) { [string]$route.selected.pack_id } else { "none" }
-            selected_skill = if ($route.selected) { [string]$route.selected.skill } else { "none" }
+            selected_pack = if ($route.candidate_focus) { [string]$route.candidate_focus.pack_id } else { "none" }
+            selected_skill = if ($route.candidate_focus) { [string]$route.candidate_focus.skill } else { "none" }
             deep_trigger_active = [bool]($route.deep_discovery_advice -and $route.deep_discovery_advice.trigger_active)
             deep_trigger_score = if ($route.deep_discovery_advice) { [double]$route.deep_discovery_advice.trigger_score } else { 0.0 }
             contract_completeness = if ($route.intent_contract) { [double]$route.intent_contract.completeness } else { 0.0 }

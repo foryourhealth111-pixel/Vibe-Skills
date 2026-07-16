@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-07-13",
+  "installation": "forbidden",
+  "runtime_recommendation": "forbidden",
+  "applies_to": "mcp_server_ids",
+  "id_match": "exact",
+  "forbidden_mcp_ids": [
+    "chrome",
+    "chrome-devtools",
+    "playwright",
+    "context7",
+    "claude-flow"
+  ],
+  "forbidden_sync_skill_ids": [
+    "superclaude-framework-compat"
+  ],
+  "non_mcp_exclusions": [
+    "ordinary_installation_receipts",
+    "file_integrity_hashes",
+    "host_native_capabilities"
+  ],
+  "reason": "These MCP servers are excluded from VibeSkills installation and runtime guidance, and compatibility Skills carrying that guidance are excluded from local sync."
+}

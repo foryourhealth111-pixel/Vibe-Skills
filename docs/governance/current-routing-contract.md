@@ -1,153 +1,117 @@
-# Current Routing Compatibility Contract
+# Current Skill Discovery Compatibility Contract
 
-Date: 2026-06-24
+Date: 2026-07-10
 
 ## Purpose
 
-This is not the start-here explanation of the system.
+This document explains the remaining route-era compatibility fields after the
+Agent-led skill discovery cutover. It is not the main runtime truth contract.
 
 Read [`current-runtime-field-contract.md`](current-runtime-field-contract.md)
-first when you want to understand what the runtime really treats as truth.
+first. Normal runs should be understandable from the frozen requirement, the
+Agent-confirmed skill organization, the execution plan, work results, and
+verification evidence.
 
-For a normal run, you usually stop there and read the work artifacts.
-You usually do not need this file unless a compatibility reader still exposes
-route-era mirrors beside the work-first kernel.
+## Current Truth Chain
 
-Use this document only for a narrower question:
-
-when route-era compatibility fields are still visible, how do they connect
-bounded skill selection to execution and later usage accounting?
-
-## Position In The System
-
-Main system truth lives here:
+The canonical skill flow is:
 
 ```text
-runtime input truth: work_binding + specialist_decision
-later work-loop truth: task_card -> work_plan -> work_binding -> work_results -> verification
+requirement: skill_search_guide
+plan truth: agent_skill_organization -> module-work-plan.json
+execution truth: module-work-plan.json -> module-execution.json
+acceptance truth: module-execution.json -> delivery-acceptance-report.json
 ```
 
-This document explains only the compatibility and execution follow-on surfaces
-that may still appear beside that work truth.
+`agent_skill_organization` is produced by the Agent after it:
 
-Default reading stop for most runs:
+1. splits the approved task into modules,
+2. searches every declared local skill root per module,
+3. reads each retained candidate's `SKILL.md`,
+4. records selected skills, responsibilities, reasons, and uncovered modules.
 
-```text
-task_card -> work_plan -> work_binding -> work_results -> verification
-```
+The organization must be present before `xl_plan`. Plan approval freezes it for
+`plan_execute` and cleanup. `plan_execute` writes the Agent execution handoff;
+it does not run skills. Later re-entry must not rerun procedural skill selection
+or silently add route candidates.
 
-Only continue into this file when a host receipt, older proof reader, or
-compatibility gate still needs to interpret route-era mirrors.
+## Route Compatibility Role
 
-## Compatibility Follow-On Chain
+The retained router is a compatibility candidate audit. It may expose:
 
-Current readable compatibility and execution chain:
+- candidate skill ids,
+- evidence snippets,
+- scores or ordering,
+- legacy `confirm_required` metadata.
 
-```text
-skill_candidates -> skill_routing.selected -> skill_execution_lock -> selected_skill_execution -> skill_usage.used / skill_usage.unused
-```
+Those fields do not choose task skills, bind work, stop stage progression, or
+prove that work happened. A route candidate becomes assigned work only after
+the Agent has read its `SKILL.md` and included it in a user-approved
+`agent_skill_organization`.
 
-This is not a workflow to follow.
-It is a surviving reader chain that starts only after bounded work truth
-already exists.
-
-This chain may remain visible for older hosts, receipts, and proof readers.
-It is not the main explanation of the work kernel.
-
-`work_binding` stays the bounded-work truth.
-`skill_routing.selected` is a readable compatibility mirror.
-`selected_skill_execution` is an execution-side copy, not material-use proof.
+A route candidate becomes executable only after the Agent performs that review
+and the approved organization assigns it to module work. "Executable" means
+eligible for the Agent handoff; the runtime does not execute the Skill.
 
 ## Operating Rules
 
-1. When `work_binding` exists, read it before any routing mirror.
-2. Routing may list possible skills in `skill_candidates`.
-3. If a selected skill remains visible in `skill_routing.selected`, it should mirror bounded work already preserved by `work_binding`.
-4. Plan approval may preserve selected skills across bounded re-entry through `skill_execution_lock`.
-5. Execution may only treat selected or locked skills as work inputs through `selected_skill_execution`.
-6. Completion may only claim a skill was used through `skill_usage.used` with matching `skill_usage.evidence`.
-
-For compound tasks, split the work into bounded task segments and bind the
-directly relevant skill for each segment. Multiple selected skills are valid
-when the task has multiple bounded segments; they do not create ranks or extra
-states.
+1. Read `agent_skill_organization` before any route-era field.
+2. Require `module_assignments` skill ids to match the organization's selected skill ids.
+3. Treat uncovered modules as explicit gaps; do not fabricate coverage.
+4. Preserve the frozen organization across bounded re-entry after plan approval.
+5. At `plan_execute`, emit `agent-execution-handoff.json` and return control to the Agent.
+6. Accept work only from a complete `module-execution.json` returned through canonical `vibe` re-entry.
+7. Derive Skill use from completed module work; do not maintain a separate usage ledger.
 
 ## Terms
 
 | Term | Meaning |
 | --- | --- |
-| `work_binding` | The first-class bounded-work truth. Read this before routing mirrors. |
-| `candidate` | A skill was considered by routing. This is not a use claim. |
-| `selected` | A skill remains visible through `skill_routing.selected` as a compatibility mirror of bounded selection. This is not a use claim. |
-| `skill_execution_lock` | The approved-plan execution lock that preserves selected specialists across bounded re-entry. It is not a use claim. |
-| `selected_skill_execution` | The selected skill list frozen into execution. This connects bounded selection to actual work, but it is still not a use claim. |
-| `used` | A selected or loaded skill shaped an artifact and appears in `skill_usage.used` with evidence. |
-| `unused` | A selected or loaded skill did not shape an artifact and appears in `skill_usage.unused`. |
-| `evidence` | A stage, artifact reference, and impact summary proving material skill use. |
-| `retired old-format fields` | Old routing, consultation, and dispatch fields are not current inputs, current outputs, or maintained compatibility targets. |
+| `skill_search_guide` | Requirement-stage instructions for Agent-led local skill discovery. |
+| `agent_skill_organization` | Agent-confirmed plan truth for modules, candidates, selected skills, responsibilities, reasons, and gaps. |
+| `module-work-plan.json` | User-approved modules, dependencies, work units, write scopes, roles, and acceptance criteria. |
+| `agent-execution-handoff.json` | Instructions for the current Agent to read assigned `SKILL.md` files and complete the approved module work. |
+| `module-execution.json` | Work-unit and module results returned by the Agent against the approved plan. |
+| `skill_routing.candidates` | Compatibility audit candidates. They are not selected task skills. |
+| `skill_routing.rejected` | The subset of compatibility candidates not selected by the Agent organization. These rows remain audit-only and carry no dispatch, write, or completion authority. |
 
-`skill_execution_lock` exists because bounded re-entry may rerun compatibility
-selection logic. Once a plan is approved, selected specialists become execution
-obligations and must be executed, marked not applicable, deferred, or failed
-before delivery acceptance can pass. The lock does not prove material skill
-use; `skill_usage.used` remains the only material-use truth.
+## Compatibility Fields
 
-## Usage Proof
-
-A skill may be reported as used only when all of these are true:
-
-1. The skill appears in `skill_usage.used`.
-2. The skill has at least one `skill_usage.evidence` record.
-3. The evidence names a concrete stage and artifact impact.
-
-Routing, selection, execution locks, old consultation receipts, and old dispatch
-records are not usage proof.
-
-## Current Output Rules
-
-Current runtime outputs may keep these names as compatibility or execution
-surfaces when needed:
+Current packets may retain these optional audit mirrors for older readers:
 
 ```text
-work_binding
-skill_candidates
-skill_routing.selected
-skill_execution_lock
-selected_skill_execution
-skill_usage.used
-skill_usage.unused
-skill_usage.evidence
+canonical_router
+route_snapshot
+skill_routing.candidates
+skill_routing.rejected
+divergence_shadow
 ```
 
-Main run explanation should still start with work artifacts and work truth,
-not this compatibility chain.
+They remain non-canonical. Readers must not reconstruct task-skill truth from
+scores, rankings, route selection, or confirmation metadata.
 
-## Retired Old-Format Fields
+## Retired Selection Fields
 
-The following old fields are retired. Current runtime code must not use them to
-infer selected skills, material skill use, or current execution ownership:
+Current canonical packets and execution logic must not use these fields as
+skill truth:
 
 ```text
+skill_selection
 legacy_skill_routing
 specialist_recommendations
 specialist_dispatch
 stage_assistant_hints
 discussion_specialist_consultation
 planning_specialist_consultation
-approved_consultation
-consulted_units
-discussion_consultation
-planning_consultation
 ```
 
-When current and retired fields are both present in an old artifact, current
-runtime code should prefer `work_binding`, `skill_execution_lock`, and
-`skill_usage`, and treat routing mirrors as compatibility-only readers.
+Old artifacts may still contain them as historical data. Current readers must
+not use them as fallbacks; current execution follows `agent_skill_organization`,
+`module-work-plan.json`, `agent-execution-handoff.json`, and
+`module-execution.json`.
 
 ## Non-Goals
 
-This contract does not delete old artifacts.
-It only explains how remaining routing compatibility fields should be read
-without taking back authority from the work-first kernel.
-If a normal run cannot be understood without this file, the work-first
-transition is regressing.
+This contract does not delete the local candidate audit or historical artifacts.
+It prevents those surfaces from becoming a second skill selector or a second
+runtime authority.

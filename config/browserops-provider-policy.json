@@ -1,15 +1,14 @@
 {
   "version": 1,
-  "updated": "2026-03-07",
+  "updated": "2026-07-13",
   "enabled": true,
   "plane": "browserops_provider",
   "mode": "shadow",
   "control_plane_owner": "vco",
-  "default_provider": "playwright",
+  "default_provider": "browser-host-native",
   "provider_priority": [
     "api",
-    "playwright",
-    "chrome-devtools",
+    "browser-host-native",
     "turix-cua",
     "browser-use"
   ],
@@ -53,43 +52,32 @@
         "requires_real_browser_session",
         "visual_ui_workflow"
       ],
-      "fallback_provider": "playwright",
+      "fallback_provider": "browser-host-native",
       "confirm_required": false
     },
-    "playwright": {
+    "browser-host-native": {
       "enabled": true,
       "priority": 2,
-      "role": "deterministic_browser_baseline",
+      "role": "host_native_browser_capability",
       "apply_when": [
         "form_fill",
         "page_navigation",
         "dom_extraction",
-        "e2e_flow"
-      ],
-      "avoid_when": [
-        "deep_network_diagnostics"
-      ],
-      "fallback_provider": "chrome-devtools",
-      "confirm_required": false
-    },
-    "chrome-devtools": {
-      "enabled": true,
-      "priority": 3,
-      "role": "diagnostic_browser_provider",
-      "apply_when": [
+        "e2e_flow",
         "network_debug",
         "console_debug",
         "performance_diagnosis"
       ],
       "avoid_when": [
-        "default_business_execution"
+        "visual_ui_workflow",
+        "open_web_navigation"
       ],
-      "fallback_provider": "playwright",
+      "fallback_provider": "api",
       "confirm_required": false
     },
     "turix-cua": {
       "enabled": true,
-      "priority": 4,
+      "priority": 3,
       "role": "visual_computer_use_candidate",
       "position": "candidate_only",
       "apply_when": [
@@ -101,13 +89,13 @@
         "api_call",
         "deterministic_form_fill"
       ],
-      "fallback_provider": "playwright",
+      "fallback_provider": "browser-host-native",
       "confirm_required": true,
       "takeover_forbidden": true
     },
     "browser-use": {
       "enabled": true,
-      "priority": 5,
+      "priority": 4,
       "role": "browser_provider_candidate",
       "position": "candidate_only",
       "apply_when": [
@@ -120,7 +108,7 @@
         "deterministic_form_fill",
         "provider_takeover"
       ],
-      "fallback_provider": "playwright",
+      "fallback_provider": "browser-host-native",
       "confirm_required": true,
       "takeover_forbidden": true,
       "notes": "browser-use 只允许作为 BrowserOps provider candidate，被 VCO 建议后再显式确认；不得被当作新 orchestrator。"
@@ -131,6 +119,7 @@
     "override_pack_selection",
     "take_over_task_decomposition",
     "become_default_execution_owner",
-    "promote_browser_use_to_orchestrator"
+    "promote_browser_use_to_orchestrator",
+    "recommend_forbidden_mcp_server"
   ]
 }

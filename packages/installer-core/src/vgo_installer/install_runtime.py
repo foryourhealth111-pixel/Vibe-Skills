@@ -78,8 +78,7 @@ ledger_state = {
     "managed_json_paths": set(),
     "merged_files": {},
     "template_generated": set(),
-    "specialist_wrapper_paths": [],
-    "bridge_launcher_paths": [],
+    "host_visible_entry_paths": [],
     "runtime_roots": set(),
     "compatibility_roots": set(),
     "sidecar_roots": set(),
@@ -231,22 +230,13 @@ def record_generated_from_template(path: Path) -> None:
     ledger_state["template_generated"].add(str(resolved))
 
 
-def record_specialist_wrapper(path: Path) -> None:
+def record_host_visible_entry(path: Path) -> None:
     try:
         resolved = str(path.resolve())
     except FileNotFoundError:
         resolved = str(path)
-    if resolved not in ledger_state["specialist_wrapper_paths"]:
-        ledger_state["specialist_wrapper_paths"].append(resolved)
-
-
-def record_bridge_launcher(path: Path) -> None:
-    try:
-        resolved = str(path.resolve())
-    except FileNotFoundError:
-        resolved = str(path)
-    if resolved not in ledger_state["bridge_launcher_paths"]:
-        ledger_state["bridge_launcher_paths"].append(resolved)
+    if resolved not in ledger_state["host_visible_entry_paths"]:
+        ledger_state["host_visible_entry_paths"].append(resolved)
 
 
 def record_runtime_root(path: Path | str) -> None:
@@ -330,8 +320,7 @@ def materialization_state_from_ledger_state() -> MaterializationLedgerState:
         managed_json_paths=set(ledger_state["managed_json_paths"]),
         merged_files=dict(ledger_state["merged_files"]),
         generated_from_template_if_absent=set(ledger_state["template_generated"]),
-        specialist_wrapper_paths=list(ledger_state["specialist_wrapper_paths"]),
-        bridge_launcher_paths=list(ledger_state["bridge_launcher_paths"]),
+        host_visible_entry_paths=list(ledger_state["host_visible_entry_paths"]),
         runtime_roots=set(ledger_state["runtime_roots"]),
         compatibility_roots=set(ledger_state["compatibility_roots"]),
         sidecar_roots=set(ledger_state["sidecar_roots"]),
@@ -416,7 +405,7 @@ def _iter_previous_install_owned_wrapper_paths(
 
     resolved_paths: list[Path] = []
     seen: set[Path] = set()
-    for raw_path in previous_install_ledger.get("specialist_wrapper_paths") or []:
+    for raw_path in previous_install_ledger.get("host_visible_entry_paths") or []:
         candidate = _resolve_ledger_path_within_target(target_root, raw_path)
         if candidate is None or candidate in seen:
             continue
@@ -601,7 +590,7 @@ def prune_previously_managed_wrapper_paths(
         (target_root / "skills").resolve(strict=False),
     }
 
-    for raw_path in previous_install_ledger.get("specialist_wrapper_paths") or []:
+    for raw_path in previous_install_ledger.get("host_visible_entry_paths") or []:
         candidate = _resolve_ledger_path_within_target(target_root, raw_path)
         if candidate is None or candidate in current_paths or not candidate.exists():
             continue
@@ -1003,29 +992,29 @@ def main(argv: list[str] | None = None):
     if discoverable_entry_surface:
         entry_surface = load_discoverable_entry_surface(repo_root)
 
-    wrapper_paths = materialize_host_visible_wrappers(
+    host_visible_entry_paths = materialize_host_visible_wrappers(
         repo_root=repo_root,
         target_root=target_root,
         host_id=adapter["id"],
         surface=dict(packaging.get("public_skill_surface") or {}),
     )
-    prune_previously_managed_wrapper_paths(target_root, previous_install_ledger, wrapper_paths)
-    prune_known_legacy_wrapper_paths(target_root, adapter["id"], wrapper_paths, previous_install_ledger)
+    prune_previously_managed_wrapper_paths(target_root, previous_install_ledger, host_visible_entry_paths)
+    prune_known_legacy_wrapper_paths(target_root, adapter["id"], host_visible_entry_paths, previous_install_ledger)
     if entry_surface is not None:
         prune_retired_discoverable_wrapper_paths(
             target_root,
             entry_surface,
-            wrapper_paths,
+            host_visible_entry_paths,
             previous_install_ledger,
         )
-    if discoverable_entry_surface and adapter.get("discoverable_entries") and not wrapper_paths:
+    if discoverable_entry_surface and adapter.get("discoverable_entries") and not host_visible_entry_paths:
         raise SystemExit(
             "Discoverable wrapper projection for "
             f"'{adapter['id']}' produced no host-visible entries."
         )
-    for wrapper_path in wrapper_paths:
-        track_created_path(wrapper_path)
-        record_specialist_wrapper(wrapper_path)
+    for entry_path in host_visible_entry_paths:
+        track_created_path(entry_path)
+        record_host_visible_entry(entry_path)
 
     closure_path, closure = materialize_host_closure(
         repo_root,
@@ -1087,14 +1076,13 @@ def main(argv: list[str] | None = None):
             "host_closure_path": str(closure_path),
             "host_closure_state": closure["host_closure_state"],
             "settings_materialized": closure["settings_materialized"],
+            "host_visible_entry_paths": [str(path.resolve()) for path in host_visible_entry_paths],
             "global_instruction_bootstrap_receipt": (
                 str(global_instruction_bootstrap["receipt_path"])
                 if isinstance(global_instruction_bootstrap, dict) and global_instruction_bootstrap.get("receipt_path")
                 else None
             ),
             "legacy_opencode_config_cleanup": legacy_opencode_config_cleanup,
-            "specialist_wrapper_ready": bool((closure.get("specialist_wrapper") or {}).get("ready", False)),
-            "same_session_specialist_routing": True,
             "require_closed_ready_requested": bool(args.require_closed_ready),
             "require_closed_ready_effective": require_closed_ready_effective,
         }

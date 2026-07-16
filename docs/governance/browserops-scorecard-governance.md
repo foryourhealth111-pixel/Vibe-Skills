@@ -1,6 +1,6 @@
 # BrowserOps Provider Scorecard Governance
 
-Wave67 不直接改 BrowserOps 的 canonical routing，而是补一层 **provider scorecard v2**，把 `api` / `playwright` / `chrome-devtools` / `turix-cua` / `browser-use` 的 route evidence 固定成可审计资产。
+Wave67 不直接改 BrowserOps 的 canonical routing，而是补一层 **provider scorecard v2**，把 `api` / `browser-host-native` / `turix-cua` / `browser-use` 的 route evidence 固定成可审计资产。
 
 ## Scorecard Role
 
@@ -33,6 +33,7 @@ Wave67 固定以下五个维度：
 - `browser-use` 与 `turix-cua` 仍属于 `candidate_soft_only`
 - 所有 candidate provider 都必须带 `fallback_provider`
 - `browser-use` 永远不能脱离 `candidate_only` posture
+- active provider、fallback 与 considered 均不得包含 forbidden MCP id
 
 ## Usage Rule
 
@@ -47,7 +48,7 @@ scorecard 可用于：
 scorecard 不可用于：
 
 - 自动翻转 provider 优先级；
-- 让 `browser-use` 绕过 `playwright` baseline；
+- 让 `browser-use` 绕过 `browser-host-native` baseline；
 - 取消高风险网页动作的 `confirm_required`。
 
 ## Gate Coverage
@@ -56,5 +57,6 @@ scorecard 不可用于：
 
 - governance doc / scorecard config / reference scorecard 同时存在；
 - provider 列表与 canonical BrowserOps policy 一致；
+- provider 列表和 fallback 均排除 forbidden MCP id；
 - `browser-use` 仍是 `candidate_soft_only` 且 `takeover_forbidden = true`；
 - scorecard 文本中显式保留 `route evidence`、`fallback_provider`、`confirm bias` 与 `browser-use` 的治理边界。

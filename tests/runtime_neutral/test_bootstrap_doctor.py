@@ -121,7 +121,6 @@ class BootstrapDoctorTests(unittest.TestCase):
                     "commands_root": str((self.target_root / "commands").resolve()),
                     "commands_materialized": True,
                     "host_closure_state": "closed_ready",
-                    "specialist_wrapper": {"ready": False, "removed": True},
                 },
                 indent=2,
             )
@@ -132,6 +131,7 @@ class BootstrapDoctorTests(unittest.TestCase):
         artifact = self.module.evaluate(self.root, self.target_root)
 
         self.assertEqual(str(shared_runtime_root.resolve()), artifact["host_runtime"]["runtime_root_path"])
+        self.assertNotIn("specialist_wrapper_ready", artifact["host_runtime"])
         self.assertEqual(
             str((shared_runtime_root / "skills" / "vibe" / "SKILL.md").resolve()),
             artifact["host_runtime"]["runtime_skill_entry_path"],

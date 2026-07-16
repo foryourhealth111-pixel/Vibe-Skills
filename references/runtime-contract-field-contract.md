@@ -51,6 +51,9 @@ Optional compatibility nested fields:
 
 ### Execution Manifest
 
+The current authority chain is `module-work-plan.json` ->
+`agent-execution-handoff.json` -> `module-execution.json`.
+
 Required top-level fields:
 
 - `stage`
@@ -60,7 +63,7 @@ Required top-level fields:
 - `internal_grade`
 - `hierarchy`
 - `authority`
-- `route_runtime_alignment`
+- `module_handoff`
 - `status`
 - `proof_class`
 
@@ -72,11 +75,11 @@ Required nested fields:
 - `authority.canonical_plan_write_allowed`
 - `authority.global_dispatch_allowed`
 - `authority.completion_claim_allowed`
-- `route_runtime_alignment.router_selected_skill`
-- `route_runtime_alignment.runtime_selected_skill`
-- `route_runtime_alignment.skill_mismatch`
-- `route_runtime_alignment.requested_host_adapter_id`
-- `route_runtime_alignment.effective_host_adapter_id`
+- `module_handoff.status`
+- `module_handoff.control_owner`
+- `module_handoff.workflow_level`
+- `module_handoff.requested_host_adapter_id`
+- `module_handoff.effective_host_adapter_id`
 
 ### Runtime Summary
 
@@ -128,18 +131,12 @@ These fields remain public and compatibility-preserved, but later waves may cont
   - `specialist_dispatch`
   - `divergence_shadow`
 - execution manifest:
-  - `execution_topology`
-  - `plan_shadow`
-  - `specialist_accounting`
   - `dispatch_integrity`
-  - `waves`
+  - `module_handoff`
   - `execution_memory_context_path`
 - runtime summary:
   - `memory_activation`
   - `delivery_acceptance`
-  - `specialist_user_disclosure`
-  - `specialist_consultation`
-  - `specialist_lifecycle_disclosure`
   - `host_stage_disclosure`
   - `host_user_briefing`
 

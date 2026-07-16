@@ -27,11 +27,11 @@ def resolve_powershell() -> str | None:
 
 
 class CurrentRoutingContractScanTests(unittest.TestCase):
-    def test_scan_script_treats_work_binding_as_only_current_execution_truth_phrase(self) -> None:
+    def test_scan_script_treats_module_assignments_as_only_current_execution_truth_phrase(self) -> None:
         text = SCAN_SCRIPT.read_text(encoding="utf-8")
 
-        self.assertIn("derived_from_work_binding", text)
-        self.assertIn("source = ''work_binding.units[*].bound_skill''", text)
+        self.assertIn("derived_from_module_assignments", text)
+        self.assertIn("source = ''module_assignments.units[*].bound_skill''", text)
         self.assertNotIn("derived_from_skill_routing_selected", text)
         self.assertNotIn("source = ''skill_routing.selected''", text)
 

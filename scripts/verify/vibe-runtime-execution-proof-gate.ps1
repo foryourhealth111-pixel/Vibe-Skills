@@ -39,9 +39,8 @@ $repoRoot = $context.repoRoot
 $results = @()
 
 $requiredFiles = @(
-    'config/execution-runtime-policy.json',
-    'scripts/runtime/Invoke-PlanExecute.ps1',
-    'tests/runtime_neutral/test_governed_runtime_bridge.py'
+    'config/runtime-input-packet-policy.json',
+    'scripts/runtime/Invoke-PlanExecute.ps1'
 )
 
 foreach ($relativePath in $requiredFiles) {
@@ -51,125 +50,182 @@ foreach ($relativePath in $requiredFiles) {
 
 $runId = "execution-proof-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\execution-proof-{0}" -f $runId)
+$hostRoot = Join-Path $artifactRoot '.agents'
+$hostSkillsRoot = Join-Path $hostRoot 'skills'
 $runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeConfig $context.runtimeConfig
-$summary = & $runtimeEntryPath -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode interactive_governed -RunId $runId -ArtifactRoot $artifactRoot
+$originalAgentsHome = $env:VIBE_AGENTS_HOME
+$summary = $null
 
+New-Item -ItemType Directory -Path $hostSkillsRoot -Force | Out-Null
+Copy-Item `
+    -LiteralPath (Join-Path $repoRoot 'bundled\skills\systematic-debugging') `
+    -Destination (Join-Path $hostSkillsRoot 'systematic-debugging') `
+    -Recurse `
+    -Force
+
+$hostDecisionJson = @{
+    agent_skill_organization = [ordered]@{
+        schema_version = 'agent_skill_organization_v1'
+        derived_by = 'agent'
+        workflow_level = 'L'
+        modules = @(
+            [ordered]@{
+                module_id = 'debug_investigation'
+                goal = 'Investigate the failing test and stack trace.'
+                candidate_skill_ids = @('systematic-debugging')
+                execution_mode = 'skill_assigned'
+                acceptance_criteria = @(
+                    [ordered]@{
+                        criterion_id = 'debug-investigation-result'
+                        description = 'The debugging investigation satisfies the approved module goal.'
+                        verification_mode = 'automated'
+                    }
+                )
+            }
+        )
+        selected_skills = @(
+            [ordered]@{
+                skill_id = 'systematic-debugging'
+                module_ids = @('debug_investigation')
+                responsibility = 'Own the approved debugging module.'
+                reason = 'The Agent selected this Skill after reading its SKILL.md.'
+            }
+        )
+        uncovered_modules = @()
+        workflow_level_contract = [ordered]@{
+            L = 'Use one serial governed lane.'
+            XL = 'Use bounded waves for dependency-ready, non-conflicting work.'
+        }
+    }
+} | ConvertTo-Json -Depth 20 -Compress
+
+try {
+    $env:VIBE_AGENTS_HOME = $hostRoot
+    $summary = & $runtimeEntryPath `
+        -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' `
+        -Mode interactive_governed `
+        -RunId $runId `
+        -ArtifactRoot $artifactRoot `
+        -HostDecisionJson $hostDecisionJson
+}
+finally {
+    $env:VIBE_AGENTS_HOME = $originalAgentsHome
+}
+
+$runtimeInputPacketPath = [string]$summary.summary.artifacts.runtime_input_packet
+$moduleWorkPlanPath = [string]$summary.summary.artifacts.module_work_plan
+$agentExecutionHandoffPath = [string]$summary.summary.artifacts.agent_execution_handoff
 $executeReceiptPath = [string]$summary.summary.artifacts.execute_receipt
 $executionManifestPath = [string]$summary.summary.artifacts.execution_manifest
-$proofManifestPath = [string]$summary.summary.artifacts.execution_proof_manifest
-$cleanupReceiptPath = [string]$summary.summary.artifacts.cleanup_receipt
-$runtimeInputPacketPath = [string]$summary.summary.artifacts.runtime_input_packet
+$hostUserBriefingPath = [string]$summary.summary.artifacts.host_user_briefing
 
-foreach ($path in @($runtimeInputPacketPath, $executeReceiptPath, $executionManifestPath, $proofManifestPath, $cleanupReceiptPath)) {
-    Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $path) -Message ("execution artifact exists: {0}" -f ([System.IO.Path]::GetFileName($path))) -Details $path
+foreach ($path in @($runtimeInputPacketPath, $moduleWorkPlanPath, $agentExecutionHandoffPath, $executeReceiptPath, $executionManifestPath, $hostUserBriefingPath)) {
+    Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $path) -Message ("handoff proof artifact exists: {0}" -f ([System.IO.Path]::GetFileName($path))) -Details $path
 }
 
 $runtimeInputPacket = Get-Content -LiteralPath $runtimeInputPacketPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$moduleWorkPlan = Get-Content -LiteralPath $moduleWorkPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$agentExecutionHandoff = Get-Content -LiteralPath $agentExecutionHandoffPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executeReceipt = Get-Content -LiteralPath $executeReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $executionManifest = Get-Content -LiteralPath $executionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$proofManifest = Get-Content -LiteralPath $proofManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$cleanupReceipt = Get-Content -LiteralPath $cleanupReceiptPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$hostUserBriefing = Get-Content -LiteralPath $hostUserBriefingPath -Raw -Encoding UTF8
 
-Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'interactive_governed') -Message 'execution proof summary runs in interactive_governed mode'
-Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.stage -eq 'runtime_input_freeze') -Message 'runtime input packet is frozen before execution'
-Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.runtime_mode -eq 'interactive_governed') -Message 'runtime input packet records interactive_governed mode'
-Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$runtimeInputPacket.canonical_router.unattended) -Message 'interactive_governed keeps router unattended flag disabled'
-Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.provenance.proof_class -eq 'structure') -Message 'runtime input packet carries structure proof class'
-$specialistDecision = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInputPacket.specialist_decision } else { $null }
-$noSpecialistResolved = (
-    $null -ne $specialistDecision -and
-    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
-    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
-    [string]$specialistDecision.decision_state -eq 'no_specialist_recommendations' -and
-    [string]$specialistDecision.resolution_mode -in @('no_matching_specialist', 'no_specialist_needed')
-)
-$degradedSpecialistResolved = (
-    $null -ne $specialistDecision -and
-    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
-    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
-    [string]$specialistDecision.decision_state -eq 'degraded' -and
-    [string]$specialistDecision.resolution_mode -eq 'degraded' -and
-    (
-        (($specialistDecision.PSObject.Properties.Name -contains 'degraded_skill_ids') -and @($specialistDecision.degraded_skill_ids).Count -gt 0) -or
-        (($specialistDecision.PSObject.Properties.Name -contains 'surfaced_skill_ids') -and @($specialistDecision.surfaced_skill_ids).Count -gt 0) -or
-        (($specialistDecision.PSObject.Properties.Name -contains 'recommendation_count') -and [int]$specialistDecision.recommendation_count -gt 0)
-    )
-)
-$noSpecialistResolved = ($noSpecialistResolved -or $degradedSpecialistResolved)
-$legacySkillRouting = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'legacy_skill_routing') { $runtimeInputPacket.legacy_skill_routing } else { $null }
-$specialistRecommendations = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_recommendations') {
-    @($runtimeInputPacket.specialist_recommendations)
-} elseif ($null -ne $legacySkillRouting -and $legacySkillRouting.PSObject.Properties.Name -contains 'specialist_recommendations') {
-    @($legacySkillRouting.specialist_recommendations)
-} else {
-    @()
-}
-$specialistRecommendationIds = @($specialistRecommendations | ForEach-Object { [string]$_.skill_id })
-$selectedSkillMirrorIds = if (
-    $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_routing' -and
-    $null -ne $runtimeInputPacket.skill_routing -and
-    $runtimeInputPacket.skill_routing.PSObject.Properties.Name -contains 'selected'
-) {
-    @($runtimeInputPacket.skill_routing.selected | ForEach-Object { [string]$_.skill_id })
-} else {
-    @()
-}
-$manifestSelectedSkillIds = if ($executionManifest.PSObject.Properties.Name -contains 'selected_skill_ids') {
-    @($executionManifest.selected_skill_ids | ForEach-Object { [string]$_ })
-} else {
-    @()
-}
-$boundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
-$primaryBoundSkill = [string](Get-VibePrimaryBoundSkillId -RuntimeInputPacket $runtimeInputPacket)
-$runtimeAuthoritySkill = [string]$runtimeInputPacket.authority_flags.explicit_runtime_skill
-$intentionalSelectedSkillSplit = (
-    $primaryBoundSkill -ne $runtimeAuthoritySkill -and
-    ((@($boundSkillIds) -contains $primaryBoundSkill) -or (@($selectedSkillMirrorIds) -contains $primaryBoundSkill) -or (@($specialistRecommendationIds) -contains $primaryBoundSkill))
-)
-$intentionalManifestSelectedSkillSplit = (
-    $primaryBoundSkill -ne $runtimeAuthoritySkill -and
-    ((@($manifestSelectedSkillIds) -contains $primaryBoundSkill) -or $intentionalSelectedSkillSplit)
-)
-Add-Assertion -Results ([ref]$results) -Condition (($primaryBoundSkill -eq 'vibe') -or $intentionalSelectedSkillSplit -or $noSpecialistResolved) -Message 'runtime input packet primary bounded skill is vibe or preserved separately from runtime authority'
-Add-Assertion -Results ([ref]$results) -Condition ($runtimeAuthoritySkill -eq 'vibe') -Message 'runtime input packet keeps vibe as runtime authority'
-Add-Assertion -Results ([ref]$results) -Condition ((-not [bool]$runtimeInputPacket.divergence_shadow.skill_mismatch) -or $intentionalSelectedSkillSplit -or $noSpecialistResolved) -Message 'runtime input packet permits router/runtime split only for selected bounded skills'
-Add-Assertion -Results ([ref]$results) -Condition ((@($boundSkillIds).Count -ge 1) -or $noSpecialistResolved) -Message 'runtime input packet work_binding carries selected bounded skills or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ((@($selectedSkillMirrorIds).Count -eq 0) -or ((@($selectedSkillMirrorIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($selectedSkillMirrorIds).Count)) -Message 'runtime input packet keeps compatibility skill mirror subordinate to work_binding'
-Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds).Count -eq 0) -or ((@($specialistRecommendationIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($specialistRecommendationIds).Count)) -Message 'runtime input packet legacy specialist recommendations stay subordinate to work_binding when they remain visible'
-Add-Assertion -Results ([ref]$results) -Condition ((@($boundSkillIds) -contains 'systematic-debugging') -or $noSpecialistResolved) -Message 'runtime input packet carries systematic-debugging in bounded work or records no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -ne 'execution-contract-prepared') -Message 'execute receipt is no longer receipt-only'
-Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'completed') -Message 'execution manifest status is completed' -Details $executionManifest.status
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.executed_unit_count -ge 2) -Message 'runtime execution runs at least two real units' -Details $executionManifest.executed_unit_count
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.failed_unit_count -eq 0) -Message 'runtime execution has zero failed units' -Details $executionManifest.failed_unit_count
-Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.proof_class -eq 'runtime') -Message 'execution manifest carries runtime proof class'
-Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$executeReceipt.plan_shadow_path)) -Message 'plan-derived shadow manifest exists' -Details ([string]$executeReceipt.plan_shadow_path)
-Add-Assertion -Results ([ref]$results) -Condition (([int]$executeReceipt.specialist_recommendation_count -ge 1) -or $noSpecialistResolved) -Message 'execute receipt carries specialist recommendation count or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition (([int]$executeReceipt.skill_execution_unit_count -ge 1) -or $noSpecialistResolved) -Message 'execute receipt carries skill execution unit count or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -or $noSpecialistResolved)) -Message 'execution manifest carries specialist accounting'
-Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.skill_execution_unit_count -ge 1) -or $noSpecialistResolved)) -Message 'execution manifest carries skill execution accounting'
-Add-Assertion -Results ([ref]$results) -Condition ((-not [bool]$executionManifest.route_runtime_alignment.skill_mismatch) -or $intentionalManifestSelectedSkillSplit -or $noSpecialistResolved) -Message 'execution manifest permits router/runtime split only for selected bounded skills'
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'execution manifest skill execution integrity proof passes'
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$proofManifest.proof_passed) -Message 'execution proof manifest marks proof_passed=true'
-Add-Assertion -Results ([ref]$results) -Condition ($proofManifest.proof_class -eq 'runtime') -Message 'execution proof manifest carries runtime proof class'
-Add-Assertion -Results ([ref]$results) -Condition (([int]$proofManifest.specialist_recommendation_count -ge 1) -or $noSpecialistResolved) -Message 'execution proof manifest carries specialist recommendation count or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition (([int]$proofManifest.skill_execution_unit_count -ge 1) -or $noSpecialistResolved) -Message 'execution proof manifest carries skill execution count or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$proofManifest.dispatch_integrity_proof_passed) -Message 'execution proof manifest carries dispatch integrity proof result'
-Add-Assertion -Results ([ref]$results) -Condition ($cleanupReceipt.cleanup_mode -eq 'receipt_only') -Message 'interactive_governed uses receipt-only cleanup defaults here'
-Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$cleanupReceipt.default_bounded_cleanup_applied) -Message 'interactive_governed does not apply bounded cleanup by default'
-Add-Assertion -Results ([ref]$results) -Condition ($cleanupReceipt.proof_class -eq 'runtime') -Message 'cleanup receipt carries runtime proof class'
+$boundSkillIds = @(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $runtimeInputPacket | Sort-Object -Unique)
+$plannedUnitIds = @($moduleWorkPlan.work_units | ForEach-Object { [string]$_.unit_id })
+$handoffUnitIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.unit_id })
+$handoffSkillIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$missingEntrypoints = @($agentExecutionHandoff.units | Where-Object { [string]::IsNullOrWhiteSpace([string]$_.skill_entrypoint) -or -not (Test-Path -LiteralPath ([string]$_.skill_entrypoint) -PathType Leaf) })
+$moduleExecutionPath = [string]$agentExecutionHandoff.module_execution_path
+$resultContract = $agentExecutionHandoff.result_contract
+$submissionTemplate = $resultContract.submission_template
+$actualModuleWorkPlanDigest = (Get-FileHash -LiteralPath $moduleWorkPlanPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$resultContractUnitIds = @($resultContract.units | ForEach-Object { [string]$_.unit_id })
+$plannedUnitBindings = @($moduleWorkPlan.work_units | Select-Object unit_id, module_id, skill_id, role)
+$handoffUnitBindings = @($agentExecutionHandoff.units | Select-Object unit_id, module_id, skill_id, role)
+$resultContractUnitBindings = @($resultContract.units | Select-Object unit_id, module_id, skill_id, role)
+$submissionTemplateUnitBindings = @($submissionTemplate.units | Select-Object unit_id, module_id, skill_id, role)
+$plannedUnitBindingsJson = ConvertTo-Json -InputObject $plannedUnitBindings -Depth 10 -Compress
+$handoffUnitBindingsJson = ConvertTo-Json -InputObject $handoffUnitBindings -Depth 10 -Compress
+$resultContractUnitBindingsJson = ConvertTo-Json -InputObject $resultContractUnitBindings -Depth 10 -Compress
+$submissionTemplateUnitBindingsJson = ConvertTo-Json -InputObject $submissionTemplateUnitBindings -Depth 10 -Compress
+$plannedModules = @($moduleWorkPlan.modules | Select-Object module_id, required, execution_mode, gap_reason, acceptance_criteria)
+$resultContractModules = @($resultContract.modules | Select-Object module_id, required, execution_mode, gap_reason, acceptance_criteria)
+$submissionTemplateModules = @($submissionTemplate.modules | Select-Object module_id, required, execution_mode, gap_reason)
+$plannedModulesJson = ConvertTo-Json -InputObject $plannedModules -Depth 20 -Compress
+$resultContractModulesJson = ConvertTo-Json -InputObject $resultContractModules -Depth 20 -Compress
+$submissionTemplateModulesJson = ConvertTo-Json -InputObject $submissionTemplateModules -Depth 20 -Compress
+$plannedModuleBindingsJson = ConvertTo-Json -InputObject @($moduleWorkPlan.modules | Select-Object module_id, required, execution_mode, gap_reason) -Depth 10 -Compress
 
-foreach ($resultPath in @($proofManifest.result_paths)) {
-    Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath $resultPath) -Message ("result receipt exists: {0}" -f ([System.IO.Path]::GetFileName($resultPath))) -Details $resultPath
-    if (-not (Test-Path -LiteralPath $resultPath)) {
-        continue
-    }
-
-    $result = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    Add-Assertion -Results ([ref]$results) -Condition ($result.status -eq 'completed') -Message ("unit completed: {0}" -f [string]$result.unit_id) -Details $result.status
-    Add-Assertion -Results ([ref]$results) -Condition ([int]$result.exit_code -eq 0) -Message ("unit exit code is zero: {0}" -f [string]$result.unit_id) -Details $result.exit_code
-    Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$result.stdout_path)) -Message ("stdout log exists: {0}" -f [string]$result.unit_id) -Details ([string]$result.stdout_path)
-    Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$result.stderr_path)) -Message ("stderr log exists: {0}" -f [string]$result.unit_id) -Details ([string]$result.stderr_path)
-}
+Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'interactive_governed') -Message 'handoff proof summary runs in interactive_governed mode'
+Add-Assertion -Results ([ref]$results) -Condition ($summary.summary.terminal_stage -eq 'plan_execute') -Message 'handoff proof stops at plan_execute for Agent action'
+Add-Assertion -Results ([ref]$results) -Condition ($null -eq $summary.summary.artifacts.cleanup_receipt) -Message 'handoff proof does not enter phase cleanup early'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-logs'))) -Message 'handoff proof creates no kernel execution logs'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-results'))) -Message 'handoff proof creates no kernel execution results'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-proof'))) -Message 'handoff proof creates no kernel execution proof directory'
+Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.stage -eq 'runtime_input_freeze') -Message 'runtime input packet is frozen before Agent work'
+Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'runtime input packet keeps vibe as runtime authority'
+Add-Assertion -Results ([ref]$results) -Condition (($boundSkillIds -join '|') -ceq ($handoffSkillIds -join '|')) -Message 'Agent handoff preserves the approved module Skill organization'
+Add-Assertion -Results ([ref]$results) -Condition ($moduleWorkPlan.schema_version -eq 'module_work_plan_v1') -Message 'module-work-plan.json is the approved work authority'
+Add-Assertion -Results ([ref]$results) -Condition (($plannedUnitIds -join '|') -ceq ($handoffUnitIds -join '|')) -Message 'agent-execution-handoff.json follows every approved work unit'
+Add-Assertion -Results ([ref]$results) -Condition ($agentExecutionHandoff.status -eq 'agent_action_required' -and $agentExecutionHandoff.control_owner -eq 'agent') -Message 'Agent execution handoff transfers control to the current Agent'
+Add-Assertion -Results ([ref]$results) -Condition ($missingEntrypoints.Count -eq 0) -Message 'every assigned Skill handoff names an existing SKILL.md'
+Add-Assertion -Results ([ref]$results) -Condition ([System.IO.Path]::GetFileName($moduleExecutionPath) -eq 'module-execution.json') -Message 'handoff names module-execution.json as the Agent result'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContract.schema_version -ceq 'module_execution_v1') -Message 'result_contract freezes the module_execution_v1 submission schema'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $resultContract.source_run_id -ceq $runId -and
+    $resultContract.source_run_id -ceq [string]$moduleWorkPlan.source_run_id -and
+    $resultContract.source_run_id -ceq [string]$agentExecutionHandoff.source_run_id
+) -Message 'result_contract binds the source run'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContract.module_work_plan_digest -ceq $actualModuleWorkPlanDigest) -Message 'result_contract binds the actual module-work-plan.json SHA256 digest'
+Add-Assertion -Results ([ref]$results) -Condition ((@($resultContract.terminal_states) -join '|') -ceq 'completed|failed|blocked') -Message 'result_contract allows terminal results only'
+Add-Assertion -Results ([ref]$results) -Condition ((@($resultContract.criterion_terminal_states) -join '|') -ceq 'passing|failing|blocked') -Message 'result_contract defines exact criterion terminal states'
+Add-Assertion -Results ([ref]$results) -Condition ((@($resultContract.criterion_result_required_fields) -join '|') -ceq 'criterion_id|state') -Message 'result_contract defines criterion result fields'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $resultContract.PSObject.Properties.Name -contains 'tdd_evidence' -and
+    @($resultContract.tdd_evidence.required_code_task_tdd_evidence_requirements).Count -gt 0 -and
+    (@($resultContract.tdd_evidence.terminal_states) -join '|') -ceq 'passing|failing|blocked'
+) -Message 'code-task result_contract freezes inline TDD evidence requirements'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $submissionTemplate.schema_version -ceq 'module_execution_v1' -and
+    $submissionTemplate.source_run_id -ceq $runId -and
+    $submissionTemplate.module_work_plan_digest -ceq $actualModuleWorkPlanDigest
+) -Message 'result_contract submission_template is bound to the same run and plan'
+Add-Assertion -Results ([ref]$results) -Condition (
+    ($resultContractUnitIds -join '|') -ceq ($plannedUnitIds -join '|') -and
+    ($resultContractUnitIds -join '|') -ceq ($handoffUnitIds -join '|')
+) -Message 'result_contract unit ids match the plan and handoff'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $resultContractUnitBindingsJson -ceq $plannedUnitBindingsJson -and
+    $resultContractUnitBindingsJson -ceq $handoffUnitBindingsJson -and
+    $submissionTemplateUnitBindingsJson -ceq $plannedUnitBindingsJson
+) -Message 'result_contract preserves every unit role, module, and Skill binding'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContractModulesJson -ceq $plannedModulesJson) -Message 'result_contract modules match the approved plan'
+Add-Assertion -Results ([ref]$results) -Condition ($submissionTemplateModulesJson -ceq $plannedModuleBindingsJson) -Message 'submission_template preserves every module binding'
+Add-Assertion -Results ([ref]$results) -Condition (
+    @($resultContract.units | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0 -and
+    @($resultContract.modules | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0
+) -Message 'result_contract contains no prewritten execution results'
+Add-Assertion -Results ([ref]$results) -Condition (
+    @($submissionTemplate.units | Where-Object { $null -ne $_.state }).Count -eq 0 -and
+    @($submissionTemplate.modules | Where-Object { $null -ne $_.state }).Count -eq 0 -and
+    @($submissionTemplate.modules | ForEach-Object { @($_.criterion_results) } | Where-Object { $null -ne $_.state }).Count -eq 0 -and
+    $null -eq $submissionTemplate.tdd_evidence.state
+) -Message 'submission_template contains fillable placeholders, not prewritten results'
+Add-Assertion -Results ([ref]$results) -Condition ($hostUserBriefing.Contains('Use `result_contract` from `agent-execution-handoff.json`')) -Message 'user briefing points the Agent to result_contract'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $hostUserBriefing.Contains('same `module-execution.json`') -and
+    $hostUserBriefing.Contains('do not create a separate `tdd-evidence.json`')
+) -Message 'user briefing keeps code-task TDD evidence in module-execution.json'
+Add-Assertion -Results ([ref]$results) -Condition ($null -eq $summary.summary.artifacts.module_execution) -Message 'plan_execute does not publish Agent module results before re-entry'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath $moduleExecutionPath)) -Message 'plan_execute leaves module-execution.json for the Agent to write'
+Add-Assertion -Results ([ref]$results) -Condition (
+    @($agentExecutionHandoff.units | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0
+) -Message 'Agent handoff contains work instructions, not prewritten result states'
+Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -eq 'agent_action_required') -Message 'execute receipt records Agent action required'
+Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'agent_action_required') -Message 'execution manifest records Agent action required'
+Add-Assertion -Results ([ref]$results) -Condition (-not ($executionManifest.PSObject.Properties.Name -contains 'plan_shadow')) -Message 'execution manifest omits retired plan shadow'
+Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.module_handoff.status -eq 'agent_action_required' -and $executionManifest.module_handoff.control_owner -eq 'agent') -Message 'module_handoff records Agent control'
+Add-Assertion -Results ([ref]$results) -Condition (($executionManifest.module_handoff.assigned_skill_ids -join '|') -ceq ($handoffSkillIds -join '|')) -Message 'module_handoff matches agent-execution-handoff.json'
 
 $failureCount = @($results | Where-Object { -not $_.passed }).Count
 $gatePassed = ($failureCount -eq 0)

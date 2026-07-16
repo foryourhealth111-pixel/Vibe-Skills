@@ -24,11 +24,11 @@ Rules of thumb:
 
 ### Step 2: Minimal Proof Before You Open a PR
 
-Run the router smoke + router contract gates.
+Run the router candidate-audit smoke and retired-routing debt checks.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-pack-routing-smoke.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-contract-gate.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-current-routing-debt-gate.ps1
 ```
 
 ### Step 3: If You Touched Governance Entry Or Family Indexing
@@ -53,4 +53,3 @@ If you must touch a frozen zone, require:
 - a written reason (what contract is broken)
 - a replayable proof (which gate detects it)
 - a rollback plan
-

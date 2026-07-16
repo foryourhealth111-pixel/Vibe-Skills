@@ -4,6 +4,7 @@ import argparse
 import copy
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path, PureWindowsPath
@@ -38,7 +39,11 @@ from vgo_runtime.kernel.loop import run_local_kernel
 from vgo_runtime.powershell_bridge import run_powershell_json_command
 from vgo_runtime.runtime_support import resolve_host_id
 from vgo_runtime.runtime_truth import build_runtime_truth_packet, build_runtime_truth_packet_from_payload
-from vgo_runtime.runtime_summary import build_runtime_summary, build_runtime_summary_from_payload
+from vgo_runtime.runtime_summary import (
+    build_runtime_summary,
+    build_runtime_summary_from_payload,
+    refresh_runtime_summary_acceptance,
+)
 from vgo_runtime.stage_stop import (
     extract_terminal_stage as extract_shared_terminal_stage,
     resolve_progressive_stage_stop_source,
@@ -57,8 +62,7 @@ MINIMUM_TRUTH_ARTIFACTS = {
     "stage_lineage": "stage-lineage.json",
 }
 REQUIRED_TRUTH_PACKET_FIELDS = (
-    "work_binding",
-    "specialist_decision",
+    "module_assignments",
 )
 STRUCTURED_REENTRY_APPROVAL_ACTIONS: dict[str, frozenset[str]] = {
     "requirement_doc": frozenset(
@@ -489,6 +493,11 @@ def _inherit_frozen_host_decision_fields_from_bounded_reentry(
 
     effective_decision = copy.deepcopy(decision) if decision else {}
 
+    if effective_decision.get("code_task_tdd_decision") is None:
+        prior_tdd_decision = runtime_packet.get("code_task_tdd_decision")
+        if isinstance(prior_tdd_decision, dict):
+            effective_decision["code_task_tdd_decision"] = copy.deepcopy(prior_tdd_decision)
+
     if effective_decision.get("phase_decomposition") is None:
         prior_phase_decomposition = None
         prior_host_decision = runtime_packet.get("host_decision")
@@ -592,14 +601,18 @@ def _resolve_local_kernel_stage_stop_summary(
     *,
     entry_id: str,
     requested_stage_stop: str | None,
+    has_agent_skill_organization: bool,
 ) -> tuple[str, str, str | None]:
     surface = load_discoverable_entry_surface(Path(__file__))
     discoverable_entry = surface.entry_by_id.get(entry_id)
     if discoverable_entry is None:
         raise RuntimeError(f"discoverable entry surface missing entry: {entry_id}")
+    if not has_agent_skill_organization and requested_stage_stop in {"xl_plan", "plan_execute", "phase_cleanup"}:
+        raise RuntimeError(f"agent_skill_organization is required before {requested_stage_stop}")
+    default_stage_stop = discoverable_entry.requested_stage_stop if has_agent_skill_organization else "requirement_doc"
     stage_stop = resolve_stage_stop(
         requested_stage_stop,
-        discoverable_entry.requested_stage_stop,
+        default_stage_stop,
         default_source="entry_surface_default",
     )
     return (
@@ -615,7 +628,7 @@ def _build_normal_reading_path(artifacts: dict[str, Any]) -> dict[str, Any]:
     artifact_paths = {
         "task_card": artifacts.get("task_card"),
         "work_plan": artifacts.get("work_plan"),
-        "work_binding": artifacts.get("work_binding"),
+        "module_assignments": artifacts.get("module_assignments"),
         "work_results": artifacts.get("work_results"),
         "verification": artifacts.get("verification"),
         "proof": proof_artifact_path,
@@ -626,7 +639,7 @@ def _build_normal_reading_path(artifacts: dict[str, Any]) -> dict[str, Any]:
         "reading_order": [
             "task_card",
             "work_plan",
-            "work_binding",
+            "module_assignments",
             "work_results",
             "verification",
             "proof",
@@ -763,20 +776,12 @@ def _build_structured_continuation_prompt(
         if prior_task:
             segments.append(prior_task)
 
-    deliverable = str(continuation.get("intent_deliverable") or "").strip()
-    if deliverable and deliverable.lower() != "unknown":
-        segments.append(f"Deliverable: {deliverable}.")
-
-    constraints = _normalize_text_list(continuation.get("intent_constraints"))
-    if constraints:
-        segments.append(f"Constraints: {'; '.join(constraints)}.")
-
     revision_delta = _normalize_text_list(continuation.get("revision_delta"))
     if revision_delta:
         segments.append(f"Revision delta: {'; '.join(revision_delta)}.")
 
     delta = str(prompt_text or "").strip()
-    if delta and not _is_control_only_structured_reentry_prompt(delta):
+    if delta and not revision_delta and not _is_control_only_structured_reentry_prompt(delta):
         segments.append(f"Update: {delta}")
 
     return " ".join(segment for segment in segments if segment).strip() or delta
@@ -1357,15 +1362,35 @@ def _new_run_id() -> str:
     return f"{timestamp}-{suffix}"
 
 
+def _resolve_path(base_root: Path, value: str | Path) -> Path:
+    path = Path(str(value)).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (base_root / path).resolve()
+
+
 def _resolve_artifact_root(repo_root: Path, artifact_root: str | Path | None) -> Path:
     """Resolve the artifact root relative to the repository when needed."""
     if artifact_root in (None, ""):
         return (repo_root / ".vibeskills").resolve()
+    return _resolve_path(repo_root, artifact_root)
 
-    artifact_root_path = Path(str(artifact_root)).expanduser()
-    if artifact_root_path.is_absolute():
-        return artifact_root_path.resolve()
-    return (repo_root / artifact_root_path).resolve()
+
+def _resolve_canonical_roots(
+    repo_root: Path,
+    *,
+    workspace_root: str | Path | None,
+    artifact_root: str | Path | None,
+) -> tuple[Path, Path]:
+    if workspace_root not in (None, ""):
+        resolved_workspace_root = _resolve_path(repo_root, workspace_root)
+        if artifact_root in (None, ""):
+            return resolved_workspace_root, (resolved_workspace_root / ".vibeskills").resolve()
+        return resolved_workspace_root, _resolve_path(resolved_workspace_root, artifact_root)
+    if artifact_root not in (None, ""):
+        resolved_artifact_root = _resolve_artifact_root(repo_root, artifact_root)
+        return resolved_artifact_root, resolved_artifact_root
+    return repo_root.resolve(), (repo_root / ".vibeskills").resolve()
 
 
 def _resolve_session_root(*, repo_root: Path, run_id: str, artifact_root: str | Path | None) -> Path:
@@ -1382,7 +1407,9 @@ def invoke_vibe_runtime_entrypoint(
     requested_stage_stop: str | None,
     requested_grade_floor: str | None,
     run_id: str | None,
+    workspace_root: Path,
     artifact_root: str | Path | None,
+    module_execution_json_file: str | Path | None = None,
     host_decision: dict[str, Any] | None = None,
     force_runtime_neutral: bool = False,
 ) -> dict[str, Any]:
@@ -1435,8 +1462,11 @@ def invoke_vibe_runtime_entrypoint(
         command.extend(["-RequestedGradeFloor", requested_grade_floor])
     if run_id:
         command.extend(["-RunId", run_id])
+    command.extend(["-WorkspaceRoot", str(workspace_root)])
     if artifact_root:
         command.extend(["-ArtifactRoot", str(Path(artifact_root))])
+    if module_execution_json_file:
+        command.extend(["-ModuleExecutionJsonFile", str(Path(module_execution_json_file))])
     serialized_host_decision = _serialize_host_decision_json(host_decision)
     if serialized_host_decision:
         command.extend(["-HostDecisionJson", serialized_host_decision])
@@ -1477,6 +1507,26 @@ def finalize_runtime_summary_payload(
     return summary
 
 
+def refresh_runtime_summary_acceptance_payload(
+    *,
+    summary_json_path: str | Path,
+    delivery_acceptance_report_json_path: str | Path,
+    cleanup_receipt_path: str | Path,
+) -> dict[str, Any]:
+    summary_path = Path(summary_json_path).resolve()
+    report_path = Path(delivery_acceptance_report_json_path).resolve()
+    summary = _load_json_dict(summary_path, label="runtime-summary")
+    report = _load_json_dict(report_path, label="delivery-acceptance-report")
+    refreshed = refresh_runtime_summary_acceptance(
+        summary,
+        report,
+        cleanup_receipt_path=str(Path(cleanup_receipt_path).resolve()),
+        delivery_acceptance_report_path=str(report_path),
+    )
+    summary_path.write_text(json.dumps(refreshed, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return refreshed
+
+
 def build_runtime_truth_payload(
     *,
     input_json_path: str | Path,
@@ -1487,87 +1537,15 @@ def build_runtime_truth_payload(
     output_path = Path(output_json_path).resolve()
     payload = _load_json_dict(input_path, label="runtime truth build payload")
     packet = build_runtime_truth_packet_from_payload(payload)
-    skill_usage = packet.get("skill_usage")
-    if isinstance(skill_usage, dict):
-        used_rows = [row for row in skill_usage.get("used", []) if isinstance(row, dict)]
-        unused_rows = [_attach_unused_reason(row) for row in skill_usage.get("unused", []) if isinstance(row, dict)]
-        skill_usage["unused"] = unused_rows
-        if "state_model" not in skill_usage:
-            skill_usage["state_model"] = "binary_used_unused"
-        if "used_skills" not in skill_usage:
-            skill_usage["used_skills"] = _unique_skill_ids(used_rows)
-        if "unused_skills" not in skill_usage:
-            skill_usage["unused_skills"] = _unique_skill_ids(unused_rows)
-        if "loaded_skills" not in skill_usage:
-            skill_usage["loaded_skills"] = _loaded_skill_rows_from_work_binding(packet.get("work_binding"))
-        if "unused_reasons" not in skill_usage:
-            skill_usage["unused_reasons"] = [_unused_reason_row(row) for row in unused_rows]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(packet, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return packet
 
 
-def _unique_skill_ids(rows: list[dict[str, Any]]) -> list[str]:
-    skill_ids: list[str] = []
-    for row in rows:
-        skill_id = str(row.get("skill_id") or "").strip()
-        if skill_id and skill_id not in skill_ids:
-            skill_ids.append(skill_id)
-    return skill_ids
-
-
-def _attach_unused_reason(row: dict[str, Any]) -> dict[str, Any]:
-    enriched = dict(row)
-    enriched["reason"] = "selected_but_no_artifact_impact"
-    return enriched
-
-
-def _unused_reason_row(row: dict[str, Any]) -> dict[str, str]:
-    return {
-        "skill_id": str(row.get("skill_id") or "").strip(),
-        "work_unit_id": str(row.get("work_unit_id") or "").strip(),
-        "reason": "selected_but_no_artifact_impact",
-    }
-
-
-def _loaded_skill_rows_from_work_binding(work_binding: Any) -> list[dict[str, Any]]:
-    if not isinstance(work_binding, dict):
-        return []
-    units = work_binding.get("units")
-    if not isinstance(units, list):
-        return []
-    rows: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for unit in units:
-        if not isinstance(unit, dict):
-            continue
-        skill_id = str(unit.get("bound_skill") or "").strip()
-        if not skill_id or skill_id in seen:
-            continue
-        seen.add(skill_id)
-        skill_md_path = str(unit.get("skill_md_path") or "").strip() or str(unit.get("native_skill_entrypoint") or "").strip()
-        skill_md_sha256 = str(unit.get("skill_md_sha256") or "").strip()
-        if skill_md_path and not skill_md_sha256:
-            candidate = Path(skill_md_path)
-            if candidate.is_file():
-                import hashlib
-
-                skill_md_sha256 = hashlib.sha256(candidate.read_bytes()).hexdigest()
-        rows.append(
-            {
-                "skill_id": skill_id,
-                "load_status": "loaded_full_skill_md",
-                "loaded_at_stage": "runtime_input_freeze",
-                "skill_md_path": skill_md_path or None,
-                "skill_md_sha256": skill_md_sha256 or None,
-            }
-        )
-    return rows
-
-
 def _launch_local_agent_kernel(
     *,
     repo_root: Path,
+    workspace_root: Path,
     host_id: str,
     entry_id: str,
     prompt: str,
@@ -1576,9 +1554,23 @@ def _launch_local_agent_kernel(
     run_id: str | None,
     local_agent_root: str | Path,
     summary_source: str,
+    host_decision: dict[str, Any] | None,
 ) -> CanonicalLaunchResult:
     resolved_run_id = str(run_id or "").strip() or f"local-{_new_run_id()}"
     session_root = (Path(local_agent_root).expanduser().resolve() / "vibe" / "runs" / resolved_run_id).resolve()
+    normalized_host_decision = _normalize_host_decision(host_decision)
+    raw_agent_skill_organization = (
+        normalized_host_decision.get("agent_skill_organization") if normalized_host_decision else None
+    )
+    agent_skill_organization = (
+        dict(raw_agent_skill_organization) if isinstance(raw_agent_skill_organization, dict) else None
+    )
+    effective_requested_stage_stop, stage_stop_source, normalized_requested_stage_stop = _resolve_local_kernel_stage_stop_summary(
+        entry_id=entry_id,
+        requested_stage_stop=requested_stage_stop,
+        has_agent_skill_organization=agent_skill_organization is not None,
+    )
+    should_execute = effective_requested_stage_stop in {"plan_execute", "phase_cleanup"}
     created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     receipt = HostLaunchReceipt(
         host_id=host_id,
@@ -1599,6 +1591,10 @@ def _launch_local_agent_kernel(
             agent_root=Path(local_agent_root),
             prompt=prompt,
             run_id=resolved_run_id,
+            host_id=host_id,
+            workspace_root=workspace_root,
+            agent_skill_organization=agent_skill_organization,
+            execute=should_execute,
         )
     except Exception:
         failed_receipt = HostLaunchReceipt(**{**receipt.model_dump(), "launch_status": "failed"})
@@ -1613,42 +1609,38 @@ def _launch_local_agent_kernel(
             "task_card": str(session_root / "task-card.json"),
             "work_plan": str(session_root / "plan.json"),
             "plan": str(session_root / "plan.json"),
-            "work_binding": str(session_root / "work-binding.json"),
+            "module_assignments": str(session_root / "module-assignments.json"),
             "work_results": str(session_root / "work-results.json"),
             "run_state": str(session_root / "run-state.json"),
             "verification": str(session_root / "verification.json"),
         }
     artifacts["host_launch_receipt"] = str(receipt_path)
-    effective_requested_stage_stop, stage_stop_source, normalized_requested_stage_stop = _resolve_local_kernel_stage_stop_summary(
-        entry_id=entry_id,
-        requested_stage_stop=requested_stage_stop,
-    )
-    work_binding_path = _artifact_path_from_artifacts(artifacts, "work_binding")
-    if work_binding_path is None:
-        raise RuntimeError("local agent kernel summary requires a work_binding artifact")
-    work_binding = _load_json_dict(work_binding_path, label="work-binding")
+    module_assignments_path = _artifact_path_from_artifacts(artifacts, "module_assignments")
+    if module_assignments_path is None:
+        raise RuntimeError("local agent kernel summary requires a module_assignments artifact")
+    module_assignments = _load_json_dict(module_assignments_path, label="module-assignments")
     work_results_path = _artifact_path_from_artifacts(artifacts, "work_results")
     work_results = _load_json_dict(work_results_path, label="work-results") if work_results_path else {}
     verification_path = _artifact_path_from_artifacts(artifacts, "verification")
     verification = _load_json_dict(verification_path, label="verification") if verification_path else {}
     proof_ready = str(verification.get("result") or "") == "done"
-    local_status = "completed" if proof_ready else "needs_execution"
+    local_status = (
+        "awaiting_agent_skill_organization"
+        if agent_skill_organization is None
+        else "completed"
+        if proof_ready
+        else "ready_for_execution"
+        if not should_execute
+        else "needs_execution"
+    )
     artifact_kind = "delivery" if proof_ready else "scaffold"
-    bound_skill_ids = _work_binding_bound_skill_ids({"work_binding": work_binding})
-    specialist_decision = {
-        "decision_state": "bound_skills" if bound_skill_ids else "no_specialist_recommendations",
-        "resolution_mode": "local_kernel_work_binding" if bound_skill_ids else "no_specialist_needed",
-        "approved_skill_ids": bound_skill_ids,
-    }
     runtime_packet_path = session_root / MINIMUM_TRUTH_ARTIFACTS["runtime_input_packet"]
     governance_capsule_path = session_root / MINIMUM_TRUTH_ARTIFACTS["governance_capsule"]
     stage_lineage_path = session_root / MINIMUM_TRUTH_ARTIFACTS["stage_lineage"]
     runtime_packet = build_runtime_truth_packet(
         run_id=resolved_run_id,
         task=prompt,
-        work_binding=work_binding,
-        work_results=work_results,
-        specialist_decision=specialist_decision,
+        module_assignments=module_assignments,
         base_fields={
             "host_id": host_id,
             "entry_intent_id": entry_id,
@@ -1659,6 +1651,28 @@ def _launch_local_agent_kernel(
             "status": local_status,
             "proof_ready": proof_ready,
             "artifact_kind": artifact_kind,
+            "agent_skill_organization": agent_skill_organization,
+            "skill_search_guide": {
+                "schema_version": "skill_search_guide_v1",
+                "skill_roots": list((kernel_result.get("skills_catalog") or {}).get("roots", [])),
+                "search_protocol": [
+                    "Split the task into modules before searching local skills.",
+                    "Read candidate SKILL.md contracts before selecting an owner.",
+                ],
+                "selection_rules": [
+                    "Only the Agent may select skills for module assignments.",
+                    "Declare uncovered modules instead of fabricating coverage.",
+                ],
+                "disclosure_rules": [
+                    "Requirement output exposes discovery guidance and candidates, not bound skills.",
+                    "Execution output reports only skills selected by the Agent organization.",
+                ],
+            },
+        },
+        skill_routing={
+            "schema_version": "simplified_skill_routing_v1",
+            "candidates": list(kernel_result.get("candidates") or []),
+            "rejected": [],
         },
     )
     runtime_packet_path.write_text(json.dumps(runtime_packet, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -1694,8 +1708,7 @@ def _launch_local_agent_kernel(
         run_id=resolved_run_id,
         task=prompt,
         artifacts=artifacts,
-        work_binding=work_binding,
-        work_results=work_results,
+        module_assignments=module_assignments,
         base_fields={
             "launch_mode": "local-agent-kernel",
             "host_id": host_id,
@@ -1773,7 +1786,7 @@ def _should_auto_use_local_agent_kernel(
         return False
     if continue_from_run_id or bounded_reentry_token:
         return False
-    if host_decision:
+    if host_decision and not isinstance(host_decision.get("agent_skill_organization"), dict):
         return False
     return True
 
@@ -1798,13 +1811,9 @@ def _load_runtime_truth_packet(
     runtime_packet_path: Path,
 ) -> dict[str, Any]:
     runtime_packet = _load_json_dict(runtime_packet_path, label="runtime-input-packet")
-    work_binding = runtime_packet.get("work_binding")
-    if not isinstance(work_binding, dict):
-        raise RuntimeError("canonical truth packet missing work_binding object")
-
-    specialist_decision = runtime_packet.get("specialist_decision")
-    if not isinstance(specialist_decision, dict):
-        raise RuntimeError("canonical truth packet missing specialist_decision object")
+    module_assignments = runtime_packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
+        raise RuntimeError("canonical truth packet missing module_assignments object")
 
     raw_skill_routing = runtime_packet.get("skill_routing")
     if raw_skill_routing is not None and not isinstance(raw_skill_routing, dict):
@@ -1816,47 +1825,11 @@ def _extract_terminal_stage(stage_lineage: dict[str, Any]) -> str | None:
     return extract_shared_terminal_stage(stage_lineage)
 
 
-def _runtime_packet_records_no_specialist_resolution(runtime_packet: dict[str, Any]) -> bool:
-    specialist_decision = runtime_packet.get("specialist_decision")
-    if not isinstance(specialist_decision, dict):
-        return False
-    decision_state = str(specialist_decision.get("decision_state") or "").strip()
-    resolution_mode = str(specialist_decision.get("resolution_mode") or "").strip()
-    if (
-        decision_state == "no_specialist_recommendations"
-        and resolution_mode in {"no_matching_specialist", "no_specialist_needed"}
-    ):
-        return True
-    if decision_state == "degraded" and resolution_mode == "degraded":
-        degraded_ids = specialist_decision.get("degraded_skill_ids")
-        surfaced_ids = specialist_decision.get("surfaced_skill_ids")
-        recommendation_count = int(specialist_decision.get("recommendation_count") or 0)
-        return bool(degraded_ids or surfaced_ids or recommendation_count > 0)
-    return False
-
-
-def _skill_routing_selected_skill_ids(runtime_packet: dict[str, Any]) -> list[str]:
-    skill_routing = runtime_packet.get("skill_routing")
-    if not isinstance(skill_routing, dict):
+def _module_assignments_bound_skill_ids(runtime_packet: dict[str, Any]) -> list[str]:
+    module_assignments = runtime_packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
         return []
-    selected_rows = skill_routing.get("selected")
-    if not isinstance(selected_rows, list):
-        return []
-    selected_skill_ids: list[str] = []
-    for row in selected_rows:
-        if not isinstance(row, dict):
-            continue
-        skill_id = str(row.get("skill_id") or "").strip()
-        if skill_id and skill_id not in selected_skill_ids:
-            selected_skill_ids.append(skill_id)
-    return selected_skill_ids
-
-
-def _work_binding_bound_skill_ids(runtime_packet: dict[str, Any]) -> list[str]:
-    work_binding = runtime_packet.get("work_binding")
-    if not isinstance(work_binding, dict):
-        return []
-    units = work_binding.get("units")
+    units = module_assignments.get("units")
     if not isinstance(units, list):
         return []
     bound_skill_ids: list[str] = []
@@ -1901,38 +1874,65 @@ def assert_minimum_truth_consistency(
     if isinstance(canonical_router, dict):
         _ = canonical_router.get("host_id")
 
-    route_snapshot = runtime_packet.get("route_snapshot")
-    confirm_required = False
-    if isinstance(route_snapshot, dict):
-        confirm_required = bool(route_snapshot.get("confirm_required"))
-
-    work_binding = runtime_packet.get("work_binding")
-    if not isinstance(work_binding, dict):
-        raise RuntimeError("canonical truth packet missing work_binding object")
-    bound_skill_ids = _work_binding_bound_skill_ids(runtime_packet)
-    selected_skill_ids = _skill_routing_selected_skill_ids(runtime_packet)
-    has_no_specialist_resolution = _runtime_packet_records_no_specialist_resolution(runtime_packet)
-    if not bound_skill_ids:
-        if selected_skill_ids:
-            raise RuntimeError(
-                "canonical truth packet must preserve work_binding rows for selected bounded work"
-            )
-        if not has_no_specialist_resolution:
-            raise RuntimeError(
-                "canonical truth packet must preserve work binding or no-specialist resolution evidence"
-            )
-    missing_bound_skill_ids = [skill_id for skill_id in selected_skill_ids if skill_id not in bound_skill_ids]
-    if missing_bound_skill_ids:
-        missing_text = ", ".join(missing_bound_skill_ids)
-        raise RuntimeError(
-            f"skill_routing.selected must stay a compatibility mirror of work_binding: {missing_text}"
+    module_assignments = runtime_packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
+        raise RuntimeError("canonical truth packet missing module_assignments object")
+    bound_skill_ids = _module_assignments_bound_skill_ids(runtime_packet)
+    agent_organization = runtime_packet.get("agent_skill_organization")
+    if agent_organization is None:
+        if str(packet_requested_stop or "") in {"xl_plan", "plan_execute", "phase_cleanup"}:
+            raise RuntimeError("canonical truth packet requires agent_skill_organization before planning or execution")
+        if bound_skill_ids:
+            raise RuntimeError("canonical truth packet cannot bind task skills before agent_skill_organization")
+    elif not isinstance(agent_organization, dict):
+        raise RuntimeError("canonical truth packet agent_skill_organization must be an object")
+    else:
+        modules = agent_organization.get("modules")
+        if not isinstance(modules, list) or not modules:
+            raise RuntimeError("canonical truth packet agent_skill_organization.modules must be a non-empty list")
+        for module in modules:
+            if not isinstance(module, dict):
+                raise RuntimeError("canonical truth packet agent_skill_organization.modules must contain objects")
+            module_id = str(module.get("module_id") or "").strip()
+            criteria = module.get("acceptance_criteria")
+            if not isinstance(criteria, list) or not criteria:
+                raise RuntimeError(
+                    f"canonical truth packet module {module_id} must include acceptance_criteria"
+                )
+            criterion_ids: set[str] = set()
+            for criterion in criteria:
+                if not isinstance(criterion, dict):
+                    raise RuntimeError(
+                        f"canonical truth packet module {module_id} acceptance_criteria must contain objects"
+                    )
+                criterion_id = str(criterion.get("criterion_id") or "").strip()
+                description = str(criterion.get("description") or "").strip()
+                verification_mode = str(criterion.get("verification_mode") or "").strip()
+                if not criterion_id or not description:
+                    raise RuntimeError(
+                        f"canonical truth packet module {module_id} acceptance criteria require criterion_id and description"
+                    )
+                if criterion_id in criterion_ids:
+                    raise RuntimeError(
+                        f"canonical truth packet module {module_id} has duplicate acceptance criterion {criterion_id}"
+                    )
+                if verification_mode not in {"automated", "manual"}:
+                    raise RuntimeError(
+                        f"canonical truth packet module {module_id} acceptance criterion verification_mode must be automated or manual"
+                    )
+                criterion_ids.add(criterion_id)
+        selected_rows = agent_organization.get("selected_skills")
+        if not isinstance(selected_rows, list):
+            raise RuntimeError("canonical truth packet agent_skill_organization.selected_skills must be a list")
+        selected_skill_ids = sorted(
+            {
+                str(row.get("skill_id") or "").strip()
+                for row in selected_rows
+                if isinstance(row, dict) and str(row.get("skill_id") or "").strip()
+            }
         )
-    # work_binding is the kernel-facing bounded-work truth.
-    # skill_routing.selected may remain as a compatibility mirror while older
-    # readers still expect that surface.
-    # route_snapshot owns the current routed task type and control summary.
-    # canonical_router may still carry host-launch compatibility metadata, but it
-    # no longer carries the selected task type or selected helper truth here.
+        if selected_skill_ids != sorted(set(bound_skill_ids)):
+            raise RuntimeError("canonical truth packet module_assignments must match agent_skill_organization selected skills")
 
     governance_capsule = _load_json_dict(Path(governance_capsule_path), label="governance-capsule")
     runtime_selected_skill = str(governance_capsule.get("runtime_selected_skill") or "").strip()
@@ -1947,7 +1947,7 @@ def assert_minimum_truth_consistency(
     # divergence_shadow now only needs to preserve secondary mismatch/override
     # shadowing for older readers. Runtime authority truth stays with
     # governance-capsule.json, and the live selected-skill truth stays with
-    # kernel-facing work_binding evidence.
+    # kernel-facing module_assignments evidence.
 
     stage_lineage = _load_json_dict(Path(stage_lineage_path), label="stage-lineage")
     stage_entries = stage_lineage.get("stages")
@@ -1959,10 +1959,19 @@ def assert_minimum_truth_consistency(
     if not terminal_stage:
         raise RuntimeError("stage-lineage missing terminal stage")
     if receipt.requested_stage_stop:
-        if confirm_required:
-            if terminal_stage != "skeleton_check":
-                raise RuntimeError("confirm-required runtime stop must return before governed stage progression")
-        elif terminal_stage != receipt.requested_stage_stop:
+        handoff_path = Path(stage_lineage_path).resolve().parent / "agent-execution-handoff.json"
+        handoff = (
+            _load_json_dict(handoff_path, label="agent-execution-handoff")
+            if handoff_path.exists()
+            else {}
+        )
+        is_agent_handoff_stop = (
+            receipt.requested_stage_stop == "phase_cleanup"
+            and terminal_stage == "plan_execute"
+            and handoff.get("status") == "agent_action_required"
+            and handoff.get("control_owner") == "agent"
+        )
+        if terminal_stage != receipt.requested_stage_stop and not is_agent_handoff_stop:
             raise RuntimeError("bounded stop mismatch between host launch receipt and stage-lineage")
 
 
@@ -1975,16 +1984,23 @@ def launch_canonical_vibe(
     requested_stage_stop: str | None = None,
     requested_grade_floor: str | None = None,
     run_id: str | None = None,
+    workspace_root: str | Path | None = None,
     artifact_root: str | Path | None = None,
     local_agent_root: str | Path | None = None,
     continue_from_run_id: str | None = None,
     bounded_reentry_token: str | None = None,
+    module_execution_json_file: str | Path | None = None,
     host_decision: dict[str, Any] | None = None,
     force_runtime_neutral: bool = False,
 ) -> CanonicalLaunchResult:
     """Launch canonical vibe, verify its artifacts, and return launch metadata."""
     decision = resolve_entry_repo_root(repo_root, script_anchor=Path(__file__))
     repo_root_path = decision.repo_root
+    resolved_workspace_root, resolved_artifact_root = _resolve_canonical_roots(
+        repo_root_path,
+        workspace_root=workspace_root,
+        artifact_root=artifact_root,
+    )
     resolved_host_id = resolve_host_id(host_id)
     requested_entry_id = _normalize_requested_entry_id(entry_id)
     runtime_entry_id = _runtime_entry_id_for_requested_entry(requested_entry_id)
@@ -1992,6 +2008,7 @@ def launch_canonical_vibe(
     if local_agent_root is not None:
         return _launch_local_agent_kernel(
             repo_root=repo_root_path,
+            workspace_root=resolved_workspace_root,
             host_id=resolved_host_id,
             entry_id=runtime_entry_id,
             prompt=prompt,
@@ -2000,10 +2017,11 @@ def launch_canonical_vibe(
             run_id=run_id,
             local_agent_root=local_agent_root,
             summary_source="explicit local agent root delegation",
+            host_decision=host_decision,
         )
     auto_local_agent_root = _auto_local_agent_root_candidate(
         repo_root=repo_root_path,
-        artifact_root=artifact_root,
+        artifact_root=resolved_artifact_root,
     )
     if _should_auto_use_local_agent_kernel(
         requested_entry_id=runtime_entry_id,
@@ -2016,6 +2034,7 @@ def launch_canonical_vibe(
     ):
         return _launch_local_agent_kernel(
             repo_root=repo_root_path,
+            workspace_root=resolved_workspace_root,
             host_id=resolved_host_id,
             entry_id=runtime_entry_id,
             prompt=prompt,
@@ -2024,8 +2043,25 @@ def launch_canonical_vibe(
             run_id=run_id,
             local_agent_root=auto_local_agent_root,
             summary_source="auto local agent root detection",
+            host_decision=host_decision,
         )
-    resolved_artifact_root = _resolve_artifact_root(repo_root_path, artifact_root)
+    if module_execution_json_file is not None:
+        return _launch_agent_execution_reentry(
+            repo_root=repo_root_path,
+            workspace_root=resolved_workspace_root,
+            host_id=resolved_host_id,
+            entry_id=runtime_entry_id,
+            prompt=prompt,
+            requested_stage_stop=requested_stage_stop_seed,
+            requested_grade_floor=requested_grade_floor,
+            run_id=run_id,
+            artifact_root=resolved_artifact_root,
+            continue_from_run_id=continue_from_run_id,
+            bounded_reentry_token=bounded_reentry_token,
+            module_execution_json_file=module_execution_json_file,
+            host_decision=host_decision,
+            force_runtime_neutral=force_runtime_neutral,
+        )
     normalized_host_decision = _normalize_host_decision(host_decision)
     validated_reentry = _validate_bounded_reentry(
         artifact_root=resolved_artifact_root,
@@ -2067,7 +2103,11 @@ def launch_canonical_vibe(
         allow_bounded_preferred_source=bool(validated_reentry),
     )
     resolved_run_id = str(run_id or "").strip() or _new_run_id()
-    session_root = _resolve_session_root(repo_root=repo_root_path, run_id=resolved_run_id, artifact_root=artifact_root)
+    session_root = _resolve_session_root(
+        repo_root=repo_root_path,
+        run_id=resolved_run_id,
+        artifact_root=resolved_artifact_root,
+    )
     summary_path = (session_root / "runtime-summary.json").resolve()
     receipt = HostLaunchReceipt(
         host_id=resolved_host_id,
@@ -2092,7 +2132,9 @@ def launch_canonical_vibe(
             requested_stage_stop=effective_requested_stage_stop,
             requested_grade_floor=effective_requested_grade_floor,
             run_id=resolved_run_id,
+            workspace_root=resolved_workspace_root,
             artifact_root=resolved_artifact_root,
+            module_execution_json_file=None,
             host_decision=effective_host_decision,
             force_runtime_neutral=force_runtime_neutral,
         )
@@ -2115,6 +2157,308 @@ def launch_canonical_vibe(
     except Exception:
         _mark_host_launch_failed(receipt_path, receipt)
         raise
+
+
+def _launch_agent_execution_reentry(
+    *,
+    repo_root: Path,
+    workspace_root: Path,
+    host_id: str,
+    entry_id: str,
+    prompt: str,
+    requested_stage_stop: str | None,
+    requested_grade_floor: str | None,
+    run_id: str | None,
+    artifact_root: Path,
+    continue_from_run_id: str | None,
+    bounded_reentry_token: str | None,
+    module_execution_json_file: str | Path,
+    host_decision: dict[str, Any] | None,
+    force_runtime_neutral: bool,
+) -> CanonicalLaunchResult:
+    source_run_id = str(continue_from_run_id or "").strip()
+    if not source_run_id:
+        raise RuntimeError("Agent execution re-entry requires --continue-from-run-id")
+    if str(run_id or "").strip() not in {"", source_run_id}:
+        raise RuntimeError("Agent execution re-entry must resume the source run")
+    if bounded_reentry_token:
+        raise RuntimeError("Agent execution re-entry does not accept a user approval token")
+    if host_decision is not None:
+        raise RuntimeError("Agent execution re-entry does not accept a host approval decision")
+
+    session_root = _resolve_session_root(
+        repo_root=repo_root,
+        run_id=source_run_id,
+        artifact_root=artifact_root,
+    )
+    runtime_packet = _load_runtime_truth_packet(session_root / "runtime-input-packet.json")
+    frozen_task = str(runtime_packet.get("task") or "").strip()
+    if not frozen_task:
+        raise RuntimeError("Agent execution re-entry requires the frozen task from runtime-input-packet.json")
+    handoff = _load_json_dict(session_root / "agent-execution-handoff.json", label="agent-execution-handoff")
+    if handoff.get("status") != "agent_action_required" or handoff.get("control_owner") != "agent":
+        raise RuntimeError("source run is not waiting for Agent execution results")
+
+    submitted_path = Path(module_execution_json_file).expanduser().resolve()
+    submitted = _load_json_dict(submitted_path, label="module-execution")
+    _validate_agent_module_execution(
+        session_root=session_root,
+        source_run_id=source_run_id,
+        handoff=handoff,
+        submitted=submitted,
+    )
+
+    receipt = HostLaunchReceipt(
+        host_id=host_id,
+        entry_id=CANONICAL_RUNTIME_ENTRY_ID,
+        launch_mode="canonical-entry",
+        launcher_path=str((repo_root / CANONICAL_ENTRY_BRIDGE_RELPATH).resolve()),
+        requested_stage_stop="phase_cleanup",
+        requested_grade_floor=requested_grade_floor,
+        runtime_entrypoint=str((repo_root / RUNTIME_ENTRYPOINT_RELPATH).resolve()),
+        run_id=source_run_id,
+        created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        launch_status="launched",
+    )
+    receipt_path = write_host_launch_receipt(session_root, receipt)
+    try:
+        payload = invoke_vibe_runtime_entrypoint(
+            repo_root=repo_root,
+            host_id=host_id,
+            entry_id=entry_id,
+            prompt=frozen_task,
+            requested_stage_stop="phase_cleanup",
+            requested_grade_floor=requested_grade_floor,
+            run_id=source_run_id,
+            workspace_root=workspace_root,
+            artifact_root=artifact_root,
+            module_execution_json_file=submitted_path,
+            host_decision=None,
+            force_runtime_neutral=force_runtime_neutral,
+        )
+        return _finalize_canonical_launch_result(
+            receipt=receipt,
+            receipt_path=receipt_path,
+            requested_entry_id=entry_id,
+            requested_stage_stop=requested_stage_stop,
+            effective_requested_stage_stop="phase_cleanup",
+            effective_prompt=frozen_task,
+            payload=payload,
+            fallback_run_id=source_run_id,
+            fallback_summary_path=session_root / "runtime-summary.json",
+        )
+    except Exception:
+        _mark_host_launch_failed(receipt_path, receipt)
+        raise
+
+
+def _validate_agent_module_execution(
+    *,
+    session_root: Path,
+    source_run_id: str,
+    handoff: dict[str, Any],
+    submitted: dict[str, Any],
+) -> None:
+    result_contract = handoff.get("result_contract")
+    if not isinstance(result_contract, dict):
+        raise RuntimeError("Agent execution handoff is missing result_contract")
+    required_top_level_fields = result_contract.get("required_top_level_fields")
+    if not isinstance(required_top_level_fields, list) or any(
+        not isinstance(field, str) or not field.strip() for field in required_top_level_fields
+    ):
+        raise RuntimeError("Agent execution handoff result_contract required_top_level_fields is invalid")
+    for field in required_top_level_fields:
+        if field not in submitted:
+            raise RuntimeError(f"module execution is missing required field: {field}")
+    if submitted.get("schema_version") != "module_execution_v1":
+        raise RuntimeError("Agent module execution must use module_execution_v1")
+    if str(handoff.get("source_run_id") or "") != source_run_id:
+        raise RuntimeError("Agent execution handoff source_run_id does not match the source run")
+    if str(submitted.get("source_run_id") or "") != source_run_id:
+        raise RuntimeError("module execution source_run_id does not match the handoff run")
+
+    tdd_contract = result_contract.get("tdd_evidence")
+    if tdd_contract is not None:
+        if not isinstance(tdd_contract, dict):
+            raise RuntimeError("Agent execution handoff TDD evidence contract is invalid")
+        tdd_evidence = submitted.get("tdd_evidence")
+        if not isinstance(tdd_evidence, dict):
+            raise RuntimeError("module execution TDD evidence must be a JSON object")
+        required_tdd_fields = tdd_contract.get("required_result_fields")
+        if not isinstance(required_tdd_fields, list) or any(
+            not isinstance(field, str) or not field.strip() for field in required_tdd_fields
+        ):
+            raise RuntimeError("Agent execution handoff TDD evidence required fields are invalid")
+        for field in required_tdd_fields:
+            if field not in tdd_evidence:
+                raise RuntimeError(f"module execution TDD evidence is missing required field: {field}")
+
+        tdd_state = str(tdd_evidence.get("state") or "")
+        allowed_tdd_states = tdd_contract.get("terminal_states")
+        if not isinstance(allowed_tdd_states, list) or tdd_state not in allowed_tdd_states:
+            raise RuntimeError("module execution TDD evidence state must be passing, failing, or blocked")
+
+        list_fields = (
+            "evidence_paths",
+            "red_phase_evidence_paths",
+            "green_phase_evidence_paths",
+            "refactor_phase_evidence_paths",
+            "covered_code_task_tdd_evidence_requirements",
+            "covered_code_task_tdd_exceptions",
+        )
+        for field in list_fields:
+            value = tdd_evidence.get(field)
+            if not isinstance(value, list) or any(
+                not isinstance(item, str) or not item.strip() for item in value
+            ):
+                raise RuntimeError(f"module execution TDD evidence {field} must be a JSON array of strings")
+        if not isinstance(tdd_evidence.get("notes"), str):
+            raise RuntimeError("module execution TDD evidence notes must be a string")
+
+        if tdd_state == "passing":
+            required_tdd_requirements = tdd_contract.get(
+                "required_code_task_tdd_evidence_requirements"
+            )
+            required_tdd_exceptions = tdd_contract.get("required_code_task_tdd_exceptions")
+            if tdd_evidence["covered_code_task_tdd_evidence_requirements"] != required_tdd_requirements:
+                raise RuntimeError(
+                    "passing module execution TDD evidence must cover the frozen TDD requirements"
+                )
+            if tdd_evidence["covered_code_task_tdd_exceptions"] != required_tdd_exceptions:
+                raise RuntimeError(
+                    "passing module execution TDD evidence must cover the frozen TDD exceptions"
+                )
+            if not tdd_evidence["evidence_paths"]:
+                raise RuntimeError("passing module execution TDD evidence requires evidence paths")
+            if required_tdd_requirements and not tdd_evidence["red_phase_evidence_paths"]:
+                raise RuntimeError("passing module execution TDD evidence requires red-phase evidence paths")
+            if required_tdd_requirements and not tdd_evidence["green_phase_evidence_paths"]:
+                raise RuntimeError("passing module execution TDD evidence requires green-phase evidence paths")
+
+    plan_path = session_root / "module-work-plan.json"
+    plan = _load_json_dict(plan_path, label="module-work-plan")
+    if str(submitted.get("module_work_plan_digest") or "") != hashlib.sha256(plan_path.read_bytes()).hexdigest():
+        raise RuntimeError("module execution does not match the approved module work plan digest")
+
+    raw_submitted_units = submitted.get("units")
+    if not isinstance(raw_submitted_units, list) or any(
+        not isinstance(unit, dict) for unit in raw_submitted_units
+    ):
+        raise RuntimeError("module execution units must be a JSON array of objects")
+    planned_units = {
+        str(unit.get("unit_id") or ""): unit
+        for unit in plan.get("work_units") or []
+        if isinstance(unit, dict) and str(unit.get("unit_id") or "")
+    }
+    submitted_units = {
+        str(unit.get("unit_id") or ""): unit
+        for unit in raw_submitted_units
+        if isinstance(unit, dict) and str(unit.get("unit_id") or "")
+    }
+    if set(submitted_units) != set(planned_units) or len(raw_submitted_units) != len(planned_units):
+        raise RuntimeError("module execution work units must exactly match the approved plan")
+    for unit_id, planned_unit in planned_units.items():
+        unit = submitted_units[unit_id]
+        for field in (
+            "unit_id",
+            "module_id",
+            "skill_id",
+            "role",
+            "state",
+            "result_summary",
+            "evidence_paths",
+            "verification_results",
+        ):
+            if field not in unit:
+                raise RuntimeError(f"module execution unit {unit_id} is missing required field: {field}")
+        if str(unit.get("module_id") or "") != str(planned_unit.get("module_id") or ""):
+            raise RuntimeError(f"module execution unit {unit_id} changed its module binding")
+        if (str(unit.get("skill_id") or "") or None) != (str(planned_unit.get("skill_id") or "") or None):
+            raise RuntimeError(f"module execution unit {unit_id} changed its Skill binding")
+        if str(unit.get("role") or "") != str(planned_unit.get("role") or ""):
+            raise RuntimeError(f"module execution unit {unit_id} changed its role binding")
+        state = str(unit.get("state") or "")
+        if state not in {"completed", "failed", "blocked"}:
+            raise RuntimeError(f"module execution unit {unit_id} is not terminal")
+        if state == "completed" and not str(unit.get("result_summary") or "").strip():
+            raise RuntimeError(f"completed module execution unit {unit_id} requires a result summary")
+
+    raw_submitted_modules = submitted.get("modules")
+    if not isinstance(raw_submitted_modules, list) or any(
+        not isinstance(module, dict) for module in raw_submitted_modules
+    ):
+        raise RuntimeError("module execution modules must be a JSON array of objects")
+    planned_modules = {
+        str(module.get("module_id") or ""): module
+        for module in plan.get("modules") or []
+        if isinstance(module, dict) and str(module.get("module_id") or "")
+    }
+    submitted_modules = {
+        str(module.get("module_id") or ""): module
+        for module in raw_submitted_modules
+        if isinstance(module, dict) and str(module.get("module_id") or "")
+    }
+    if set(submitted_modules) != set(planned_modules) or len(raw_submitted_modules) != len(planned_modules):
+        raise RuntimeError("module execution modules must exactly match the approved plan")
+    for module_id, planned_module in planned_modules.items():
+        module = submitted_modules[module_id]
+        for field in (
+            "module_id",
+            "required",
+            "execution_mode",
+            "gap_reason",
+            "state",
+            "criterion_results",
+        ):
+            if field not in module:
+                raise RuntimeError(f"module execution module {module_id} is missing required field: {field}")
+        if not isinstance(module.get("required"), bool) or module.get("required") != planned_module.get("required"):
+            raise RuntimeError(f"module execution module {module_id} changed its required binding")
+        if str(module.get("execution_mode") or "") != str(planned_module.get("execution_mode") or ""):
+            raise RuntimeError(f"module execution module {module_id} changed its execution_mode binding")
+        if module.get("gap_reason") != planned_module.get("gap_reason"):
+            raise RuntimeError(f"module execution module {module_id} changed its gap_reason binding")
+        if str(module.get("state") or "") not in {
+            "completed",
+            "failed",
+            "blocked",
+        }:
+            raise RuntimeError(f"module execution module {module_id} is not terminal")
+
+        planned_criteria = [
+            criterion
+            for criterion in planned_module.get("acceptance_criteria") or []
+            if isinstance(criterion, dict) and str(criterion.get("criterion_id") or "")
+        ]
+        criterion_results = module.get("criterion_results")
+        if not isinstance(criterion_results, list) or any(
+            not isinstance(result, dict) for result in criterion_results
+        ):
+            raise RuntimeError(
+                f"module execution module {module_id} criterion_results must be a JSON array of objects"
+            )
+        planned_criterion_ids = [str(criterion["criterion_id"]) for criterion in planned_criteria]
+        submitted_criterion_ids = [
+            str(result.get("criterion_id") or "") for result in criterion_results
+        ]
+        if (
+            set(submitted_criterion_ids) != set(planned_criterion_ids)
+            or len(submitted_criterion_ids) != len(planned_criterion_ids)
+        ):
+            raise RuntimeError(
+                f"module execution module {module_id} criterion results must exactly match the approved plan"
+            )
+        for result in criterion_results:
+            criterion_id = str(result.get("criterion_id") or "")
+            if "state" not in result:
+                raise RuntimeError(
+                    f"module execution criterion {module_id}:{criterion_id} is missing required field: state"
+                )
+            criterion_state = str(result.get("state") or "")
+            if criterion_state not in {"passing", "failing", "blocked"}:
+                raise RuntimeError(
+                    f"module execution criterion {module_id}:{criterion_id} has unsupported state: {criterion_state}"
+                )
 
 
 def _mark_host_launch_failed(receipt_path: Path, receipt: HostLaunchReceipt) -> None:
@@ -2161,11 +2505,22 @@ def _finalize_canonical_launch_result(
         summary=summary,
         effective_requested_stage_stop=effective_requested_stage_stop,
     )
+    module_execution_path = _artifact_path_from_artifacts(
+        dict(summary.get("artifacts") or {}),
+        "module_execution",
+        base_dir=summary_path.parent,
+    )
+    module_execution = (
+        _load_json_dict(module_execution_path, label="module-execution")
+        if module_execution_path and module_execution_path.is_file()
+        else None
+    )
     summary = build_runtime_summary(
         run_id=resolved_run_id,
         task=effective_prompt,
         artifacts=dict(summary.get("artifacts") or {}),
-        work_binding=runtime_packet["work_binding"],
+        module_assignments=runtime_packet["module_assignments"],
+        module_execution=module_execution,
         base_fields={
             **summary,
             "requested_stage_stop": requested_stage_stop,
@@ -2224,6 +2579,22 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
+    if "--refresh-runtime-summary-acceptance" in argv:
+        parser = argparse.ArgumentParser(
+            description="Refresh a Python-owned runtime summary from final delivery acceptance."
+        )
+        parser.add_argument("--refresh-runtime-summary-acceptance", action="store_true")
+        parser.add_argument("--runtime-summary-json", required=True)
+        parser.add_argument("--delivery-acceptance-report-json", required=True)
+        parser.add_argument("--cleanup-receipt-path", required=True)
+        args = parser.parse_args(argv)
+        refresh_runtime_summary_acceptance_payload(
+            summary_json_path=args.runtime_summary_json,
+            delivery_acceptance_report_json_path=args.delivery_acceptance_report_json,
+            cleanup_receipt_path=args.cleanup_receipt_path,
+        )
+        return 0
+
     parser = argparse.ArgumentParser(description="Launch canonical vibe entry and emit receipt-backed JSON output.")
     parser.add_argument("--repo-root", required=True)
     parser.add_argument("--host-id", default=None, help=argparse.SUPPRESS)
@@ -2232,10 +2603,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--requested-stage-stop")
     parser.add_argument("--requested-grade-floor", choices=("L", "XL"))
     parser.add_argument("--run-id")
+    parser.add_argument("--workspace-root", help=argparse.SUPPRESS)
     parser.add_argument("--artifact-root")
     parser.add_argument("--local-agent-root")
     parser.add_argument("--continue-from-run-id")
     parser.add_argument("--bounded-reentry-token")
+    parser.add_argument("--module-execution-json-file")
     parser.add_argument("--host-decision-json")
     parser.add_argument("--host-decision-json-file")
     parser.add_argument("--force-runtime-neutral", action="store_true")
@@ -2251,10 +2624,12 @@ def main(argv: list[str] | None = None) -> int:
             requested_stage_stop=args.requested_stage_stop,
             requested_grade_floor=args.requested_grade_floor,
             run_id=args.run_id,
+            workspace_root=args.workspace_root,
             artifact_root=args.artifact_root,
             local_agent_root=args.local_agent_root,
             continue_from_run_id=args.continue_from_run_id,
             bounded_reentry_token=args.bounded_reentry_token,
+            module_execution_json_file=args.module_execution_json_file,
             host_decision=host_decision,
             force_runtime_neutral=bool(args.force_runtime_neutral),
         )

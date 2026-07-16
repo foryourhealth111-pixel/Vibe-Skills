@@ -80,6 +80,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
     continuation_lines = []
     if entry.id == "vibe":
         continuation_lines = [
+            "Pass the current user task verbatim on initial launch and every bounded re-entry; unrelated chat history may be excluded. Do not summarize, rewrite, or reduce it to keywords.",
             "If the latest verified runtime summary exposes `bounded_return_control.explicit_user_reentry_required = true`, return control to the user immediately.",
             "Do not consume `--continue-from-run-id` and `--bounded-reentry-token` in the same assistant turn that produced the bounded stop.",
             "Do not treat the original detailed user request as approval of the frozen requirement or plan.",
@@ -95,7 +96,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
         post_launch_lines.extend(
             [
                 "If `delivery-acceptance-report.json` exists and reports `completion_language_allowed = false` or a non-`fully_ready` readiness state, do not describe the run as completed successfully; report the pending/manual-review state and the blocking truth layers instead.",
-                "If `host-user-briefing.md` reports `routed_pending_current_session`, or if the session artifacts show `execution_driver = direct_current_session_route` / `live_native_execution = false` for approved execution skills, continue by loading those disclosed skill entrypoints in the current host session instead of stopping at proof validation.",
+                "If `agent-execution-handoff.json` reports `agent_action_required`, execute its waves in the current Agent turn: open every listed skill entrypoint, complete the assigned module work, write the full `module-execution.json`, then run the handoff's `return_command`. Do not ask the user for another approval.",
             ]
         )
     claude_bash_lines: list[str] = []
@@ -108,12 +109,13 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "REPO_ROOT='<host-root>/skills/vibe'",
             "# Set this once to the governed workspace root; do not rely on later cwd changes.",
             'WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"',
+            '# Set VIBE_TASK to the current user task verbatim; do not summarize it.',
             'PYTHONPATH="$REPO_ROOT/apps/vgo-cli/src" py -3 -m vgo_cli.main canonical-entry \\',
             '  --repo-root "$REPO_ROOT" \\',
             '  --artifact-root "$WORKSPACE_ROOT" \\',
             "  --host-id claude-code \\",
             "  --entry-id vibe \\",
-            '  --prompt "$VIBE_INTENT"',
+            '  --prompt "$VIBE_TASK"',
             "```",
             "",
             "Claude Code Bash-safe bounded re-entry shape:",
@@ -121,6 +123,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             "REPO_ROOT='<host-root>/skills/vibe'",
             "# Reuse the same governed workspace root from the original launch.",
             'WORKSPACE_ROOT="${WORKSPACE_ROOT:-$PWD}"',
+            '# Reuse the same current user task verbatim in VIBE_TASK.',
             'DECISION_JSON="$WORKSPACE_ROOT/.vibeskills/tmp/host-decision.json"',
             'mkdir -p "$(dirname "$DECISION_JSON")"',
             "cat > \"$DECISION_JSON\" <<'JSON'",
@@ -136,7 +139,7 @@ def _body_lines(host_id: str, entry: DiscoverableEntry, *, contract: dict[str, o
             '  --artifact-root "$WORKSPACE_ROOT" \\',
             "  --host-id claude-code \\",
             "  --entry-id vibe \\",
-            '  --prompt "continue approved governed requirement with prior task context" \\',
+            '  --prompt "$VIBE_TASK" \\',
             '  --continue-from-run-id "<source_run_id>" \\',
             '  --bounded-reentry-token "<reentry_token>" \\',
             '  --host-decision-json-file "$DECISION_JSON"',

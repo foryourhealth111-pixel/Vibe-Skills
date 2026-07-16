@@ -19,8 +19,8 @@
     "tests/runtime_neutral/test_root_child_hierarchy_bridge.py",
     "tests/runtime_neutral/test_runtime_contract_schema.py",
     "tests/runtime_neutral/test_runtime_delivery_acceptance.py",
-    "tests/runtime_neutral/test_skill_promotion_destructive_gate.py",
-    "tests/runtime_neutral/test_l_xl_native_execution_topology.py",
+    "tests/runtime_neutral/test_module_skill_dispatch_safety.py",
+    "tests/runtime_neutral/test_retired_agent_execution_surfaces.py",
     "tests/runtime_neutral/test_governed_runtime_bridge.py",
     "tests/runtime_neutral/test_installed_host_runtime_simulation.py"
   ],
@@ -49,10 +49,7 @@
     "docs/governance/terminology-governance.md"
   ],
   "execution_internal_scan_files": [
-    "scripts/runtime/Invoke-PlanExecute.ps1",
-    "scripts/runtime/VibeExecution.Common.ps1",
-    "scripts/runtime/Invoke-DelegatedLaneUnit.ps1",
-    "tests/runtime_neutral/test_plan_execute_receipts.py"
+    "scripts/runtime/Invoke-PlanExecute.ps1"
   ],
   "execution_internal_allowed_specialist_dispatch_reference_count": 0,
   "current_policy_helper_files": [
@@ -85,7 +82,13 @@
     "specialist dispatch accounting",
     "specialist dispatch integrity proof",
     "approved_dispatch_only",
-    "dispatch_unit_count ="
+    "dispatch_unit_count =",
+    "execution_topology",
+    "execution-topology",
+    "execution topology",
+    "execution_proof_manifest",
+    "direct current-session specialist",
+    "native specialist"
   ],
   "current_surface_roots": [
     "README.md",
@@ -118,14 +121,11 @@
   ],
   "allowed_negative_files": [
     "tests/runtime_neutral/test_runtime_route_output_shape.py",
-    "tests/unit/test_router_contract_selection_guards.py",
     "scripts/verify/vibe-current-routing-debt-gate.ps1",
     "scripts/verify/vibe-current-routing-contract-scan.ps1",
     "scripts/verify/vibe-routing-terminology-hard-cleanup-scan.ps1"
   ],
   "compatibility_review_files": [
-    "scripts/runtime/VibeConsultation.Common.ps1",
-    "scripts/runtime/legacy/VibeRetiredConsultation.Common.ps1",
     "packages/runtime-core/src/vgo_runtime/router_contract_runtime.py",
     "scripts/router/resolve-pack-route.ps1"
   ],

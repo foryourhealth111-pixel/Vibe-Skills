@@ -5,8 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from vgo_runtime.kernel.work_binding import build_skill_usage_projection
-
 
 def build_skill_routing_projection(
     *,
@@ -46,23 +44,16 @@ def build_runtime_truth_packet(
     *,
     run_id: str,
     task: str,
-    work_binding: dict[str, Any],
-    specialist_decision: dict[str, Any],
-    work_results: dict[str, Any] | None = None,
+    module_assignments: dict[str, Any],
     base_fields: dict[str, Any] | None = None,
     skill_routing: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload = dict(base_fields or {})
+    payload.pop("skill_selection", None)
     payload["stage"] = "runtime_input_freeze"
     payload["run_id"] = run_id
     payload["task"] = task
-    payload["work_binding"] = work_binding
-    payload["specialist_decision"] = specialist_decision
-    payload["skill_usage"] = build_skill_usage_projection(
-        work_binding=work_binding,
-        work_results=_work_result_rows(work_results),
-        compatibility_mirror=payload.get("skill_usage") if isinstance(payload.get("skill_usage"), dict) else None,
-    )
+    payload["module_assignments"] = module_assignments
     payload["skill_routing"] = build_skill_routing_projection(
         skill_routing=skill_routing,
     )
@@ -75,9 +66,7 @@ def build_runtime_truth_packet_from_payload(payload: dict[str, Any]) -> dict[str
 
     run_id = payload.get("run_id")
     task = payload.get("task")
-    work_binding = payload.get("work_binding")
-    specialist_decision = payload.get("specialist_decision")
-    work_results = payload.get("work_results")
+    module_assignments = payload.get("module_assignments")
     base_fields = payload.get("base_fields")
     skill_routing = payload.get("skill_routing")
 
@@ -85,12 +74,8 @@ def build_runtime_truth_packet_from_payload(payload: dict[str, Any]) -> dict[str
         raise ValueError("runtime truth build payload missing run_id")
     if not isinstance(task, str) or not task.strip():
         raise ValueError("runtime truth build payload missing task")
-    if not isinstance(work_binding, dict):
-        raise ValueError("runtime truth build payload missing work_binding")
-    if not isinstance(specialist_decision, dict):
-        raise ValueError("runtime truth build payload missing specialist_decision")
-    if work_results is not None and not isinstance(work_results, dict):
-        raise ValueError("work_results must be an object when present")
+    if not isinstance(module_assignments, dict):
+        raise ValueError("runtime truth build payload missing module_assignments")
     if base_fields is not None and not isinstance(base_fields, dict):
         raise ValueError("base_fields must be an object when present")
     if skill_routing is not None and not isinstance(skill_routing, dict):
@@ -99,21 +84,10 @@ def build_runtime_truth_packet_from_payload(payload: dict[str, Any]) -> dict[str
     return build_runtime_truth_packet(
         run_id=run_id,
         task=task,
-        work_binding=work_binding,
-        specialist_decision=specialist_decision,
-        work_results=work_results,
+        module_assignments=module_assignments,
         base_fields=base_fields,
         skill_routing=skill_routing,
     )
-
-
-def _work_result_rows(work_results: dict[str, Any] | None) -> list[dict[str, Any]] | None:
-    if not isinstance(work_results, dict):
-        return None
-    rows = work_results.get("work_results")
-    if not isinstance(rows, list):
-        return None
-    return [row for row in rows if isinstance(row, dict)]
 
 
 def main(argv: list[str] | None = None) -> int:

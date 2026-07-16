@@ -66,10 +66,11 @@ $checks += Assert-True ($desktop.expected.forbid_default_execution_owner -eq $tr
 $checks += Assert-True ($desktop.expected.contract_shape -eq 'aci+openworld') 'desktop pilot preserves ACI + OpenWorld contract shape'
 $checks += Assert-True (@($desktop.must_not) -contains 'default_execution_owner_takeover') 'desktop pilot explicitly forbids default execution owner takeover'
 
-$checks += Assert-True ($browser.expected.provider -eq 'chrome-devtools') 'browser pilot records chrome-devtools as expected provider'
+$checks += Assert-True ($browser.expected.provider -eq 'browser-host-native') 'browser pilot records host-native browser capability as expected provider'
 $checks += Assert-True ($browser.expected.confirm_required -eq $false) 'browser pilot records confirm_required=false for debug path'
 $checks += Assert-True ($browser.expected.mode -eq 'shadow') 'browser pilot records shadow mode'
 $checks += Assert-True (@($browser.must_not) -contains 'second_orchestrator') 'browser pilot explicitly forbids second orchestrator'
+$checks += Assert-True (@($browser.must_not) -contains 'forbidden_mcp_provider') 'browser pilot explicitly forbids MCP provider recommendation'
 
 $checks += Assert-True ($deep.expected.governed_mirror_coverage -eq 1.0) 'deep extraction pilot encodes full governed mirror coverage'
 $checks += Assert-True ($deep.expected.runtime_only_artifact_count -eq 0) 'deep extraction pilot forbids runtime-only artifacts'

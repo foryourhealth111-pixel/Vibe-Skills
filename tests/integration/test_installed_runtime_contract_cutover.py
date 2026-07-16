@@ -18,7 +18,7 @@ def test_verification_runtime_gates_delegate_default_runtime_contract_to_contrac
     assert "merge_installed_runtime_config" in policies
     assert "default_installed_runtime_config" in repo
     assert "merge_installed_runtime_config" in repo
-    assert "default_freshness_runtime_config" in freshness
+    assert "default_freshness_runtime_config" in policies
     assert "default_coherence_runtime_config" in coherence
     assert "DEFAULT_INSTALLED_RUNTIME_FRONTMATTER_GATE" in contract
     assert "DEFAULT_INSTALLED_RUNTIME_NEUTRAL_FRESHNESS_GATE" in contract

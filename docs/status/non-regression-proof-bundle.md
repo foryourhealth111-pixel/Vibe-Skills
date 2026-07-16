@@ -53,7 +53,6 @@ Add-on audit commands are opt-in. Use them only when the change actually touches
 
 ```powershell
 powershell -NoProfile -File scripts/verify/vibe-pack-routing-smoke.ps1
-powershell -NoProfile -File scripts/verify/vibe-router-contract-gate.ps1
 powershell -NoProfile -File scripts/verify/vibe-current-routing-debt-gate.ps1
 powershell -NoProfile -File scripts/verify/vibe-version-packaging-gate.ps1
 powershell -NoProfile -File scripts/verify/vibe-mirror-edit-hygiene-gate.ps1
@@ -119,7 +118,6 @@ Artifact anchors:
   - `outputs/verify/vibe-repo-cleanliness-gate.json`
 - add-on audits when touched:
   - `outputs/verify/vibe-pack-routing-smoke.summary.json`
-  - `outputs/verify/vibe-router-contract-gate.json`
   - `outputs/verify/vibe-current-routing-debt-gate.json`
   - `outputs/verify/vibe-version-packaging-gate.json`
   - `outputs/verify/vibe-mirror-edit-hygiene-gate.json`

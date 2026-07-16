@@ -59,13 +59,6 @@ fi
 if command -v npm &>/dev/null; then
   echo "  [OK] npm"
   ((PASS++))
-  if npm list -g claude-flow &>/dev/null 2>&1; then
-    echo "  [OK] claude-flow (global)"
-    ((PASS++))
-  else
-    echo "  [WARN] claude-flow not installed (needed for XL grade only)"
-    ((WARN++))
-  fi
 else
   echo "  [WARN] npm not found"
   ((WARN++))

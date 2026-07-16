@@ -55,6 +55,34 @@ def test_resolve_host_skill_roots_uses_the_explicit_skills_dir_for_claude_code(t
     )
 
 
+def test_resolve_host_skill_roots_includes_existing_codex_plugin_cache(tmp_path: Path) -> None:
+    agent_root = tmp_path / "home" / ".agents"
+    plugin_cache = tmp_path / "home" / ".codex" / "plugins" / "cache"
+    plugin_cache.mkdir(parents=True)
+
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT,
+        host_id="codex",
+        agent_root=agent_root,
+        workspace_root=None,
+    )
+
+    assert roots == (
+        HostSkillRoot(
+            "codex",
+            "skills_dir",
+            (agent_root / "skills").resolve(),
+            f"skills_dir:{(agent_root / 'skills').resolve()}",
+        ),
+        HostSkillRoot(
+            "codex",
+            "codex_plugin_cache",
+            plugin_cache.resolve(),
+            f"codex_plugin_cache:{plugin_cache.resolve()}",
+        ),
+    )
+
+
 def test_resolve_host_skill_roots_accepts_legacy_host_root_as_skills_parent(tmp_path: Path) -> None:
     host_root = tmp_path / "home" / ".agents"
 

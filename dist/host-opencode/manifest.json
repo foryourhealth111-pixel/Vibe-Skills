@@ -49,8 +49,7 @@
       "install.ps1",
       "install.sh",
       "check.ps1",
-      "check.sh",
-      "docs/install/opencode-path.en.md"
+      "check.sh"
     ],
     "boundary_claims": [
       "full_opencode_json_ownership",
@@ -103,8 +102,7 @@
         "install.ps1",
         "install.sh",
         "check.ps1",
-        "check.sh",
-        "docs/install/opencode-path.en.md"
+        "check.sh"
       ]
     }
   ],

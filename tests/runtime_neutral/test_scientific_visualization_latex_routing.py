@@ -50,13 +50,13 @@ def route(
 
 
 def selected_skill(result: dict[str, object]) -> str:
-    selected = result.get("selected")
+    selected = result.get("candidate_focus")
     assert isinstance(selected, dict), result
     return str(selected.get("skill") or "")
 
 
 def selected_pack(result: dict[str, object]) -> str:
-    selected = result.get("selected")
+    selected = result.get("candidate_focus")
     assert isinstance(selected, dict), result
     return str(selected.get("pack_id") or "")
 
@@ -85,14 +85,6 @@ def ranked_summary(result: dict[str, object]) -> list[tuple[str, str, float, str
     return rows
 
 
-def as_list(value: object) -> list[object]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    return [value]
-
-
 def resolve_powershell() -> str | None:
     candidates = [
         shutil.which("pwsh"),
@@ -118,6 +110,58 @@ def freeze_packet(task: str) -> dict[str, object]:
         install_skills(target_root)
         codex_home.mkdir(parents=True, exist_ok=True)
         artifact_root = Path(tempdir) / "artifacts"
+        organization = {
+            "schema_version": "agent_skill_organization_v1",
+            "derived_by": "agent",
+            "workflow_level": "XL",
+            "modules": [
+                {
+                    "module_id": "research_figures",
+                    "goal": "Create publication-ready research figures.",
+                    "candidate_skill_ids": ["scientific-visualization"],
+                    "execution_mode": "skill_assigned",
+                    "acceptance_criteria": [
+                        {
+                            "criterion_id": "figures-result",
+                            "description": "Publication-ready research figures are present and verified.",
+                            "verification_mode": "automated",
+                        }
+                    ],
+                },
+                {
+                    "module_id": "paper_build",
+                    "goal": "Write and build the final LaTeX paper.",
+                    "candidate_skill_ids": ["latex-submission-pipeline"],
+                    "execution_mode": "skill_assigned",
+                    "acceptance_criteria": [
+                        {
+                            "criterion_id": "paper-build-result",
+                            "description": "The LaTeX paper and compiled output are present and verified.",
+                            "verification_mode": "automated",
+                        }
+                    ],
+                },
+            ],
+            "selected_skills": [
+                {
+                    "skill_id": "scientific-visualization",
+                    "module_ids": ["research_figures"],
+                    "responsibility": "Create publication-ready figures.",
+                    "reason": "Its SKILL.md owns scientific visualization.",
+                },
+                {
+                    "skill_id": "latex-submission-pipeline",
+                    "module_ids": ["paper_build"],
+                    "responsibility": "Write and build the LaTeX paper.",
+                    "reason": "Its SKILL.md owns LaTeX submission builds.",
+                },
+            ],
+            "uncovered_modules": [],
+            "workflow_level_contract": {
+                "L": "Use one serial governed lane.",
+                "XL": "Use bounded waves when the approved organization needs them.",
+            },
+        }
         subprocess.run(
             [
                 shell,
@@ -137,6 +181,8 @@ def freeze_packet(task: str) -> dict[str, object]:
                 str(artifact_root),
                 "-RequestedGradeFloor",
                 "XL",
+                "-HostDecisionJson",
+                json.dumps({"agent_skill_organization": organization}, ensure_ascii=False),
             ],
             cwd=REPO_ROOT,
             capture_output=True,
@@ -191,15 +237,24 @@ class ScientificVisualizationLatexRoutingTests(unittest.TestCase):
 
         self.assertNotEqual("latex-submission-pipeline", selected_skill(result), ranked_summary(result))
 
-    def test_composite_research_freeze_selects_visualization_and_latex_build_skills(self) -> None:
+    def test_composite_research_freeze_uses_agent_selected_visualization_and_latex_skills(self) -> None:
         packet = freeze_packet(
             "我希望做一个完整研究项目：先做论文研究和文献综述，获取数据后训练机器学习模型，"
             "做数据可视化和结果图，最后用 LaTeX 写成论文 PDF。"
         )
 
-        routing = packet["skill_routing"]
-        selected = as_list(routing.get("candidates"))
-        selected_ids = {str(item["skill_id"]) for item in selected if isinstance(item, dict)}
-        self.assertIn("scientific-visualization", selected_ids)
-        self.assertIn("latex-submission-pipeline", selected_ids)
-        self.assertNotIn("pdf", selected_ids)
+        selected_ids = {
+            str(item["skill_id"])
+            for item in packet["agent_skill_organization"]["selected_skills"]
+        }
+        bound_ids = {
+            str(unit["bound_skill"])
+            for unit in packet["module_assignments"]["units"]
+            if str(unit.get("bound_skill") or "")
+        }
+        self.assertEqual(
+            {"scientific-visualization", "latex-submission-pipeline"},
+            selected_ids,
+        )
+        self.assertEqual(selected_ids, bound_ids)
+        self.assertEqual("agent_skill_organization", packet["module_assignments"]["source"])

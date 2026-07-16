@@ -220,13 +220,7 @@ foreach ($plugin in @($pluginsManifest.core) + @($pluginsManifest.optional)) {
     $installMode = if ($plugin.PSObject.Properties.Name -contains 'install_mode') { [string]$plugin.install_mode } else { 'unknown' }
     $status = switch ($installMode) {
         'manual-codex' { 'platform_plugin_required' }
-        'scripted' {
-            if ($plugin.PSObject.Properties.Name -contains 'install' -and ([string]$plugin.install) -match 'claude-flow') {
-                if (Test-CommandPresent -Name 'claude-flow') { 'ready' } else { 'auto_installable_missing' }
-            } else {
-                'scripted_unknown_probe'
-            }
-        }
+        'scripted' { 'scripted_unknown_probe' }
         default { 'unknown' }
     }
 

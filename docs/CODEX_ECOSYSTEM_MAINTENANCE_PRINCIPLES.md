@@ -65,7 +65,7 @@ Each adapted dependency must document:
 
 ## 6. Dependency Lifecycle
 
-For each external project (superpowers, ralph, SuperClaude, claude-code-settings, spec-kit, claude-flow):
+For each admitted external project (superpowers, ralph, SuperClaude, claude-code-settings, spec-kit):
 
 1. Observe upstream changes.
 2. Triage impact against Codex compatibility contract.

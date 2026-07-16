@@ -2,9 +2,9 @@
   "scenario_id": "pilot-browserops",
   "plane_id": "browserops-provider",
   "task": "需要调试网页请求和控制台报错",
-  "objective": "验证 BrowserOps 在 debug 场景下优先选择 chrome-devtools，并保持 provider advice 属性。",
+  "objective": "验证 BrowserOps 在 debug 场景下只建议宿主原生浏览器能力，并保持 provider advice 属性。",
   "expected": {
-    "provider": "chrome-devtools",
+    "provider": "browser-host-native",
     "confirm_required": false,
     "forbid_second_orchestrator": true,
     "mode": "shadow"
@@ -12,6 +12,7 @@
   "must_not": [
     "second_orchestrator",
     "route_takeover",
-    "unsafe_auto_promote"
+    "unsafe_auto_promote",
+    "forbidden_mcp_provider"
   ]
 }

@@ -55,7 +55,7 @@ function New-ChildDelegationEnvelopeForGate {
         -ExecutionPlanPath ([string]$RootSummary.summary.artifacts.execution_plan) `
         -WriteScope 'gate:child-specialist-escalation' `
         -ApprovedSpecialists @($ApprovedSpecialists) `
-        -ReviewMode 'native_contract' | Out-Null
+        -ReviewMode 'module_acceptance' | Out-Null
     return $envelopePath
 }
 
@@ -65,48 +65,89 @@ $runtimeEntryPath = Get-VgoRuntimeEntrypointPath -RepoRoot $repoRoot -RuntimeCon
 $results = @()
 
 $policyText = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-input-packet-policy.json') -Raw -Encoding UTF8
-foreach ($token in @('child_specialist_suggestion_contract', 'local_specialist_suggestions', 'escalation_required', 'auto_promote_when_safe_same_round', 'auto_absorb_gate')) {
-    Add-Assertion -Results ([ref]$results) -Condition ($policyText.Contains($token)) -Message ("runtime input policy contains child specialist suggestion token: {0}" -f $token)
+foreach ($token in @('agent_skill_organization', 'module_assignments', 'module_skill_contract', 'host_module_execution_contract', 'module_acceptance')) {
+    Add-Assertion -Results ([ref]$results) -Condition ($policyText.Contains($token)) -Message ("runtime input policy contains module handoff token: {0}" -f $token)
 }
 
 $teamText = Get-Content -LiteralPath (Join-Path $repoRoot 'protocols\team.md') -Raw -Encoding UTF8
 $stableDocText = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\root-child-vibe-hierarchy-governance.md') -Raw -Encoding UTF8
-Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('safe bounded candidates should aggressively promote into selected skill execution')) -Message 'team protocol documents work-first skill promotion'
-Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('same-round auto-approve safe suggestions')) -Message 'stable hierarchy doc documents root-governed same-round absorb path'
+Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('they never auto-promote into approved module work units')) -Message 'team protocol forbids route candidates from becoming executable automatically'
+Add-Assertion -Results ([ref]$results) -Condition ($stableDocText.Contains('until the root Agent explicitly updates the approved skill organization')) -Message 'stable hierarchy doc requires explicit root Agent approval'
 
 $runId = "child-specialist-escalation-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\child-specialist-escalation-{0}" -f $runId)
+$hostRoot = Join-Path $artifactRoot '.agents'
+$hostSkillsRoot = Join-Path $hostRoot 'skills'
+New-Item -ItemType Directory -Path $hostSkillsRoot -Force | Out-Null
+foreach ($skillId in @('systematic-debugging', 'scikit-learn')) {
+    $source = Join-Path $repoRoot ("bundled\skills\{0}" -f $skillId)
+    $destination = Join-Path $hostSkillsRoot $skillId
+    Copy-Item -LiteralPath $source -Destination $destination -Recurse -Force
+}
+$env:VIBE_AGENTS_HOME = $hostRoot
+$hostDecisionJson = @{
+    agent_skill_organization = [ordered]@{
+        schema_version = 'agent_skill_organization_v1'
+        derived_by = 'agent'
+        workflow_level = 'XL'
+        modules = @(
+            [ordered]@{
+                module_id = 'root_approved_debugging'
+                goal = 'Preserve the root-approved debugging workflow in the child lane.'
+                candidate_skill_ids = @('systematic-debugging', 'scikit-learn')
+                execution_mode = 'skill_assigned'
+                acceptance_criteria = @(
+                    [ordered]@{
+                        criterion_id = 'root-approved-debugging-result'
+                        description = 'The child lane preserves and completes the root-approved debugging workflow.'
+                        verification_mode = 'automated'
+                    }
+                )
+            }
+        )
+        selected_skills = @(
+            [ordered]@{
+                skill_id = 'systematic-debugging'
+                module_ids = @('root_approved_debugging')
+                responsibility = 'Own the bounded debugging work approved by the root Agent.'
+                reason = 'The root Agent selected this skill after reading its SKILL.md.'
+            }
+        )
+        uncovered_modules = @()
+        workflow_level_contract = [ordered]@{
+            L = 'Use one serial governed lane.'
+            XL = 'Use bounded waves while preserving root approval.'
+        }
+    }
+} | ConvertTo-Json -Depth 20 -Compress
 
 $rootSummary = & $runtimeEntryPath `
-    -Task 'Root bounded work seed for child skill escalation gate.' `
+    -Task 'I have a failing test and stack trace. Investigate it systematically.' `
     -Mode interactive_governed `
     -GovernanceScope root `
     -RunId ("{0}-root" -f $runId) `
-    -ArtifactRoot $artifactRoot
+    -ArtifactRoot $artifactRoot `
+    -HostDecisionJson $hostDecisionJson
 
-Add-Assertion -Results ([ref]$results) -Condition ($null -ne $rootSummary) -Message 'root specialist escalation probe returned summary payload'
+Add-Assertion -Results ([ref]$results) -Condition ($null -ne $rootSummary) -Message 'root module handoff probe returned summary payload'
 $hasRootSummary = ($null -ne $rootSummary) -and ($rootSummary.PSObject.Properties.Name -contains 'summary')
-Add-Assertion -Results ([ref]$results) -Condition $hasRootSummary -Message 'root specialist escalation probe has summary object'
+Add-Assertion -Results ([ref]$results) -Condition $hasRootSummary -Message 'root module handoff probe has summary object'
 
 $approvedForChild = @()
 if ($hasRootSummary) {
     $rootRuntimeInputPacket = Get-Content -LiteralPath $rootSummary.summary.artifacts.runtime_input_packet -Raw -Encoding UTF8 | ConvertFrom-Json
-    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.governance_scope -eq 'root') -Message 'root specialist escalation probe is in root scope'
-    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'root specialist escalation probe keeps vibe authority'
-    $rootBoundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $rootRuntimeInputPacket)
-    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.PSObject.Properties.Name -contains 'work_binding') -Message 'root runtime packet includes work_binding'
-    Add-Assertion -Results ([ref]$results) -Condition (@($rootBoundSkillIds).Count -ge 1) -Message 'root runtime packet uses work_binding as bounded skill truth'
-
-    $rootSelectedSkillExecution = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $rootRuntimeInputPacket
-    $rootSelectedSkillIds = if ($null -ne $rootSelectedSkillExecution -and $rootSelectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_ids') {
-        @($rootSelectedSkillExecution.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @()
-    }
-    Add-Assertion -Results ([ref]$results) -Condition ((@($rootSelectedSkillIds).Count -eq 0) -or ((@($rootSelectedSkillIds) | Where-Object { $_ -in @($rootBoundSkillIds) }).Count -eq @($rootSelectedSkillIds).Count)) -Message 'root runtime packet keeps compatibility selected skill mirror subordinate to work_binding'
-    if (@($rootBoundSkillIds).Count -gt 0) {
-        $approvedForChild = @([string]$rootBoundSkillIds[0])
-    }
+    $rootModuleWorkPlan = Get-Content -LiteralPath $rootSummary.summary.artifacts.module_work_plan -Raw -Encoding UTF8 | ConvertFrom-Json
+    $rootAgentExecutionHandoff = Get-Content -LiteralPath $rootSummary.summary.artifacts.agent_execution_handoff -Raw -Encoding UTF8 | ConvertFrom-Json
+    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.governance_scope -eq 'root') -Message 'root module handoff probe is in root scope'
+    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'root module handoff probe keeps vibe authority'
+    $rootBoundSkillIds = @(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $rootRuntimeInputPacket)
+    $rootPlanUnitIds = @($rootModuleWorkPlan.work_units | ForEach-Object { [string]$_.unit_id })
+    $rootHandoffUnitIds = @($rootAgentExecutionHandoff.units | ForEach-Object { [string]$_.unit_id })
+    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.PSObject.Properties.Name -contains 'module_assignments') -Message 'root runtime packet includes module_assignments'
+    Add-Assertion -Results ([ref]$results) -Condition ((@($rootBoundSkillIds).Count -eq 1) -and ([string]$rootBoundSkillIds[0] -eq 'systematic-debugging')) -Message 'root module_assignments contains only the Agent-approved debugging skill'
+    Add-Assertion -Results ([ref]$results) -Condition ($rootRuntimeInputPacket.module_assignments.source -eq 'agent_skill_organization') -Message 'root module_assignments projects Agent skill organization'
+    Add-Assertion -Results ([ref]$results) -Condition (($rootPlanUnitIds -join '|') -ceq ($rootHandoffUnitIds -join '|')) -Message 'root Agent handoff follows the approved module work plan'
+    $approvedForChild = @($rootBoundSkillIds)
 }
 
 $childSummary = $null
@@ -114,7 +155,7 @@ if ($hasRootSummary) {
     $childRunId = ("{0}-child" -f $runId)
     $childDelegationEnvelopePath = New-ChildDelegationEnvelopeForGate -RootSummary $rootSummary -ChildRunId $childRunId -ApprovedSpecialists @($approvedForChild)
     $childSummary = & $runtimeEntryPath `
-        -Task 'Child specialist escalation advisory smoke.' `
+        -Task 'Train a scikit-learn model for this child task, but preserve the root-approved debugging boundary.' `
         -Mode interactive_governed `
         -GovernanceScope child `
         -RunId $childRunId `
@@ -125,80 +166,51 @@ if ($hasRootSummary) {
         -InheritedExecutionPlanPath ([string]$rootSummary.summary.artifacts.execution_plan) `
         -DelegationEnvelopePath $childDelegationEnvelopePath `
         -ApprovedSpecialistSkillIds $approvedForChild `
-        -ArtifactRoot $artifactRoot
+        -ArtifactRoot $artifactRoot `
+        -HostDecisionJson $hostDecisionJson
 }
 
-Add-Assertion -Results ([ref]$results) -Condition ($null -ne $childSummary) -Message 'child specialist escalation probe returned summary payload'
+Add-Assertion -Results ([ref]$results) -Condition ($null -ne $childSummary) -Message 'child module handoff probe returned summary payload'
 $hasChildSummary = ($null -ne $childSummary) -and ($childSummary.PSObject.Properties.Name -contains 'summary')
-Add-Assertion -Results ([ref]$results) -Condition $hasChildSummary -Message 'child specialist escalation probe has summary object'
+Add-Assertion -Results ([ref]$results) -Condition $hasChildSummary -Message 'child module handoff probe has summary object'
 
-$approvedDispatch = @()
-$localSuggestions = @()
+$handedOffSkillIds = @()
 $childClaims = @()
 if ($hasChildSummary) {
     $runtimeInputPacket = Get-Content -LiteralPath $childSummary.summary.artifacts.runtime_input_packet -Raw -Encoding UTF8 | ConvertFrom-Json
+    $moduleWorkPlan = Get-Content -LiteralPath $childSummary.summary.artifacts.module_work_plan -Raw -Encoding UTF8 | ConvertFrom-Json
+    $agentExecutionHandoff = Get-Content -LiteralPath $childSummary.summary.artifacts.agent_execution_handoff -Raw -Encoding UTF8 | ConvertFrom-Json
     $executionManifest = Get-Content -LiteralPath $childSummary.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
     $delegationValidation = Get-Content -LiteralPath $childSummary.summary.artifacts.delegation_validation_receipt -Raw -Encoding UTF8 | ConvertFrom-Json
 
-    $selectedSkillExecution = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $runtimeInputPacket
-    $boundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
-    $selectedSkillIds = if ($null -ne $selectedSkillExecution -and $selectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_ids') {
-        @($selectedSkillExecution.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @()
-    }
+    $boundSkillIds = @(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
+    $selectedSkillIds = @($runtimeInputPacket.agent_skill_organization.selected_skills | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $plannedUnitIds = @($moduleWorkPlan.work_units | ForEach-Object { [string]$_.unit_id })
+    $handoffUnitIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.unit_id })
+    $handedOffSkillIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
 
-    $approvedDispatch = if ($null -ne $selectedSkillExecution -and $selectedSkillExecution.PSObject.Properties.Name -contains 'selected_skill_execution') {
-        @($selectedSkillExecution.selected_skill_execution)
-    } else {
-        @()
-    }
-
-    $localSuggestions = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'local_specialist_suggestions') {
-        @($runtimeInputPacket.local_specialist_suggestions)
-    } else {
-        @()
-    }
-
-    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.governance_scope -eq 'child') -Message 'specialist escalation smoke runs in child scope'
-    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'specialist escalation smoke keeps vibe runtime authority'
-    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.PSObject.Properties.Name -contains 'work_binding') -Message 'child runtime packet includes work_binding'
-    Add-Assertion -Results ([ref]$results) -Condition (@($boundSkillIds).Count -ge 1) -Message 'child runtime packet keeps root-approved bounded work in work_binding'
-    Add-Assertion -Results ([ref]$results) -Condition ((@($selectedSkillIds).Count -eq 0) -or ((@($selectedSkillIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($selectedSkillIds).Count)) -Message 'child runtime packet keeps compatibility selected skills subordinate to work_binding'
-    Add-Assertion -Results ([ref]$results) -Condition ([bool]$delegationValidation.write_scope_valid) -Message 'child specialist escalation smoke validates delegation write scope'
-    Add-Assertion -Results ([ref]$results) -Condition ([bool]$delegationValidation.prompt_tail_valid) -Message 'child specialist escalation smoke preserves $vibe prompt-tail discipline'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.governance_scope -eq 'child') -Message 'module handoff smoke runs in child scope'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'module handoff smoke keeps vibe runtime authority'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.PSObject.Properties.Name -contains 'module_assignments') -Message 'child runtime packet includes module_assignments'
+    Add-Assertion -Results ([ref]$results) -Condition ((@($boundSkillIds).Count -eq 1) -and ([string]$boundSkillIds[0] -eq 'systematic-debugging')) -Message 'child module_assignments keeps only the root-approved skill'
+    Add-Assertion -Results ([ref]$results) -Condition (($selectedSkillIds -join '|') -eq ($boundSkillIds -join '|')) -Message 'child module_assignments matches the Agent skill organization'
+    Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.module_assignments.source -eq 'agent_skill_organization') -Message 'child module_assignments source is Agent skill organization'
+    Add-Assertion -Results ([ref]$results) -Condition ([bool]$delegationValidation.write_scope_valid) -Message 'child module handoff validates delegation write scope'
+    Add-Assertion -Results ([ref]$results) -Condition ([bool]$delegationValidation.prompt_tail_valid) -Message 'child module handoff preserves $vibe prompt-tail discipline'
     Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$runtimeInputPacket.authority_flags.allow_completion_claim) -Message 'child runtime input packet disallows final completion claim'
-    $specialistDecision = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInputPacket.specialist_decision } else { $null }
-    Add-Assertion -Results ([ref]$results) -Condition ($null -ne $specialistDecision) -Message 'child runtime packet records specialist_decision'
-    if ($null -ne $specialistDecision) {
-        $decisionState = [string](Get-VibePropertySafe -InputObject $specialistDecision -PropertyName 'decision_state' -DefaultValue '')
-        Add-Assertion -Results ([ref]$results) -Condition ($decisionState -in @('approved_dispatch', 'local_suggestion_only', 'no_specialist_recommendations')) -Message 'child specialist decision stays within current work-first decision states'
-    }
+    Add-Assertion -Results ([ref]$results) -Condition ($moduleWorkPlan.schema_version -eq 'module_work_plan_v1') -Message 'child run keeps module-work-plan.json as work authority'
+    Add-Assertion -Results ([ref]$results) -Condition (($plannedUnitIds -join '|') -ceq ($handoffUnitIds -join '|')) -Message 'child Agent handoff follows the approved module work plan'
+    Add-Assertion -Results ([ref]$results) -Condition (($handedOffSkillIds -join '|') -ceq ($boundSkillIds -join '|')) -Message 'child Agent handoff contains only root-approved Skills'
 
-    $approvedSkillIds = @($approvedDispatch | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    foreach ($entry in $localSuggestions) {
-        $skillId = if ($entry.PSObject.Properties.Name -contains 'skill_id') { [string]$entry.skill_id } else { 'unknown-skill' }
-        Add-Assertion -Results ([ref]$results) -Condition (-not ($approvedSkillIds -contains $skillId)) -Message ("local specialist suggestion is not approved selected skill execution: {0}" -f $skillId)
-        Add-Assertion -Results ([ref]$results) -Condition (-not ($boundSkillIds -contains $skillId)) -Message ("residual local specialist suggestion does not mutate current work_binding: {0}" -f $skillId)
-    }
+    $candidateAuditSkillIds = @($runtimeInputPacket.skill_routing.candidates | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    Add-Assertion -Results ([ref]$results) -Condition ($candidateAuditSkillIds -contains 'scikit-learn') -Message 'child candidate audit records the unapproved scikit-learn candidate'
+    Add-Assertion -Results ([ref]$results) -Condition (-not ($boundSkillIds -contains 'scikit-learn')) -Message 'child candidate audit does not mutate module_assignments'
 
     Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.governance_scope -eq 'child') -Message 'execution manifest is marked child scope'
     Add-Assertion -Results ([ref]$results) -Condition (-not [bool]$executionManifest.authority.completion_claim_allowed) -Message 'child execution manifest cannot issue final completion claim'
-    Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.route_runtime_alignment.runtime_selected_skill -eq 'vibe') -Message 'execution manifest keeps explicit vibe authority'
-    Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'child execution manifest preserves skill execution integrity proof'
-    Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.local_suggestions_contained) -Message 'child execution manifest keeps residual local suggestions contained'
-    Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.executed_specialists_subset_of_approved_dispatch) -Message 'child execution manifest executes only root-approved selected skills'
-    $specialistAccounting = if ($executionManifest.PSObject.Properties.Name -contains 'specialist_accounting') { $executionManifest.specialist_accounting } else { $null }
-    if (@($localSuggestions).Count -gt 0) {
-        Add-Assertion -Results ([ref]$results) -Condition ($null -ne $specialistAccounting -and $specialistAccounting.PSObject.Properties.Name -contains 'auto_absorb_gate') -Message 'child execution manifest records same-round auto-absorb status when residual local suggestions remain visible'
-    }
-    if (@($localSuggestions).Count -gt 0 -and $null -ne $specialistAccounting -and $specialistAccounting.PSObject.Properties.Name -contains 'auto_absorb_gate') {
-        $autoAbsorbGate = $specialistAccounting.auto_absorb_gate
-        Add-Assertion -Results ([ref]$results) -Condition ([string]$autoAbsorbGate.status -in @('auto_approved_same_round', 'partially_auto_approved_same_round')) -Message 'child execution manifest keeps same-round auto-absorb subordinate to bounded work'
-        if ($autoAbsorbGate.receipt_path) {
-            Add-Assertion -Results ([ref]$results) -Condition (Test-Path -LiteralPath ([string]$autoAbsorbGate.receipt_path)) -Message 'same-round auto-absorb gate emits receipt'
-        }
-    }
+    Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'agent_action_required') -Message 'child execution manifest stops for Agent module work'
+    Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.module_handoff.status -eq 'agent_action_required') -Message 'child module_handoff records Agent action required'
+    Add-Assertion -Results ([ref]$results) -Condition (($executionManifest.module_handoff.assigned_skill_ids -join '|') -ceq ($handedOffSkillIds -join '|')) -Message 'child module_handoff matches agent-execution-handoff.json'
 
     $childClaims = if ($executionManifest.PSObject.Properties.Name -contains 'child_completion_claims') { @($executionManifest.child_completion_claims) } else { @() }
 }
@@ -212,8 +224,7 @@ $report = [pscustomobject]@{
     assertion_count = @($results).Count
     failure_count = $failureCount
     runtime_summary_path = if ($null -ne $childSummary -and ($childSummary.PSObject.Properties.Name -contains 'summary_path')) { $childSummary.summary_path } else { $null }
-    approved_dispatch_count = @($approvedDispatch).Count
-    local_suggestion_count = @($localSuggestions).Count
+    handed_off_skill_count = @($handedOffSkillIds).Count
     child_claim_count = @($childClaims).Count
     results = @($results)
 }

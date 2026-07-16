@@ -21,7 +21,7 @@ Default closure should stay small. Packaging, mirror, freshness, and retired-rou
 ## Touched-surface extension gates
 
 - Install receipt / installed-copy health: `check.ps1`, `vibe-installed-runtime-freshness-gate.ps1`
-- Routing / retired-routing audits: `vibe-pack-routing-smoke.ps1`, `vibe-router-contract-gate.ps1`, `vibe-current-routing-debt-gate.ps1`
+- Routing / retired-routing audits: `vibe-pack-routing-smoke.ps1`, `vibe-current-routing-debt-gate.ps1`
 - Runtime / packaging: `vibe-bom-frontmatter-gate.ps1`, `vibe-version-packaging-gate.ps1`, `vibe-installed-runtime-freshness-gate.ps1`
 - Release / truth honesty: `vibe-dist-manifest-gate.ps1`, `vibe-release-notes-quality-gate.ps1`, `vibe-release-truth-consistency-gate.ps1`
 - Cleanliness / outputs / compatibility hygiene: `vibe-current-routing-debt-gate.ps1` is the current routing debt audit. It verifies retired routing terms stay out of current runtime, router, docs, and current tests while allowing explicit retired/historical evidence; `vibe-repo-cleanliness-gate.ps1`, `vibe-output-artifact-boundary-gate.ps1`, `vibe-mirror-edit-hygiene-gate.ps1`, `vibe-nested-bundled-parity-gate.ps1`

@@ -264,6 +264,7 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         entry_id=None,
         requested_stage_stop='phase_cleanup',
         requested_grade_floor='XL',
+        workspace_root=str(tmp_path / 'workspace'),
         artifact_root=str(tmp_path / 'artifacts'),
         local_agent_root=str(tmp_path / 'agent-root'),
         run_id='run-123',
@@ -281,6 +282,7 @@ def test_canonical_entry_command_delegates_to_runtime_core_bridge(monkeypatch: p
         '--requested-stage-stop', 'phase_cleanup',
         '--requested-grade-floor', 'XL',
         '--run-id', 'run-123',
+        '--workspace-root', str(tmp_path / 'workspace'),
         '--artifact-root', str((tmp_path / 'artifacts')),
         '--local-agent-root', str(tmp_path / 'agent-root'),
         '--continue-from-run-id', 'prior-run',
@@ -538,10 +540,27 @@ def test_install_command_uses_simplified_skills_dir_install(tmp_path: Path, caps
     assert '"receipt_kind": "vibe-skill-install"' in capsys.readouterr().out
 
 
+def _write_minimal_install_source(repo_root: Path) -> None:
+    (repo_root / 'config').mkdir(parents=True, exist_ok=True)
+    (repo_root / 'SKILL.md').write_text('# vibe\n', encoding='utf-8')
+    (repo_root / 'config' / 'version-governance.json').write_text(
+        json.dumps(
+            {
+                'packaging': {
+                    'runtime_payload': {
+                        'files': ['SKILL.md'],
+                        'directories': ['config'],
+                    }
+                }
+            }
+        ),
+        encoding='utf-8',
+    )
+
+
 def test_install_command_marks_non_git_source_as_unknown_dirty(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     repo_root = tmp_path / 'repo'
-    (repo_root / 'SKILL.md').parent.mkdir(parents=True, exist_ok=True)
-    (repo_root / 'SKILL.md').write_text('# vibe\n', encoding='utf-8')
+    _write_minimal_install_source(repo_root)
     skills_dir = tmp_path / 'skills'
 
     assert install_command(argparse.Namespace(repo_root=str(repo_root), skills_dir=str(skills_dir))) == 0
@@ -556,8 +575,7 @@ def test_install_command_uses_public_release_bundle_metadata_when_present(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     release_root = tmp_path / 'release-root'
-    release_root.mkdir(parents=True, exist_ok=True)
-    (release_root / 'SKILL.md').write_text('# vibe\n', encoding='utf-8')
+    _write_minimal_install_source(release_root)
     (release_root / 'release-bundle.json').write_text(
         json.dumps(
             {
@@ -731,6 +749,24 @@ def test_build_parser_includes_canonical_entry_subcommand() -> None:
     assert args.handler is canonical_entry_command
     assert args.host_id is None
     assert args.entry_id is None
+    assert args.workspace_root is None
+
+
+def test_build_parser_accepts_hidden_canonical_entry_workspace_root() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            'canonical-entry',
+            '--repo-root',
+            '/tmp/repo',
+            '--prompt',
+            'continue canonical vibe',
+            '--workspace-root',
+            '/tmp/workspace',
+        ]
+    )
+
+    assert args.workspace_root == '/tmp/workspace'
 
 
 def test_build_parser_accepts_canonical_entry_host_decision_json_file() -> None:

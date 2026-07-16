@@ -49,7 +49,6 @@
         "scripts/router/modules/43-retrieval-overlay.ps1",
         "scripts/router/modules/44-exploration-overlay.ps1",
         "scripts/router/modules/45-daily-dialectic-guard.ps1",
-        "scripts/router/modules/46-confirm-ui.ps1",
         "scripts/router/modules/47-closure-overlay.ps1",
         "scripts/router/modules/49-prompt-asset-boost.ps1"
       ],

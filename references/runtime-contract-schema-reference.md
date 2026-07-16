@@ -51,14 +51,15 @@ It does not redefine:
 | `internal_grade` | `required` | selected execution grade |
 | `hierarchy` | `required` | shared hierarchy projection |
 | `host_adapter` | `required` | requested/effective host adapter projection |
-| `work_binding` | `required` | kernel-facing bounded work truth |
-| `specialist_decision` | `required` | bounded specialist decision truth, including no-specialist resolution |
+| `module_assignments` | `required` | kernel-facing bounded work truth |
+| `agent_skill_organization` | `required` | Agent-confirmed module and local Skill organization used to freeze the plan |
+| `agent_skill_organization.modules[].acceptance_criteria[]` | `required` | At least one object per module; each object has a unique `criterion_id`, non-empty `description`, and `verification_mode` of `automated` or `manual` |
+| `skill_search_guide` | `required` | local Skill discovery and disclosure instructions for the Agent |
 | `authority_flags` | `required` | runtime authority projection |
 | `provenance` | `required` | proof/source-of-truth metadata |
 | `canonical_router` | `optional_compatibility` | historical router-entry mirror; current bounded-work truth no longer depends on it |
 | `route_snapshot` | `optional_compatibility` | compatibility control summary; current bounded-work truth lives elsewhere |
 | `skill_routing` | `optional_compatibility` | compatibility mirror of selected bounded skills |
-| `skill_usage` | `optional_compatibility` | packet-level proof mirror for used/unused skill evidence |
 | `custom_admission` | `optional_compatibility` | may be `null` when no custom manifests participate |
 | `divergence_shadow` | `optional_compatibility` | router/runtime mismatch observability shadow |
 
@@ -70,10 +71,12 @@ It does not redefine:
 | `host_decision` | `optional_compatibility` | structured host decision mirror when present |
 | `code_task_tdd_decision` | `optional_compatibility` | code-task TDD decision mirror when present |
 | `host_skill_execution_decision` | `optional_compatibility` | host curation decision mirror when present |
-| `skill_execution_lock` | `optional_compatibility` | execution-obligation lock mirror when present |
 | `storage` | `derived_summary` | workspace and artifact-root projection for runtime surfaces |
 
 ## Execution Manifest
+
+Current work authority flows through `module-work-plan.json`,
+`agent-execution-handoff.json`, and `module-execution.json`.
 
 ### Required fields
 
@@ -88,23 +91,18 @@ It does not redefine:
 | `profile_id` | `required` | execution policy profile |
 | `requirement_doc_path` | `required` | canonical requirement path |
 | `execution_plan_path` | `required` | canonical plan path |
-| `execution_topology_path` | `required` | topology artifact path |
 | `runtime_input_packet_path` | `required` | frozen packet path |
 | `generated_at` | `required` | manifest timestamp |
-| `planned_wave_count` | `required` | wave count |
-| `planned_unit_count` | `required` | executable unit count |
-| `executed_unit_count` | `required` | executed unit count |
-| `successful_unit_count` | `required` | success count |
+| `module_work_plan_path` | `required` | approved module work authority |
+| `module_execution_path` | `required after re-entry` | Agent module result |
+| `completed_unit_count` | `required after re-entry` | completed module work count |
 | `failed_unit_count` | `required` | failure count |
-| `timed_out_unit_count` | `required` | timeout count |
+| `blocked_unit_count` | `required` | blocked module work count |
 | `proof_class` | `required` | current class is `runtime` |
 | `promotion_suitable` | `required` | proof promotion posture |
 | `hierarchy` | `required` | shared hierarchy projection |
 | `authority` | `required` | execution authority projection |
-| `route_runtime_alignment` | `required` | router/runtime skill + host alignment |
-| `execution_topology` | `required` | topology summary block |
-| `plan_shadow` | `required` | executable plan shadow |
-| `specialist_accounting` | `required` | specialist execution accounting |
+| `module_handoff` | `required` | Agent handoff status and host alignment |
 | `dispatch_integrity` | `required` | dispatch proof summary |
 | `status` | `required` | execution result |
 | `waves` | `required` | per-wave receipts |

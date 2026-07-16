@@ -163,7 +163,7 @@ class UnifiedUninstallTests(unittest.TestCase):
                 "created_paths": ["commands/vibe.md"],
                 "managed_json_paths": [],
                 "generated_from_template_if_absent": [],
-                "specialist_wrapper_paths": [],
+                "host_visible_entry_paths": [],
                 "runtime_root": "skills/vibe",
                 "canonical_vibe_root": "skills/vibe",
             },

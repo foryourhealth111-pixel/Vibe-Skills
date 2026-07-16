@@ -321,8 +321,8 @@ function Get-RouteRuntimeStatePromptDigest {
             task_type = [string]$Result.task_type
             route_mode = [string]$Result.route_mode
             route_reason = [string]$Result.route_reason
-            selected_pack = if ($Result.selected) { [string]$Result.selected.pack_id } else { "none" }
-            selected_skill = if ($Result.selected) { [string]$Result.selected.skill } else { "none" }
+            candidate_focus_pack = if ($Result.candidate_focus) { [string]$Result.candidate_focus.pack_id } else { "none" }
+            candidate_focus_skill = if ($Result.candidate_focus) { [string]$Result.candidate_focus.skill } else { "none" }
             confidence = [double]$Result.confidence
         }
         deep_discovery = [pscustomobject]@{
@@ -359,5 +359,4 @@ function Get-RouteRuntimeStatePromptDigest {
         }
     }
 }
-
 

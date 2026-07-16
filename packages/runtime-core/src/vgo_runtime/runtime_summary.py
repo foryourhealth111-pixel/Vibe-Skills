@@ -7,9 +7,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from vgo_runtime.kernel.work_binding import build_skill_usage_projection
-
-
 STAGE_ORDER = [
     "skeleton_check",
     "deep_interview",
@@ -25,8 +22,7 @@ def build_runtime_summary(
     run_id: str,
     task: str,
     artifacts: dict[str, Any],
-    work_binding: dict[str, Any],
-    work_results: dict[str, Any] | None = None,
+    module_assignments: dict[str, Any],
     base_fields: dict[str, Any] | None = None,
     mode: str | None = None,
     artifact_root: str | None = None,
@@ -36,13 +32,11 @@ def build_runtime_summary(
     storage_projection: Any = None,
     memory_activation_report: dict[str, Any] | None = None,
     delivery_acceptance_report: dict[str, Any] | None = None,
-    specialist_decision: dict[str, Any] | None = None,
-    specialist_user_disclosure: dict[str, Any] | None = None,
-    specialist_consultation: dict[str, Any] | None = None,
-    specialist_lifecycle_disclosure: dict[str, Any] | None = None,
     host_stage_disclosure: dict[str, Any] | None = None,
     host_user_briefing: dict[str, Any] | None = None,
     bounded_return_control: dict[str, Any] | None = None,
+    agent_execution_handoff: dict[str, Any] | None = None,
+    module_execution: dict[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     if not isinstance(artifacts, dict):
@@ -50,8 +44,8 @@ def build_runtime_summary(
     for key, value in artifacts.items():
         if value is not None and not isinstance(value, str):
             raise ValueError(f"artifacts.{key} must be a string or null")
-    if not isinstance(work_binding, dict):
-        raise ValueError("work_binding must be an object")
+    if not isinstance(module_assignments, dict):
+        raise ValueError("module_assignments must be an object")
 
     if base_fields is None and mode is None and artifact_root is None and session_root is None and hierarchy_state is None:
         summary = {}
@@ -79,13 +73,10 @@ def build_runtime_summary(
             "storage": storage_projection,
             "memory_activation": _memory_activation_projection(memory_activation_report),
             "delivery_acceptance": _delivery_acceptance_projection(delivery_acceptance_report),
-            "specialist_decision": specialist_decision,
-            "specialist_user_disclosure": specialist_user_disclosure,
-            "specialist_consultation": specialist_consultation,
-            "specialist_lifecycle_disclosure": specialist_lifecycle_disclosure,
             "host_stage_disclosure": host_stage_disclosure,
             "host_user_briefing": host_user_briefing,
             "bounded_return_control": bounded_return_control,
+            "agent_execution_handoff": agent_execution_handoff,
             "artifacts_relative": _relative_artifacts(artifact_root, artifacts),
         }
     else:
@@ -95,18 +86,11 @@ def build_runtime_summary(
     summary["task"] = task
     summary["truth_owner"] = "python"
     summary["artifacts"] = artifacts
-    summary["bound_skill_ids"] = _bound_skill_ids_from_work_binding(work_binding)
-    summary["skill_usage"] = build_skill_usage_projection(
-        work_binding=work_binding,
-        work_results=_work_result_rows(work_results),
-        compatibility_mirror=summary.get("skill_usage") if isinstance(summary.get("skill_usage"), dict) else None,
-        include_binary_compat_fields=True,
-    )
-    summary["used_skill_ids"] = [
-        str(item.get("skill_id") or "")
-        for item in summary["skill_usage"]["used"]
-        if isinstance(item, dict) and str(item.get("skill_id") or "").strip()
-    ]
+    summary["bound_skill_ids"] = _bound_skill_ids_from_module_assignments(module_assignments)
+    if isinstance(module_execution, dict):
+        summary["completed_module_work"] = _completed_module_work(module_execution)
+    else:
+        summary.pop("completed_module_work", None)
     return summary
 
 
@@ -117,16 +101,13 @@ def build_runtime_summary_from_payload(payload: dict[str, Any]) -> dict[str, Any
     run_id = payload.get("run_id")
     task = payload.get("task")
     artifacts = payload.get("artifacts")
-    work_binding = payload.get("work_binding")
-    work_results = payload.get("work_results")
+    module_assignments = payload.get("module_assignments")
     base_fields = payload.get("base_fields")
 
     if not isinstance(run_id, str) or not run_id.strip():
         raise ValueError("summary build payload missing run_id")
     if not isinstance(task, str) or not task.strip():
         raise ValueError("summary build payload missing task")
-    if work_results is not None and not isinstance(work_results, dict):
-        raise ValueError("work_results must be an object when present")
     if base_fields is not None and not isinstance(base_fields, dict):
         raise ValueError("base_fields must be an object when present")
 
@@ -134,8 +115,7 @@ def build_runtime_summary_from_payload(payload: dict[str, Any]) -> dict[str, Any
         run_id=run_id,
         task=task,
         artifacts=artifacts,
-        work_binding=work_binding,
-        work_results=work_results,
+        module_assignments=module_assignments,
         base_fields=base_fields,
         mode=payload.get("mode") if isinstance(payload.get("mode"), str) else None,
         artifact_root=payload.get("artifact_root") if isinstance(payload.get("artifact_root"), str) else None,
@@ -145,19 +125,65 @@ def build_runtime_summary_from_payload(payload: dict[str, Any]) -> dict[str, Any
         storage_projection=payload.get("storage_projection"),
         memory_activation_report=_optional_object_field(payload, "memory_activation_report"),
         delivery_acceptance_report=_optional_object_field(payload, "delivery_acceptance_report"),
-        specialist_decision=_optional_object_field(payload, "specialist_decision"),
-        specialist_user_disclosure=_optional_object_field(payload, "specialist_user_disclosure"),
-        specialist_consultation=_optional_object_field(payload, "specialist_consultation"),
-        specialist_lifecycle_disclosure=_optional_object_field(payload, "specialist_lifecycle_disclosure"),
         host_stage_disclosure=_optional_object_field(payload, "host_stage_disclosure"),
         host_user_briefing=_optional_object_field(payload, "host_user_briefing"),
         bounded_return_control=_optional_object_field(payload, "bounded_return_control"),
+        agent_execution_handoff=_optional_object_field(payload, "agent_execution_handoff"),
+        module_execution=_optional_object_field(payload, "module_execution"),
         generated_at=payload.get("generated_at") if isinstance(payload.get("generated_at"), str) else None,
     )
 
 
-def _bound_skill_ids_from_work_binding(work_binding: dict[str, Any]) -> list[str]:
-    units = work_binding.get("units")
+def refresh_runtime_summary_acceptance(
+    summary: dict[str, Any],
+    delivery_acceptance_report: dict[str, Any],
+    *,
+    cleanup_receipt_path: str,
+    delivery_acceptance_report_path: str,
+) -> dict[str, Any]:
+    if not isinstance(summary, dict):
+        raise ValueError("runtime summary must be an object")
+    if not isinstance(delivery_acceptance_report, dict):
+        raise ValueError("delivery_acceptance_report must be an object")
+
+    refreshed = dict(summary)
+    acceptance = _delivery_acceptance_projection(delivery_acceptance_report)
+    report_summary = delivery_acceptance_report.get("summary")
+    if acceptance is None or not isinstance(report_summary, dict):
+        raise ValueError("delivery_acceptance_report.summary must be an object")
+
+    runtime_status = report_summary.get("runtime_status")
+    if not isinstance(runtime_status, str) or not runtime_status.strip():
+        raise ValueError("delivery_acceptance_report.summary.runtime_status must be a non-empty string")
+    completion_language_allowed = report_summary.get("completion_language_allowed")
+    if not isinstance(completion_language_allowed, bool):
+        raise ValueError(
+            "delivery_acceptance_report.summary.completion_language_allowed must be a boolean"
+        )
+    if completion_language_allowed:
+        cleanup_path = Path(cleanup_receipt_path)
+        if not cleanup_path.exists():
+            raise ValueError("cleanup receipt is required before completion can be reported")
+        cleanup_receipt = json.loads(cleanup_path.read_text(encoding="utf-8-sig"))
+        if not isinstance(cleanup_receipt, dict) or cleanup_receipt.get("cleanup_admitted") is not True:
+            raise ValueError("cleanup receipt has not admitted cleanup")
+
+    refreshed["delivery_acceptance"] = acceptance
+    refreshed["status"] = runtime_status
+    refreshed["completion_language_allowed"] = completion_language_allowed
+    artifacts = dict(refreshed.get("artifacts") or {})
+    artifacts["cleanup_receipt"] = cleanup_receipt_path
+    artifacts["delivery_acceptance_report"] = delivery_acceptance_report_path
+    refreshed["artifacts"] = artifacts
+
+    artifact_root = refreshed.get("artifact_root")
+    if isinstance(artifact_root, str) and artifact_root.strip():
+        refreshed["artifacts_relative"] = _relative_artifacts(artifact_root, artifacts)
+    return refreshed
+
+
+def _bound_skill_ids_from_module_assignments(module_assignments: dict[str, Any]) -> list[str]:
+    units = module_assignments.get("units")
     if not isinstance(units, list):
         return []
 
@@ -171,13 +197,22 @@ def _bound_skill_ids_from_work_binding(work_binding: dict[str, Any]) -> list[str
     return bound_skill_ids
 
 
-def _work_result_rows(work_results: dict[str, Any] | None) -> list[dict[str, Any]] | None:
-    if not isinstance(work_results, dict):
-        return None
-    rows = work_results.get("work_results")
-    if not isinstance(rows, list):
-        return None
-    return [row for row in rows if isinstance(row, dict)]
+def _completed_module_work(module_execution: dict[str, Any]) -> list[dict[str, str]]:
+    completed_work: list[dict[str, str]] = []
+    for unit in module_execution.get("units") or []:
+        if not isinstance(unit, dict) or str(unit.get("state") or "") != "completed":
+            continue
+        skill_id = str(unit.get("skill_id") or "").strip()
+        if not skill_id:
+            continue
+        completed_work.append(
+            {
+                "skill_id": skill_id,
+                "unit_id": str(unit.get("unit_id") or ""),
+                "module_id": str(unit.get("module_id") or ""),
+            }
+        )
+    return completed_work
 
 
 def _build_hierarchy_projection(hierarchy_state: dict[str, Any]) -> dict[str, Any]:
@@ -248,13 +283,17 @@ def _delivery_acceptance_projection(report: dict[str, Any] | None) -> dict[str, 
     if report is None:
         return None
     summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
-    return {
+    projection = {
         "gate_result": str(summary.get("gate_result") or ""),
         "completion_language_allowed": bool(summary.get("completion_language_allowed") or False),
         "readiness_state": str(summary.get("readiness_state") or ""),
         "manual_review_layer_count": int(summary.get("manual_review_layer_count") or 0),
         "failing_layer_count": int(summary.get("failing_layer_count") or 0),
     }
+    runtime_status = summary.get("runtime_status")
+    if isinstance(runtime_status, str):
+        projection["runtime_status"] = runtime_status
+    return projection
 
 
 def _relative_artifacts(artifact_root: str, artifacts: dict[str, Any]) -> dict[str, Any]:

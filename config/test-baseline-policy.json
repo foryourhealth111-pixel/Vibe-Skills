@@ -38,7 +38,7 @@
       "description": "Runtime entry truth proof for governed execution, delivery receipts, and shared-memory continuity.",
       "selection_scope": "default_regression",
       "pytest_args": [
-        "tests/runtime_neutral/test_binary_skill_usage_runtime_flow.py",
+        "tests/runtime_neutral/test_agent_skill_organization_contract.py",
         "tests/runtime_neutral/test_governed_runtime_bridge.py",
         "tests/runtime_neutral/test_runtime_delivery_acceptance.py",
         "tests/runtime_neutral/test_workspace_shared_memory_plane.py"
@@ -51,12 +51,11 @@
     },
     {
       "id": "default_routing_mainline",
-      "description": "Routing mainline proof for authority selection, safe fallback, and specialist lock continuity.",
+      "description": "Routing mainline proof for authority selection and bounded module dispatch.",
       "selection_scope": "default_regression",
       "pytest_args": [
         "tests/runtime_neutral/test_custom_admission_bridge.py",
-        "tests/runtime_neutral/test_router_authority_safe_fallback.py",
-        "tests/runtime_neutral/test_skill_execution_lock_contract.py"
+        "tests/runtime_neutral/test_router_authority_safe_fallback.py"
       ],
       "timeout_seconds": 1800,
       "run_strategy": "file_serial",
@@ -85,7 +84,6 @@
       "pytest_args": [
         "tests/integration/test_host_global_bootstrap_shell_lifecycle.py",
         "tests/integration/test_install_rerun_matrix.py",
-        "tests/integration/test_powershell_captured_process_argument_integrity.py",
         "tests/integration/test_powershell_wrapper_host_validation_dedupe.py"
       ],
       "timeout_seconds": 1800,

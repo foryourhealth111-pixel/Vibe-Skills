@@ -11,8 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages" / "runtime-core" / "src"))
-from vgo_runtime.router_contract_runtime import build_confirm_ui, route_prompt
-from vgo_runtime.runtime_support import RepoContext
+from vgo_runtime.router_contract_runtime import route_prompt
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -126,49 +125,25 @@ def run_powershell_route(prompt: str, grade: str, task_type: str, requested_skil
 
 
 class RouterBridgeTests(unittest.TestCase):
-    def test_build_confirm_ui_keeps_selected_skill_visible_when_ranking_is_truncated(self) -> None:
-        repo = RepoContext(
-            repo_root=REPO_ROOT,
-            config_root=REPO_ROOT / "config",
-            bundled_skills_root=REPO_ROOT / "bundled" / "skills",
-        )
-        route_result = {
-            "alias": {"requested_canonical": "vibe"},
-            "selected": {"pack_id": "synthetic-pack", "skill": "selected-skill", "selection_score": 0.42},
-            "ranked": [
-                {
-                    "skill": "selected-skill",
-                    "score": 0.42,
-                    "description": "Synthetic selected local skill.",
-                }
-            ],
-        }
-
-        confirm_ui = build_confirm_ui(repo, route_result, None)
-
-        self.assertIsNotNone(confirm_ui)
-        self.assertEqual("selected-skill", confirm_ui["options"][0]["skill"])
-        self.assertEqual("selected-skill", confirm_ui["route_decision_contract"]["selected_skill"])
-
     def test_runtime_neutral_bridge_satisfies_curated_route_cases(self) -> None:
         fixture = json.loads(ROUTE_FIXTURE.read_text(encoding="utf-8"))
         for case in fixture["cases"]:
             with self.subTest(case=case["id"]):
                 result = run_bridge(case["prompt"], case["grade"], case["task_type"])
                 expected = case["expected"]
-                selected = result.get("selected") or {}
+                candidate_focus = result.get("candidate_focus") or {}
 
                 self.assertEqual("local_skill_index", result["candidate_source"])
                 if "route_mode" in expected:
                     self.assertEqual(expected["route_mode"], result["route_mode"])
                 if "allowed_route_modes" in expected:
                     self.assertIn(result["route_mode"], expected["allowed_route_modes"])
-                if "selected_pack" in expected:
-                    self.assertEqual(expected["selected_pack"], selected["pack_id"])
-                if "selected_skill" in expected:
-                    self.assertEqual(expected["selected_skill"], selected["skill"])
+                if "candidate_focus_pack" in expected:
+                    self.assertEqual(expected["candidate_focus_pack"], candidate_focus["pack_id"])
+                if "candidate_focus_skill" in expected:
+                    self.assertEqual(expected["candidate_focus_skill"], candidate_focus["skill"])
 
-    def test_confirm_required_can_degrade_to_clarification_only_when_no_specialist_is_usable(self) -> None:
+    def test_no_local_candidate_omits_retired_confirmation_fields(self) -> None:
         result = run_bridge(
             "Help me clarify scope, choose repo path, define constraints, and then implement the feature with verification and deliverables.",
             "L",
@@ -177,7 +152,8 @@ class RouterBridgeTests(unittest.TestCase):
 
         self.assertEqual("no_local_candidate", result["route_mode"])
         self.assertEqual("no_local_candidate_above_threshold", result["route_reason"])
-        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["candidate_focus"])
+        self.assertNotIn("confirm_required", result)
         self.assertNotIn("confirm_ui", result)
         self.assertEqual("local_index_no_match", result["truth_level"])
 
@@ -190,10 +166,10 @@ class RouterBridgeTests(unittest.TestCase):
 
         self.assertEqual("no_local_candidate", result["route_mode"])
         self.assertEqual("no_local_candidate_above_threshold", result["route_reason"])
-        self.assertIsNone(result["selected"])
+        self.assertIsNone(result["candidate_focus"])
         self.assertNotIn("confirm_ui", result)
 
-    def test_requested_mixed_case_active_skill_routes_authoritatively(self) -> None:
+    def test_requested_mixed_case_active_skill_becomes_candidate_focus(self) -> None:
         result = run_bridge(
             "请用机器学习专家视角审视这个分类方案",
             "L",
@@ -202,10 +178,10 @@ class RouterBridgeTests(unittest.TestCase):
         )
 
         self.assertEqual("local_skill_overlay", result["route_mode"])
-        self.assertEqual("local-skill-index", result["selected"]["pack_id"])
-        self.assertEqual("scikit-learn", result["selected"]["skill"])
+        self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
+        self.assertEqual("scikit-learn", result["candidate_focus"]["skill"])
 
-    def test_canonical_entry_intent_does_not_override_router_selection(self) -> None:
+    def test_canonical_entry_intent_does_not_override_candidate_focus(self) -> None:
         prompt = (
             "Please use scikit-learn to prototype a tabular classification baseline, "
             "run feature selection, and compare cross-validation metrics."
@@ -220,11 +196,11 @@ class RouterBridgeTests(unittest.TestCase):
         )
 
         self.assertEqual(baseline["route_mode"], wrapped["route_mode"])
-        self.assertEqual(baseline["selected"]["pack_id"], wrapped["selected"]["pack_id"])
-        self.assertEqual(baseline["selected"]["skill"], wrapped["selected"]["skill"])
+        self.assertEqual(baseline["candidate_focus"]["pack_id"], wrapped["candidate_focus"]["pack_id"])
+        self.assertEqual(baseline["candidate_focus"]["skill"], wrapped["candidate_focus"]["skill"])
         self.assertEqual("vibe", wrapped["alias"]["entry_intent_id"])
 
-    def test_requested_vibe_can_preserve_runtime_authority_while_router_selects_specialist(self) -> None:
+    def test_requested_vibe_preserves_runtime_authority_while_route_focuses_candidate(self) -> None:
         result = run_bridge(
             "I have a failing test and a stack trace. Help me debug systematically before proposing fixes.",
             "XL",
@@ -233,8 +209,8 @@ class RouterBridgeTests(unittest.TestCase):
         )
 
         self.assertEqual("local_skill_overlay", result["route_mode"])
-        self.assertEqual("local-skill-index", result["selected"]["pack_id"])
-        self.assertEqual("systematic-debugging", result["selected"]["skill"])
+        self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
+        self.assertEqual("systematic-debugging", result["candidate_focus"]["skill"])
         self.assertEqual("vibe", result["alias"]["requested_canonical"])
 
 

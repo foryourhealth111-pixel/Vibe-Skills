@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 $ErrorActionPreference = "Stop"
 
@@ -248,22 +248,22 @@ foreach ($case in $cases) {
     $route = Invoke-Route -Prompt $case.Prompt -Grade $case.Grade -TaskType $case.TaskType
 
     if ($case.PSObject.Properties.Name -contains "ExpectedPack" -and $case.ExpectedPack) {
-        $results += Assert-True -Condition ($route.selected.pack_id -eq $case.ExpectedPack) -Message "[$($case.Name)] pack expected=$($case.ExpectedPack), actual=$($route.selected.pack_id)"
+        $results += Assert-True -Condition ($route.candidate_focus.pack_id -eq $case.ExpectedPack) -Message "[$($case.Name)] pack expected=$($case.ExpectedPack), actual=$($route.candidate_focus.pack_id)"
     }
     if ($case.PSObject.Properties.Name -contains "ExpectedSkill" -and $case.ExpectedSkill) {
-        $results += Assert-True -Condition ($route.selected.skill -eq $case.ExpectedSkill) -Message "[$($case.Name)] skill expected=$($case.ExpectedSkill), actual=$($route.selected.skill)"
+        $results += Assert-True -Condition ($route.candidate_focus.skill -eq $case.ExpectedSkill) -Message "[$($case.Name)] skill expected=$($case.ExpectedSkill), actual=$($route.candidate_focus.skill)"
     }
     if ($case.PSObject.Properties.Name -contains "BlockedPack" -and $case.BlockedPack) {
-        $results += Assert-True -Condition ($route.selected.pack_id -ne $case.BlockedPack) -Message "[$($case.Name)] blocked pack $($case.BlockedPack) not selected"
+        $results += Assert-True -Condition ($route.candidate_focus.pack_id -ne $case.BlockedPack) -Message "[$($case.Name)] blocked pack $($case.BlockedPack) not selected"
     }
     if ($case.PSObject.Properties.Name -contains "BlockedSkill" -and $case.BlockedSkill) {
-        $results += Assert-True -Condition ($route.selected.skill -ne $case.BlockedSkill) -Message "[$($case.Name)] blocked skill $($case.BlockedSkill) not selected"
+        $results += Assert-True -Condition ($route.candidate_focus.skill -ne $case.BlockedSkill) -Message "[$($case.Name)] blocked skill $($case.BlockedSkill) not selected"
     }
     if ($case.PSObject.Properties.Name -contains "ExpectedFallbackApplied") {
         $results += Assert-True -Condition ([bool]$route.fallback_applied -eq [bool]$case.ExpectedFallbackApplied) -Message "[$($case.Name)] fallback_applied is $($case.ExpectedFallbackApplied)"
     }
-    $selectionReasonValid = if ($route.selected) {
-        $route.selected.selection_reason -in @("keyword_ranked", "requested_skill", "fallback_first_candidate", "fallback_task_default", "fallback_task_default_after_task_filter", "fallback_first_candidate_after_task_filter", "host_selection_candidate", "no_usable_candidate")
+    $selectionReasonValid = if ($route.candidate_focus) {
+        $route.candidate_focus.selection_reason -in @("keyword_ranked", "requested_skill", "fallback_first_candidate", "fallback_task_default", "fallback_task_default_after_task_filter", "fallback_first_candidate_after_task_filter", "host_selection_candidate", "no_usable_candidate")
     } else {
         $route.route_mode -in @("confirm_required", "legacy_fallback", "pack_overlay")
     }

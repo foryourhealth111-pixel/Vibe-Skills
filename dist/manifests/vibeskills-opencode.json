@@ -24,7 +24,6 @@
       "adapters/opencode/platform-windows.json",
       "adapters/opencode/platform-linux.json",
       "adapters/opencode/platform-macos.json",
-      "docs/install/opencode-path.en.md",
       "README.md"
     ],
     "repo_provided_install_surfaces": [
@@ -65,7 +64,6 @@
     "adapters/opencode/platform-windows.json",
     "adapters/opencode/platform-linux.json",
     "adapters/opencode/platform-macos.json",
-    "docs/install/opencode-path.en.md",
     "README.md"
   ],
   "host_adapter_ref": "adapters/opencode/host-profile.json",

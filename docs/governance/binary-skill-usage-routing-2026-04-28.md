@@ -1,6 +1,6 @@
 # Binary Skill Usage Routing
 
-> Historical / Retired Note: This document records the older cleanup step that separated routing from usage proof. The current work-first truth model is `task_card -> work_plan -> work_binding -> work_results -> verification`. `skill_routing.selected` may remain visible only as an optional compatibility mirror.
+> Historical / Retired Note: This document records the older cleanup step that separated routing from usage proof. The current work-first truth model is `task_card -> work_plan -> module_assignments -> work_results -> verification`. `skill_routing.selected` may remain visible only as an optional compatibility mirror.
 
 Current readers should use:
 
@@ -14,7 +14,7 @@ The durable decision from this document is that route selection, old
 recommendation fields, consultation records, and old dispatch records do not
 prove skill use.
 
-Current work truth starts at `work_binding`. Current usage proof must come from
+Current work truth starts at `module_assignments`. Current usage proof must come from
 `skill_usage.used` with evidence. A selected skill is not counted as used unless
 the runtime writes usage evidence.
 

@@ -562,8 +562,7 @@
               "install.ps1",
               "install.sh",
               "check.ps1",
-              "check.sh",
-              "docs/install/opencode-path.en.md"
+              "check.sh"
             ]
           }
         ],
@@ -956,7 +955,6 @@
           "adapters/opencode/platform-windows.json",
           "adapters/opencode/platform-linux.json",
           "adapters/opencode/platform-macos.json",
-          "docs/install/opencode-path.en.md",
           "README.md"
         ],
         "host_adapter_ref": "adapters/opencode/host-profile.json",

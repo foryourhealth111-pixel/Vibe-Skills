@@ -3,11 +3,6 @@ $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot '..\common\vibe-governance-helpers.ps1')
 
-$skillUsageCommon = Join-Path $PSScriptRoot 'VibeSkillUsage.Common.ps1'
-if (Test-Path -LiteralPath $skillUsageCommon -PathType Leaf) {
-    . $skillUsageCommon
-}
-
 $skillRoutingCommon = Join-Path $PSScriptRoot 'VibeSkillRouting.Common.ps1'
 if (Test-Path -LiteralPath $skillRoutingCommon -PathType Leaf) {
     . $skillRoutingCommon
@@ -15,37 +10,6 @@ if (Test-Path -LiteralPath $skillRoutingCommon -PathType Leaf) {
 
 Set-StrictMode -Off
 
-$retiredConsultationHelper = Join-Path $PSScriptRoot 'legacy\VibeRetiredConsultation.Common.ps1'
-$script:VibeRetiredConsultationHelperMissingMessage = "Missing retired consultation helper: $retiredConsultationHelper"
-if (Test-Path -LiteralPath $retiredConsultationHelper -PathType Leaf) {
-    . $retiredConsultationHelper
-}
-if (-not (Get-Command -Name New-VibeRetiredSpecialistConsultationLifecycleLayerProjection -CommandType Function -ErrorAction SilentlyContinue)) {
-    function New-VibeRetiredSpecialistConsultationLifecycleLayerProjection {
-        param([AllowNull()] [object]$ConsultationReceipt)
-        return $null
-    }
-}
-if (-not (Get-Command -Name New-VibeRetiredHostUserBriefingSegmentProjection -CommandType Function -ErrorAction SilentlyContinue)) {
-    function New-VibeRetiredHostUserBriefingSegmentProjection {
-        param(
-            [AllowNull()] [object]$LifecycleLayer = $null,
-            [AllowNull()] [object]$ConsultationReceipt = $null
-        )
-        return $null
-    }
-}
-if (-not (Get-Command -Name Get-VibeRetiredHostStageDisclosureEventId -CommandType Function -ErrorAction SilentlyContinue)) {
-    function Get-VibeRetiredHostStageDisclosureEventId {
-        param(
-            [Parameter(Mandatory)] [string]$SegmentId,
-            [AllowNull()] [object[]]$Skills = @()
-        )
-        return $null
-    }
-}
-
-# Alias for compatibility with VibeExecution.Common.ps1 which calls Get-VibeHostAdapterIdentityProjection
 function global:Get-VibeHostAdapterIdentityProjection {
     param(
         [AllowNull()] [object]$HostAdapter,
@@ -309,15 +273,12 @@ function Get-VibeWorkflowLevelConfirmationLines {
         $lines += ('- Recommendation reason: {0}' -f $recommendationReason)
     }
 
-    $question = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'question' -DefaultValue '')
-    if (-not [string]::IsNullOrWhiteSpace($question)) {
-        $lines += ('- Question: {0}' -f $question)
-    }
-
     $decisionImportance = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'decision_importance' -DefaultValue '')
     if (-not [string]::IsNullOrWhiteSpace($decisionImportance)) {
         $lines += ('- Why this decision matters: {0}' -f $decisionImportance)
     }
+
+    $lines += '- Before asking the user to choose L or XL, explain each task-specific workflow and list its task-specific candidate skill names. Label those names as candidates that are not yet selected or used.'
 
     $levels = Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'levels' -DefaultValue $null
     foreach ($levelName in @('L', 'XL')) {
@@ -342,6 +303,11 @@ function Get-VibeWorkflowLevelConfirmationLines {
         }
     }
 
+    $question = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'question' -DefaultValue '')
+    if (-not [string]::IsNullOrWhiteSpace($question)) {
+        $lines += ('- Question: {0}' -f $question)
+    }
+
     $selectionPrompt = [string](Get-VibePropertySafe -InputObject $WorkflowLevelConfirmation -PropertyName 'selection_prompt' -DefaultValue '')
     if (-not [string]::IsNullOrWhiteSpace($selectionPrompt)) {
         $lines += ('- Selection prompt: {0}' -f $selectionPrompt)
@@ -350,158 +316,155 @@ function Get-VibeWorkflowLevelConfirmationLines {
     return @($lines)
 }
 
+function New-VibeSkillSearchGuideProjection {
+    param(
+        [AllowEmptyString()] [string]$RepoRoot = '',
+        [AllowEmptyString()] [string]$TargetRoot = '',
+        [AllowEmptyString()] [string]$HostId = ''
+    )
+
+    $skillRoots = [System.Collections.Generic.List[object]]::new()
+    $resolvedHostId = if ([string]::IsNullOrWhiteSpace($HostId)) { 'codex' } else { $HostId.Trim().ToLowerInvariant() }
+    if (-not [string]::IsNullOrWhiteSpace($TargetRoot)) {
+        $skillRoots.Add([pscustomobject]@{
+                kind = 'host_local'
+                path = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
+            }) | Out-Null
+        if ($resolvedHostId -eq 'codex') {
+            $pluginCacheRoot = [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $TargetRoot) '.codex\plugins\cache'))
+            if (Test-Path -LiteralPath $pluginCacheRoot -PathType Container) {
+                $skillRoots.Add([pscustomobject]@{
+                        kind = 'host_plugin_cache'
+                        path = $pluginCacheRoot
+                    }) | Out-Null
+            }
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RepoRoot)) {
+        $skillRoots.Add([pscustomobject]@{
+                kind = 'repo_core'
+                path = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot 'core\skills'))
+            }) | Out-Null
+        $skillRoots.Add([pscustomobject]@{
+                kind = 'repo_bundled'
+                path = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot 'bundled\skills'))
+            }) | Out-Null
+    }
+
+    return [pscustomobject]@{
+        schema_version = 'skill_search_guide_v1'
+        skill_roots = @($skillRoots.ToArray())
+        search_protocol = @(
+            '先拆任务，再拆模块',
+            '会按模块搜索本地 skills',
+            '每个模块单独搜索本地 skills',
+            '会先看候选 skill 名和短描述，再打开并阅读候选 `SKILL.md`',
+            '每个模块最多保留 3 个候选，避免上下文污染',
+            '以候选 `SKILL.md` 的真实用途为准，不按词面碰撞判断'
+        )
+        selection_rules = @(
+            '会给出 `L` / `XL` 两套 skills 组织方案，并说明每个 skill 的职责',
+            '优先选择真正负责该模块的 owner，不选只沾边的 helper',
+            '一个 skill 可以覆盖多个模块',
+            'explicit_only skills 只有在用户明确点名时才可入选',
+            '不得跨越候选 skill 声明的负边界或适用限制',
+            '没有 owner 时必须报缺口，不得伪装覆盖',
+            '没有 owner 的模块会明确标出缺口'
+        )
+        disclosure_rules = @(
+            'requirement 阶段公开搜索办法，并在请用户选择前由 Agent 分别给出 L / XL 的具体工作流和候选 skill 名称；这些名称必须标为尚未正式选定或使用，不得公开程序候选排名或预选结果',
+            'xl_plan 阶段公开模块、候选、最终采用和缺口',
+            'execute 阶段公开本次实际启用的 skills'
+        )
+        workflow_level_contract = [pscustomobject]@{
+            levels = @('L', 'XL')
+            L = '先讲清模块，再组织较轻量的串行方案'
+            XL = '先讲清模块，再组织更完整的分波次方案'
+        }
+    }
+}
+
+function Get-VibeSkillSearchGuideLines {
+    param(
+        [AllowNull()] [object]$SkillSearchGuide = $null
+    )
+
+    $resolvedGuide = if ($null -ne $SkillSearchGuide) {
+        $SkillSearchGuide
+    } else {
+        New-VibeSkillSearchGuideProjection
+    }
+
+    $searchProtocol = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $resolvedGuide -PropertyName 'search_protocol' -DefaultValue @()))
+    $selectionRules = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $resolvedGuide -PropertyName 'selection_rules' -DefaultValue @()))
+    $disclosureRules = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $resolvedGuide -PropertyName 'disclosure_rules' -DefaultValue @()))
+
+    $lines = @()
+    foreach ($line in @($searchProtocol + $selectionRules + $disclosureRules)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$line)) {
+            $lines += ('- {0}' -f [string]$line)
+        }
+    }
+
+    if (@($lines).Count -gt 0) {
+        return @($lines)
+    }
+
+    return @(
+        '- 先拆任务，再拆模块',
+        '- 会按模块搜索本地 skills',
+        '- 每个模块单独搜索本地 skills',
+        '- 会先看候选 skill 名和短描述，再打开并阅读候选 `SKILL.md`',
+        '- 会给出 `L` / `XL` 两套 skills 组织方案，并说明每个 skill 的职责',
+        '- 没有 owner 的模块会明确标出缺口'
+    )
+}
+
 function Get-VibeWorkflowLevelSkillSelectionLines {
     param(
         [string[]]$SelectedSkillIds = @(),
         [AllowNull()] [object]$SkillSelection = $null
     )
 
-    $workflowLevelSchemes = if (
-        $null -ne $SkillSelection -and
-        (Test-VibeObjectHasProperty -InputObject $SkillSelection -PropertyName 'workflow_level_schemes') -and
-        $null -ne $SkillSelection.workflow_level_schemes
-    ) {
-        $SkillSelection.workflow_level_schemes
-    } else {
-        $null
-    }
-
-    if ($null -ne $workflowLevelSchemes) {
-        $shortlistSkillIds = if (
-            (Test-VibeObjectHasProperty -InputObject $workflowLevelSchemes -PropertyName 'shortlist_skill_ids') -and
-            $null -ne $workflowLevelSchemes.shortlist_skill_ids
-        ) {
-            @($workflowLevelSchemes.shortlist_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        } else {
-            @()
-        }
-        $levels = if (
-            (Test-VibeObjectHasProperty -InputObject $workflowLevelSchemes -PropertyName 'levels') -and
-            $null -ne $workflowLevelSchemes.levels
-        ) {
-            $workflowLevelSchemes.levels
-        } else {
-            $null
-        }
-
-        $schemeLines = @()
-        if (@($shortlistSkillIds).Count -gt 0) {
-            $schemeLines += ('- Screened task-skill shortlist size: `{0}`' -f @($shortlistSkillIds).Count)
-            $schemeLines += '- The L / XL plans below already choose usable task skills from that shortlist; they do not simply repeat the raw route results.'
-        }
-
-        foreach ($levelName in @('L', 'XL')) {
-            $levelRecord = Get-VibePropertySafe -InputObject $levels -PropertyName $levelName -DefaultValue $null
-            if ($null -eq $levelRecord) {
-                continue
-            }
-
-            $levelSelectedSkillIds = if (
-                (Test-VibeObjectHasProperty -InputObject $levelRecord -PropertyName 'selected_skill_ids') -and
-                $null -ne $levelRecord.selected_skill_ids
-            ) {
-                @($levelRecord.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-            } else {
-                @()
-            }
-            if (@($levelSelectedSkillIds).Count -eq 0) {
-                continue
-            }
-
-            $schemeLines += ('- {0} selected task skills: `{1}`' -f [string]$levelName, (@($levelSelectedSkillIds) -join '`, `'))
-            $levelReason = [string](Get-VibePropertySafe -InputObject $levelRecord -PropertyName 'reason' -DefaultValue '')
-            if (-not [string]::IsNullOrWhiteSpace($levelReason)) {
-                $schemeLines += ('- {0} why these skills: {1}' -f [string]$levelName, $levelReason)
-            }
-        }
-
-        if (@($schemeLines).Count -gt 0) {
-            return @($schemeLines)
-        }
-    }
-
-    $resolvedSkillIds = @(
-        @($SelectedSkillIds | ForEach-Object { [string]$_ }) |
-        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-    )
-
-    if (@($resolvedSkillIds).Count -gt 0) {
-        return @(
-            ('- Current selected task skills: `{0}`' -f (@($resolvedSkillIds) -join '`, `')),
-            '- These are the concrete task skills currently matched for this run.'
-        )
-    }
-
-    return @(
-        '- Current selected task skills: none yet.',
-        '- No concrete task skill matched this run yet, so the L / XL explanation below is the default coordination skeleton.'
-    )
+    return @(Get-VibeSkillSearchGuideLines)
 }
 
 function Get-VibeSelectedTaskSkillIds {
     param(
         [AllowNull()] [object]$RuntimeInputPacket = $null,
-        [AllowNull()] [object]$SkillSelection = $null,
-        [AllowNull()] [object]$WorkBinding = $null
+        [AllowNull()] [object]$ModuleAssignments = $null
     )
 
-    $resolvedSkillSelection = if ($null -ne $SkillSelection) {
-        $SkillSelection
-    } elseif (
-        $null -ne $RuntimeInputPacket -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_selection')
-    ) {
-        $RuntimeInputPacket.skill_selection
-    } else {
-        $null
-    }
-
-    if (
-        $null -ne $resolvedSkillSelection -and
-        (Test-VibeObjectHasProperty -InputObject $resolvedSkillSelection -PropertyName 'selected_skill_ids') -and
-        $null -ne $resolvedSkillSelection.selected_skill_ids
-    ) {
-        $selectedSkillIds = @(
-            $resolvedSkillSelection.selected_skill_ids |
-            ForEach-Object { [string]$_ } |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-            Select-Object -Unique
-        )
-        if (@($selectedSkillIds).Count -gt 0) {
-            return [object[]]@($selectedSkillIds)
-        }
-    }
-
-    return [object[]]@(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $RuntimeInputPacket -WorkBinding $WorkBinding)
+    return [object[]]@(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $RuntimeInputPacket -ModuleAssignments $ModuleAssignments)
 }
 
-function Get-VibeWorkBindingBoundSkillIds {
+function Get-VibeModuleAssignmentsBoundSkillIds {
     param(
         [AllowNull()] [object]$RuntimeInputPacket = $null,
-        [AllowNull()] [object]$WorkBinding = $null
+        [AllowNull()] [object]$ModuleAssignments = $null
     )
 
-    $resolvedWorkBinding = if ($null -ne $WorkBinding) {
-        $WorkBinding
+    $resolvedModuleAssignments = if ($null -ne $ModuleAssignments) {
+        $ModuleAssignments
     } elseif (
         $null -ne $RuntimeInputPacket -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'work_binding')
+        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'module_assignments')
     ) {
-        $RuntimeInputPacket.work_binding
+        $RuntimeInputPacket.module_assignments
     } else {
         $null
     }
 
     if (
-        $null -eq $resolvedWorkBinding -or
-        -not (Test-VibeObjectHasProperty -InputObject $resolvedWorkBinding -PropertyName 'units') -or
-        $null -eq $resolvedWorkBinding.units
+        $null -eq $resolvedModuleAssignments -or
+        -not (Test-VibeObjectHasProperty -InputObject $resolvedModuleAssignments -PropertyName 'units') -or
+        $null -eq $resolvedModuleAssignments.units
     ) {
         return @()
     }
 
     return [object[]]@(
-        @($resolvedWorkBinding.units | ForEach-Object {
+        @($resolvedModuleAssignments.units | ForEach-Object {
                 [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'bound_skill' -DefaultValue '')
             } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     )
@@ -510,174 +473,16 @@ function Get-VibeWorkBindingBoundSkillIds {
 function Get-VibePrimaryBoundSkillId {
     param(
         [AllowNull()] [object]$RuntimeInputPacket = $null,
-        [AllowNull()] [object]$WorkBinding = $null,
+        [AllowNull()] [object]$ModuleAssignments = $null,
         [AllowEmptyString()] [string]$FallbackSkillId = ''
     )
 
-    $selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $RuntimeInputPacket -WorkBinding $WorkBinding)
+    $selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $RuntimeInputPacket -ModuleAssignments $ModuleAssignments)
     if (@($selectedTaskSkillIds).Count -ge 1) {
         return [string]$selectedTaskSkillIds[0]
     }
 
-    $skillRouting = if (
-        $null -ne $RuntimeInputPacket -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_routing')
-    ) {
-        $RuntimeInputPacket.skill_routing
-    } else {
-        $null
-    }
-    $selectedSkillIds = if (
-        $null -ne $skillRouting -and
-        (Test-VibeObjectHasProperty -InputObject $skillRouting -PropertyName 'selected') -and
-        $null -ne $skillRouting.selected
-    ) {
-        @($skillRouting.selected | ForEach-Object {
-                [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue '')
-            } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @()
-    }
-    if (@($selectedSkillIds).Count -ge 1) {
-        return [string]$selectedSkillIds[0]
-    }
-
     return $FallbackSkillId
-}
-
-function Get-VibeRuntimeSelectedSkillExecutionProjection {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket = $null
-    )
-
-    if ($null -eq $RuntimeInputPacket) {
-        return $null
-    }
-
-    $selectedSkillExecution = @()
-    $executionStatus = ''
-    $executionSource = ''
-    if (
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'work_binding') -and
-        $null -ne $RuntimeInputPacket.work_binding -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket.work_binding -PropertyName 'units') -and
-        $null -ne $RuntimeInputPacket.work_binding.units
-    ) {
-        $selectedSkillExecution = @($RuntimeInputPacket.work_binding.units | ForEach-Object {
-                $skillId = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'bound_skill' -DefaultValue '')
-                if ([string]::IsNullOrWhiteSpace($skillId)) {
-                    return $null
-                }
-
-                [pscustomobject]@{
-                    skill_id = $skillId
-                    skill_md_path = Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_md_path' -DefaultValue $null
-                    native_skill_entrypoint = Get-VibePropertySafe -InputObject $_ -PropertyName 'native_skill_entrypoint' -DefaultValue $null
-                    dispatch_phase = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'dispatch_phase' -DefaultValue 'in_execution')
-                    bounded_role = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'bounded_role' -DefaultValue 'selected_skill')
-                    binding_profile = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'binding_profile' -DefaultValue 'selected_skill')
-                    work_unit_id = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'work_unit_id' -DefaultValue '')
-                    task_slice = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'task_slice' -DefaultValue '')
-                }
-            } | Where-Object { $null -ne $_ })
-        $executionStatus = 'derived_from_work_binding'
-        $executionSource = 'work_binding.units[*].bound_skill'
-    } elseif (
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_routing') -and
-        $null -ne $RuntimeInputPacket.skill_routing -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket.skill_routing -PropertyName 'selected')
-    ) {
-        $selectedSkillExecution = [object[]]@($RuntimeInputPacket.skill_routing.selected)
-        $executionStatus = 'derived_from_skill_routing_selected'
-        $executionSource = 'skill_routing.selected'
-    } else {
-        return $null
-    }
-
-    $specialistDecision = if (
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'specialist_decision') -and
-        $null -ne $RuntimeInputPacket.specialist_decision
-    ) {
-        $RuntimeInputPacket.specialist_decision
-    } else {
-        $null
-    }
-    $blockedSkillIds = if (
-        $null -ne $specialistDecision -and
-        (Test-VibeObjectHasProperty -InputObject $specialistDecision -PropertyName 'blocked_skill_ids') -and
-        $null -ne $specialistDecision.blocked_skill_ids
-    ) {
-        @($specialistDecision.blocked_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @()
-    }
-    $degradedSkillIds = if (
-        $null -ne $specialistDecision -and
-        (Test-VibeObjectHasProperty -InputObject $specialistDecision -PropertyName 'degraded_skill_ids') -and
-        $null -ne $specialistDecision.degraded_skill_ids
-    ) {
-        @($specialistDecision.degraded_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @()
-    }
-    $nonExecutableSkillIds = @(@($blockedSkillIds) + @($degradedSkillIds)) | Select-Object -Unique
-    $directSelectedSkillExecution = [object[]]@($selectedSkillExecution | Where-Object {
-            $skillId = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue '')
-            [string]::IsNullOrWhiteSpace($skillId) -or ($skillId -notin @($nonExecutableSkillIds))
-        })
-    $blockedSkillExecution = [object[]]@($selectedSkillExecution | Where-Object {
-            $skillId = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue '')
-            -not [string]::IsNullOrWhiteSpace($skillId) -and ($skillId -in @($blockedSkillIds))
-        })
-    $degradedSkillExecution = [object[]]@($selectedSkillExecution | Where-Object {
-            $skillId = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue '')
-            -not [string]::IsNullOrWhiteSpace($skillId) -and ($skillId -in @($degradedSkillIds))
-        })
-    if (@($selectedSkillExecution).Count -eq 0 -and $null -eq $specialistDecision) {
-        return $null
-    }
-
-    $selectedSkillIds = @($directSelectedSkillExecution | ForEach-Object {
-        [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue '')
-    } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-
-    return [pscustomobject]@{
-        selected_skill_execution = [object[]]@($directSelectedSkillExecution)
-        blocked_skill_execution = [object[]]@($blockedSkillExecution)
-        degraded_skill_execution = [object[]]@($degradedSkillExecution)
-        selected_skill_ids = @($selectedSkillIds)
-        blocked_skill_ids = @($blockedSkillIds)
-        degraded_skill_ids = @($degradedSkillIds)
-        surfaced_skill_ids = @($selectedSkillIds)
-        matched_skill_ids = @($selectedSkillIds)
-        ghost_match_skill_ids = @()
-        escalation_required = $false
-        escalation_status = 'not_required'
-        status = $executionStatus
-        source = $executionSource
-    }
-}
-
-function Get-VibeRuntimeSpecialistRecommendations {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket = $null
-    )
-
-    $selected = [object[]]@(Get-VibeSkillRoutingSelected -RuntimeInputPacket $RuntimeInputPacket)
-    if (@($selected).Count -gt 0) {
-        return $selected
-    }
-
-    if (
-        $null -ne $RuntimeInputPacket -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_routing') -and
-        $null -ne $RuntimeInputPacket.skill_routing -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket.skill_routing -PropertyName 'candidates')
-    ) {
-        return [object[]]@($RuntimeInputPacket.skill_routing.candidates)
-    }
-
-    return @()
 }
 
 function Get-VibeRuntimeStageAssistantHints {
@@ -688,45 +493,15 @@ function Get-VibeRuntimeStageAssistantHints {
     return @()
 }
 
-function New-VibeRuntimeWorkBindingProjection {
+function New-VibeRuntimeModuleAssignmentsProjection {
     param(
         [AllowEmptyString()] [string]$Task = '',
         [AllowEmptyString()] [string]$RunId = '',
-        [AllowNull()] [object]$SpecialistDispatch = $null,
-        [AllowNull()] [object]$SkillRouting = $null,
-        [AllowNull()] [object]$RuntimeInputPacket = $null
+        [AllowNull()] [object[]]$SelectedSkillRecords = @(),
+        [bool]$OrganizationProvided = $false
     )
 
-    $dispatchRows = if (
-        $null -ne $SpecialistDispatch -and
-        (Test-VibeObjectHasProperty -InputObject $SpecialistDispatch -PropertyName 'approved_dispatch')
-    ) {
-        [object[]]@($SpecialistDispatch.approved_dispatch)
-    } else {
-        @()
-    }
-
-    $routing = if ($null -ne $SkillRouting) {
-        $SkillRouting
-    } elseif (
-        $null -ne $RuntimeInputPacket -and
-        (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_routing')
-    ) {
-        $RuntimeInputPacket.skill_routing
-    } else {
-        $null
-    }
-
-    $selectedRows = if (@($dispatchRows).Count -gt 0) {
-        @($dispatchRows)
-    } elseif (
-        $null -ne $routing -and
-        (Test-VibeObjectHasProperty -InputObject $routing -PropertyName 'selected')
-    ) {
-        [object[]]@($routing.selected)
-    } else {
-        @()
-    }
+    $selectedRows = @($SelectedSkillRecords)
 
     $units = New-Object System.Collections.Generic.List[object]
     $ordinal = 0
@@ -754,23 +529,23 @@ function New-VibeRuntimeWorkBindingProjection {
                 reason = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'reason' -DefaultValue '')
                 task_slice = $taskSlice
                 skill_md_path = Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'skill_md_path' -DefaultValue $null
-                native_skill_entrypoint = Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'native_skill_entrypoint' -DefaultValue $null
+                skill_entrypoint = Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'skill_entrypoint' -DefaultValue $null
                 dispatch_phase = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'dispatch_phase' -DefaultValue 'in_execution')
                 parallelizable_in_root_xl = [bool](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'parallelizable_in_root_xl' -DefaultValue $false)
-                native_usage_required = [bool](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'native_usage_required' -DefaultValue $true)
-                usage_required = [bool](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'usage_required' -DefaultValue (Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'native_usage_required' -DefaultValue $true))
                 skill_root = Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'skill_root' -DefaultValue $null
                 bounded_role = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'bounded_role' -DefaultValue 'selected_skill')
                 must_preserve_workflow = [bool](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'must_preserve_workflow' -DefaultValue $true)
                 binding_profile = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'binding_profile' -DefaultValue 'selected_skill')
-                lane_policy = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'lane_policy' -DefaultValue 'native_contract')
+                lane_policy = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'lane_policy' -DefaultValue 'agent_module_handoff')
                 write_scope = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'write_scope' -DefaultValue ('specialist:{0}' -f $skillId))
-                review_mode = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'review_mode' -DefaultValue 'native_contract')
+                review_mode = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'review_mode' -DefaultValue 'module_acceptance')
                 execution_priority = [int](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'execution_priority' -DefaultValue 50)
                 required_inputs = [object[]]@(Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'required_inputs' -DefaultValue @())
                 expected_outputs = [object[]]@(Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'expected_outputs' -DefaultValue @())
-                verification_expectation = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'verification_expectation' -DefaultValue 'Record selected skill usage evidence before completion.')
+                verification_expectation = [string](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'verification_expectation' -DefaultValue 'Verify the assigned module acceptance criteria before completion.')
                 progressive_load_policy = [object[]]@(Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'progressive_load_policy' -DefaultValue @())
+                destructive = [bool](Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'destructive' -DefaultValue $false)
+                destructive_reason_codes = [object[]]@(Get-VibePropertySafe -InputObject $selectedRow -PropertyName 'destructive_reason_codes' -DefaultValue @())
             }
         ) | Out-Null
     }
@@ -779,28 +554,540 @@ function New-VibeRuntimeWorkBindingProjection {
     $resolvedTask = if ([string]::IsNullOrWhiteSpace($Task)) { $null } else { [string]$Task }
     $resolvedUnits = [object[]]@($units.ToArray())
     $resolvedUnitCount = @($resolvedUnits).Count
-    $projectedFromApprovedDispatch = @($dispatchRows).Count -gt 0
     $resolvedStatus = if ($resolvedUnitCount -eq 0) {
         'no_bound_skills'
-    } elseif ($projectedFromApprovedDispatch) {
-        'projected_from_approved_dispatch'
     } else {
-        'compatibility_projection_from_skill_routing'
+        'projected_from_agent_skill_organization'
     }
-    $resolvedSource = if ($projectedFromApprovedDispatch) {
-        'approved_dispatch'
-    } else {
-        'compatibility.skill_routing.selected'
-    }
+    $resolvedSource = if ($OrganizationProvided) { 'agent_skill_organization' } else { $null }
 
     return [pscustomobject]@{
-        schema_version = 'runtime_work_binding_v1'
+        schema_version = 'runtime_module_assignments_v1'
         source = $resolvedSource
         run_id = $resolvedRunId
         task = $resolvedTask
         unit_count = $resolvedUnitCount
         status = $resolvedStatus
         units = $resolvedUnits
+    }
+}
+
+function New-VibeModuleWorkPlan {
+    param(
+        [Parameter(Mandatory)] [string]$RunId,
+        [Parameter(Mandatory)] [object]$AgentSkillOrganization,
+        [Parameter(Mandatory)] [string]$RequirementDocPath
+    )
+
+    $gapReasonByModuleId = @{}
+    foreach ($uncoveredModule in @($AgentSkillOrganization.uncovered_modules)) {
+        $gapReasonByModuleId[[string]$uncoveredModule.module_id] = [string]$uncoveredModule.reason
+    }
+    $uncoveredModuleIds = @($gapReasonByModuleId.Keys)
+    $modules = @(
+        @($AgentSkillOrganization.modules) | ForEach-Object {
+            $moduleId = [string]$_.module_id
+            [pscustomobject]@{
+                module_id = $moduleId
+                goal = [string]$_.goal
+                required = [bool](Get-VibePropertySafe -InputObject $_ -PropertyName 'required' -DefaultValue $true)
+                depends_on = [object[]]@(Get-VibePropertySafe -InputObject $_ -PropertyName 'depends_on' -DefaultValue @())
+                execution_mode = [string]$_.execution_mode
+                write_scope = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'write_scope' -DefaultValue '')
+                expected_outputs = [object[]]@(Get-VibePropertySafe -InputObject $_ -PropertyName 'expected_outputs' -DefaultValue @())
+                verification = [object[]]@(Get-VibePropertySafe -InputObject $_ -PropertyName 'verification' -DefaultValue @())
+                gap_reason = if ($gapReasonByModuleId.ContainsKey($moduleId)) { [string]$gapReasonByModuleId[$moduleId] } else { $null }
+                acceptance_criteria = [object[]]@($_.acceptance_criteria)
+            }
+        }
+    )
+    $moduleById = @{}
+    foreach ($module in @($modules)) {
+        $moduleById[[string]$module.module_id] = $module
+    }
+    foreach ($module in @($modules)) {
+        foreach ($dependencyId in @($module.depends_on)) {
+            if (-not $moduleById.ContainsKey([string]$dependencyId)) {
+                throw ('module `{0}` depends on unknown module `{1}`' -f [string]$module.module_id, [string]$dependencyId)
+            }
+        }
+    }
+
+    $moduleStages = @{}
+    while ($moduleStages.Count -lt @($modules).Count) {
+        $resolvedAny = $false
+        foreach ($module in @($modules)) {
+            $moduleId = [string]$module.module_id
+            if ($moduleStages.ContainsKey($moduleId)) {
+                continue
+            }
+            $dependencyIds = @($module.depends_on | ForEach-Object { [string]$_ })
+            if (@($dependencyIds | Where-Object { -not $moduleStages.ContainsKey($_) }).Count -gt 0) {
+                continue
+            }
+            $moduleStages[$moduleId] = if (@($dependencyIds).Count -eq 0) {
+                1
+            } else {
+                1 + [int](@($dependencyIds | ForEach-Object { [int]$moduleStages[$_] } | Measure-Object -Maximum).Maximum)
+            }
+            $resolvedAny = $true
+        }
+        if (-not $resolvedAny) {
+            throw 'module dependency graph contains a cycle'
+        }
+    }
+
+    $workUnits = @(
+        @($AgentSkillOrganization.selected_skills) | ForEach-Object {
+            $selectedSkill = $_
+            foreach ($moduleAssignment in @($selectedSkill.module_assignments)) {
+                $moduleId = [string]$moduleAssignment.module_id
+                $role = [string]$moduleAssignment.role
+                [pscustomobject]@{
+                    unit_id = ('{0}--{1}--{2}' -f [string]$moduleId, [string]$selectedSkill.skill_id, $role)
+                    module_id = [string]$moduleId
+                    skill_id = [string]$selectedSkill.skill_id
+                    role = $role
+                    responsibility = [string]$moduleAssignment.responsibility
+                    write_scope = [string]$moduleAssignment.write_scope
+                    depends_on_unit_ids = [object[]]@()
+                    expected_outputs = [object[]]@($moduleAssignment.expected_outputs)
+                    verification = [object[]]@($moduleAssignment.verification)
+                }
+            }
+        }
+        @($modules | Where-Object { [string]$_.execution_mode -eq 'agent_direct' } | ForEach-Object {
+            [pscustomobject]@{
+                unit_id = ('{0}--agent--owner' -f [string]$_.module_id)
+                module_id = [string]$_.module_id
+                skill_id = $null
+                role = 'owner'
+                responsibility = [string]$_.goal
+                write_scope = [string]$_.write_scope
+                depends_on_unit_ids = [object[]]@()
+                expected_outputs = [object[]]@($_.expected_outputs)
+                verification = [object[]]@($_.verification)
+            }
+        })
+    )
+    foreach ($workUnit in @($workUnits)) {
+        $moduleId = [string]$workUnit.module_id
+        $module = $moduleById[$moduleId]
+        $dependencyUnitIds = @(
+            foreach ($dependencyId in @($module.depends_on)) {
+                @($workUnits | Where-Object { [string]$_.module_id -eq [string]$dependencyId } | ForEach-Object { [string]$_.unit_id })
+            }
+            if ([string]$workUnit.role -eq 'owner') {
+                @($workUnits | Where-Object { [string]$_.module_id -eq $moduleId -and [string]$_.role -eq 'support' } | ForEach-Object { [string]$_.unit_id })
+            } elseif ([string]$workUnit.role -eq 'verifier') {
+                @($workUnits | Where-Object { [string]$_.module_id -eq $moduleId -and [string]$_.role -eq 'owner' } | ForEach-Object { [string]$_.unit_id })
+            }
+        ) | Sort-Object -Unique
+        $workUnit.depends_on_unit_ids = [object[]]@($dependencyUnitIds)
+    }
+
+    $unitStages = @{}
+    while ($unitStages.Count -lt @($workUnits).Count) {
+        $resolvedAny = $false
+        foreach ($workUnit in @($workUnits)) {
+            $unitId = [string]$workUnit.unit_id
+            if ($unitStages.ContainsKey($unitId)) {
+                continue
+            }
+            $dependencyUnitIds = @($workUnit.depends_on_unit_ids | ForEach-Object { [string]$_ })
+            if (@($dependencyUnitIds | Where-Object { -not $unitStages.ContainsKey($_) }).Count -gt 0) {
+                continue
+            }
+            $stageOrder = if (@($dependencyUnitIds).Count -eq 0) {
+                [int]$moduleStages[[string]$workUnit.module_id]
+            } else {
+                1 + [int](@($dependencyUnitIds | ForEach-Object { [int]$unitStages[$_] } | Measure-Object -Maximum).Maximum)
+            }
+            $unitStages[$unitId] = $stageOrder
+            $workUnit | Add-Member -NotePropertyName stage_order -NotePropertyValue $stageOrder -Force
+            $workUnit | Add-Member -NotePropertyName phase_id -NotePropertyValue ('module-stage-{0}' -f $stageOrder) -Force
+            $resolvedAny = $true
+        }
+        if (-not $resolvedAny) {
+            throw 'module work unit dependency graph contains a cycle or unknown unit'
+        }
+    }
+
+    $requirementDigest = (Get-FileHash -LiteralPath $RequirementDocPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $organizationJson = $AgentSkillOrganization | ConvertTo-Json -Depth 100 -Compress
+    $organizationBytes = [System.Text.Encoding]::UTF8.GetBytes($organizationJson)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $organizationDigest = ([System.BitConverter]::ToString($sha256.ComputeHash($organizationBytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $sha256.Dispose()
+    }
+
+    return [pscustomobject]@{
+        schema_version = 'module_work_plan_v1'
+        source_run_id = $RunId
+        requirement_digest = $requirementDigest
+        organization_digest = $organizationDigest
+        workflow_level = [string]$AgentSkillOrganization.workflow_level
+        modules = [object[]]$modules
+        work_units = [object[]]$workUnits
+    }
+}
+
+function ConvertTo-VibeComparableWriteScope {
+    param(
+        [Parameter(Mandatory)] [string]$WriteScope
+    )
+
+    $normalized = $WriteScope.Trim().Replace('\', '/')
+    foreach ($suffix in @('/**', '/*')) {
+        if ($normalized.EndsWith($suffix, [System.StringComparison]::Ordinal)) {
+            $normalized = $normalized.Substring(0, $normalized.Length - $suffix.Length)
+            break
+        }
+    }
+    return $normalized.TrimEnd('/').ToLowerInvariant()
+}
+
+function Test-VibeWriteScopeConflict {
+    param(
+        [Parameter(Mandatory)] [string]$Left,
+        [Parameter(Mandatory)] [string]$Right
+    )
+
+    $leftScope = ConvertTo-VibeComparableWriteScope -WriteScope $Left
+    $rightScope = ConvertTo-VibeComparableWriteScope -WriteScope $Right
+    if ($leftScope -ceq $rightScope) {
+        return $true
+    }
+    if (-not ($leftScope.Contains('/') -and $rightScope.Contains('/'))) {
+        return $false
+    }
+    return (
+        $leftScope.StartsWith($rightScope + '/', [System.StringComparison]::Ordinal) -or
+        $rightScope.StartsWith($leftScope + '/', [System.StringComparison]::Ordinal)
+    )
+}
+
+function New-VibeModuleWorkWaves {
+    param(
+        [Parameter(Mandatory)] [object]$ModuleWorkPlan,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]]$Units
+    )
+
+    $waves = New-Object System.Collections.Generic.List[object]
+    foreach ($stageOrder in @($ModuleWorkPlan.work_units | ForEach-Object { [int]$_.stage_order } | Sort-Object -Unique)) {
+        $stageUnits = @($Units | Where-Object {
+                $unitId = [string]$_.unit_id
+                $plannedUnit = @($ModuleWorkPlan.work_units | Where-Object { [string]$_.unit_id -eq $unitId } | Select-Object -First 1)
+                @($plannedUnit).Count -gt 0 -and [int]$plannedUnit[0].stage_order -eq [int]$stageOrder
+            })
+        $remainingUnits = @($stageUnits)
+        $waveIndex = 0
+        while ($remainingUnits.Count -gt 0) {
+            if ([string]$ModuleWorkPlan.workflow_level -ne 'XL' -or $remainingUnits.Count -eq 1) {
+                $unit = $remainingUnits[0]
+                $waves.Add([pscustomobject]@{
+                        wave_id = ('module-stage-{0}-{1}' -f $stageOrder, [string]$unit.unit_id)
+                        execution_mode = 'sequential'
+                        unit_ids = [object[]]@([string]$unit.unit_id)
+                    }) | Out-Null
+                $remainingUnits = @($remainingUnits | Select-Object -Skip 1)
+                continue
+            }
+
+            $parallelUnits = New-Object System.Collections.Generic.List[object]
+            foreach ($candidate in @($remainingUnits)) {
+                if ($parallelUnits.Count -ge 2) {
+                    break
+                }
+                $writeScopeConflict = @($parallelUnits | Where-Object {
+                        Test-VibeWriteScopeConflict `
+                            -Left ([string]$_.write_scope) `
+                            -Right ([string]$candidate.write_scope)
+                    }).Count -gt 0
+                if (-not $writeScopeConflict) {
+                    $parallelUnits.Add($candidate) | Out-Null
+                }
+            }
+            if ($parallelUnits.Count -gt 1) {
+                $waves.Add([pscustomobject]@{
+                        wave_id = ('module-stage-{0}-parallel-{1}' -f $stageOrder, $waveIndex)
+                        execution_mode = 'bounded_parallel'
+                        unit_ids = [object[]]@($parallelUnits | ForEach-Object { [string]$_.unit_id })
+                    }) | Out-Null
+                $parallelUnitIds = @($parallelUnits | ForEach-Object { [string]$_.unit_id })
+                $remainingUnits = @($remainingUnits | Where-Object { [string]$_.unit_id -notin $parallelUnitIds })
+                $waveIndex++
+                continue
+            }
+
+            $unit = $remainingUnits[0]
+            $waves.Add([pscustomobject]@{
+                    wave_id = ('module-stage-{0}-{1}' -f $stageOrder, [string]$unit.unit_id)
+                    execution_mode = 'sequential'
+                    unit_ids = [object[]]@([string]$unit.unit_id)
+                }) | Out-Null
+            $remainingUnits = @($remainingUnits | Select-Object -Skip 1)
+        }
+    }
+
+    return [object[]]$waves.ToArray()
+}
+
+function New-VibeAgentExecutionHandoff {
+    param(
+        [Parameter(Mandatory)] [string]$RunId,
+        [Parameter(Mandatory)] [object]$ModuleWorkPlan,
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [object[]]$ModulePlanDispatch,
+        [Parameter(Mandatory)] [string]$ModuleExecutionPath,
+        [Parameter(Mandatory)] [string]$WorkspaceRoot,
+        [Parameter(Mandatory)] [string]$ArtifactRoot,
+        [Parameter(Mandatory)] [string]$RepoRoot
+    )
+
+    $dispatchByUnitId = @{}
+    foreach ($dispatch in @($ModulePlanDispatch)) {
+        $workUnitId = [string](Get-VibePropertySafe -InputObject $dispatch -PropertyName 'work_unit_id' -DefaultValue '')
+        if (-not [string]::IsNullOrWhiteSpace($workUnitId)) {
+            $dispatchByUnitId[$workUnitId] = $dispatch
+        }
+    }
+
+    $units = [object[]]@(
+        foreach ($workUnit in @($ModuleWorkPlan.work_units)) {
+            $unitId = [string]$workUnit.unit_id
+            $dispatch = if ($dispatchByUnitId.ContainsKey($unitId)) { $dispatchByUnitId[$unitId] } else { $null }
+            [pscustomobject]@{
+                unit_id = $unitId
+                module_id = [string]$workUnit.module_id
+                skill_id = if ($null -eq $workUnit.skill_id) { $null } else { [string]$workUnit.skill_id }
+                role = [string]$workUnit.role
+                skill_entrypoint = if ($null -eq $dispatch) { $null } else { Get-VibePropertySafe -InputObject $dispatch -PropertyName 'skill_entrypoint' -DefaultValue $null }
+                responsibility = [string]$workUnit.responsibility
+                expected_outputs = [object[]]@($workUnit.expected_outputs)
+                verification = [object[]]@($workUnit.verification)
+                depends_on_unit_ids = [object[]]@($workUnit.depends_on_unit_ids)
+                write_scope = [string]$workUnit.write_scope
+            }
+        }
+    )
+    $moduleWorkPlanDigest = (Get-FileHash -LiteralPath (Join-Path (Split-Path -Parent $ModuleExecutionPath) 'module-work-plan.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+    $codeTaskTddEvidenceRequirements = [object[]]@(
+        Get-VibePropertySafe -InputObject $ModuleWorkPlan -PropertyName 'code_task_tdd_evidence_requirements' -DefaultValue @()
+    )
+    $codeTaskTddExceptions = [object[]]@(
+        Get-VibePropertySafe -InputObject $ModuleWorkPlan -PropertyName 'code_task_tdd_exceptions' -DefaultValue @()
+    )
+    $hasCodeTaskTddEvidenceContract = [bool](
+        @($codeTaskTddEvidenceRequirements).Count -gt 0 -or
+        @($codeTaskTddExceptions).Count -gt 0
+    )
+    $resultContractUnits = [object[]]@(
+        foreach ($unit in @($units)) {
+            [pscustomobject]@{
+                unit_id = [string]$unit.unit_id
+                module_id = [string]$unit.module_id
+                skill_id = if ($null -eq $unit.skill_id) { $null } else { [string]$unit.skill_id }
+                role = [string]$unit.role
+                required_result_fields = [object[]]@(
+                    'unit_id',
+                    'module_id',
+                    'skill_id',
+                    'role',
+                    'state',
+                    'result_summary',
+                    'evidence_paths',
+                    'verification_results'
+                )
+            }
+        }
+    )
+    $resultContractModules = [object[]]@(
+        foreach ($module in @($ModuleWorkPlan.modules)) {
+            [pscustomobject]@{
+                module_id = [string]$module.module_id
+                required = [bool]$module.required
+                execution_mode = [string]$module.execution_mode
+                gap_reason = if ($null -eq $module.gap_reason) { $null } else { [string]$module.gap_reason }
+                acceptance_criteria = [object[]]@($module.acceptance_criteria)
+                required_result_fields = [object[]]@(
+                    'module_id',
+                    'required',
+                    'execution_mode',
+                    'gap_reason',
+                    'state',
+                    'criterion_results'
+                )
+            }
+        }
+    )
+    $submissionTemplate = [pscustomobject]@{
+        schema_version = 'module_execution_v1'
+        source_run_id = $RunId
+        module_work_plan_digest = $moduleWorkPlanDigest
+        units = [object[]]@(
+            foreach ($unit in @($resultContractUnits)) {
+                [pscustomobject]@{
+                    unit_id = [string]$unit.unit_id
+                    module_id = [string]$unit.module_id
+                    skill_id = if ($null -eq $unit.skill_id) { $null } else { [string]$unit.skill_id }
+                    role = [string]$unit.role
+                    state = $null
+                    result_summary = ''
+                    evidence_paths = [object[]]@()
+                    verification_results = [object[]]@()
+                }
+            }
+        )
+        modules = [object[]]@(
+            foreach ($module in @($resultContractModules)) {
+                [pscustomobject]@{
+                    module_id = [string]$module.module_id
+                    required = [bool]$module.required
+                    execution_mode = [string]$module.execution_mode
+                    gap_reason = if ($null -eq $module.gap_reason) { $null } else { [string]$module.gap_reason }
+                    state = $null
+                    criterion_results = [object[]]@(
+                        foreach ($criterion in @($module.acceptance_criteria)) {
+                            [pscustomobject]@{
+                                criterion_id = [string]$criterion.criterion_id
+                                state = $null
+                                details = ''
+                            }
+                        }
+                    )
+                }
+            }
+        )
+    }
+    if ($hasCodeTaskTddEvidenceContract) {
+        $submissionTemplate | Add-Member -NotePropertyName 'tdd_evidence' -NotePropertyValue ([pscustomobject]@{
+                state = $null
+                evidence_paths = [object[]]@()
+                red_phase_evidence_paths = [object[]]@()
+                green_phase_evidence_paths = [object[]]@()
+                refactor_phase_evidence_paths = [object[]]@()
+                covered_code_task_tdd_evidence_requirements = [object[]]@()
+                covered_code_task_tdd_exceptions = [object[]]@()
+                notes = ''
+            })
+    }
+    $requiredTopLevelFields = [System.Collections.Generic.List[object]]::new()
+    foreach ($field in @('schema_version', 'source_run_id', 'module_work_plan_digest', 'units', 'modules')) {
+        $requiredTopLevelFields.Add($field) | Out-Null
+    }
+    if ($hasCodeTaskTddEvidenceContract) {
+        $requiredTopLevelFields.Add('tdd_evidence') | Out-Null
+    }
+    $resultContract = [pscustomobject]@{
+        schema_version = 'module_execution_v1'
+        source_run_id = $RunId
+        module_work_plan_digest = $moduleWorkPlanDigest
+        required_top_level_fields = [object[]]$requiredTopLevelFields.ToArray()
+        terminal_states = [object[]]@('completed', 'failed', 'blocked')
+        criterion_terminal_states = [object[]]@('passing', 'failing', 'blocked')
+        criterion_result_required_fields = [object[]]@('criterion_id', 'state')
+        units = $resultContractUnits
+        modules = $resultContractModules
+        submission_template = $submissionTemplate
+    }
+    if ($hasCodeTaskTddEvidenceContract) {
+        $resultContract | Add-Member -NotePropertyName 'tdd_evidence' -NotePropertyValue ([pscustomobject]@{
+                terminal_states = [object[]]@('passing', 'failing', 'blocked')
+                required_result_fields = [object[]]@(
+                    'state',
+                    'evidence_paths',
+                    'red_phase_evidence_paths',
+                    'green_phase_evidence_paths',
+                    'refactor_phase_evidence_paths',
+                    'covered_code_task_tdd_evidence_requirements',
+                    'covered_code_task_tdd_exceptions',
+                    'notes'
+                )
+                required_code_task_tdd_evidence_requirements = [object[]]@($codeTaskTddEvidenceRequirements)
+                required_code_task_tdd_exceptions = [object[]]@($codeTaskTddExceptions)
+            })
+    }
+    $waves = @(New-VibeModuleWorkWaves -ModuleWorkPlan $ModuleWorkPlan -Units @($units))
+
+    return [pscustomobject]@{
+        schema_version = 'agent_execution_handoff_v1'
+        source_run_id = $RunId
+        status = 'agent_action_required'
+        control_owner = 'agent'
+        workflow_level = [string]$ModuleWorkPlan.workflow_level
+        module_execution_path = $ModuleExecutionPath
+        result_contract = $resultContract
+        return_command = 'py -3 -m vgo_cli.main canonical-entry --repo-root "{0}" --workspace-root "{1}" --artifact-root "{2}" --prompt "Continue after Agent module execution" --continue-from-run-id "{3}" --module-execution-json-file "{4}"' -f $RepoRoot, $WorkspaceRoot, $ArtifactRoot, $RunId, $ModuleExecutionPath
+        waves = [object[]]$waves
+        units = $units
+    }
+}
+
+function New-VibeAgentExecutionHandoffBriefing {
+    param(
+        [Parameter(Mandatory)] [object]$Handoff
+    )
+
+    $lines = @(
+        'The approved plan is ready for the current Agent to execute.',
+        '- Continue in this Agent turn. Do not ask the user for another approval.',
+        '- Vibe organizes modules and skills; the Agent executes the module work.',
+        '- Read each listed `SKILL.md`, follow its workflow for the assigned module, and write the result to `module-execution.json`.',
+        '- Use `result_contract` from `agent-execution-handoff.json` as the exact schema, plan digest, unit binding, module list, and terminal-state contract for that file.',
+        '- Copy `result_contract.submission_template` into `module-execution.json`, preserve every frozen binding, and replace only the empty result fields.',
+        '- Each criterion result must keep its frozen `criterion_id` and use `state` exactly as `passing`, `failing`, or `blocked`.',
+        '- After every module reaches a terminal result, return through canonical `vibe` using the handoff command.',
+        '- If canonical rejects the result before cleanup, correct the same file and reuse the same return command; do not create a second handoff.',
+        ''
+    )
+    if (Test-VibeObjectHasProperty -InputObject $Handoff.result_contract -PropertyName 'tdd_evidence') {
+        $lines += @(
+            '- This code task also requires `tdd_evidence` inside the same `module-execution.json` file.',
+            '- Fill its structured red/green evidence and frozen coverage fields before canonical return; do not create a separate `tdd-evidence.json` sidecar.',
+            ''
+        )
+    }
+    foreach ($unit in @($Handoff.units)) {
+        $skillId = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'skill_id' -DefaultValue '')
+        $entrypoint = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'skill_entrypoint' -DefaultValue '')
+        if ([string]::IsNullOrWhiteSpace($skillId)) {
+            $lines += ('- Complete module `{0}` directly in the current Agent.' -f [string]$unit.module_id)
+        } else {
+            $lines += ('- Use `{0}` for module `{1}`.' -f $skillId, [string]$unit.module_id)
+            $lines += ('  Read: `{0}`' -f $entrypoint)
+        }
+        $lines += ('  Work: {0}' -f [string]$unit.responsibility)
+        $lines += ('  Expected outputs: {0}' -f (@($unit.expected_outputs) -join '; '))
+        $lines += ('  Verify: {0}' -f (@($unit.verification) -join '; '))
+    }
+    $lines += @(
+        '',
+        ('- Module result file: `{0}`' -f [string]$Handoff.module_execution_path),
+        ('- Return to Vibe after the module work is terminal: `{0}`' -f [string]$Handoff.return_command)
+    )
+
+    return [pscustomobject]@{
+        enabled = $true
+        mode = 'agent_execution_handoff'
+        status = 'agent_action_required'
+        control_owner = 'agent'
+        segment_count = 1
+        segments = @(
+            [pscustomobject]@{
+                segment_id = 'agent_execution_handoff'
+                stage = 'plan_execute'
+                category = 'execution'
+                truth_layer = 'module_execution'
+                status = 'agent_action_required'
+                gate_status = $null
+                skill_count = @($Handoff.units | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.skill_id) }).Count
+                skills = @($Handoff.units | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+                rendered_text = (@($lines) -join "`n")
+            }
+        )
+        rendered_text = (@($lines) -join "`n")
     }
 }
 
@@ -895,7 +1182,7 @@ function New-VibeRuntimeHostDecisionProjection {
         'decision_action',
         'decision_kind',
         'continuation_context',
-        'skill_execution_decision',
+        'agent_skill_organization',
         'code_task_tdd_decision',
         'code_task_tdd',
         'tdd_decision',
@@ -937,6 +1224,348 @@ function Get-VibeNormalizedStringList {
         $seen[$text] = $true
     }
     return [string[]]$result.ToArray()
+}
+
+function Assert-VibeTaskWriteScope {
+    param(
+        [Parameter(Mandatory)] [string]$WriteScope,
+        [Parameter(Mandatory)] [string]$Context
+    )
+
+    $normalized = $WriteScope.Trim().Replace('\', '/').ToLowerInvariant()
+    if (
+        $normalized -match '(^|/)outputs/runtime/vibe-sessions(/|$)' -or
+        $normalized -match '(^|/)module-execution\.json([#/]|$)'
+    ) {
+        throw ('{0} write_scope must describe task work, not canonical runtime artifacts' -f $Context)
+    }
+}
+
+function Resolve-VibeAgentSkillOrganization {
+    param(
+        [AllowNull()] [object]$HostDecision = $null,
+        [AllowNull()] [object]$InheritedOrganization = $null
+    )
+
+    $organization = if (
+        $null -ne $HostDecision -and
+        (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'agent_skill_organization')
+    ) {
+        Get-VibePropertySafe -InputObject $HostDecision -PropertyName 'agent_skill_organization'
+    } else {
+        $InheritedOrganization
+    }
+    if ($null -eq $organization) {
+        return $null
+    }
+    if (-not (Test-VibeStructuredObject -InputObject $organization)) {
+        throw 'agent_skill_organization must be a JSON object'
+    }
+
+    $schemaVersion = [string](Get-VibePropertySafe -InputObject $organization -PropertyName 'schema_version' -DefaultValue '')
+    if ($schemaVersion -ne 'agent_skill_organization_v1') {
+        throw 'agent_skill_organization.schema_version must be `agent_skill_organization_v1`'
+    }
+    $derivedBy = [string](Get-VibePropertySafe -InputObject $organization -PropertyName 'derived_by' -DefaultValue '')
+    if ($derivedBy -ne 'agent') {
+        throw 'agent_skill_organization.derived_by must be `agent`'
+    }
+    $workflowLevel = [string](Get-VibePropertySafe -InputObject $organization -PropertyName 'workflow_level' -DefaultValue '')
+    if ($workflowLevel -notin @('L', 'XL')) {
+        throw 'agent_skill_organization.workflow_level must be `L` or `XL`'
+    }
+
+    $rawModules = @($(if (Test-VibeObjectHasProperty -InputObject $organization -PropertyName 'modules') { $organization.modules } else { @() }))
+    if (@($rawModules).Count -eq 0) {
+        throw 'agent_skill_organization.modules must include at least one module'
+    }
+    $modules = New-Object System.Collections.Generic.List[object]
+    $moduleIds = @{}
+    foreach ($module in @($rawModules)) {
+        if (-not (Test-VibeStructuredObject -InputObject $module)) {
+            throw 'each agent_skill_organization module must be a JSON object'
+        }
+        $moduleId = [string](Get-VibePropertySafe -InputObject $module -PropertyName 'module_id' -DefaultValue '')
+        $goal = [string](Get-VibePropertySafe -InputObject $module -PropertyName 'goal' -DefaultValue '')
+        $executionMode = [string](Get-VibePropertySafe -InputObject $module -PropertyName 'execution_mode' -DefaultValue '')
+        $moduleWriteScope = [string](Get-VibePropertySafe -InputObject $module -PropertyName 'write_scope' -DefaultValue '')
+        $moduleExpectedOutputs = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $module -PropertyName 'expected_outputs' -DefaultValue @()))
+        $moduleVerification = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $module -PropertyName 'verification' -DefaultValue @()))
+        if ([string]::IsNullOrWhiteSpace($moduleId)) {
+            throw 'each agent_skill_organization module must include module_id'
+        }
+        if ($moduleIds.ContainsKey($moduleId)) {
+            throw ('agent_skill_organization contains duplicate module_id `{0}`' -f $moduleId)
+        }
+        if ([string]::IsNullOrWhiteSpace($goal)) {
+            throw ('agent_skill_organization module `{0}` must include goal' -f $moduleId)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($moduleWriteScope)) {
+            Assert-VibeTaskWriteScope -WriteScope $moduleWriteScope -Context ('agent_skill_organization module `{0}`' -f $moduleId)
+        }
+        $acceptanceCriteria = [object[]]@(Get-VibePropertySafe -InputObject $module -PropertyName 'acceptance_criteria' -DefaultValue @())
+        if (@($acceptanceCriteria).Count -eq 0) {
+            throw ('agent_skill_organization module `{0}` must include at least one acceptance criterion' -f $moduleId)
+        }
+        $normalizedAcceptanceCriteria = New-Object System.Collections.Generic.List[object]
+        $criterionIds = @{}
+        foreach ($criterion in @($acceptanceCriteria)) {
+            if (-not (Test-VibeStructuredObject -InputObject $criterion)) {
+                throw ('agent_skill_organization module `{0}` acceptance_criteria items must be JSON objects' -f $moduleId)
+            }
+            $criterionId = [string](Get-VibePropertySafe -InputObject $criterion -PropertyName 'criterion_id' -DefaultValue '')
+            $description = [string](Get-VibePropertySafe -InputObject $criterion -PropertyName 'description' -DefaultValue '')
+            $verificationMode = [string](Get-VibePropertySafe -InputObject $criterion -PropertyName 'verification_mode' -DefaultValue '')
+            if ([string]::IsNullOrWhiteSpace($criterionId)) {
+                throw ('agent_skill_organization module `{0}` acceptance criterion must include criterion_id' -f $moduleId)
+            }
+            if ($criterionIds.ContainsKey($criterionId)) {
+                throw ('agent_skill_organization module `{0}` contains duplicate acceptance criterion `{1}`' -f $moduleId, $criterionId)
+            }
+            if ([string]::IsNullOrWhiteSpace($description)) {
+                throw ('agent_skill_organization module `{0}` acceptance criterion `{1}` must include description' -f $moduleId, $criterionId)
+            }
+            if ($description -match '(?i)(cleanup[-_ ]receipt|successful[-_ ]cleanup[-_ ](?:statement|status)|delivery[-_ ]acceptance[-_ ]report|completion[-_ ]language|completion[-_ ]wording|清理(?:回执|收据)|成功清理(?:声明|状态|表述)|交付验收报告|完成(?:语言|表述))') {
+                throw ('post-return cleanup is not a valid module acceptance criterion; module `{0}` criterion `{1}` must be satisfiable before canonical module-result re-entry' -f $moduleId, $criterionId)
+            }
+            if ($verificationMode -notin @('automated', 'manual')) {
+                throw ('agent_skill_organization module `{0}` acceptance criterion `{1}` verification_mode must be `automated` or `manual`' -f $moduleId, $criterionId)
+            }
+            $criterionIds[$criterionId] = $true
+            $normalizedAcceptanceCriteria.Add([pscustomobject]@{
+                    criterion_id = $criterionId
+                    description = $description
+                    verification_mode = $verificationMode
+                }) | Out-Null
+        }
+        $moduleIds[$moduleId] = $true
+        $modules.Add([pscustomobject]@{
+                module_id = $moduleId
+                goal = $goal
+                candidate_skill_ids = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $module -PropertyName 'candidate_skill_ids') { $module.candidate_skill_ids } else { @() }))
+                required = [bool](Get-VibePropertySafe -InputObject $module -PropertyName 'required' -DefaultValue $true)
+                depends_on = [object[]]@(Get-VibePropertySafe -InputObject $module -PropertyName 'depends_on' -DefaultValue @())
+                execution_mode = $executionMode
+                write_scope = $moduleWriteScope
+                expected_outputs = [object[]]@($moduleExpectedOutputs)
+                verification = [object[]]@($moduleVerification)
+                acceptance_criteria = @($normalizedAcceptanceCriteria.ToArray())
+            }) | Out-Null
+    }
+
+    $selectedSkills = New-Object System.Collections.Generic.List[object]
+    $selectedSkillIds = @{}
+    foreach ($selectedSkill in @($(if (Test-VibeObjectHasProperty -InputObject $organization -PropertyName 'selected_skills') { $organization.selected_skills } else { @() }))) {
+        if (-not (Test-VibeStructuredObject -InputObject $selectedSkill)) {
+            throw 'each agent_skill_organization selected skill must be a JSON object'
+        }
+        $skillId = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_id' -DefaultValue '')
+        $responsibility = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'responsibility' -DefaultValue '')
+        $reason = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'reason' -DefaultValue '')
+        $assignedModuleIds = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $selectedSkill -PropertyName 'module_ids') { $selectedSkill.module_ids } else { @() }))
+        if ([string]::IsNullOrWhiteSpace($skillId)) {
+            throw 'each agent_skill_organization selected skill must include skill_id'
+        }
+        if ($selectedSkillIds.ContainsKey($skillId)) {
+            throw ('agent_skill_organization contains duplicate selected skill `{0}`' -f $skillId)
+        }
+        if ([string]::IsNullOrWhiteSpace($responsibility)) {
+            throw ('agent_skill_organization selected skill `{0}` must include responsibility' -f $skillId)
+        }
+        if ([string]::IsNullOrWhiteSpace($reason)) {
+            throw ('agent_skill_organization selected skill `{0}` must include reason' -f $skillId)
+        }
+        if (@($assignedModuleIds).Count -eq 0) {
+            throw ('agent_skill_organization selected skill `{0}` must include module_ids' -f $skillId)
+        }
+        foreach ($moduleId in @($assignedModuleIds)) {
+            if (-not $moduleIds.ContainsKey($moduleId)) {
+                throw ('agent_skill_organization selected skill `{0}` references unknown module `{1}`' -f $skillId, $moduleId)
+            }
+            $moduleRecord = @($modules.ToArray() | Where-Object { [string]$_.module_id -eq $moduleId } | Select-Object -First 1)[0]
+            if ($skillId -notin @($moduleRecord.candidate_skill_ids)) {
+                throw ('agent_skill_organization selected skill `{0}` was not listed as a candidate for module `{1}`; use the directory name that directly contains the retained SKILL.md as skill_id, not the displayed or frontmatter name' -f $skillId, $moduleId)
+            }
+        }
+        $normalizedModuleAssignments = New-Object System.Collections.Generic.List[object]
+        $rawModuleAssignments = @($(if (Test-VibeObjectHasProperty -InputObject $selectedSkill -PropertyName 'module_assignments') { $selectedSkill.module_assignments } else { @() }))
+        if (@($rawModuleAssignments).Count -eq 0) {
+            if (@($assignedModuleIds).Count -gt 1) {
+                throw ('agent_skill_organization selected skill `{0}` must include one module_assignments entry per module when assigned to multiple modules' -f $skillId)
+            }
+            $singleModuleId = [string]$assignedModuleIds[0]
+            $singleRole = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'role' -DefaultValue 'owner')
+            if ($singleRole -notin @('owner', 'support', 'verifier')) {
+                throw ('agent_skill_organization selected skill `{0}` role must be `owner`, `support`, or `verifier`' -f $skillId)
+            }
+            $singleModuleRecord = @($modules.ToArray() | Where-Object { [string]$_.module_id -eq $singleModuleId } | Select-Object -First 1)[0]
+            $singleWriteScope = [string]$(if (Test-VibeObjectHasProperty -InputObject $selectedSkill -PropertyName 'write_scope') { Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'write_scope' } else { $singleModuleRecord.write_scope })
+            if ([string]::IsNullOrWhiteSpace($singleWriteScope)) {
+                $singleWriteScope = 'module:{0}' -f $singleModuleId
+            }
+            Assert-VibeTaskWriteScope -WriteScope $singleWriteScope -Context ('agent_skill_organization selected skill `{0}`' -f $skillId)
+            $singleExpectedOutputs = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $selectedSkill -PropertyName 'expected_outputs') { Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'expected_outputs' } else { $singleModuleRecord.expected_outputs }))
+            if (@($singleExpectedOutputs).Count -eq 0) {
+                $singleExpectedOutputs = @($responsibility)
+            }
+            $singleVerification = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $selectedSkill -PropertyName 'verification') { Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'verification' } else { $singleModuleRecord.verification }))
+            if (@($singleVerification).Count -eq 0) {
+                $singleVerification = @('Verify the module acceptance criteria.')
+            }
+            $normalizedModuleAssignments.Add([pscustomobject]@{
+                    module_id = $singleModuleId
+                    role = $singleRole
+                    responsibility = $responsibility
+                    write_scope = $singleWriteScope
+                    expected_outputs = [object[]]@($singleExpectedOutputs)
+                    verification = [object[]]@($singleVerification)
+                }) | Out-Null
+        } else {
+            $assignmentModuleIds = @{}
+            foreach ($moduleAssignment in @($rawModuleAssignments)) {
+                if (-not (Test-VibeStructuredObject -InputObject $moduleAssignment)) {
+                    throw ('agent_skill_organization selected skill `{0}` module_assignments entries must be JSON objects' -f $skillId)
+                }
+                $assignmentModuleId = [string](Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'module_id' -DefaultValue '')
+                $assignmentRole = [string](Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'role' -DefaultValue '')
+                $assignmentResponsibility = [string](Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'responsibility' -DefaultValue '')
+                $assignmentWriteScope = [string](Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'write_scope' -DefaultValue '')
+                $assignmentExpectedOutputs = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'expected_outputs' -DefaultValue @()))
+                $assignmentVerification = @(Get-VibeNormalizedStringList -Values (Get-VibePropertySafe -InputObject $moduleAssignment -PropertyName 'verification' -DefaultValue @()))
+                if ($assignmentModuleId -notin @($assignedModuleIds)) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment references undeclared module `{1}`' -f $skillId, $assignmentModuleId)
+                }
+                if ($assignmentModuleIds.ContainsKey($assignmentModuleId)) {
+                    throw ('agent_skill_organization selected skill `{0}` contains duplicate module assignment `{1}`' -f $skillId, $assignmentModuleId)
+                }
+                if ($assignmentRole -notin @('owner', 'support', 'verifier')) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment `{1}` role must be `owner`, `support`, or `verifier`' -f $skillId, $assignmentModuleId)
+                }
+                if ([string]::IsNullOrWhiteSpace($assignmentResponsibility)) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment `{1}` must include responsibility' -f $skillId, $assignmentModuleId)
+                }
+                if ([string]::IsNullOrWhiteSpace($assignmentWriteScope)) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment `{1}` must include write_scope' -f $skillId, $assignmentModuleId)
+                }
+                Assert-VibeTaskWriteScope -WriteScope $assignmentWriteScope -Context ('agent_skill_organization selected skill `{0}` module assignment `{1}`' -f $skillId, $assignmentModuleId)
+                if (@($assignmentExpectedOutputs).Count -eq 0) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment `{1}` must include expected_outputs' -f $skillId, $assignmentModuleId)
+                }
+                if (@($assignmentVerification).Count -eq 0) {
+                    throw ('agent_skill_organization selected skill `{0}` module assignment `{1}` must include verification' -f $skillId, $assignmentModuleId)
+                }
+                $assignmentModuleIds[$assignmentModuleId] = $true
+                $normalizedModuleAssignments.Add([pscustomobject]@{
+                        module_id = $assignmentModuleId
+                        role = $assignmentRole
+                        responsibility = $assignmentResponsibility
+                        write_scope = $assignmentWriteScope
+                        expected_outputs = [object[]]@($assignmentExpectedOutputs)
+                        verification = [object[]]@($assignmentVerification)
+                    }) | Out-Null
+            }
+            foreach ($moduleId in @($assignedModuleIds)) {
+                if (-not $assignmentModuleIds.ContainsKey([string]$moduleId)) {
+                    throw ('agent_skill_organization selected skill `{0}` is missing module assignment `{1}`' -f $skillId, [string]$moduleId)
+                }
+            }
+        }
+        $selectedSkillIds[$skillId] = $true
+        $selectedSkills.Add([pscustomobject]@{
+                skill_id = $skillId
+                module_ids = @($assignedModuleIds)
+                role = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'role' -DefaultValue 'owner')
+                responsibility = $responsibility
+                reason = $reason
+                write_scope = Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'write_scope' -DefaultValue $null
+                expected_outputs = [object[]]@(Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'expected_outputs' -DefaultValue @($responsibility))
+                verification = [object[]]@(Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'verification' -DefaultValue @('Verify the module acceptance criteria.'))
+                module_assignments = [object[]]@($normalizedModuleAssignments.ToArray())
+            }) | Out-Null
+    }
+
+    $uncoveredModules = New-Object System.Collections.Generic.List[object]
+    $uncoveredModuleIds = @{}
+    foreach ($uncovered in @($(if (Test-VibeObjectHasProperty -InputObject $organization -PropertyName 'uncovered_modules') { $organization.uncovered_modules } else { @() }))) {
+        if (-not (Test-VibeStructuredObject -InputObject $uncovered)) {
+            throw 'each agent_skill_organization uncovered module must be a JSON object'
+        }
+        $moduleId = [string](Get-VibePropertySafe -InputObject $uncovered -PropertyName 'module_id' -DefaultValue '')
+        $reason = [string](Get-VibePropertySafe -InputObject $uncovered -PropertyName 'reason' -DefaultValue '')
+        if (-not $moduleIds.ContainsKey($moduleId)) {
+            throw ('agent_skill_organization uncovered module references unknown module `{0}`' -f $moduleId)
+        }
+        if ($uncoveredModuleIds.ContainsKey($moduleId)) {
+            throw ('agent_skill_organization contains duplicate uncovered module `{0}`' -f $moduleId)
+        }
+        if ([string]::IsNullOrWhiteSpace($reason)) {
+            throw ('agent_skill_organization uncovered module `{0}` must include reason' -f $moduleId)
+        }
+        $uncoveredModuleIds[$moduleId] = $true
+        $uncoveredModules.Add([pscustomobject]@{
+                module_id = $moduleId
+                reason = $reason
+            }) | Out-Null
+    }
+
+    foreach ($module in @($modules.ToArray())) {
+        $moduleId = [string]$module.module_id
+        $declaredExecutionMode = [string]$module.execution_mode
+        if ([string]::IsNullOrWhiteSpace($declaredExecutionMode)) {
+            throw ('agent_skill_organization module `{0}` must include execution_mode' -f $moduleId)
+        }
+        if ($declaredExecutionMode -notin @('skill_assigned', 'agent_direct', 'blocked_gap')) {
+            throw ('agent_skill_organization module `{0}` has unsupported execution_mode `{1}`' -f $moduleId, $declaredExecutionMode)
+        }
+        $covered = @($selectedSkills.ToArray() | Where-Object { $moduleId -in @($_.module_ids) }).Count -gt 0
+        $declaredUncovered = $uncoveredModuleIds.ContainsKey($moduleId)
+        if ($covered -and $declaredUncovered) {
+            throw ('agent_skill_organization module `{0}` cannot be both selected and uncovered' -f $moduleId)
+        }
+        if ($declaredExecutionMode -eq 'agent_direct' -and ($covered -or $declaredUncovered)) {
+            throw ('agent_skill_organization agent_direct module `{0}` cannot select or declare a skill gap' -f $moduleId)
+        }
+        if ($declaredExecutionMode -eq 'agent_direct') {
+            if ([string]::IsNullOrWhiteSpace([string]$module.write_scope)) {
+                throw ('agent_skill_organization agent_direct module `{0}` must include write_scope' -f $moduleId)
+            }
+            if (@($module.expected_outputs).Count -eq 0) {
+                throw ('agent_skill_organization agent_direct module `{0}` must include expected_outputs' -f $moduleId)
+            }
+            if (@($module.verification).Count -eq 0) {
+                throw ('agent_skill_organization agent_direct module `{0}` must include verification' -f $moduleId)
+            }
+        }
+        if ($declaredExecutionMode -eq 'skill_assigned' -and -not $covered) {
+            throw ('agent_skill_organization module `{0}` declares skill_assigned but is not covered by a selected skill' -f $moduleId)
+        }
+        if ($declaredExecutionMode -eq 'blocked_gap' -and -not $declaredUncovered) {
+            throw ('agent_skill_organization module `{0}` declares blocked_gap but is not declared uncovered' -f $moduleId)
+        }
+    }
+
+    $workflowLevelContract = Get-VibePropertySafe -InputObject $organization -PropertyName 'workflow_level_contract' -DefaultValue $null
+    if (-not (Test-VibeStructuredObject -InputObject $workflowLevelContract)) {
+        throw 'agent_skill_organization.workflow_level_contract must be a JSON object'
+    }
+    $lDescription = [string](Get-VibePropertySafe -InputObject $workflowLevelContract -PropertyName 'L' -DefaultValue '')
+    $xlDescription = [string](Get-VibePropertySafe -InputObject $workflowLevelContract -PropertyName 'XL' -DefaultValue '')
+    if ([string]::IsNullOrWhiteSpace($lDescription) -or [string]::IsNullOrWhiteSpace($xlDescription)) {
+        throw 'agent_skill_organization.workflow_level_contract must describe both L and XL'
+    }
+
+    return [pscustomobject]@{
+        schema_version = 'agent_skill_organization_v1'
+        derived_by = 'agent'
+        workflow_level = $workflowLevel
+        modules = @($modules.ToArray())
+        selected_skills = @($selectedSkills.ToArray())
+        uncovered_modules = @($uncoveredModules.ToArray())
+        workflow_level_contract = [pscustomobject]@{
+            L = $lDescription
+            XL = $xlDescription
+        }
+    }
 }
 
 function Get-VibeExecutionPhaseContract {
@@ -1124,172 +1753,6 @@ function Resolve-VibeHostPhaseDecomposition {
     }
 }
 
-function Get-VibeHostSkillExecutionContract {
-    param(
-        [AllowNull()] [object]$Policy = $null
-    )
-
-    $dispatchPolicy = $null
-    if ($null -ne $Policy -and (Test-VibeObjectHasProperty -InputObject $Policy -PropertyName 'host_skill_execution_contract')) {
-        $dispatchPolicy = $Policy.host_skill_execution_contract
-    }
-
-    $selectionModes = if (
-        $null -ne $dispatchPolicy -and
-        (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'selection_modes') -and
-        $null -ne $dispatchPolicy.selection_modes
-    ) {
-        @(Get-VibeNormalizedStringList -Values $dispatchPolicy.selection_modes)
-    } else {
-        @('inherit_runtime_default', 'curated_only')
-    }
-    if (@($selectionModes).Count -eq 0) {
-        $selectionModes = @('inherit_runtime_default', 'curated_only')
-    }
-
-    $defaultSelectionMode = if (
-        $null -ne $dispatchPolicy -and
-        (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'default_selection_mode') -and
-        -not [string]::IsNullOrWhiteSpace([string]$dispatchPolicy.default_selection_mode)
-    ) {
-        [string]$dispatchPolicy.default_selection_mode
-    } else {
-        'inherit_runtime_default'
-    }
-    if ($defaultSelectionMode -notin $selectionModes) {
-        $defaultSelectionMode = 'inherit_runtime_default'
-    }
-    $requiresUserConfirmationFor = if (
-        $null -ne $dispatchPolicy -and
-        (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'requires_user_confirmation_for') -and
-        $null -ne $dispatchPolicy.requires_user_confirmation_for
-    ) {
-        @(Get-VibeNormalizedStringList -Values $dispatchPolicy.requires_user_confirmation_for)
-    } else {
-        @()
-    }
-    $approvalOwner = if (
-        $null -ne $dispatchPolicy -and
-        (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'approval_owner') -and
-        -not [string]::IsNullOrWhiteSpace([string]$dispatchPolicy.approval_owner)
-    ) {
-        [string]$dispatchPolicy.approval_owner
-    } else {
-        'root_vibe'
-    }
-    $userPrompt = if (
-        $null -ne $dispatchPolicy -and
-        (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'user_prompt') -and
-        -not [string]::IsNullOrWhiteSpace([string]$dispatchPolicy.user_prompt)
-    ) {
-        [string]$dispatchPolicy.user_prompt
-    } else {
-        ''
-    }
-
-    return [pscustomobject]@{
-        enabled = if ($null -ne $dispatchPolicy -and (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'enabled')) { [bool]$dispatchPolicy.enabled } else { $true }
-        scope = if ($null -ne $dispatchPolicy -and (Test-VibeObjectHasProperty -InputObject $dispatchPolicy -PropertyName 'scope') -and -not [string]::IsNullOrWhiteSpace([string]$dispatchPolicy.scope)) { [string]$dispatchPolicy.scope } else { 'root_only' }
-        selection_modes = @($selectionModes)
-        default_selection_mode = [string]$defaultSelectionMode
-        requires_user_confirmation_for = @($requiresUserConfirmationFor)
-        approval_owner = [string]$approvalOwner
-        user_prompt = [string]$userPrompt
-    }
-}
-
-function Resolve-VibeHostSkillExecutionDecision {
-    param(
-        [AllowNull()] [object]$HostDecision = $null,
-        [AllowNull()] [object[]]$Recommendations = @(),
-        [AllowEmptyString()] [string]$GovernanceScope = '',
-        [AllowNull()] [object]$Policy = $null
-    )
-
-    $contract = Get-VibeHostSkillExecutionContract -Policy $Policy
-    if (-not [bool]$contract.enabled) {
-        return $null
-    }
-    if ($null -eq $HostDecision -or -not (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'skill_execution_decision')) {
-        return $null
-    }
-
-    $decision = Get-VibePropertySafe -InputObject $HostDecision -PropertyName 'skill_execution_decision'
-    if ($null -eq $decision) {
-        return $null
-    }
-    if (-not (Test-VibeStructuredObject -InputObject $decision)) {
-        throw 'structured host skill execution decision must be a JSON object'
-    }
-    if ([string]$contract.scope -eq 'root_only' -and -not [string]::Equals([string]$GovernanceScope, 'root', [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'structured host skill execution decision is currently supported only in root governance scope'
-    }
-
-    $selectionMode = if (
-        (Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'selection_mode') -and
-        -not [string]::IsNullOrWhiteSpace([string](Get-VibePropertySafe -InputObject $decision -PropertyName 'selection_mode'))
-    ) {
-        [string](Get-VibePropertySafe -InputObject $decision -PropertyName 'selection_mode')
-    } else {
-        [string]$contract.default_selection_mode
-    }
-    if ($selectionMode -notin @($contract.selection_modes)) {
-        throw ('structured host skill execution decision selection_mode `{0}` is not supported' -f $selectionMode)
-    }
-
-    $approvedSkillIds = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'approved_skill_ids') { $decision.approved_skill_ids } else { @() }))
-    $deferredSkillIds = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'deferred_skill_ids') { $decision.deferred_skill_ids } else { @() }))
-    $rejectedSkillIds = @(Get-VibeNormalizedStringList -Values $(if (Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'rejected_skill_ids') { $decision.rejected_skill_ids } else { @() }))
-
-    $duplicateSkillIds = @(
-        @($approvedSkillIds | Where-Object { $_ -in $deferredSkillIds }) +
-        @($approvedSkillIds | Where-Object { $_ -in $rejectedSkillIds }) +
-        @($deferredSkillIds | Where-Object { $_ -in $rejectedSkillIds })
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-    if (@($duplicateSkillIds).Count -gt 0) {
-        throw ('structured host specialist dispatch decision contains duplicate skill ids across decision lists: {0}' -f [string]::Join(', ', @($duplicateSkillIds)))
-    }
-
-    $surfacedSkillIds = @($Recommendations | ForEach-Object {
-        if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-    } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    $explicitSkillIds = @(@($approvedSkillIds) + @($deferredSkillIds) + @($rejectedSkillIds) | Select-Object -Unique)
-    $unknownSkillIds = @($explicitSkillIds | Where-Object { $_ -notin $surfacedSkillIds })
-    if (@($unknownSkillIds).Count -gt 0) {
-        $approvedSkillIds = @($approvedSkillIds | Where-Object { $_ -in $surfacedSkillIds })
-        $deferredSkillIds = @($deferredSkillIds | Where-Object { $_ -in $surfacedSkillIds })
-        $rejectedSkillIds = @($rejectedSkillIds | Where-Object { $_ -in $surfacedSkillIds })
-    }
-    $effectiveSelectionMode = if (@($unknownSkillIds).Count -gt 0 -and @($explicitSkillIds).Count -gt 0) {
-        'curated_only'
-    } else {
-        [string]$selectionMode
-    }
-    $validExplicitSkillIds = @(@($approvedSkillIds) + @($deferredSkillIds) + @($rejectedSkillIds) | Select-Object -Unique)
-    $requiresRecuration = (@($unknownSkillIds).Count -gt 0 -and @($validExplicitSkillIds).Count -eq 0 -and [string]$effectiveSelectionMode -eq 'curated_only')
-    $reconciliationState = if (@($unknownSkillIds).Count -eq 0) {
-        'current'
-    } elseif ($requiresRecuration) {
-        'stale_recuration_required'
-    } else {
-        'partial_reconciled'
-    }
-
-    return [pscustomobject]@{
-        protocol_version = if ((Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'protocol_version') -and -not [string]::IsNullOrWhiteSpace([string]$decision.protocol_version)) { [string]$decision.protocol_version } else { 'v1' }
-        derived_by = if ((Test-VibeObjectHasProperty -InputObject $decision -PropertyName 'derived_by') -and -not [string]::IsNullOrWhiteSpace([string]$decision.derived_by)) { [string]$decision.derived_by } else { 'host' }
-        selection_mode = [string]$effectiveSelectionMode
-        requested_selection_mode = [string]$selectionMode
-        approved_skill_ids = @($approvedSkillIds)
-        deferred_skill_ids = @($deferredSkillIds)
-        rejected_skill_ids = @($rejectedSkillIds)
-        surfaced_skill_ids = @($surfacedSkillIds)
-        stale_skill_ids = @($unknownSkillIds)
-        reconciliation_state = [string]$reconciliationState
-        requires_recuration = [bool]$requiresRecuration
-    }
-}
-
 function Get-VibeRuntimeInputPacketFromSessionRunId {
     param(
         [AllowEmptyString()] [string]$ArtifactRoot = '',
@@ -1309,317 +1772,6 @@ function Get-VibeRuntimeInputPacketFromSessionRunId {
         return Get-Content -LiteralPath $candidatePath -Raw -Encoding UTF8 | ConvertFrom-Json
     } catch {
         return $null
-    }
-}
-
-function Get-VibeSkillExecutionLockFromRuntimeInputPacket {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket = $null
-    )
-
-    if (
-        $null -eq $RuntimeInputPacket -or
-        -not (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'skill_execution_lock') -or
-        $null -eq $RuntimeInputPacket.skill_execution_lock
-    ) {
-        return $null
-    }
-
-    return $RuntimeInputPacket.skill_execution_lock
-}
-
-function Test-VibeSkillExecutionLockActive {
-    param(
-        [AllowNull()] [object]$SkillExecutionLock = $null
-    )
-
-    if ($null -eq $SkillExecutionLock) {
-        return $false
-    }
-
-    $state = if (Test-VibeObjectHasProperty -InputObject $SkillExecutionLock -PropertyName 'state') { [string]$SkillExecutionLock.state } else { '' }
-    $lockedDispatch = if (Test-VibeObjectHasProperty -InputObject $SkillExecutionLock -PropertyName 'locked_dispatch') { @($SkillExecutionLock.locked_dispatch) } else { @() }
-    $lockedSkillIds = if (Test-VibeObjectHasProperty -InputObject $SkillExecutionLock -PropertyName 'locked_skill_ids') { @($SkillExecutionLock.locked_skill_ids) } else { @() }
-    return [bool]([string]::Equals($state, 'active', [System.StringComparison]::OrdinalIgnoreCase) -and ((@($lockedDispatch).Count -gt 0) -or (@($lockedSkillIds).Count -gt 0)))
-}
-
-function Get-VibeSkillExecutionLockSkillIds {
-    param(
-        [AllowNull()] [object]$SkillExecutionLock = $null
-    )
-
-    if ($null -eq $SkillExecutionLock) {
-        return @()
-    }
-
-    $fromIdList = if (Test-VibeObjectHasProperty -InputObject $SkillExecutionLock -PropertyName 'locked_skill_ids') {
-        @(Get-VibeNormalizedStringList -Values $SkillExecutionLock.locked_skill_ids)
-    } else {
-        @()
-    }
-    $fromDispatch = if (Test-VibeObjectHasProperty -InputObject $SkillExecutionLock -PropertyName 'locked_dispatch') {
-        @($SkillExecutionLock.locked_dispatch | ForEach-Object {
-            if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-    } else {
-        @()
-    }
-
-    return @((@($fromIdList) + @($fromDispatch)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-}
-
-function Copy-VibeSkillExecutionLockDispatchRecord {
-    param(
-        [AllowNull()] [object]$Record = $null,
-        [AllowEmptyString()] [string]$LockSource = '',
-        [AllowEmptyString()] [string]$ReconciliationState = '',
-        [AllowEmptyString()] [string]$RepoRoot = '',
-        [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
-    )
-
-    if ($null -eq $Record) {
-        return $null
-    }
-
-    $copy = Copy-VibeRecordObject -InputObject $Record
-    $skillId = if (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'skill_id') { [string]$copy.skill_id } else { '' }
-    if ([string]::IsNullOrWhiteSpace($skillId)) {
-        return $null
-    }
-
-    $nativeEntrypoint = if (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'native_skill_entrypoint') { [string]$copy.native_skill_entrypoint } else { '' }
-    $skillMdPath = if (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'skill_md_path') { [string]$copy.skill_md_path } else { '' }
-    $entrypoint = if (-not [string]::IsNullOrWhiteSpace($nativeEntrypoint)) { $nativeEntrypoint } else { $skillMdPath }
-    if (-not [string]::IsNullOrWhiteSpace([string]$RepoRoot)) {
-        $authorityArgs = @{
-            RepoRoot = $RepoRoot
-            SkillId = $skillId
-            NativeSkillEntrypoint = $entrypoint
-            TargetRoot = $TargetRoot
-            HostId = $HostId
-        }
-        if (-not [string]::IsNullOrWhiteSpace($entrypoint)) {
-            $authorityArgs['RequireProvidedEntrypoint'] = $true
-        }
-        $authority = Resolve-VibeLocalSkillAuthority @authorityArgs
-        if (-not [bool]$authority.valid) {
-            return $null
-        }
-        $entrypoint = [string]$authority.canonical_entrypoint
-        $copy | Add-Member -NotePropertyName native_skill_entrypoint -NotePropertyValue $entrypoint -Force
-        $copy | Add-Member -NotePropertyName skill_md_path -NotePropertyValue $entrypoint -Force
-        $copy | Add-Member -NotePropertyName skill_root -NotePropertyValue ([string]$authority.skill_root) -Force
-        $copy | Add-Member -NotePropertyName source_root -NotePropertyValue ([string]$authority.source_root) -Force
-        $copy | Add-Member -NotePropertyName source_kind -NotePropertyValue ([string]$authority.source_kind) -Force
-        $copy | Add-Member -NotePropertyName source_priority -NotePropertyValue ([int]$authority.source_priority) -Force
-        $copy | Add-Member -NotePropertyName duplicate_state -NotePropertyValue ([string]$authority.duplicate_state) -Force
-    }
-    $entrypointFileName = if ([string]::IsNullOrWhiteSpace($entrypoint)) { '' } else { [System.IO.Path]::GetFileName($entrypoint) }
-    if (
-        [string]::IsNullOrWhiteSpace($entrypoint) -or
-        $entrypointFileName -notin @('SKILL.md', 'SKILL.runtime-mirror.md') -or
-        -not (Test-Path -LiteralPath $entrypoint -PathType Leaf)
-    ) {
-        if (-not [string]::IsNullOrWhiteSpace([string]$RepoRoot)) {
-            return $null
-        }
-    }
-
-    if (-not (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'task_slice') -or [string]::IsNullOrWhiteSpace([string]$copy.task_slice)) {
-        $copy | Add-Member -NotePropertyName task_slice -NotePropertyValue ('Resolve locked specialist execution for {0}.' -f $skillId) -Force
-    }
-    if (-not (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'dispatch_phase') -or [string]::IsNullOrWhiteSpace([string]$copy.dispatch_phase)) {
-        $copy | Add-Member -NotePropertyName dispatch_phase -NotePropertyValue 'in_execution' -Force
-    }
-    if (-not (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'write_scope') -or [string]::IsNullOrWhiteSpace([string]$copy.write_scope)) {
-        $copy | Add-Member -NotePropertyName write_scope -NotePropertyValue ('specialist:{0}' -f $skillId) -Force
-    }
-    if (-not (Test-VibeObjectHasProperty -InputObject $copy -PropertyName 'verification_expectation') -or [string]::IsNullOrWhiteSpace([string]$copy.verification_expectation)) {
-        $copy | Add-Member -NotePropertyName verification_expectation -NotePropertyValue 'Resolve locked specialist execution before delivery acceptance.' -Force
-    }
-
-    $copy | Add-Member -NotePropertyName locked_for_execution -NotePropertyValue $true -Force
-    $copy | Add-Member -NotePropertyName lock_source -NotePropertyValue $(if ([string]::IsNullOrWhiteSpace($LockSource)) { 'unknown' } else { [string]$LockSource }) -Force
-    $copy | Add-Member -NotePropertyName reconciliation_state -NotePropertyValue $(if ([string]::IsNullOrWhiteSpace($ReconciliationState)) { 'current_surfaced' } else { [string]$ReconciliationState }) -Force
-    $copy | Add-Member -NotePropertyName requires_resolution -NotePropertyValue $true -Force
-    return $copy
-}
-
-function New-VibeMinimalSkillExecutionLockDispatchRecord {
-    param(
-        [Parameter(Mandatory)] [string]$SkillId,
-        [AllowEmptyString()] [string]$LockSource = '',
-        [AllowEmptyString()] [string]$ReconciliationState = '',
-        [AllowEmptyString()] [string]$RepoRoot = '',
-        [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
-    )
-
-    return Copy-VibeSkillExecutionLockDispatchRecord `
-        -Record ([pscustomobject]@{
-            skill_id = [string]$SkillId
-            task_slice = ('Resolve locked specialist execution for {0}.' -f [string]$SkillId)
-            dispatch_phase = 'in_execution'
-            write_scope = ('specialist:{0}' -f [string]$SkillId)
-            verification_expectation = 'Resolve locked specialist execution before delivery acceptance.'
-        }) `
-        -LockSource $LockSource `
-        -ReconciliationState $ReconciliationState `
-        -RepoRoot $RepoRoot `
-        -TargetRoot $TargetRoot `
-        -HostId $HostId
-}
-
-function Add-VibeSkillExecutionLockRecord {
-    param(
-        [Parameter(Mandatory)] [object]$Rows,
-        [Parameter(Mandatory)] [hashtable]$Seen,
-        [AllowNull()] [object]$Record = $null
-    )
-
-    if ($null -eq $Record -or -not (Test-VibeObjectHasProperty -InputObject $Record -PropertyName 'skill_id')) {
-        return
-    }
-
-    $skillId = [string]$Record.skill_id
-    if ([string]::IsNullOrWhiteSpace($skillId) -or $Seen.ContainsKey($skillId)) {
-        return
-    }
-
-    $Rows.Add($Record) | Out-Null
-    $Seen[$skillId] = $true
-}
-
-function Get-VibeSkillExecutionLockCandidateRecords {
-    param(
-        [AllowNull()] [object]$SkillRouting = $null
-    )
-
-    if ($null -eq $SkillRouting) {
-        return @()
-    }
-
-    $rows = @()
-    foreach ($propertyName in @('selected', 'candidates', 'rejected')) {
-        if (Test-VibeObjectHasProperty -InputObject $SkillRouting -PropertyName $propertyName) {
-            $rows += @($SkillRouting.$propertyName)
-        }
-    }
-    return @($rows | Where-Object { $null -ne $_ })
-}
-
-function New-VibeSkillExecutionLockProjection {
-    param(
-        [AllowNull()] [object]$PreviousRuntimeInputPacket = $null,
-        [AllowNull()] [object]$CurrentSkillRouting = $null,
-        [AllowNull()] [object]$HostSpecialistDispatchDecision = $null,
-        [AllowEmptyString()] [string]$SourceRunId = '',
-        [AllowEmptyString()] [string]$Source = 'current_skill_routing_selected',
-        [AllowEmptyString()] [string]$RepoRoot = '',
-        [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
-    )
-
-    $rows = New-Object System.Collections.Generic.List[object]
-    $seen = @{}
-    $currentRecords = @(Get-VibeSkillExecutionLockCandidateRecords -SkillRouting $CurrentSkillRouting)
-    $currentSelectedRecords = @(Get-VibeSkillRoutingSelected -SkillRouting $CurrentSkillRouting)
-    $currentSelectedSkillIds = @($currentSelectedRecords | ForEach-Object {
-        if (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id') { [string]$_.skill_id } else { '' }
-    } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-
-    $hostSelectionMode = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'selection_mode')) {
-        [string]$HostSpecialistDispatchDecision.selection_mode
-    } else {
-        ''
-    }
-    $curatedOnly = [string]::Equals($hostSelectionMode, 'curated_only', [System.StringComparison]::OrdinalIgnoreCase)
-    $hostDeferred = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'deferred_skill_ids')) {
-        @(Get-VibeNormalizedStringList -Values $HostSpecialistDispatchDecision.deferred_skill_ids)
-    } else {
-        @()
-    }
-    $hostRejected = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'rejected_skill_ids')) {
-        @(Get-VibeNormalizedStringList -Values $HostSpecialistDispatchDecision.rejected_skill_ids)
-    } else {
-        @()
-    }
-    $hostExcluded = @(@($hostDeferred) + @($hostRejected) | Select-Object -Unique)
-    $hostDecisionHasApprovedSkillIds = $null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'approved_skill_ids')
-    $hostApproved = if ($hostDecisionHasApprovedSkillIds) {
-        @(Get-VibeNormalizedStringList -Values $HostSpecialistDispatchDecision.approved_skill_ids)
-    } else {
-        @()
-    }
-    $explicitZeroHostApproval = [bool](($curatedOnly -or $hostDecisionHasApprovedSkillIds) -and @($hostApproved).Count -eq 0)
-
-    if (-not $curatedOnly) {
-        foreach ($entry in @($currentSelectedRecords)) {
-            $skillId = if (Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'skill_id') { [string]$entry.skill_id } else { '' }
-            if (-not [string]::IsNullOrWhiteSpace($skillId) -and $skillId -in @($hostExcluded)) {
-                continue
-            }
-            $record = Copy-VibeSkillExecutionLockDispatchRecord -Record $entry -LockSource 'current_skill_routing_selected' -ReconciliationState 'current_surfaced' -RepoRoot $RepoRoot -TargetRoot $TargetRoot -HostId $HostId
-            Add-VibeSkillExecutionLockRecord -Rows $rows -Seen $seen -Record $record
-        }
-    }
-
-    foreach ($skillId in @($hostApproved)) {
-        if ($skillId -in @($hostExcluded)) {
-            continue
-        }
-        $sourceRecord = @($currentRecords | Where-Object {
-            (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id') -and
-            [string]::Equals([string]$_.skill_id, [string]$skillId, [System.StringComparison]::OrdinalIgnoreCase)
-        } | Select-Object -First 1)
-        $record = if (@($sourceRecord).Count -gt 0) {
-            Copy-VibeSkillExecutionLockDispatchRecord -Record $sourceRecord[0] -LockSource 'host_decision' -ReconciliationState 'host_approved_added_to_lock' -RepoRoot $RepoRoot -TargetRoot $TargetRoot -HostId $HostId
-        } else {
-            New-VibeMinimalSkillExecutionLockDispatchRecord -SkillId $skillId -LockSource 'host_decision' -ReconciliationState 'host_approved_not_currently_surfaced' -RepoRoot $RepoRoot -TargetRoot $TargetRoot -HostId $HostId
-        }
-        Add-VibeSkillExecutionLockRecord -Rows $rows -Seen $seen -Record $record
-    }
-
-    $previousLock = Get-VibeSkillExecutionLockFromRuntimeInputPacket -RuntimeInputPacket $PreviousRuntimeInputPacket
-    if ((Test-VibeSkillExecutionLockActive -SkillExecutionLock $previousLock) -and -not $curatedOnly -and -not $explicitZeroHostApproval) {
-        $previousDispatch = if (Test-VibeObjectHasProperty -InputObject $previousLock -PropertyName 'locked_dispatch') { @($previousLock.locked_dispatch) } else { @() }
-        foreach ($entry in @($previousDispatch)) {
-            $skillId = if (Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'skill_id') { [string]$entry.skill_id } else { '' }
-            if (-not [string]::IsNullOrWhiteSpace($skillId) -and $skillId -in @($hostExcluded)) {
-                continue
-            }
-            $nativeEntrypoint = if (Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'native_skill_entrypoint') { [string]$entry.native_skill_entrypoint } else { '' }
-            $skillMdPath = if (Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'skill_md_path') { [string]$entry.skill_md_path } else { '' }
-            if ([string]::IsNullOrWhiteSpace($nativeEntrypoint) -and [string]::IsNullOrWhiteSpace($skillMdPath)) {
-                continue
-            }
-            $state = if ($skillId -in @($currentSelectedSkillIds)) { 'current_surfaced' } else { 'inherited_not_currently_surfaced' }
-            Add-VibeSkillExecutionLockRecord -Rows $rows -Seen $seen -Record (Copy-VibeSkillExecutionLockDispatchRecord -Record $entry -LockSource 'previous_skill_execution_lock' -ReconciliationState $state -RepoRoot $RepoRoot -TargetRoot $TargetRoot -HostId $HostId)
-        }
-    } elseif (-not $curatedOnly -and -not $explicitZeroHostApproval -and $null -ne $PreviousRuntimeInputPacket -and (Test-VibeObjectHasProperty -InputObject $PreviousRuntimeInputPacket -PropertyName 'skill_routing') -and $null -ne $PreviousRuntimeInputPacket.skill_routing) {
-        foreach ($entry in @(Get-VibeSkillRoutingSelected -RuntimeInputPacket $PreviousRuntimeInputPacket)) {
-            $skillId = if (Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'skill_id') { [string]$entry.skill_id } else { '' }
-            if (-not [string]::IsNullOrWhiteSpace($skillId) -and $skillId -in @($hostExcluded)) {
-                continue
-            }
-            $state = if ($skillId -in @($currentSelectedSkillIds)) { 'current_surfaced' } else { 'inherited_not_currently_surfaced' }
-            Add-VibeSkillExecutionLockRecord -Rows $rows -Seen $seen -Record (Copy-VibeSkillExecutionLockDispatchRecord -Record $entry -LockSource 'previous_skill_routing_selected' -ReconciliationState $state -RepoRoot $RepoRoot -TargetRoot $TargetRoot -HostId $HostId)
-        }
-    }
-
-    $lockedDispatch = [object[]]$rows.ToArray()
-    $lockedSkillIds = [object[]]@($lockedDispatch | ForEach-Object { [string]$_.skill_id } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    $state = if (@($lockedSkillIds).Count -gt 0) { 'active' } else { 'inactive' }
-    return [pscustomobject]@{
-        schema_version = 'v1'
-        state = $state
-        source = if ([string]::IsNullOrWhiteSpace($Source)) { 'current_skill_routing_selected' } else { [string]$Source }
-        source_run_id = if ([string]::IsNullOrWhiteSpace($SourceRunId)) { $null } else { [string]$SourceRunId }
-        locked_skill_ids = @($lockedSkillIds)
-        locked_dispatch = @($lockedDispatch)
-        resolution_required = [bool](@($lockedSkillIds).Count -gt 0)
-        resolution_states = @('executed', 'not_applicable', 'deferred', 'failed')
     }
 }
 
@@ -1825,7 +1977,7 @@ function Get-VibeExecutionPhaseMarkdownLines {
 
     $lines = @(
         '- Host execution-phase decomposition remains subordinate to the single governed requirement and plan surfaces.',
-        '- These phases guide specialist ordering inside `plan_execute`; they do not create a second runtime, second plan, or second approval ladder.'
+        '- These phases guide module ordering inside `plan_execute`; they do not create a second runtime, second plan, or second approval ladder.'
     )
     foreach ($phase in @($PhaseDecomposition.phases)) {
         $goal = if ([string]::IsNullOrWhiteSpace([string]$phase.goal)) { 'No explicit phase goal recorded.' } else { [string]$phase.goal }
@@ -1844,28 +1996,6 @@ function Get-VibeExecutionPhaseMarkdownLines {
     }
 
     return @($lines)
-}
-
-function Get-VibeHostSkillExecutionDecisionMarkdownLines {
-    param(
-        [AllowNull()] [object]$Decision = $null
-    )
-
-    if ($null -eq $Decision) {
-        return @()
-    }
-
-    return @(
-        '- Host skill execution curation remains bounded to the surfaced recommendation ids from the current governed run.',
-        '- Runtime validation remains authoritative for blocked and degraded skill execution outcomes.',
-        ('- Selection mode: {0}' -f [string]$Decision.selection_mode),
-        ('- Reconciliation state: {0}' -f $(if ((Test-VibeObjectHasProperty -InputObject $Decision -PropertyName 'reconciliation_state') -and -not [string]::IsNullOrWhiteSpace([string]$Decision.reconciliation_state)) { [string]$Decision.reconciliation_state } else { 'current' })),
-        ('- Requires re-curation: {0}' -f $(if (Test-VibeObjectHasProperty -InputObject $Decision -PropertyName 'requires_recuration') { [bool]$Decision.requires_recuration } else { $false })),
-        ('- Selected skill ids: {0}' -f $(if (@($Decision.approved_skill_ids).Count -gt 0) { [string]::Join(', ', @($Decision.approved_skill_ids)) } else { 'none' })),
-        ('- Deferred skill ids: {0}' -f $(if (@($Decision.deferred_skill_ids).Count -gt 0) { [string]::Join(', ', @($Decision.deferred_skill_ids)) } else { 'none' })),
-        ('- Rejected skill ids: {0}' -f $(if (@($Decision.rejected_skill_ids).Count -gt 0) { [string]::Join(', ', @($Decision.rejected_skill_ids)) } else { 'none' })),
-        ('- Dropped stale skill ids: {0}' -f $(if ((Test-VibeObjectHasProperty -InputObject $Decision -PropertyName 'stale_skill_ids') -and @($Decision.stale_skill_ids).Count -gt 0) { [string]::Join(', ', @($Decision.stale_skill_ids)) } else { 'none' }))
-    )
 }
 
 function New-VibeHostAdapterIdentityProjection {
@@ -1982,27 +2112,13 @@ function New-VibeRouteRuntimeAlignmentProjection {
 
     $hostAdapterIdentity = Get-VibeRuntimePacketHostAdapterAlignment -RuntimeInputPacket $RuntimeInputPacket
 
-    $routeSnapshot = Get-VibePropertySafe -InputObject $RuntimeInputPacket -PropertyName 'route_snapshot'
     $authorityFlags = Get-VibePropertySafe -InputObject $RuntimeInputPacket -PropertyName 'authority_flags'
-    $divergenceShadow = Get-VibePropertySafe -InputObject $RuntimeInputPacket -PropertyName 'divergence_shadow'
-
     $selectedTaskSkillIds = @(Get-VibeSelectedTaskSkillIds -RuntimeInputPacket $RuntimeInputPacket)
-    $routerSelectedSkill = if (@($selectedTaskSkillIds).Count -gt 0) { [string]$selectedTaskSkillIds[0] } else { $null }
     $runtimeSelectedSkill = Get-VibeNestedPropertySafe -InputObject $authorityFlags -PropertyPath @('explicit_runtime_skill') -DefaultValue $DefaultRuntimeSkill
-    $skillMismatch = Get-VibeNestedPropertySafe -InputObject $divergenceShadow -PropertyPath @('skill_mismatch') -DefaultValue $null
-    if ($null -eq $skillMismatch) {
-        $skillMismatch = @($selectedTaskSkillIds | Where-Object {
-            -not [string]::IsNullOrWhiteSpace([string]$_) -and
-            -not [string]::Equals([string]$_, [string]$runtimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase)
-        }).Count -gt 0
-    }
 
     return [pscustomobject]@{
-        router_selected_skill = $routerSelectedSkill
-        selected_task_skill_ids = @($selectedTaskSkillIds)
+        bound_skill_ids = @($selectedTaskSkillIds)
         runtime_selected_skill = $runtimeSelectedSkill
-        skill_mismatch = [bool]$skillMismatch
-        confirm_required = Get-VibeNestedPropertySafe -InputObject $routeSnapshot -PropertyPath @('confirm_required') -DefaultValue $false
         requested_host_adapter_id = $hostAdapterIdentity.requested_host_id
         effective_host_adapter_id = $hostAdapterIdentity.effective_host_id
     }
@@ -2082,13 +2198,9 @@ function Get-VibeRuntimeContext {
         runtime_contract = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-contract.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         runtime_modes = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-modes.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         runtime_input_packet_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\runtime-input-packet-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        specialist_consultation_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\specialist-consultation-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        skill_promotion_policy = if (Test-Path -LiteralPath (Join-Path $repoRoot 'config\skill-promotion-policy.json')) { Get-Content -LiteralPath (Join-Path $repoRoot 'config\skill-promotion-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json } else { Get-VgoSkillPromotionPolicyDefaults }
-        execution_topology_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\execution-topology-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        native_specialist_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\native-specialist-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        skill_execution_safety_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\skill-execution-safety-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         requirement_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\requirement-doc-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         plan_execution_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\plan-execution-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-        execution_runtime_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\execution-runtime-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         cleanup_policy = Get-Content -LiteralPath (Join-Path $repoRoot 'config\phase-cleanup-policy.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         proof_class_registry = Get-Content -LiteralPath (Join-Path $repoRoot 'config\proof-class-registry.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         memory_governance = Get-Content -LiteralPath (Join-Path $repoRoot 'config\memory-governance.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -2105,26 +2217,35 @@ function Get-VibeRuntimeContext {
 
 function Get-VibeWorkspaceRoot {
     param(
-        [Parameter(Mandatory)] [string]$RepoRoot
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
-    return [System.IO.Path]::GetFullPath($RepoRoot)
+    if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
+        return [System.IO.Path]::GetFullPath($RepoRoot)
+    }
+    if ([System.IO.Path]::IsPathRooted($WorkspaceRoot)) {
+        return [System.IO.Path]::GetFullPath($WorkspaceRoot)
+    }
+    return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $WorkspaceRoot))
 }
 
 function Get-VibeWorkspaceSidecarRoot {
     param(
-        [Parameter(Mandatory)] [string]$RepoRoot
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
-    return [System.IO.Path]::GetFullPath((Join-Path (Get-VibeWorkspaceRoot -RepoRoot $RepoRoot) '.vibeskills'))
+    return [System.IO.Path]::GetFullPath((Join-Path (Get-VibeWorkspaceRoot -RepoRoot $RepoRoot -WorkspaceRoot $WorkspaceRoot) '.vibeskills'))
 }
 
 function Get-VibeWorkspaceProjectDescriptorPath {
     param(
-        [Parameter(Mandatory)] [string]$RepoRoot
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
-    return [System.IO.Path]::GetFullPath((Join-Path (Get-VibeWorkspaceSidecarRoot -RepoRoot $RepoRoot) 'project.json'))
+    return [System.IO.Path]::GetFullPath((Join-Path (Get-VibeWorkspaceSidecarRoot -RepoRoot $RepoRoot -WorkspaceRoot $WorkspaceRoot) 'project.json'))
 }
 
 function Get-VibeWorkspaceMemoryPlaneContract {
@@ -2197,65 +2318,6 @@ function Resolve-VibeGovernedArtifactRootFromPath {
     return [System.IO.Path]::GetFullPath($container)
 }
 
-function Resolve-VibeNativeSpecialistWorkingRoot {
-    param(
-        [Parameter(Mandatory)] [string]$RepoRoot,
-        [AllowEmptyString()] [string]$SessionRoot = '',
-        [AllowEmptyString()] [string]$RequirementDocPath = '',
-        [AllowEmptyString()] [string]$ExecutionPlanPath = '',
-        [AllowEmptyString()] [string]$SourceArtifactPath = ''
-    )
-
-    $preferArtifactWorkspace = (
-        (Test-Path -LiteralPath (Join-Path $RepoRoot 'scripts/runtime/Invoke-VibeCanonicalEntry.ps1') -PathType Leaf) -and
-        (Test-Path -LiteralPath (Join-Path $RepoRoot 'config/version-governance.json') -PathType Leaf)
-    )
-    $orderedCandidates = if ($preferArtifactWorkspace) {
-        @(
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $RequirementDocPath),
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $ExecutionPlanPath),
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $SourceArtifactPath),
-            $SessionRoot,
-            $RepoRoot
-        )
-    } else {
-        @(
-            $RepoRoot,
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $RequirementDocPath),
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $ExecutionPlanPath),
-            $(Resolve-VibeGovernedArtifactRootFromPath -Path $SourceArtifactPath),
-            $SessionRoot
-        )
-    }
-
-    $candidates = New-Object System.Collections.Generic.List[string]
-    foreach ($candidate in @($orderedCandidates)) {
-        if ([string]::IsNullOrWhiteSpace([string]$candidate)) {
-            continue
-        }
-
-        $resolvedCandidate = [System.IO.Path]::GetFullPath([string]$candidate)
-        if (-not (Test-Path -LiteralPath $resolvedCandidate)) {
-            continue
-        }
-        if (-not $candidates.Contains($resolvedCandidate)) {
-            $candidates.Add($resolvedCandidate) | Out-Null
-        }
-    }
-
-    foreach ($candidate in @($candidates)) {
-        if (Test-VibeWritableDirectory -Path $candidate) {
-            return $candidate
-        }
-    }
-
-    if ($candidates.Count -gt 0) {
-        return [string]$candidates[0]
-    }
-
-    return [System.IO.Path]::GetFullPath($RepoRoot)
-}
-
 function Get-VibeHostSidecarRoot {
     param(
         [AllowNull()] [object]$Runtime,
@@ -2300,14 +2362,15 @@ function Get-VibeHostSidecarRoot {
 function New-VibeWorkspaceArtifactProjection {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowNull()] [object]$Runtime = $null,
         [AllowEmptyString()] [string]$ArtifactRoot = '',
         [AllowEmptyString()] [string]$RouterTargetRoot = ''
     )
 
-    $workspaceRoot = Get-VibeWorkspaceRoot -RepoRoot $RepoRoot
-    $workspaceSidecarRoot = Get-VibeWorkspaceSidecarRoot -RepoRoot $RepoRoot
-    $projectDescriptorPath = Get-VibeWorkspaceProjectDescriptorPath -RepoRoot $RepoRoot
+    $workspaceRoot = Get-VibeWorkspaceRoot -RepoRoot $RepoRoot -WorkspaceRoot $WorkspaceRoot
+    $workspaceSidecarRoot = Get-VibeWorkspaceSidecarRoot -RepoRoot $RepoRoot -WorkspaceRoot $workspaceRoot
+    $projectDescriptorPath = Get-VibeWorkspaceProjectDescriptorPath -RepoRoot $RepoRoot -WorkspaceRoot $workspaceRoot
     $memoryPlane = Get-VibeWorkspaceMemoryPlaneContract
     $useDefaultWorkspaceSidecar = [string]::IsNullOrWhiteSpace($ArtifactRoot)
 
@@ -2340,10 +2403,11 @@ function New-VibeWorkspaceArtifactProjection {
 function Initialize-VibeWorkspaceProjectDescriptor {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowNull()] [object]$Runtime = $null
     )
 
-    $storage = New-VibeWorkspaceArtifactProjection -RepoRoot $RepoRoot -Runtime $Runtime
+    $storage = New-VibeWorkspaceArtifactProjection -RepoRoot $RepoRoot -WorkspaceRoot $WorkspaceRoot -Runtime $Runtime
     $memoryPlane = Get-VibeWorkspaceMemoryPlaneContract
     $descriptorPath = [string]$storage.project_descriptor_path
     $descriptor = [pscustomobject]@{
@@ -2522,276 +2586,12 @@ function New-VibeRuntimePacketAuthorityFlagsProjection {
     }
 }
 
-function Get-VibeSpecialistDecisionSidecarPath {
+function Get-VibeModuleExecutionPath {
     param(
         [Parameter(Mandatory)] [string]$SessionRoot
     )
 
-    return Join-Path $SessionRoot 'specialist-decision.json'
-}
-
-function Get-VibeSpecialistExecutionSidecarPath {
-    param(
-        [Parameter(Mandatory)] [string]$SessionRoot
-    )
-
-    return Join-Path $SessionRoot 'specialist-execution.json'
-}
-
-function Get-VibeOptionalSpecialistDecisionOverride {
-    param(
-        [AllowEmptyString()] [string]$SessionRoot
-    )
-
-    if ([string]::IsNullOrWhiteSpace($SessionRoot)) {
-        return $null
-    }
-
-    $path = Get-VibeSpecialistDecisionSidecarPath -SessionRoot $SessionRoot
-    if (-not (Test-Path -LiteralPath $path)) {
-        return $null
-    }
-
-    return [pscustomobject]@{
-        path = [string]$path
-        payload = (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
-    }
-}
-
-function Get-VibeSpecialistDecisionDefaultNotes {
-    param(
-        [AllowEmptyString()] [string]$DecisionState = '',
-        [AllowEmptyString()] [string]$ResolutionMode = ''
-    )
-
-    switch ($ResolutionMode) {
-        'approved_dispatch' { return 'Bounded specialist recommendations were surfaced and promoted into effective approved dispatch.' }
-        'degraded' { return 'Specialist recommendations existed, but execution remained explicitly degraded before live native dispatch closed cleanly.' }
-        'blocked' { return 'Specialist recommendations existed, but execution stayed blocked before live native dispatch could proceed.' }
-        'local_suggestion_only' { return 'Residual local specialist suggestions remained advisory and require explicit escalation before execution.' }
-        'no_specialist_needed' { return 'No bounded specialist recommendations were frozen for this run, and governed execution explicitly recorded that no specialist help was needed.' }
-        'no_matching_specialist' { return 'No bounded specialist recommendations matched this run; host-led execution remains responsible for decomposition and delivery.' }
-        'repo_asset_fallback' { return 'No bounded specialist recommendations were frozen for this run, and governed execution explicitly recorded a repo-asset fallback that must remain traceable.' }
-        'pending_resolution' { return 'No bounded specialist recommendations were frozen for this run; execution must explicitly resolve whether no specialist was needed or a repo-asset fallback was used.' }
-    }
-
-    switch ($DecisionState) {
-        'approved_dispatch' { return 'Bounded specialist recommendations were surfaced and promoted into effective approved dispatch.' }
-        'degraded' { return 'Specialist recommendations existed, but execution remained explicitly degraded before live native dispatch closed cleanly.' }
-        'blocked' { return 'Specialist recommendations existed, but execution stayed blocked before live native dispatch could proceed.' }
-        'local_suggestion_only' { return 'Residual local specialist suggestions remained advisory and require explicit escalation before execution.' }
-        default { return 'No bounded specialist recommendations were frozen for this run; execution must explicitly resolve whether no specialist was needed or a repo-asset fallback was used.' }
-    }
-}
-
-function New-VibeSpecialistDecisionProjection {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket = $null,
-        [AllowEmptyCollection()] [AllowNull()] [object[]]$ApprovedDispatch = @(),
-        [AllowEmptyCollection()] [AllowNull()] [object[]]$LocalSuggestions = @(),
-        [AllowEmptyCollection()] [AllowNull()] [object[]]$BlockedDispatch = @(),
-        [AllowEmptyCollection()] [AllowNull()] [object[]]$DegradedDispatch = @(),
-        [AllowEmptyCollection()] [AllowNull()] [string[]]$MatchedSkillIds = @(),
-        [AllowEmptyCollection()] [AllowNull()] [string[]]$SurfacedSkillIds = @(),
-        [int]$RecommendationCount = -1,
-        [AllowNull()] [object]$OverridePayload = $null,
-        [AllowEmptyString()] [string]$OverrideSourcePath = ''
-    )
-
-    $executionSource = Get-VibeRuntimeSelectedSkillExecutionProjection -RuntimeInputPacket $RuntimeInputPacket
-
-    $approvedDispatchArray = if ((Get-VibeSafeArrayCount -InputObject $ApprovedDispatch) -gt 0) {
-        @($ApprovedDispatch)
-    } elseif ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'selected_skill_execution')) {
-        @($executionSource.selected_skill_execution)
-    } else {
-        @()
-    }
-    $localSuggestionArray = if ((Get-VibeSafeArrayCount -InputObject $LocalSuggestions) -gt 0) {
-        @($LocalSuggestions)
-    } else {
-        @()
-    }
-    $blockedDispatchArray = if ((Get-VibeSafeArrayCount -InputObject $BlockedDispatch) -gt 0) {
-        @($BlockedDispatch)
-    } elseif ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'blocked_skill_execution')) {
-        @($executionSource.blocked_skill_execution)
-    } else {
-        @()
-    }
-    $degradedDispatchArray = if ((Get-VibeSafeArrayCount -InputObject $DegradedDispatch) -gt 0) {
-        @($DegradedDispatch)
-    } elseif ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'degraded_skill_execution')) {
-        @($executionSource.degraded_skill_execution)
-    } else {
-        @()
-    }
-
-    $approvedDispatchSkillIds = @($approvedDispatchArray | ForEach-Object {
-        if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-    } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    $localSuggestionSkillIds = @(
-        @($localSuggestionArray | ForEach-Object {
-            if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    )
-    $blockedSkillIds = if ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'blocked_skill_ids') -and (Get-VibeSafeArrayCount -InputObject $executionSource.blocked_skill_ids) -gt 0) {
-        @($executionSource.blocked_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @($blockedDispatchArray | ForEach-Object {
-            if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $degradedSkillIds = if ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'degraded_skill_ids') -and (Get-VibeSafeArrayCount -InputObject $executionSource.degraded_skill_ids) -gt 0) {
-        @($executionSource.degraded_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    } else {
-        @($degradedDispatchArray | ForEach-Object {
-            if ($null -ne $_ -and (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'skill_id')) { [string]$_.skill_id } else { '' }
-        } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $explicitMatchedSkillIds = @()
-    if ($null -ne $MatchedSkillIds) {
-        $explicitMatchedSkillIds = @($MatchedSkillIds | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $matchedSkillIds = @()
-    if (@($explicitMatchedSkillIds).Count -gt 0) {
-        $matchedSkillIds = @($explicitMatchedSkillIds)
-    } elseif ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'matched_skill_ids')) {
-        $matchedSkillIds = @($executionSource.matched_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $explicitSurfacedSkillIds = @()
-    if ($null -ne $SurfacedSkillIds) {
-        $explicitSurfacedSkillIds = @($SurfacedSkillIds | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $surfacedSkillIds = @()
-    if (@($explicitSurfacedSkillIds).Count -gt 0) {
-        $surfacedSkillIds = @($explicitSurfacedSkillIds)
-    } elseif ($null -ne $executionSource -and (Test-VibeObjectHasProperty -InputObject $executionSource -PropertyName 'surfaced_skill_ids')) {
-        $surfacedSkillIds = @($executionSource.surfaced_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-    }
-    $recommendationCountResolved = if ($RecommendationCount -ge 0) {
-        [int]$RecommendationCount
-    } elseif ($null -ne $RuntimeInputPacket) {
-        @(Get-VibeRuntimeSpecialistRecommendations -RuntimeInputPacket $RuntimeInputPacket).Count
-    } else {
-        @($surfacedSkillIds).Count
-    }
-
-    $decisionState = if (@($approvedDispatchSkillIds).Count -gt 0) {
-        'approved_dispatch'
-    } elseif (@($degradedSkillIds).Count -gt 0) {
-        'degraded'
-    } elseif (@($blockedSkillIds).Count -gt 0) {
-        'blocked'
-    } elseif (@($localSuggestionSkillIds).Count -gt 0) {
-        'local_suggestion_only'
-    } else {
-        'no_specialist_recommendations'
-    }
-
-    $resolutionMode = switch ($decisionState) {
-        'approved_dispatch' { 'approved_dispatch' }
-        'degraded' { 'degraded' }
-        'blocked' { 'blocked' }
-        'local_suggestion_only' { 'local_suggestion_only' }
-        default {
-            if ([int]$recommendationCountResolved -eq 0) {
-                'no_matching_specialist'
-            } else {
-                'pending_resolution'
-            }
-        }
-    }
-    $resolutionNotes = Get-VibeSpecialistDecisionDefaultNotes -DecisionState $decisionState -ResolutionMode $resolutionMode
-
-    $repoAssetFallback = [pscustomobject]@{
-        used = $false
-        asset_paths = @()
-        reason = ''
-        legal_basis = ''
-        traceability_basis = @()
-    }
-
-    if ($null -ne $OverridePayload) {
-        $overrideProvidedNotes = $false
-        if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'decision_state') -and -not [string]::IsNullOrWhiteSpace([string]$OverridePayload.decision_state)) {
-            $decisionState = [string]$OverridePayload.decision_state
-        }
-        if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'resolution_mode') -and -not [string]::IsNullOrWhiteSpace([string]$OverridePayload.resolution_mode)) {
-            $resolutionMode = [string]$OverridePayload.resolution_mode
-        }
-        if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'notes') -and -not [string]::IsNullOrWhiteSpace([string]$OverridePayload.notes)) {
-            $resolutionNotes = [string]$OverridePayload.notes
-            $overrideProvidedNotes = $true
-        }
-        if ((Test-VibeObjectHasProperty -InputObject $OverridePayload -PropertyName 'repo_asset_fallback') -and $null -ne $OverridePayload.repo_asset_fallback) {
-            $repoAssetFallbackSource = $OverridePayload.repo_asset_fallback
-            $repoAssetFallbackAssetPaths = if (Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'asset_paths') {
-                @($repoAssetFallbackSource.asset_paths | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-            } else {
-                @()
-            }
-            $repoAssetFallbackTraceabilityBasis = if (
-                (Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'traceability_basis') -and
-                $null -ne $repoAssetFallbackSource.traceability_basis
-            ) {
-                @($repoAssetFallbackSource.traceability_basis | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
-            } else {
-                @()
-            }
-            $repoAssetFallback = [pscustomobject]@{
-                used = if (Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'used') { [bool]$repoAssetFallbackSource.used } else { @($repoAssetFallbackAssetPaths).Count -gt 0 }
-                asset_paths = @($repoAssetFallbackAssetPaths)
-                reason = if ((Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'reason') -and -not [string]::IsNullOrWhiteSpace([string]$repoAssetFallbackSource.reason)) { [string]$repoAssetFallbackSource.reason } else { '' }
-                legal_basis = if ((Test-VibeObjectHasProperty -InputObject $repoAssetFallbackSource -PropertyName 'legal_basis') -and -not [string]::IsNullOrWhiteSpace([string]$repoAssetFallbackSource.legal_basis)) { [string]$repoAssetFallbackSource.legal_basis } else { '' }
-                traceability_basis = @($repoAssetFallbackTraceabilityBasis)
-            }
-        }
-        if (-not $overrideProvidedNotes) {
-            $resolutionNotes = Get-VibeSpecialistDecisionDefaultNotes -DecisionState $decisionState -ResolutionMode $resolutionMode
-        }
-    }
-
-    $selectedSkillIds = @($approvedDispatchSkillIds)
-    $candidateSkillIdsReviewed = @(
-        @($matchedSkillIds) +
-        @($surfacedSkillIds) +
-        @($approvedDispatchSkillIds) +
-        @($localSuggestionSkillIds) +
-        @($blockedSkillIds) +
-        @($degradedSkillIds)
-    ) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique
-    $rejectedCandidates = @()
-    if ($decisionState -eq 'no_specialist_recommendations') {
-        foreach ($candidateSkillId in @($candidateSkillIdsReviewed)) {
-            if (@($selectedSkillIds) -contains [string]$candidateSkillId) {
-                continue
-            }
-            $rejectedCandidates += [pscustomobject]@{
-                skill_id = [string]$candidateSkillId
-                reason = 'No bounded specialist dispatch was selected for this run; host-governed execution remains responsible for the task and verification evidence.'
-            }
-        }
-    }
-
-    return [pscustomobject]@{
-        decision_state = $decisionState
-        resolution_mode = $resolutionMode
-        recommendation_count = [int]$recommendationCountResolved
-        candidate_skill_ids_reviewed = @($candidateSkillIdsReviewed)
-        selected_skill_ids = @($selectedSkillIds)
-        rejected_candidates = @($rejectedCandidates)
-        matched_skill_ids = @($matchedSkillIds)
-        surfaced_skill_ids = @($surfacedSkillIds)
-        approved_dispatch_skill_ids = @($approvedDispatchSkillIds)
-        local_suggestion_skill_ids = @($localSuggestionSkillIds)
-        blocked_skill_ids = @($blockedSkillIds)
-        degraded_skill_ids = @($degradedSkillIds)
-        repo_asset_fallback = $repoAssetFallback
-        notes = $resolutionNotes
-        source = if ([string]::IsNullOrWhiteSpace($OverrideSourcePath)) { 'runtime_structural_projection' } else { 'runtime_structural_projection_plus_sidecar' }
-        override_source_path = if ([string]::IsNullOrWhiteSpace($OverrideSourcePath)) { $null } else { [string]$OverrideSourcePath }
-    }
+    return Join-Path $SessionRoot 'module-execution.json'
 }
 
 function New-VibeRuntimeInputPacketProjection {
@@ -2817,22 +2617,18 @@ function New-VibeRuntimeInputPacketProjection {
         [AllowEmptyString()] [string]$RouterScriptPath = '',
         [AllowEmptyString()] [string]$RuntimeSelectedSkill = 'vibe',
         [AllowNull()] [object]$ExecutionPhaseDecomposition = $null,
-        [AllowNull()] [object]$HostSpecialistDispatchDecision = $null,
         [AllowNull()] [object]$CodeTaskTddDecision = $null,
         [AllowNull()] [object]$HostDecision = $null,
-        [AllowNull()] [object[]]$SpecialistRecommendations = @(),
         [AllowNull()] [object[]]$StageAssistantHints = @(),
-        [AllowNull()] [object]$SkillUsage = $null,
-        [AllowNull()] [object]$SkillSelection = $null,
+        [Parameter(Mandatory)] [ValidateNotNull()] [object]$SkillSearchGuide,
+        [AllowNull()] [object]$AgentSkillOrganization = $null,
+        [AllowNull()] [object[]]$AgentSkillRecommendations = @(),
         [AllowNull()] [object]$SkillRouting = $null,
-        [AllowNull()] [object]$SkillExecutionLock = $null,
-        [Parameter(Mandatory)] [object]$SpecialistDispatch,
         [Parameter(Mandatory)] [object]$Policy
     )
 
-    $confirmRequired = ([string]$RouteResult.route_mode -eq 'confirm_required')
-    $selected = Get-VibePropertySafe -InputObject $RouteResult -PropertyName 'selected'
-    $routerSelectedSkill = if ($null -ne $selected) { [string]$selected.skill } else { $null }
+    $candidateFocus = Get-VibePropertySafe -InputObject $RouteResult -PropertyName 'candidate_focus'
+    $candidateFocusSkill = if ($null -ne $candidateFocus) { [string]$candidateFocus.skill } else { $null }
 
     $customAdmission = if (
         $RouteResult.PSObject.Properties.Name -contains 'custom_admission' -and
@@ -2873,72 +2669,20 @@ function New-VibeRuntimeInputPacketProjection {
         @()
     }
 
-    $packetSpecialistDecision = New-VibeSpecialistDecisionProjection `
-        -ApprovedDispatch @($SpecialistDispatch.approved_dispatch) `
-        -LocalSuggestions @($SpecialistDispatch.local_specialist_suggestions) `
-        -BlockedDispatch $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked' -and $null -ne $SpecialistDispatch.blocked) { @($SpecialistDispatch.blocked) } else { @() }) `
-        -DegradedDispatch $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded' -and $null -ne $SpecialistDispatch.degraded) { @($SpecialistDispatch.degraded) } else { @() }) `
-        -MatchedSkillIds $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $SpecialistDispatch.matched_skill_ids) { @($SpecialistDispatch.matched_skill_ids) } else { @() }) `
-        -SurfacedSkillIds $(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $SpecialistDispatch.surfaced_skill_ids) { @($SpecialistDispatch.surfaced_skill_ids) } else { @() }) `
-        -RecommendationCount @($SpecialistRecommendations).Count
-
-    $specialistDispatchProjection = [pscustomobject]@{
-        approved_dispatch = [object[]]@($SpecialistDispatch.approved_dispatch)
-        local_specialist_suggestions = [object[]]@($SpecialistDispatch.local_specialist_suggestions)
-        blocked = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked' -and $null -ne $SpecialistDispatch.blocked) { $SpecialistDispatch.blocked } else { @() }))
-        degraded = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded' -and $null -ne $SpecialistDispatch.degraded) { $SpecialistDispatch.degraded } else { @() }))
-        approved_skill_ids = @($SpecialistDispatch.approved_dispatch | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
-        local_suggestion_skill_ids = @($SpecialistDispatch.local_specialist_suggestions | ForEach-Object { [string]$_.skill_id } | Select-Object -Unique)
-        matched_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'matched_skill_ids' -and $null -ne $SpecialistDispatch.matched_skill_ids) { $SpecialistDispatch.matched_skill_ids } else { @() }))
-        surfaced_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'surfaced_skill_ids' -and $null -ne $SpecialistDispatch.surfaced_skill_ids) { $SpecialistDispatch.surfaced_skill_ids } else { @() }))
-        blocked_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'blocked_skill_ids' -and $null -ne $SpecialistDispatch.blocked_skill_ids) { $SpecialistDispatch.blocked_skill_ids } else { @() }))
-        degraded_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'degraded_skill_ids' -and $null -ne $SpecialistDispatch.degraded_skill_ids) { $SpecialistDispatch.degraded_skill_ids } else { @() }))
-        ghost_match_skill_ids = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'ghost_match_skill_ids' -and $null -ne $SpecialistDispatch.ghost_match_skill_ids) { $SpecialistDispatch.ghost_match_skill_ids } else { @() }))
-        promotion_outcomes = @($(if ($SpecialistDispatch.PSObject.Properties.Name -contains 'promotion_outcomes' -and $null -ne $SpecialistDispatch.promotion_outcomes) { $SpecialistDispatch.promotion_outcomes } else { @() }))
-        host_decision_applied = ($null -ne $HostSpecialistDispatchDecision)
-        host_selection_mode = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'selection_mode')) { [string]$HostSpecialistDispatchDecision.selection_mode } else { $null }
-        host_approved_skill_ids = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'approved_skill_ids')) { [object[]]@($HostSpecialistDispatchDecision.approved_skill_ids) } else { @() }
-        host_deferred_skill_ids = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'deferred_skill_ids')) { [object[]]@($HostSpecialistDispatchDecision.deferred_skill_ids) } else { @() }
-        host_rejected_skill_ids = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'rejected_skill_ids')) { [object[]]@($HostSpecialistDispatchDecision.rejected_skill_ids) } else { @() }
-        host_stale_skill_ids = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'stale_skill_ids')) { [object[]]@($HostSpecialistDispatchDecision.stale_skill_ids) } else { @() }
-        host_reconciliation_state = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'reconciliation_state')) { [string]$HostSpecialistDispatchDecision.reconciliation_state } else { $null }
-        host_requires_recuration = if ($null -ne $HostSpecialistDispatchDecision -and (Test-VibeObjectHasProperty -InputObject $HostSpecialistDispatchDecision -PropertyName 'requires_recuration')) { [bool]$HostSpecialistDispatchDecision.requires_recuration } else { $false }
-        escalation_required = Get-VibeNestedPropertySafe -InputObject $SpecialistDispatch -PropertyPath @('escalation_required') -DefaultValue $false
-        escalation_status = Get-VibeNestedPropertySafe -InputObject $SpecialistDispatch -PropertyPath @('escalation_status') -DefaultValue ''
-        approval_owner = Get-VibeNestedPropertySafe -InputObject $Policy -PropertyPath @('child_specialist_suggestion_contract', 'approval_owner') -DefaultValue 'root_vibe'
-        status = Get-VibeNestedPropertySafe -InputObject $Policy -PropertyPath @('child_specialist_suggestion_contract', 'status') -DefaultValue 'auto_promote_when_safe_same_round'
-    }
-
     $effectiveSkillRouting = if ($null -ne $SkillRouting) {
         $SkillRouting
-    } elseif (Get-Command -Name New-VibeSkillRoutingFromLegacy -CommandType Function -ErrorAction SilentlyContinue) {
-        New-VibeSkillRoutingFromLegacy `
-            -RouterSelectedSkill $routerSelectedSkill `
-            -Recommendations @($SpecialistRecommendations) `
-            -StageAssistantHints @($StageAssistantHints) `
-            -SpecialistDispatch $SpecialistDispatch
     } else {
         [pscustomobject]@{
             schema_version = 'simplified_skill_routing_v1'
             candidates = @()
-            selected = @()
             rejected = @()
         }
     }
-    $effectiveSkillUsage = if ($null -ne $SkillUsage) {
-        $SkillUsage
-    } else {
-        [pscustomobject]@{
-            schema_version = 1
-            state_model = 'binary_used_unused'
-            used_skills = @()
-            unused_skills = @()
-            loaded_skills = @()
-            evidence = @()
-            unused_reasons = @()
-        }
-    }
-    $workBinding = New-VibeRuntimeWorkBindingProjection -Task $Task -RunId $RunId -SpecialistDispatch $SpecialistDispatch -SkillRouting $effectiveSkillRouting
+    $moduleAssignments = New-VibeRuntimeModuleAssignmentsProjection `
+        -Task $Task `
+        -RunId $RunId `
+        -SelectedSkillRecords $(if ($null -ne $AgentSkillOrganization) { @($AgentSkillRecommendations) } else { @() }) `
+        -OrganizationProvided ($null -ne $AgentSkillOrganization)
     $packetSkillRouting = [pscustomobject]@{
         schema_version = [string](Get-VibePropertySafe -InputObject $effectiveSkillRouting -PropertyName 'schema_version' -DefaultValue 'simplified_skill_routing_v1')
         candidates = [object[]]@(Get-VibePropertySafe -InputObject $effectiveSkillRouting -PropertyName 'candidates' -DefaultValue @())
@@ -2956,14 +2700,12 @@ function New-VibeRuntimeInputPacketProjection {
         generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
         runtime_mode = $Mode
         internal_grade = $InternalGrade
-        work_binding = $workBinding
-        specialist_decision = $packetSpecialistDecision
-        skill_usage = $effectiveSkillUsage
+        module_assignments = $moduleAssignments
         host_adapter = (New-VibeRuntimeHostAdapterProjection -Runtime $Runtime -FallbackHostId $RouterHostId -TargetRoot $RouterTargetRoot)
         hierarchy = $HierarchyProjection
         authority_flags = $AuthorityFlagsProjection
         provenance = [pscustomobject]@{
-            source_of_truth = 'vibe_runtime_with_internal_specialist_recommender'
+            source_of_truth = 'vibe_runtime_with_agent_led_skill_search'
             freeze_before_requirement_doc = [bool]$Policy.freeze_before_requirement_doc
             proof_class = 'structure'
         }
@@ -2971,11 +2713,10 @@ function New-VibeRuntimeInputPacketProjection {
         continuation_context = if ($null -ne $continuationContext) { $continuationContext } else { $null }
         host_decision = New-VibeRuntimeHostDecisionProjection -HostDecision $HostDecision -PhaseDecomposition $ExecutionPhaseDecomposition
         code_task_tdd_decision = $CodeTaskTddDecision
-        host_skill_execution_decision = $HostSpecialistDispatchDecision
-        skill_execution_lock = if ($null -ne $SkillExecutionLock) { $SkillExecutionLock } else { $null }
-        skill_selection = if ($null -ne $SkillSelection) { $SkillSelection } else { $null }
+        skill_search_guide = $SkillSearchGuide
+        agent_skill_organization = if ($null -ne $AgentSkillOrganization) { $AgentSkillOrganization } else { $null }
         canonical_router = [pscustomobject]@{
-            role = 'internal_specialist_recommender'
+            role = 'compatibility_candidate_audit'
             prompt = $Task
             host_id = if ([string]::IsNullOrWhiteSpace($RouterHostId)) { $null } else { [string]$RouterHostId }
             target_root = if ([string]::IsNullOrWhiteSpace($RouterTargetRoot)) { $null } else { [string]$RouterTargetRoot }
@@ -2988,13 +2729,10 @@ function New-VibeRuntimeInputPacketProjection {
         route_snapshot = [pscustomobject]@{
             task_type = if ([string]::IsNullOrWhiteSpace($TaskType)) { $null } else { [string]$TaskType }
             route_mode = [string]$RouteResult.route_mode
-            confirm_required = [bool]$confirmRequired
         }
         skill_routing = $packetSkillRouting
         storage = $StorageProjection
         divergence_shadow = [pscustomobject]@{
-            skill_mismatch = [bool](-not [string]::Equals($routerSelectedSkill, $RuntimeSelectedSkill, [System.StringComparison]::OrdinalIgnoreCase))
-            confirm_required = [bool]$confirmRequired
             explicit_runtime_override_applied = [bool](-not [string]::IsNullOrWhiteSpace($RuntimeSelectedSkill))
             explicit_runtime_override_reason = 'governed_runtime_entry'
             governance_scope_mismatch = $false
@@ -3014,8 +2752,7 @@ function New-VibeRuntimeInputPacketProjection {
         -RepoRoot $truthRepoRoot `
         -RunId $RunId `
         -Task $Task `
-        -WorkBinding $workBinding `
-        -SpecialistDecision $packetSpecialistDecision `
+        -ModuleAssignments $moduleAssignments `
         -BaseFields $baseFields `
         -SkillRouting $packetSkillRouting
 }
@@ -3216,8 +2953,7 @@ function New-VibeBoundedReturnControlProjection {
         [AllowEmptyString()] [string]$EntryIntentId = '',
         [AllowNull()] [object]$StageLineage = $null,
         [AllowNull()] [object]$WorkflowLevelConfirmation = $null,
-        [string[]]$SelectedSkillIds = @(),
-        [AllowNull()] [object]$SkillSelection = $null
+        [AllowNull()] [object]$SkillSearchGuide = $null
     )
 
     $resolvedEntryIntentId = if ([string]::IsNullOrWhiteSpace($EntryIntentId)) { 'vibe' } else { [string]$EntryIntentId }
@@ -3274,6 +3010,214 @@ function New-VibeBoundedReturnControlProjection {
         -not [string]::IsNullOrWhiteSpace([string]$WorkflowLevelConfirmation.recommended_level)
     ) {
         [string]$WorkflowLevelConfirmation.recommended_level
+    } else {
+        $null
+    }
+    $forbiddenMcpPolicy = if ([string]$terminalStage -eq 'requirement_doc') {
+        Read-VgoJsonFile -Path (Join-Path $RepoRoot 'config\forbidden-mcp-policy.json')
+    } else {
+        $null
+    }
+    $agentSkillOrganizationContract = if ([string]$terminalStage -eq 'requirement_doc') {
+        [pscustomobject]@{
+            submission_field = 'host_decision.agent_skill_organization'
+            required_for_decision_actions = @(
+                'approve',
+                'approve_requirement',
+                'approve_requirement_doc',
+                'approve_requirements'
+            )
+            schema_version = 'agent_skill_organization_v1'
+            derived_by = 'agent'
+            allowed_workflow_levels = @('L', 'XL')
+            required_top_level_fields = @(
+                'schema_version',
+                'derived_by',
+                'workflow_level',
+                'modules',
+                'selected_skills',
+                'uncovered_modules',
+                'workflow_level_contract'
+            )
+            module_contract = [pscustomobject]@{
+                required_fields = @('module_id', 'goal', 'candidate_skill_ids', 'execution_mode', 'acceptance_criteria')
+                optional_fields = @('required', 'depends_on', 'write_scope', 'expected_outputs', 'verification')
+                allowed_execution_modes = @('skill_assigned', 'agent_direct', 'blocked_gap')
+                minimum_items = 1
+                non_empty_fields = @('module_id', 'goal')
+                unique_module_id_required = $true
+                dependency_contract = [pscustomobject]@{
+                    known_module_ids_required = $true
+                    acyclic_required = $true
+                }
+                acceptance_criterion_contract = [pscustomobject]@{
+                    required_fields = @('criterion_id', 'description', 'verification_mode')
+                    allowed_verification_modes = @('automated', 'manual')
+                    minimum_items = 1
+                    unique_criterion_id_per_module = $true
+                }
+            }
+            coverage_contract = [pscustomobject]@{
+                rule = 'each module must use exactly one declared coverage mode'
+                modes = [pscustomobject]@{
+                    skill_assigned = [pscustomobject]@{
+                        selected_skill_required = $true
+                        uncovered_module_forbidden = $true
+                    }
+                    agent_direct = [pscustomobject]@{
+                        selected_skill_forbidden = $true
+                        uncovered_module_forbidden = $true
+                        required_module_fields = @('write_scope', 'expected_outputs', 'verification')
+                    }
+                    blocked_gap = [pscustomobject]@{
+                        selected_skill_forbidden = $true
+                        uncovered_module_required = $true
+                    }
+                }
+            }
+            selected_skill_contract = [pscustomobject]@{
+                required_fields = @('skill_id', 'module_ids', 'responsibility', 'reason')
+                optional_fields = @('role', 'write_scope', 'expected_outputs', 'verification', 'module_assignments')
+                unique_skill_id_required = $true
+                known_module_ids_required = $true
+                candidate_membership_required = $true
+                non_empty_fields = @('skill_id', 'responsibility', 'reason')
+                module_ids_minimum_items = 1
+                module_assignments_required_when_multiple_modules = $true
+                module_assignment_contract = [pscustomobject]@{
+                    required_fields = @('module_id', 'role', 'responsibility', 'write_scope', 'expected_outputs', 'verification')
+                    allowed_roles = @('owner', 'support', 'verifier')
+                    one_entry_per_declared_module = $true
+                    write_scope_rule = 'one concrete path or resource scope for this module assignment'
+                    role_order_contract = [pscustomobject]@{
+                        support_runs_before_owner = $true
+                        owner_waits_for_support = $true
+                        verifier_runs_after_owner = $true
+                        role_must_match_temporal_position = $true
+                        post_owner_review_rule = 'Use verifier, not support, for review or minimality checks that must happen after the owner finishes.'
+                    }
+                }
+            }
+            skill_identity_contract = [pscustomobject]@{
+                selection_field = 'skill_id'
+                authority = 'resolved_skill_entrypoint'
+                match_rule = 'exact'
+                display_name_is_not_selection_id = $true
+                local_directory_rule = 'directory containing the retained SKILL.md under a declared local Skill root'
+                nested_skill_rule = 'use the nested Skill directory name when the retained SKILL.md is nested'
+            }
+            uncovered_module_contract = [pscustomobject]@{
+                required_fields = @('module_id', 'reason')
+                unique_module_id_required = $true
+                known_module_id_required = $true
+            }
+            workflow_level_contract = [pscustomobject]@{
+                required_fields = @('L', 'XL')
+                value_type = 'non_empty_string'
+                purpose = 'Describe the task-specific workflow and Skill organization for both levels.'
+            }
+            forbidden_mcp_contract = [pscustomobject]@{
+                policy_path = 'config/forbidden-mcp-policy.json'
+                forbidden_mcp_ids = @($forbiddenMcpPolicy.forbidden_mcp_ids)
+                id_match = [string]$forbiddenMcpPolicy.id_match
+                installation = [string]$forbiddenMcpPolicy.installation
+                runtime_recommendation = [string]$forbiddenMcpPolicy.runtime_recommendation
+                selected_skills_must_not_require_forbidden_mcps = $true
+            }
+            examples = [pscustomobject]@{
+                agent_direct = [pscustomobject]@{
+                    schema_version = 'agent_skill_organization_v1'
+                    derived_by = 'agent'
+                    workflow_level = 'L'
+                    modules = @(
+                        [pscustomobject]@{
+                            module_id = 'direct_work'
+                            goal = 'Complete the module directly because no task Skill is required.'
+                            candidate_skill_ids = @()
+                            execution_mode = 'agent_direct'
+                            required = $true
+                            depends_on = @()
+                            write_scope = 'outputs/direct/**'
+                            expected_outputs = @('outputs/direct/result.md')
+                            verification = @('Check the direct result against the frozen acceptance criteria.')
+                            acceptance_criteria = @(
+                                [pscustomobject]@{
+                                    criterion_id = 'direct-result'
+                                    description = 'The requested result is complete and accurate.'
+                                    verification_mode = 'automated'
+                                }
+                            )
+                        }
+                    )
+                    selected_skills = @()
+                    uncovered_modules = @()
+                    workflow_level_contract = [pscustomobject]@{
+                        L = 'Run the single direct module serially.'
+                        XL = 'If scope expands, split dependency-ready modules and keep conflicting writes serial.'
+                    }
+                }
+                skill_assigned = [pscustomobject]@{
+                    schema_version = 'agent_skill_organization_v1'
+                    derived_by = 'agent'
+                    workflow_level = 'L'
+                    modules = @(
+                        [pscustomobject]@{
+                            module_id = 'skill_work'
+                            goal = 'Complete the module with the selected task Skill.'
+                            candidate_skill_ids = @('example-skill')
+                            execution_mode = 'skill_assigned'
+                            required = $true
+                            depends_on = @()
+                            acceptance_criteria = @(
+                                [pscustomobject]@{
+                                    criterion_id = 'skill-result'
+                                    description = 'The Skill-owned result satisfies the module goal.'
+                                    verification_mode = 'automated'
+                                }
+                            )
+                        }
+                    )
+                    selected_skills = @(
+                        [pscustomobject]@{
+                            skill_id = 'example-skill'
+                            module_ids = @('skill_work')
+                            responsibility = 'Own the module work.'
+                            reason = 'The Agent read this Skill contract and confirmed that it owns the module.'
+                        }
+                    )
+                    uncovered_modules = @()
+                    workflow_level_contract = [pscustomobject]@{
+                        L = 'Run this Skill-owned module serially.'
+                        XL = 'If scope expands, parallelize only dependency-ready modules with non-conflicting writes.'
+                    }
+                }
+            }
+        }
+    } else {
+        $null
+    }
+    $requiredAgentSuppliedFields = if ([string]$terminalStage -eq 'requirement_doc') {
+        [object[]]@('agent_skill_organization')
+    } else {
+        [object[]]@()
+    }
+    $planRevisionContract = if ([string]$terminalStage -eq 'xl_plan') {
+        [pscustomobject]@{
+            revision_delta_required = $true
+            text_delta_does_not_mutate_organization = $true
+            full_organization_replacement_required_when_changed = $true
+            organization_change_fields = @(
+                'modules',
+                'skills',
+                'roles',
+                'dependencies',
+                'write_scopes',
+                'expected_outputs',
+                'verification',
+                'workflow_level'
+            )
+            replacement_field = 'host_decision.agent_skill_organization'
+        }
     } else {
         $null
     }
@@ -3341,20 +3285,24 @@ function New-VibeBoundedReturnControlProjection {
             approval_kind = [string]$approvalKind
             allowed_decision_actions = @($allowedDecisionActions)
             preferred_decision_action = [string]$preferredDecisionAction
+            preferred_payload_complete = [bool]([string]$terminalStage -ne 'requirement_doc')
+            required_agent_supplied_fields = [object[]]$requiredAgentSuppliedFields
             preferred_payload = [pscustomobject]@{
                 decision_kind = 'approval_response'
                 decision_action = [string]$preferredDecisionAction
                 approval_decision = 'approve'
                 requested_grade_floor = if ([string]$terminalStage -eq 'requirement_doc' -and -not [string]::IsNullOrWhiteSpace([string]$recommendedWorkflowLevel)) { [string]$recommendedWorkflowLevel } else { $null }
+                agent_skill_organization = $null
             }
             allowed_workflow_levels = if ([string]$terminalStage -eq 'requirement_doc') { @('L', 'XL') } else { @() }
             recommended_workflow_level = if ([string]$terminalStage -eq 'requirement_doc' -and -not [string]::IsNullOrWhiteSpace([string]$recommendedWorkflowLevel)) { [string]$recommendedWorkflowLevel } else { $null }
+            agent_skill_organization_contract = $agentSkillOrganizationContract
+            plan_revision_contract = $planRevisionContract
         }
         allowed_followup_entry_ids = @($allowedFollowupEntryIds)
         reentry_token = $token
         rendered_text = (@($renderedLines) -join "`n")
-        selected_skill_ids = @($SelectedSkillIds)
-        skill_selection = if ($null -eq $SkillSelection) { $null } else { $SkillSelection }
+        skill_search_guide = if ($null -eq $SkillSearchGuide) { $null } else { $SkillSearchGuide }
         workflow_level_confirmation = if ($null -eq $WorkflowLevelConfirmation) { $null } else { $WorkflowLevelConfirmation }
     }
 }
@@ -3506,7 +3454,7 @@ function Write-VibeDelegationEnvelope {
         [Parameter(Mandatory)] [string]$ExecutionPlanPath,
         [Parameter(Mandatory)] [string]$WriteScope,
         [AllowNull()] [string[]]$ApprovedSpecialists = @(),
-        [AllowEmptyString()] [string]$ReviewMode = 'native_contract'
+        [AllowEmptyString()] [string]$ReviewMode = 'module_acceptance'
     )
 
     $envelope = [pscustomobject]@{
@@ -3519,7 +3467,7 @@ function Write-VibeDelegationEnvelope {
         execution_plan_path = [System.IO.Path]::GetFullPath($ExecutionPlanPath)
         write_scope = $WriteScope
         approved_specialists = @($ApprovedSpecialists | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | Select-Object -Unique)
-        review_mode = if ([string]::IsNullOrWhiteSpace($ReviewMode)) { 'native_contract' } else { $ReviewMode }
+        review_mode = if ([string]::IsNullOrWhiteSpace($ReviewMode)) { 'module_acceptance' } else { $ReviewMode }
         prompt_tail_required = '$vibe'
         allow_requirement_freeze = $false
         allow_plan_freeze = $false
@@ -3692,11 +3640,11 @@ function New-VibeRuntimeSummaryArtifactProjection {
         [AllowEmptyString()] [string]$RequirementReceiptPath = '',
         [AllowEmptyString()] [string]$ExecutionPlanPath = '',
         [AllowEmptyString()] [string]$ExecutionPlanReceiptPath = '',
+        [AllowEmptyString()] [string]$ModuleWorkPlanPath = '',
+        [AllowEmptyString()] [string]$ModuleExecutionPath = '',
+        [AllowEmptyString()] [string]$AgentExecutionHandoffPath = '',
         [AllowEmptyString()] [string]$ExecuteReceiptPath = '',
         [AllowEmptyString()] [string]$ExecutionManifestPath = '',
-        [AllowEmptyString()] [string]$ExecutionTopologyPath = '',
-        [AllowEmptyString()] [string]$ExecutionProofManifestPath = '',
-        [AllowEmptyString()] [string]$SpecialistLifecycleDisclosurePath = '',
         [AllowEmptyString()] [string]$HostStageDisclosurePath = '',
         [AllowEmptyString()] [string]$HostUserBriefingPath = '',
         [AllowEmptyString()] [string]$CleanupReceiptPath = '',
@@ -3718,11 +3666,11 @@ function New-VibeRuntimeSummaryArtifactProjection {
         requirement_receipt = if ([string]::IsNullOrWhiteSpace($RequirementReceiptPath)) { $null } else { $RequirementReceiptPath }
         execution_plan = if ([string]::IsNullOrWhiteSpace($ExecutionPlanPath)) { $null } else { $ExecutionPlanPath }
         execution_plan_receipt = if ([string]::IsNullOrWhiteSpace($ExecutionPlanReceiptPath)) { $null } else { $ExecutionPlanReceiptPath }
+        module_work_plan = if ([string]::IsNullOrWhiteSpace($ModuleWorkPlanPath)) { $null } else { $ModuleWorkPlanPath }
+        module_execution = if ([string]::IsNullOrWhiteSpace($ModuleExecutionPath)) { $null } else { $ModuleExecutionPath }
+        agent_execution_handoff = if ([string]::IsNullOrWhiteSpace($AgentExecutionHandoffPath)) { $null } else { $AgentExecutionHandoffPath }
         execute_receipt = if ([string]::IsNullOrWhiteSpace($ExecuteReceiptPath)) { $null } else { $ExecuteReceiptPath }
         execution_manifest = if ([string]::IsNullOrWhiteSpace($ExecutionManifestPath)) { $null } else { $ExecutionManifestPath }
-        execution_topology = if ([string]::IsNullOrWhiteSpace($ExecutionTopologyPath)) { $null } else { $ExecutionTopologyPath }
-        execution_proof_manifest = if ([string]::IsNullOrWhiteSpace($ExecutionProofManifestPath)) { $null } else { $ExecutionProofManifestPath }
-        specialist_lifecycle_disclosure = if ([string]::IsNullOrWhiteSpace($SpecialistLifecycleDisclosurePath)) { $null } else { $SpecialistLifecycleDisclosurePath }
         host_stage_disclosure = if ([string]::IsNullOrWhiteSpace($HostStageDisclosurePath)) { $null } else { $HostStageDisclosurePath }
         host_user_briefing = if ([string]::IsNullOrWhiteSpace($HostUserBriefingPath)) { $null } else { $HostUserBriefingPath }
         cleanup_receipt = if ([string]::IsNullOrWhiteSpace($CleanupReceiptPath)) { $null } else { $CleanupReceiptPath }
@@ -3878,394 +3826,6 @@ function Get-VibeStageLineageTerminalStage {
     return $null
 }
 
-function Get-VibeInteractiveSkillExecutionDisclosurePolicy {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacketPolicy
-    )
-
-    $policy = $null
-    if ($null -ne $RuntimeInputPacketPolicy -and (Test-VibeObjectHasProperty -InputObject $RuntimeInputPacketPolicy -PropertyName 'interactive_skill_execution_disclosure')) {
-        $policy = $RuntimeInputPacketPolicy.interactive_skill_execution_disclosure
-    }
-
-    return [pscustomobject]@{
-        enabled = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'enabled')) { [bool]$policy.enabled } else { $false }
-        stage = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$policy.stage)) { [string]$policy.stage } else { 'plan_execute' }
-        mode = 'selected_skill_execution_pre_execution_unified_once'
-        timing = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'timing') -and -not [string]::IsNullOrWhiteSpace([string]$policy.timing)) { [string]$policy.timing } else { 'before_execution' }
-        scope = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'scope') -and -not [string]::IsNullOrWhiteSpace([string]$policy.scope)) { [string]$policy.scope } else { 'selected_skill_execution_only' }
-        aggregation = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'aggregation') -and -not [string]::IsNullOrWhiteSpace([string]$policy.aggregation)) { [string]$policy.aggregation } else { 'unified_once' }
-        path_source = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'path_source') -and -not [string]::IsNullOrWhiteSpace([string]$policy.path_source)) { [string]$policy.path_source } else { 'native_skill_entrypoint' }
-        require_entrypoint_path = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'require_entrypoint_path')) { [bool]$policy.require_entrypoint_path } else { $true }
-        include_description = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'include_description')) { [bool]$policy.include_description } else { $true }
-        header = if ($null -ne $policy -and (Test-VibeObjectHasProperty -InputObject $policy -PropertyName 'header') -and -not [string]::IsNullOrWhiteSpace([string]$policy.header)) { [string]$policy.header } else { 'Pre-execution skill disclosure:' }
-    }
-}
-
-function New-VibeSpecialistUserDisclosureProjection {
-    param(
-        [AllowEmptyCollection()] [AllowNull()] [object[]]$ApprovedDispatch = @(),
-        [AllowNull()] [object]$Policy = $null
-    )
-
-    $resolvedPolicy = if ($null -ne $Policy) { $Policy } else { Get-VibeInteractiveSkillExecutionDisclosurePolicy }
-    if (-not [bool]$resolvedPolicy.enabled) {
-        return $null
-    }
-
-    $routedSkills = New-Object System.Collections.Generic.List[object]
-    $seenSkillIds = @{}
-    foreach ($dispatch in @($ApprovedDispatch)) {
-        if ($null -eq $dispatch) {
-            continue
-        }
-
-        $skillId = [string]$dispatch.skill_id
-        if ([string]::IsNullOrWhiteSpace($skillId) -or $seenSkillIds.ContainsKey($skillId)) {
-            continue
-        }
-
-        $entrypointRaw = if (Test-VibeObjectHasProperty -InputObject $dispatch -PropertyName 'native_skill_entrypoint') { [string]$dispatch.native_skill_entrypoint } else { '' }
-        $entrypoint = $null
-        $entrypointMissing = $false
-        $entrypointPathInvalid = $false
-        $entrypointPathState = 'resolved'
-        if ([string]::IsNullOrWhiteSpace($entrypointRaw)) {
-            $entrypointMissing = $true
-            $entrypointPathState = 'missing'
-        } elseif (-not [System.IO.Path]::IsPathRooted($entrypointRaw)) {
-            $entrypointPathInvalid = $true
-            $entrypointPathState = 'invalid'
-        } else {
-            $entrypoint = [System.IO.Path]::GetFullPath($entrypointRaw)
-        }
-
-        $seenSkillIds[$skillId] = $true
-        $routedSkills.Add(
-            [pscustomobject]@{
-                skill_id = $skillId
-                native_skill_entrypoint = if ([string]::IsNullOrWhiteSpace($entrypoint)) { $null } else { $entrypoint }
-                native_skill_entrypoint_raw = if ([string]::IsNullOrWhiteSpace($entrypointRaw)) { $null } else { $entrypointRaw }
-                entrypoint_path_state = $entrypointPathState
-                entrypoint_missing = $entrypointMissing
-                entrypoint_path_invalid = $entrypointPathInvalid
-                entrypoint_requirement_satisfied = if ([bool]$resolvedPolicy.require_entrypoint_path) { -not $entrypointMissing -and -not $entrypointPathInvalid } else { $true }
-                native_skill_description = if ([bool]$resolvedPolicy.include_description -and (Test-VibeObjectHasProperty -InputObject $dispatch -PropertyName 'native_skill_description') -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.native_skill_description)) { [string]$dispatch.native_skill_description } else { $null }
-                dispatch_phase = if ((Test-VibeObjectHasProperty -InputObject $dispatch -PropertyName 'dispatch_phase') -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.dispatch_phase)) { [string]$dispatch.dispatch_phase } else { $null }
-                write_scope = if ((Test-VibeObjectHasProperty -InputObject $dispatch -PropertyName 'write_scope') -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.write_scope)) { [string]$dispatch.write_scope } else { $null }
-                review_mode = if ((Test-VibeObjectHasProperty -InputObject $dispatch -PropertyName 'review_mode') -and -not [string]::IsNullOrWhiteSpace([string]$dispatch.review_mode)) { [string]$dispatch.review_mode } else { $null }
-            }
-        )
-    }
-
-    if ($routedSkills.Count -eq 0) {
-        return $null
-    }
-
-    $renderedLines = @([string]$resolvedPolicy.header)
-    foreach ($entry in $routedSkills) {
-        $renderedLines += ('- {0} -> {1}' -f [string]$entry.skill_id, (Get-VibeSpecialistEntrypointDisplayText -SkillRecord $entry))
-    }
-
-    return [pscustomobject]@{
-        enabled = [bool]$resolvedPolicy.enabled
-        stage = [string]$resolvedPolicy.stage
-        mode = [string]$resolvedPolicy.mode
-        timing = [string]$resolvedPolicy.timing
-        scope = [string]$resolvedPolicy.scope
-        aggregation = [string]$resolvedPolicy.aggregation
-        path_source = [string]$resolvedPolicy.path_source
-        routed_skill_count = [int]$routedSkills.Count
-        routed_skills = [object[]]$routedSkills.ToArray()
-        rendered_text = ($renderedLines -join "`n")
-    }
-}
-
-function Get-VibeSpecialistEntrypointDisplayText {
-    param(
-        [AllowNull()] [object]$SkillRecord = $null
-    )
-
-    if ($null -eq $SkillRecord) {
-        return 'path unavailable'
-    }
-
-    $resolvedEntrypoint = if (
-        (Test-VibeObjectHasProperty -InputObject $SkillRecord -PropertyName 'native_skill_entrypoint') -and
-        -not [string]::IsNullOrWhiteSpace([string]$SkillRecord.native_skill_entrypoint)
-    ) {
-        [string]$SkillRecord.native_skill_entrypoint
-    } else {
-        $null
-    }
-    if (-not [string]::IsNullOrWhiteSpace($resolvedEntrypoint)) {
-        return $resolvedEntrypoint
-    }
-
-    $rawEntrypoint = if (
-        (Test-VibeObjectHasProperty -InputObject $SkillRecord -PropertyName 'native_skill_entrypoint_raw') -and
-        -not [string]::IsNullOrWhiteSpace([string]$SkillRecord.native_skill_entrypoint_raw)
-    ) {
-        [string]$SkillRecord.native_skill_entrypoint_raw
-    } elseif (
-        (Test-VibeObjectHasProperty -InputObject $SkillRecord -PropertyName 'native_skill_entrypoint') -and
-        -not [string]::IsNullOrWhiteSpace([string]$SkillRecord.native_skill_entrypoint)
-    ) {
-        [string]$SkillRecord.native_skill_entrypoint
-    } else {
-        $null
-    }
-
-    $entrypointMissing = if ((Test-VibeObjectHasProperty -InputObject $SkillRecord -PropertyName 'entrypoint_missing')) { [bool]$SkillRecord.entrypoint_missing } else { $false }
-    $entrypointPathInvalid = if ((Test-VibeObjectHasProperty -InputObject $SkillRecord -PropertyName 'entrypoint_path_invalid')) { [bool]$SkillRecord.entrypoint_path_invalid } else { $false }
-    if ($entrypointPathInvalid -and -not [string]::IsNullOrWhiteSpace($rawEntrypoint)) {
-        return ('{0} (invalid entrypoint path)' -f $rawEntrypoint)
-    }
-    if ($entrypointMissing) {
-        return 'path unavailable (missing entrypoint path)'
-    }
-    if (-not [string]::IsNullOrWhiteSpace($rawEntrypoint)) {
-        return $rawEntrypoint
-    }
-
-    return 'path unavailable'
-}
-
-function Get-VibeSpecialistLifecycleDisclosurePath {
-    param(
-        [Parameter(Mandatory)] [string]$SessionRoot
-    )
-
-    return [System.IO.Path]::GetFullPath((Join-Path $SessionRoot 'specialist-lifecycle-disclosure.json'))
-}
-
-function New-VibeSpecialistRoutingLifecycleLayerProjection {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket
-    )
-
-    $specialistRecommendations = @(Get-VibeRuntimeSpecialistRecommendations -RuntimeInputPacket $RuntimeInputPacket)
-    if ($null -eq $RuntimeInputPacket -or @($specialistRecommendations).Count -eq 0) {
-        return $null
-    }
-
-    $skills = New-Object System.Collections.Generic.List[object]
-    $renderedLines = @('Discussion-chain routed Skills:')
-    foreach ($recommendation in @($specialistRecommendations)) {
-        if ($null -eq $recommendation) {
-            continue
-        }
-
-        $skillId = [string]$recommendation.skill_id
-        if ([string]::IsNullOrWhiteSpace($skillId)) {
-            continue
-        }
-        $entrypoint = if ((Test-VibeObjectHasProperty -InputObject $recommendation -PropertyName 'native_skill_entrypoint') -and -not [string]::IsNullOrWhiteSpace([string]$recommendation.native_skill_entrypoint)) { [string]$recommendation.native_skill_entrypoint } else { $null }
-        if (-not [string]::IsNullOrWhiteSpace($entrypoint) -and [System.IO.Path]::IsPathRooted($entrypoint)) {
-            $entrypoint = [System.IO.Path]::GetFullPath($entrypoint)
-        }
-        $whyNow = if ((Test-VibeObjectHasProperty -InputObject $recommendation -PropertyName 'reason') -and -not [string]::IsNullOrWhiteSpace([string]$recommendation.reason)) { [string]$recommendation.reason } else { 'routed as a relevant specialist candidate for the governed discussion and planning chain' }
-
-        $skills.Add(
-            [pscustomobject]@{
-                skill_id = $skillId
-                why_now = $whyNow
-                source = if ((Test-VibeObjectHasProperty -InputObject $recommendation -PropertyName 'source') -and -not [string]::IsNullOrWhiteSpace([string]$recommendation.source)) { [string]$recommendation.source } else { $null }
-                native_skill_entrypoint = $entrypoint
-                native_skill_description = if ((Test-VibeObjectHasProperty -InputObject $recommendation -PropertyName 'native_skill_description') -and -not [string]::IsNullOrWhiteSpace([string]$recommendation.native_skill_description)) { [string]$recommendation.native_skill_description } else { $null }
-                state = 'routed'
-            }
-        ) | Out-Null
-        $renderedLines += ('- {0}: {1} ({2})' -f $skillId, $whyNow, $(if ([string]::IsNullOrWhiteSpace($entrypoint)) { 'path unavailable' } else { $entrypoint }))
-    }
-
-    if ($skills.Count -eq 0) {
-        return $null
-    }
-
-    return [pscustomobject]@{
-        layer_id = 'discussion_routing'
-        truth_layer = 'routing'
-        stage = if ((Test-VibeObjectHasProperty -InputObject $RuntimeInputPacket -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$RuntimeInputPacket.stage)) { [string]$RuntimeInputPacket.stage } else { 'runtime_input_freeze' }
-        skill_count = [int]$skills.Count
-        skills = [object[]]$skills.ToArray()
-        rendered_text = ($renderedLines -join "`n")
-    }
-}
-
-function New-VibeSpecialistExecutionLifecycleLayerProjection {
-    param(
-        [AllowNull()] [object]$SpecialistUserDisclosure = $null,
-        [AllowNull()] [object]$ExecutionManifest = $null
-    )
-
-    if ($null -eq $SpecialistUserDisclosure) {
-        return $null
-    }
-
-    $executedSkillIds = @()
-    if ($null -ne $ExecutionManifest -and (Test-VibeObjectHasProperty -InputObject $ExecutionManifest -PropertyName 'specialist_accounting') -and $null -ne $ExecutionManifest.specialist_accounting) {
-        foreach ($unit in @($ExecutionManifest.specialist_accounting.executed_skill_execution_units)) {
-            if ($null -eq $unit) {
-                continue
-            }
-            if ((Test-VibeObjectHasProperty -InputObject $unit -PropertyName 'skill_id') -and -not [string]::IsNullOrWhiteSpace([string]$unit.skill_id)) {
-                $executedSkillIds += [string]$unit.skill_id
-            } elseif ((Test-VibeObjectHasProperty -InputObject $unit -PropertyName 'specialist_skill_id') -and -not [string]::IsNullOrWhiteSpace([string]$unit.specialist_skill_id)) {
-                $executedSkillIds += [string]$unit.specialist_skill_id
-            }
-        }
-        $executedSkillIds = @($executedSkillIds | Select-Object -Unique)
-    }
-
-    $skills = New-Object System.Collections.Generic.List[object]
-    $renderedLines = @('Execution-chain specialist disclosure:')
-    foreach ($entry in @($SpecialistUserDisclosure.routed_skills)) {
-        if ($null -eq $entry) {
-            continue
-        }
-        $skillId = [string]$entry.skill_id
-        if ([string]::IsNullOrWhiteSpace($skillId)) {
-            continue
-        }
-        $state = if ($executedSkillIds -contains $skillId) { 'executed' } else { 'disclosed_for_execution' }
-        $skills.Add(
-            [pscustomobject]@{
-                skill_id = $skillId
-                why_now = 'approved for execution-time specialist dispatch under governed vibe'
-                native_skill_entrypoint = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'native_skill_entrypoint') -and -not [string]::IsNullOrWhiteSpace([string]$entry.native_skill_entrypoint)) { [string]$entry.native_skill_entrypoint } else { $null }
-                native_skill_entrypoint_raw = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'native_skill_entrypoint_raw') -and -not [string]::IsNullOrWhiteSpace([string]$entry.native_skill_entrypoint_raw)) { [string]$entry.native_skill_entrypoint_raw } else { $null }
-                entrypoint_path_state = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'entrypoint_path_state') -and -not [string]::IsNullOrWhiteSpace([string]$entry.entrypoint_path_state)) { [string]$entry.entrypoint_path_state } else { 'resolved' }
-                entrypoint_missing = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'entrypoint_missing')) { [bool]$entry.entrypoint_missing } else { $false }
-                entrypoint_path_invalid = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'entrypoint_path_invalid')) { [bool]$entry.entrypoint_path_invalid } else { $false }
-                native_skill_description = if ((Test-VibeObjectHasProperty -InputObject $entry -PropertyName 'native_skill_description') -and -not [string]::IsNullOrWhiteSpace([string]$entry.native_skill_description)) { [string]$entry.native_skill_description } else { $null }
-                state = $state
-            }
-        ) | Out-Null
-        $renderedLines += ('- {0}: approved for execution ({1})' -f $skillId, (Get-VibeSpecialistEntrypointDisplayText -SkillRecord $entry))
-    }
-
-    if ($skills.Count -eq 0) {
-        return $null
-    }
-
-    return [pscustomobject]@{
-        layer_id = 'execution_dispatch'
-        truth_layer = 'execution'
-        stage = if ((Test-VibeObjectHasProperty -InputObject $SpecialistUserDisclosure -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$SpecialistUserDisclosure.stage)) { [string]$SpecialistUserDisclosure.stage } else { 'plan_execute' }
-        skill_count = [int]$skills.Count
-        skills = [object[]]$skills.ToArray()
-        rendered_text = ($renderedLines -join "`n")
-    }
-}
-
-function New-VibeSpecialistLifecycleDisclosureProjection {
-    param(
-        [AllowNull()] [object]$RuntimeInputPacket = $null,
-        [AllowNull()] [object]$DiscussionConsultationReceipt = $null,
-        [AllowNull()] [object]$PlanningConsultationReceipt = $null,
-        [AllowNull()] [object]$SpecialistUserDisclosure = $null,
-        [AllowNull()] [object]$ExecutionManifest = $null
-    )
-
-    $layers = New-Object System.Collections.Generic.List[object]
-    foreach ($candidate in @(
-        (New-VibeSpecialistRoutingLifecycleLayerProjection -RuntimeInputPacket $RuntimeInputPacket),
-        (New-VibeRetiredSpecialistConsultationLifecycleLayerProjection -ConsultationReceipt $DiscussionConsultationReceipt),
-        (New-VibeRetiredSpecialistConsultationLifecycleLayerProjection -ConsultationReceipt $PlanningConsultationReceipt),
-        (New-VibeSpecialistExecutionLifecycleLayerProjection -SpecialistUserDisclosure $SpecialistUserDisclosure -ExecutionManifest $ExecutionManifest)
-    )) {
-        if ($null -ne $candidate) {
-            $layers.Add($candidate) | Out-Null
-        }
-    }
-
-    $layerArray = [object[]]$layers.ToArray()
-    $skillIds = @()
-    $renderedSections = @()
-    foreach ($layer in @($layerArray)) {
-        foreach ($skill in @($layer.skills)) {
-            if ($null -ne $skill -and -not [string]::IsNullOrWhiteSpace([string]$skill.skill_id)) {
-                $skillIds += [string]$skill.skill_id
-            }
-        }
-        if (-not [string]::IsNullOrWhiteSpace([string]$layer.rendered_text)) {
-            $renderedSections += [string]$layer.rendered_text
-        }
-    }
-    $skillIds = @($skillIds | Select-Object -Unique)
-    $hasConsultationLayer = @($layerArray | Where-Object { [string]$_.truth_layer -eq 'consultation' }).Count -gt 0
-    $renderedIntro = if ($hasConsultationLayer) {
-        @(
-            'Legacy specialist lifecycle disclosure.',
-            'Old routing, consultation, and execution records remain readable. Usage claims still require `skill_usage.used` evidence.'
-        )
-    } else {
-        @(
-            'Skill routing and usage evidence.',
-            'This disclosure records selected skills and material-use evidence. A selected skill is not a `used` claim; material use requires `skill_usage.used` plus `skill_usage.evidence`.'
-        )
-    }
-
-    return [pscustomobject]@{
-        enabled = [bool](@($layerArray).Count -gt 0)
-        truth_model = if ($hasConsultationLayer) {
-            'legacy_routing_consultation_execution_separated'
-        } else {
-            'skill_routing_usage_evidence'
-        }
-        layer_count = @($layerArray).Count
-        skill_count = @($skillIds).Count
-        skill_ids = @($skillIds)
-        layers = $layerArray
-        rendered_text = (@($renderedIntro) + @($renderedSections) -join "`n`n")
-    }
-}
-
-function Get-VibeSpecialistLifecycleDisclosureMarkdownLines {
-    param(
-        [AllowNull()] [object]$LifecycleDisclosure = $null,
-        [AllowEmptyCollection()] [string[]]$IncludeLayerIds = @()
-    )
-
-    if ($null -eq $LifecycleDisclosure -or -not [bool]$LifecycleDisclosure.enabled) {
-        return @()
-    }
-
-    $allowedLayerIds = @($IncludeLayerIds | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
-    $hasConsultationLayer = @($LifecycleDisclosure.layers | Where-Object { [string]$_.truth_layer -eq 'consultation' }).Count -gt 0
-    $lines = if ($hasConsultationLayer) {
-        @(
-            '## Legacy Specialist Lifecycle Disclosure',
-            'This legacy disclosure keeps old routing, consultation, and execution records readable. Usage claims still require `skill_usage.used` evidence.'
-        )
-    } else {
-        @(
-            '## Skill Routing And Usage Evidence',
-            'This disclosure records selected skills and material-use evidence. A selected skill is not a `used` claim; material use requires `skill_usage.used` plus `skill_usage.evidence`.'
-        )
-    }
-    foreach ($layer in @($LifecycleDisclosure.layers)) {
-        if ($allowedLayerIds.Count -gt 0 -and -not ($allowedLayerIds -contains [string]$layer.layer_id)) {
-            continue
-        }
-        $lines += @(
-            '',
-            ('### {0}' -f [string]$layer.layer_id)
-        )
-        foreach ($skill in @($layer.skills)) {
-            $lines += @(
-                ('- Skill: {0}' -f [string]$skill.skill_id),
-                ('  State: {0}' -f [string]$skill.state),
-                ('  Why now: {0}' -f [string]$skill.why_now),
-                ('  Loaded from: {0}' -f (Get-VibeSpecialistEntrypointDisplayText -SkillRecord $skill))
-            )
-        }
-    }
-
-    return @($lines)
-}
-
 function Get-VibeHostUserBriefingPath {
     param(
         [Parameter(Mandatory)] [string]$SessionRoot
@@ -4280,122 +3840,6 @@ function Get-VibeHostStageDisclosurePath {
     )
 
     return [System.IO.Path]::GetFullPath((Join-Path $SessionRoot 'host-stage-disclosure.json'))
-}
-
-function New-VibeHostUserBriefingSegmentProjection {
-    param(
-        [AllowNull()] [object]$LifecycleLayer = $null,
-        [AllowNull()] [object]$ConsultationReceipt = $null
-    )
-
-    if ($null -eq $LifecycleLayer) {
-        return $null
-    }
-
-    $segmentId = if ((Test-VibeObjectHasProperty -InputObject $LifecycleLayer -PropertyName 'layer_id') -and -not [string]::IsNullOrWhiteSpace([string]$LifecycleLayer.layer_id)) {
-        [string]$LifecycleLayer.layer_id
-    } else {
-        return $null
-    }
-
-    $segmentLines = @()
-    $category = if ((Test-VibeObjectHasProperty -InputObject $LifecycleLayer -PropertyName 'truth_layer') -and -not [string]::IsNullOrWhiteSpace([string]$LifecycleLayer.truth_layer)) {
-        [string]$LifecycleLayer.truth_layer
-    } else {
-        'informational'
-    }
-    $status = 'informational'
-    $gateStatus = $null
-
-    switch ($segmentId) {
-        'discussion_routing' {
-            $segmentLines += 'Vibe routed these Skills into the discussion/planning chain:'
-        }
-        'execution_dispatch' {
-            $category = 'execution'
-            $status = 'execution_disclosure'
-            $segmentLines += 'Selected skills are available for execution. This is not a `used` claim; final use must come from `skill_usage.used` and evidence.'
-        }
-        default {
-            $retiredSegment = New-VibeRetiredHostUserBriefingSegmentProjection -LifecycleLayer $LifecycleLayer -ConsultationReceipt $ConsultationReceipt
-            if ($null -ne $retiredSegment) {
-                return $retiredSegment
-            }
-            $segmentLines += ('Vibe reported specialist activity for {0}:' -f $segmentId)
-        }
-    }
-
-    foreach ($skill in @($LifecycleLayer.skills)) {
-        if ($null -eq $skill) {
-            continue
-        }
-        $skillId = if ((Test-VibeObjectHasProperty -InputObject $skill -PropertyName 'skill_id') -and -not [string]::IsNullOrWhiteSpace([string]$skill.skill_id)) {
-            [string]$skill.skill_id
-        } else {
-            continue
-        }
-        $state = if ((Test-VibeObjectHasProperty -InputObject $skill -PropertyName 'state') -and -not [string]::IsNullOrWhiteSpace([string]$skill.state)) { [string]$skill.state } else { 'reported' }
-        $entrypoint = Get-VibeSpecialistEntrypointDisplayText -SkillRecord $skill
-        $whyNow = if ((Test-VibeObjectHasProperty -InputObject $skill -PropertyName 'why_now') -and -not [string]::IsNullOrWhiteSpace([string]$skill.why_now)) { [string]$skill.why_now } else { 'no additional rationale recorded' }
-        $segmentLines += ('- {0} [{1}] from {2}' -f $skillId, $state, $entrypoint)
-        $segmentLines += ('  Why: {0}' -f $whyNow)
-        if ((Test-VibeObjectHasProperty -InputObject $skill -PropertyName 'summary') -and -not [string]::IsNullOrWhiteSpace([string]$skill.summary)) {
-            $segmentLines += ('  Summary: {0}' -f [string]$skill.summary)
-        }
-    }
-
-    $segmentText = @($segmentLines) -join "`n"
-    return [pscustomobject]@{
-        segment_id = $segmentId
-        stage = if ((Test-VibeObjectHasProperty -InputObject $LifecycleLayer -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$LifecycleLayer.stage)) { [string]$LifecycleLayer.stage } else { $null }
-        category = $category
-        truth_layer = if ((Test-VibeObjectHasProperty -InputObject $LifecycleLayer -PropertyName 'truth_layer') -and -not [string]::IsNullOrWhiteSpace([string]$LifecycleLayer.truth_layer)) { [string]$LifecycleLayer.truth_layer } else { $category }
-        status = $status
-        gate_status = $gateStatus
-        skill_count = if ((Test-VibeObjectHasProperty -InputObject $LifecycleLayer -PropertyName 'skill_count')) { [int]$LifecycleLayer.skill_count } else { @($LifecycleLayer.skills).Count }
-        skills = @($LifecycleLayer.skills)
-        rendered_text = $segmentText
-    }
-}
-
-function New-VibeHostStageDisclosureEventProjection {
-    param(
-        [AllowNull()] [object]$Segment = $null
-    )
-
-    if ($null -eq $Segment) {
-        return $null
-    }
-
-    $segmentId = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'segment_id') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.segment_id)) {
-        [string]$Segment.segment_id
-    } else {
-        return $null
-    }
-
-    $retiredEventId = Get-VibeRetiredHostStageDisclosureEventId -SegmentId $segmentId -Skills @($Segment.skills)
-    $eventId = if ($null -ne $retiredEventId) {
-        $retiredEventId
-    } else {
-        switch ($segmentId) {
-            'discussion_routing' { 'discussion_routing_frozen' }
-            'execution_dispatch' { 'execution_dispatch_confirmed' }
-            default { ('{0}_reported' -f $segmentId) }
-        }
-    }
-
-    return [pscustomobject]@{
-        event_id = $eventId
-        segment_id = $segmentId
-        stage = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'stage') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.stage)) { [string]$Segment.stage } else { $null }
-        category = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'category') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.category)) { [string]$Segment.category } else { $null }
-        truth_layer = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'truth_layer') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.truth_layer)) { [string]$Segment.truth_layer } else { $null }
-        status = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'status') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.status)) { [string]$Segment.status } else { 'reported' }
-        gate_status = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'gate_status') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.gate_status)) { [string]$Segment.gate_status } else { $null }
-        skill_count = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'skill_count')) { [int]$Segment.skill_count } else { @($Segment.skills).Count }
-        skills = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'skills')) { @($Segment.skills) } else { @() }
-        rendered_text = if ((Test-VibeObjectHasProperty -InputObject $Segment -PropertyName 'rendered_text') -and -not [string]::IsNullOrWhiteSpace([string]$Segment.rendered_text)) { [string]$Segment.rendered_text } else { $null }
-    }
 }
 
 function Add-VibeHostStageDisclosureEvent {
@@ -4492,9 +3936,6 @@ function Add-VibeHostStageDisclosureEvent {
 
 function New-VibeHostUserBriefingProjection {
     param(
-        [AllowNull()] [object]$LifecycleDisclosure = $null,
-        [AllowNull()] [object]$DiscussionConsultationReceipt = $null,
-        [AllowNull()] [object]$PlanningConsultationReceipt = $null,
         [AllowNull()] [object]$BoundedReturnControl = $null,
         [AllowNull()] [object]$DeliveryAcceptanceReport = $null
     )
@@ -4504,54 +3945,80 @@ function New-VibeHostUserBriefingProjection {
 
     $deliverySummary = Get-VibePropertySafe -InputObject $DeliveryAcceptanceReport -PropertyName 'summary'
     $deliveryExecutionContext = Get-VibePropertySafe -InputObject $DeliveryAcceptanceReport -PropertyName 'execution_context'
-    $specialistHostContinuationPending = [bool](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('specialist_host_continuation_pending') -DefaultValue $false)
-    if ($specialistHostContinuationPending) {
+    if ($null -ne $DeliveryAcceptanceReport -and $null -ne $deliverySummary) {
+        $completionAllowed = [bool](Get-VibePropertySafe -InputObject $deliverySummary -PropertyName 'completion_language_allowed' -DefaultValue $false)
+        $gateResult = [string](Get-VibePropertySafe -InputObject $deliverySummary -PropertyName 'gate_result' -DefaultValue 'UNKNOWN')
+        $moduleTruth = Get-VibeNestedPropertySafe -InputObject $DeliveryAcceptanceReport -PropertyPath @('truth_results', 'module_acceptance_truth') -DefaultValue $null
+        $moduleState = [string](Get-VibePropertySafe -InputObject $moduleTruth -PropertyName 'state' -DefaultValue 'not_applicable')
+        $moduleNotes = [string](Get-VibePropertySafe -InputObject $moduleTruth -PropertyName 'notes' -DefaultValue '')
+        $taskLines = @(
+            $(if ($completionAllowed) { 'Task is complete.' } else { 'Task is not complete.' }),
+            ('- Module acceptance: `{0}`' -f $moduleState),
+            ('- Delivery gate: `{0}`' -f $gateResult)
+        )
+        if (-not [string]::IsNullOrWhiteSpace($moduleNotes)) {
+            $taskLines += ('- {0}' -f $moduleNotes)
+        }
+        $taskSegment = [pscustomobject]@{
+            segment_id = 'task_module_status'
+            stage = 'phase_cleanup'
+            category = 'completion'
+            truth_layer = 'module_acceptance_truth'
+            status = $moduleState
+            gate_status = $gateResult
+            rendered_text = (@($taskLines) -join "`n")
+        }
+        $segments.Add($taskSegment) | Out-Null
+        $renderedSections += [string]$taskSegment.rendered_text
+    }
+    $moduleWorkContinuationPending = [bool](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('module_work_continuation_pending') -DefaultValue $false)
+    if ($moduleWorkContinuationPending) {
         $deliveryGateResult = [string](Get-VibeNestedPropertySafe -InputObject $deliverySummary -PropertyPath @('gate_result') -DefaultValue '')
         $deliveryReadinessState = [string](Get-VibeNestedPropertySafe -InputObject $deliverySummary -PropertyPath @('readiness_state') -DefaultValue '')
         $deliveryCompletionAllowed = [bool](Get-VibeNestedPropertySafe -InputObject $deliverySummary -PropertyPath @('completion_language_allowed') -DefaultValue $false)
         $sourceRunId = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('run_id') -DefaultValue '')
         $sessionRoot = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('session_root') -DefaultValue '')
-        $effectiveExecutionStatus = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('specialist_effective_execution_status') -DefaultValue '')
-        $sidecarPath = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('specialist_execution_sidecar_path') -DefaultValue '')
-        if ([string]::IsNullOrWhiteSpace($sidecarPath) -and -not [string]::IsNullOrWhiteSpace($sessionRoot)) {
-            $sidecarPath = Get-VibeSpecialistExecutionSidecarPath -SessionRoot $sessionRoot
+        $effectiveExecutionStatus = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('module_work_status') -DefaultValue '')
+        $moduleExecutionPath = [string](Get-VibeNestedPropertySafe -InputObject $deliveryExecutionContext -PropertyPath @('module_execution_path') -DefaultValue '')
+        if ([string]::IsNullOrWhiteSpace($moduleExecutionPath) -and -not [string]::IsNullOrWhiteSpace($sessionRoot)) {
+            $moduleExecutionPath = Get-VibeModuleExecutionPath -SessionRoot $sessionRoot
         }
-        $directRoutedUnitIds = if (
+        $pendingModuleWorkUnitIds = if (
             $deliveryExecutionContext -and
-            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'direct_routed_skill_execution_unit_ids') -and
-            $null -ne $deliveryExecutionContext.direct_routed_skill_execution_unit_ids
+            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'pending_module_work_unit_ids') -and
+            $null -ne $deliveryExecutionContext.pending_module_work_unit_ids
         ) {
-            @($deliveryExecutionContext.direct_routed_skill_execution_unit_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            @($deliveryExecutionContext.pending_module_work_unit_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         } else {
             @()
         }
-        $directRoutedSkillIds = if (
+        $assignedModuleSkillIds = if (
             $deliveryExecutionContext -and
-            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'direct_routed_skill_execution_skill_ids') -and
-            $null -ne $deliveryExecutionContext.direct_routed_skill_execution_skill_ids
+            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'assigned_module_skill_ids') -and
+            $null -ne $deliveryExecutionContext.assigned_module_skill_ids
         ) {
-            @($deliveryExecutionContext.direct_routed_skill_execution_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            @($deliveryExecutionContext.assigned_module_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         } else {
             @()
         }
-        $rawDirectRoutedUnits = if (
+        $rawPendingModuleWorkUnits = if (
             $deliveryExecutionContext -and
-            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'direct_routed_skill_execution_units') -and
-            $null -ne $deliveryExecutionContext.direct_routed_skill_execution_units
+            (Test-VibeObjectHasProperty -InputObject $deliveryExecutionContext -PropertyName 'pending_module_work_units') -and
+            $null -ne $deliveryExecutionContext.pending_module_work_units
         ) {
-            @($deliveryExecutionContext.direct_routed_skill_execution_units)
+            @($deliveryExecutionContext.pending_module_work_units)
         } else {
             @()
         }
         $requiredUnits = New-Object System.Collections.Generic.List[object]
-        foreach ($unit in $rawDirectRoutedUnits) {
+        foreach ($unit in $rawPendingModuleWorkUnits) {
             if ($null -eq $unit) {
                 continue
             }
             $requiredUnits.Add([pscustomobject]@{
                 unit_id = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'unit_id')
                 skill_id = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'skill_id')
-                native_skill_entrypoint = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'native_skill_entrypoint')
+                skill_entrypoint = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'skill_entrypoint')
                 result_path = [string](Get-VibePropertySafe -InputObject $unit -PropertyName 'result_path')
             }) | Out-Null
         }
@@ -4564,29 +4031,30 @@ function New-VibeHostUserBriefingProjection {
         }
         $executionHandoffContract = [pscustomobject]@{
             protocol_version = 'v1'
-            decision_kind = 'specialist_execution_resolution'
-            decision_context = 'execution_handoff'
+            decision_kind = 'module_execution_update'
+            decision_context = 'module_work'
             source_run_id = if ([string]::IsNullOrWhiteSpace($sourceRunId)) { $null } else { $sourceRunId }
             session_root = if ([string]::IsNullOrWhiteSpace($sessionRoot)) { $null } else { $sessionRoot }
-            sidecar_path = if ([string]::IsNullOrWhiteSpace($sidecarPath)) { $null } else { $sidecarPath }
+            module_execution_path = if ([string]::IsNullOrWhiteSpace($moduleExecutionPath)) { $null } else { $moduleExecutionPath }
             verification_refresh_command = [string]$refreshCommandHint
-            allowed_resolution_states = @('executed', 'degraded', 'blocked')
-            direct_routed_unit_ids = @($directRoutedUnitIds)
-            direct_routed_skill_ids = @($directRoutedSkillIds)
+            allowed_unit_states = @('pending', 'working', 'completed', 'failed', 'blocked')
+            pending_module_work_unit_ids = @($pendingModuleWorkUnitIds)
+            assigned_module_skill_ids = @($assignedModuleSkillIds)
             required_units = $requiredUnitArray
             preferred_payload = [pscustomobject]@{
-                protocol_version = 'v1'
+                schema_version = 'module_execution_v1'
                 source_run_id = if ([string]::IsNullOrWhiteSpace($sourceRunId)) { $null } else { $sourceRunId }
-                resolution_mode = 'current_session_host_execution'
                 units = @(
                     foreach ($requiredUnit in $requiredUnitArray) {
                         [pscustomobject]@{
                             unit_id = [string](Get-VibePropertySafe -InputObject $requiredUnit -PropertyName 'unit_id')
                             skill_id = [string](Get-VibePropertySafe -InputObject $requiredUnit -PropertyName 'skill_id')
-                            resolution_state = 'executed'
-                            native_skill_entrypoint = [string](Get-VibePropertySafe -InputObject $requiredUnit -PropertyName 'native_skill_entrypoint')
-                            evidence_paths = @('<host evidence path>')
-                            notes = ''
+                            module_id = '<approved module id>'
+                            role = 'owner'
+                            state = 'completed'
+                            result_summary = '<observable result produced for this module>'
+                            evidence_paths = @('<existing module evidence path>')
+                            verification_results = @()
                         }
                     }
                 )
@@ -4602,17 +4070,17 @@ function New-VibeHostUserBriefingProjection {
             @()
         }
         $continuationLines = @(
-            'Execution handoff is still pending under governed vibe.',
+            'Module work is still pending under governed vibe.',
             ('- gate_result: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($deliveryGateResult)) { 'unknown' } else { $deliveryGateResult })),
             ('- readiness_state: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($deliveryReadinessState)) { 'unknown' } else { $deliveryReadinessState })),
             ('- completion_language_allowed: `{0}`' -f $deliveryCompletionAllowed),
             ('- source_run_id: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($sourceRunId)) { 'unknown' } else { $sourceRunId })),
-            ('- specialist_effective_execution_status: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($effectiveExecutionStatus)) { 'unknown' } else { $effectiveExecutionStatus })),
-            ('- direct_routed_unit_ids: `{0}`' -f $(if (@($directRoutedUnitIds).Count -gt 0) { @($directRoutedUnitIds) -join '`, `' } else { 'none recorded' })),
-            ('- direct_routed_skill_ids: `{0}`' -f $(if (@($directRoutedSkillIds).Count -gt 0) { @($directRoutedSkillIds) -join '`, `' } else { 'none recorded' })),
-            ('- specialist_execution_sidecar_path: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($sidecarPath)) { 'unknown' } else { $sidecarPath })),
-            '- approved specialist execution has not been formally resolved inside the governed runtime yet.',
-            '- next required action: load each disclosed `native_skill_entrypoint` in the current host session, execute the bounded specialist work there, write `specialist-execution.json`, then refresh governed verification before claiming completion.',
+            ('- module_work_status: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($effectiveExecutionStatus)) { 'unknown' } else { $effectiveExecutionStatus })),
+            ('- pending_work_unit_ids: `{0}`' -f $(if (@($pendingModuleWorkUnitIds).Count -gt 0) { @($pendingModuleWorkUnitIds) -join '`, `' } else { 'none recorded' })),
+            ('- assigned_skill_ids: `{0}`' -f $(if (@($assignedModuleSkillIds).Count -gt 0) { @($assignedModuleSkillIds) -join '`, `' } else { 'none recorded' })),
+            ('- module_execution_path: `{0}`' -f $(if ([string]::IsNullOrWhiteSpace($moduleExecutionPath)) { 'unknown' } else { $moduleExecutionPath })),
+            '- approved module work has not produced all required observable results yet.',
+            '- next required action: complete each pending module work unit, record its result in `module-execution.json`, then refresh governed verification before claiming completion.',
             ('- verification refresh command: `{0}`' -f [string]$refreshCommandHint)
         )
         if (@($incompleteLayers).Count -gt 0) {
@@ -4625,49 +4093,14 @@ function New-VibeHostUserBriefingProjection {
             truth_layer = 'workflow_completion_truth'
             status = 'current_session_continuation_required'
             gate_status = $deliveryGateResult
-            skill_count = @($directRoutedSkillIds).Count
-            skills = @($directRoutedSkillIds)
+            skill_count = @($assignedModuleSkillIds).Count
+            skills = @($assignedModuleSkillIds)
             rendered_text = (@($continuationLines) -join "`n")
             host_decision_contract = $executionHandoffContract
         }
         $segments.Add($continuationSegment) | Out-Null
         $renderedSections += 'Governed runtime handoff status:'
         $renderedSections += @('', [string]$continuationSegment.rendered_text)
-    }
-
-    if ($null -ne $LifecycleDisclosure -and [bool]$LifecycleDisclosure.enabled) {
-        $consultationReceiptIndex = @{}
-        foreach ($receipt in @($DiscussionConsultationReceipt, $PlanningConsultationReceipt)) {
-            if ($null -eq $receipt) {
-                continue
-            }
-            $windowId = if ((Test-VibeObjectHasProperty -InputObject $receipt -PropertyName 'window_id') -and -not [string]::IsNullOrWhiteSpace([string]$receipt.window_id)) {
-                [string]$receipt.window_id
-            } else {
-                $null
-            }
-            if (-not [string]::IsNullOrWhiteSpace($windowId)) {
-                $consultationReceiptIndex[$windowId] = $receipt
-            }
-        }
-
-        $renderedSections += 'Specialist activity under governed vibe:'
-        foreach ($layer in @($LifecycleDisclosure.layers)) {
-            if ($null -eq $layer) {
-                continue
-            }
-            $windowId = $null
-            if ((Test-VibeObjectHasProperty -InputObject $layer -PropertyName 'layer_id') -and [string]$layer.layer_id -match '^(discussion|planning)_consultation$') {
-                $windowId = [string]$Matches[1]
-            }
-            $receipt = if (-not [string]::IsNullOrWhiteSpace($windowId) -and $consultationReceiptIndex.ContainsKey($windowId)) { $consultationReceiptIndex[$windowId] } else { $null }
-            $segment = New-VibeHostUserBriefingSegmentProjection -LifecycleLayer $layer -ConsultationReceipt $receipt
-            if ($null -eq $segment) {
-                continue
-            }
-            $segments.Add($segment) | Out-Null
-            $renderedSections += @('', [string]$segment.rendered_text)
-        }
     }
 
     if (
@@ -4732,39 +4165,48 @@ function New-VibeHostUserBriefingProjection {
         ) {
             $workflowLevelConfirmationLines = @(Get-VibeWorkflowLevelConfirmationLines -WorkflowLevelConfirmation $BoundedReturnControl.workflow_level_confirmation)
         }
-        $selectedSkillIds = if (
-            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'selected_skill_ids') -and
-            $null -ne $BoundedReturnControl.selected_skill_ids
+        $skillSearchGuide = if (
+            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'skill_search_guide') -and
+            $null -ne $BoundedReturnControl.skill_search_guide
         ) {
-            @($BoundedReturnControl.selected_skill_ids | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        } else {
-            @()
-        }
-        $skillSelection = if (
-            (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'skill_selection') -and
-            $null -ne $BoundedReturnControl.skill_selection
-        ) {
-            $BoundedReturnControl.skill_selection
+            $BoundedReturnControl.skill_search_guide
         } else {
             $null
         }
-        $boundedLines = @(
-            'Bounded governed stop reached. Return control to the user now.',
-            ('- terminal stage: `{0}`' -f [string]$BoundedReturnControl.terminal_stage),
-            ('- source run id: `{0}`' -f [string]$BoundedReturnControl.source_run_id),
-            ('- allowed follow-up entries: `{0}`' -f (@($allowedFollowupEntryIds) -join '`, `')),
-            ('- next governed stage after approval: `{0}`' -f $(if ($nextStage) { $nextStage } else { 'none' })),
-            ('- approval kind: `{0}`' -f [string]$approvalKind),
-            ('- preferred structured approval action: `{0}`' -f [string]$preferredDecisionAction),
-            ('- approval instruction: {0}' -f [string]$approvalPrompt),
-            '- Do not continue in the same assistant turn; wait for a new user message before consuming re-entry credentials',
-            '- manual execution outside governed re-entry is forbidden',
-            '- the original detailed prompt is not approval of the frozen requirement or plan',
-            ('- after the user approves in a later message, forward `--continue-from-run-id {0}` and `--bounded-reentry-token {1}` from the latest runtime summary' -f [string]$BoundedReturnControl.source_run_id, [string]$BoundedReturnControl.reentry_token)
-        )
+        $boundedLines = switch ([string]$BoundedReturnControl.terminal_stage) {
+            'requirement_doc' {
+                @(
+                    '当前已停在需求确认阶段。',
+                    '- 请先确认这份需求是否准确；如果需要修改，请直接说明。确认后再进入执行计划。'
+                )
+            }
+            'xl_plan' {
+                @(
+                    '当前已停在执行计划确认阶段。',
+                    '- 请先确认这份计划是否可以执行；如果需要调整，请直接说明。确认后才会进入执行阶段。'
+                )
+            }
+            default {
+                @(
+                    '当前已停在需要用户确认的阶段。',
+                    '- 请先确认是否继续；如果需要修改，请直接说明。'
+                )
+            }
+        }
+        if (
+            [string]$BoundedReturnControl.terminal_stage -eq 'requirement_doc' -and
+            $hostDecisionContract -and
+            (Test-VibeObjectHasProperty -InputObject $hostDecisionContract -PropertyName 'agent_skill_organization_contract') -and
+            $null -ne $hostDecisionContract.agent_skill_organization_contract
+        ) {
+            $boundedLines += '- 用户确认需求后、重新进入 canonical Vibe 之前，Agent 必须先按 `bounded_return_control.host_decision_contract.agent_skill_organization_contract` 构造 `host_decision.agent_skill_organization`；不要通过失败重试或读取运行时源码猜字段。'
+            $boundedLines += '- 组织 skills 时，不得选择需要安装、推荐或调用 `forbidden_mcp_contract.forbidden_mcp_ids` 中任一 MCP server 的 Skill。'
+            $boundedLines += '- Use the directory name that directly contains the retained `SKILL.md` as `skill_id` in `candidate_skill_ids` and `selected_skills[].skill_id`.'
+            $boundedLines += '- Do not submit a displayed Skill name or frontmatter `name` as `skill_id`; a nested retained `SKILL.md` uses its own containing directory name.'
+        }
         if (@($workflowLevelConfirmationLines).Count -gt 0) {
-            $boundedLines += '- 先把 L / XL 级别说明清楚，再让用户选择：'
-            $boundedLines += @(Get-VibeWorkflowLevelSkillSelectionLines -SelectedSkillIds @($selectedSkillIds) -SkillSelection $skillSelection | ForEach-Object { "  $_" })
+            $boundedLines += '- 先说明 Agent 会如何找和组织 skills，再解释 L / XL 级别差异：'
+            $boundedLines += @(Get-VibeSkillSearchGuideLines -SkillSearchGuide $skillSearchGuide | ForEach-Object { "  $_" })
             $boundedLines += @($workflowLevelConfirmationLines | ForEach-Object { "  $_" })
         }
         $boundedSegment = [pscustomobject]@{
@@ -4799,7 +4241,6 @@ function New-VibeHostUserBriefingProjection {
         return $null
     }
 
-    $hasLifecycleDisclosure = ($null -ne $LifecycleDisclosure -and [bool]$LifecycleDisclosure.enabled)
     $hasBoundedReturnControl = (
         $null -ne $BoundedReturnControl -and
         (Test-VibeObjectHasProperty -InputObject $BoundedReturnControl -PropertyName 'enabled') -and
@@ -4815,14 +4256,8 @@ function New-VibeHostUserBriefingProjection {
 
     return [pscustomobject]@{
         enabled = [bool](@($segmentArray).Count -gt 0)
-        mode = if ($hasExecutionHandoffOnly -and -not $hasLifecycleDisclosure -and -not $hasBoundedReturnControl) {
+        mode = if ($hasExecutionHandoffOnly -and -not $hasBoundedReturnControl) {
             'execution_handoff_host_briefing'
-        } elseif ($hasLifecycleDisclosure) {
-            if ($hasBoundedReturnControl) {
-                'progressive_host_user_briefing'
-            } else {
-                'progressive_specialist_host_briefing'
-            }
         } elseif ($hasBoundedReturnControl) {
             'bounded_return_host_briefing'
         } else {
@@ -4849,10 +4284,6 @@ function New-VibeRuntimeSummaryProjection {
         [AllowNull()] [object]$StorageProjection = $null,
         [AllowNull()] [object]$MemoryActivationReport,
         [AllowNull()] [object]$DeliveryAcceptanceReport,
-        [AllowNull()] [object]$SpecialistDecision = $null,
-        [AllowNull()] [object]$SpecialistUserDisclosure = $null,
-        [AllowNull()] [object]$SpecialistConsultation = $null,
-        [AllowNull()] [object]$SpecialistLifecycleDisclosure = $null,
         [AllowNull()] [object]$HostStageDisclosure = $null,
         [AllowNull()] [object]$HostUserBriefing = $null,
         [AllowNull()] [object]$BoundedReturnControl = $null
@@ -4875,10 +4306,6 @@ function New-VibeRuntimeSummaryProjection {
         storage = $StorageProjection
         memory_activation = New-VibeRuntimeSummaryMemoryActivationProjection -MemoryActivationReport $MemoryActivationReport
         delivery_acceptance = New-VibeRuntimeSummaryDeliveryAcceptanceProjection -DeliveryAcceptanceReport $DeliveryAcceptanceReport
-        specialist_decision = $SpecialistDecision
-        specialist_user_disclosure = $SpecialistUserDisclosure
-        specialist_consultation = $SpecialistConsultation
-        specialist_lifecycle_disclosure = $SpecialistLifecycleDisclosure
         host_stage_disclosure = $HostStageDisclosure
         host_user_briefing = $HostUserBriefing
         bounded_return_control = $BoundedReturnControl
@@ -4891,8 +4318,7 @@ function New-VibePythonRuntimeTruthProjection {
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$RunId,
         [Parameter(Mandatory)] [string]$Task,
-        [Parameter(Mandatory)] [object]$WorkBinding,
-        [Parameter(Mandatory)] [object]$SpecialistDecision,
+        [Parameter(Mandatory)] [object]$ModuleAssignments,
         [Parameter(Mandatory)] [object]$BaseFields,
         [AllowNull()] [object]$SkillRouting = $null
     )
@@ -4909,8 +4335,7 @@ function New-VibePythonRuntimeTruthProjection {
         Write-VibeJsonArtifact -Path $inputPath -Value ([pscustomobject]@{
             run_id = $RunId
             task = $Task
-            work_binding = $WorkBinding
-            specialist_decision = $SpecialistDecision
+            module_assignments = $ModuleAssignments
             base_fields = $BaseFields
             skill_routing = $SkillRouting
         })
@@ -5000,10 +4425,21 @@ function Get-VibeArtifactRoot {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
         [AllowNull()] [object]$Runtime = $null,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowEmptyString()] [string]$ArtifactRoot = ''
     )
 
-    return [string](New-VibeWorkspaceArtifactProjection -RepoRoot $RepoRoot -Runtime $Runtime -ArtifactRoot $ArtifactRoot).artifact_root
+    $resolvedWorkspaceRoot = if (
+        [string]::IsNullOrWhiteSpace($WorkspaceRoot) -and
+        $null -ne $Runtime -and
+        (Test-VibeObjectHasProperty -InputObject $Runtime -PropertyName 'workspace_root') -and
+        -not [string]::IsNullOrWhiteSpace([string]$Runtime.workspace_root)
+    ) {
+        [string]$Runtime.workspace_root
+    } else {
+        $WorkspaceRoot
+    }
+    return [string](New-VibeWorkspaceArtifactProjection -RepoRoot $RepoRoot -WorkspaceRoot $resolvedWorkspaceRoot -Runtime $Runtime -ArtifactRoot $ArtifactRoot).artifact_root
 }
 
 function Get-VibeSessionRoot {
@@ -5011,10 +4447,11 @@ function Get-VibeSessionRoot {
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$RunId,
         [AllowNull()] [object]$Runtime = $null,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowEmptyString()] [string]$ArtifactRoot = ''
     )
 
-    $baseRoot = Get-VibeArtifactRoot -RepoRoot $RepoRoot -Runtime $Runtime -ArtifactRoot $ArtifactRoot
+    $baseRoot = Get-VibeArtifactRoot -RepoRoot $RepoRoot -Runtime $Runtime -WorkspaceRoot $WorkspaceRoot -ArtifactRoot $ArtifactRoot
     return [System.IO.Path]::GetFullPath((Join-Path $baseRoot ("outputs\runtime\vibe-sessions\{0}" -f $RunId)))
 }
 
@@ -5023,13 +4460,24 @@ function Ensure-VibeSessionRoot {
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$RunId,
         [AllowNull()] [object]$Runtime = $null,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowEmptyString()] [string]$ArtifactRoot = ''
     )
 
-    $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -Runtime $Runtime -ArtifactRoot $ArtifactRoot
+    $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -Runtime $Runtime -WorkspaceRoot $WorkspaceRoot -ArtifactRoot $ArtifactRoot
     New-Item -ItemType Directory -Path $sessionRoot -Force | Out-Null
     if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
-        Initialize-VibeWorkspaceProjectDescriptor -RepoRoot $RepoRoot -Runtime $Runtime | Out-Null
+        $resolvedWorkspaceRoot = if (
+            [string]::IsNullOrWhiteSpace($WorkspaceRoot) -and
+            $null -ne $Runtime -and
+            (Test-VibeObjectHasProperty -InputObject $Runtime -PropertyName 'workspace_root') -and
+            -not [string]::IsNullOrWhiteSpace([string]$Runtime.workspace_root)
+        ) {
+            [string]$Runtime.workspace_root
+        } else {
+            $WorkspaceRoot
+        }
+        Initialize-VibeWorkspaceProjectDescriptor -RepoRoot $RepoRoot -WorkspaceRoot $resolvedWorkspaceRoot -Runtime $Runtime | Out-Null
     }
     return $sessionRoot
 }
@@ -5125,6 +4573,125 @@ function Test-VibeTaskSignalHit {
     return $TaskLower.Contains($needle)
 }
 
+function Get-VibeTaskTextWithoutExplicitNonCodeClauses {
+    param(
+        [Parameter(Mandatory)] [string]$TaskLower,
+        [AllowEmptyCollection()] [string[]]$ExplicitNonCodePatterns
+    )
+
+    $filtered = $TaskLower
+    foreach ($pattern in @($ExplicitNonCodePatterns | Sort-Object Length -Descending)) {
+        if (-not [string]::IsNullOrWhiteSpace($pattern)) {
+            $filtered = [Regex]::Replace(
+                $filtered,
+                ([Regex]::Escape($pattern) + '[^。！？!?；;\r\n]*'),
+                ' '
+            )
+        }
+    }
+    return $filtered
+}
+
+function Get-VibeAffirmativeTaskSignalCount {
+    param(
+        [Parameter(Mandatory)] [string]$TaskLower,
+        [AllowEmptyCollection()] [string[]]$Patterns
+    )
+
+    $actionText = [Regex]::Replace($TaskLower, '`[^`\r\n]*`|“[^”\r\n]*”|\u2018[^\u2019\r\n]*\u2019', ' ')
+    $actionText = [Regex]::Replace(
+        $actionText,
+        '\b(?:no|never|without|(?:do|must|should)\s+not|don''t|doesn''t|didn''t|can''t|cannot|won''t|shouldn''t|mustn''t)\b[^.!?;。！？；\r\n]*',
+        ' '
+    )
+    $quotedActionPatterns = @(
+        'debug', 'fix', 'repair', 'patch', 'triage', 'diagnose', 'diagnosed', 'diagnosing',
+        '修复', '调试', '排查', '定位',
+        'implement', 'build', 'upgrade', 'update', 'enhance', 'modify', 'change', 'create',
+        'add', 'integrate', 'install', 'refactor',
+        '更新', '增强', '实现', '修改', '安装', '集成', '添加单元测试'
+    )
+    $quotedActionRegex = '请(?:完成|处理)\s*(?:“(?<double>[^”\r\n]*)”|\u2018(?<single>[^\u2019\r\n]*)\u2019)'
+    foreach ($quotedActionMatch in [Regex]::Matches($TaskLower, $quotedActionRegex)) {
+        $content = if ($quotedActionMatch.Groups['double'].Success) {
+            [string]$quotedActionMatch.Groups['double'].Value
+        } else {
+            [string]$quotedActionMatch.Groups['single'].Value
+        }
+        $content = $content.Trim()
+        $startsWithAction = $false
+        foreach ($quotedActionPattern in $quotedActionPatterns) {
+            if ([Regex]::IsMatch($quotedActionPattern, '[\p{IsCJKUnifiedIdeographs}]')) {
+                if ($content.StartsWith($quotedActionPattern, [System.StringComparison]::Ordinal)) {
+                    $startsWithAction = $true
+                    break
+                }
+            } elseif ([Regex]::IsMatch($content, ('^' + [Regex]::Escape($quotedActionPattern) + '(?=$|[^a-z0-9])'))) {
+                $startsWithAction = $true
+                break
+            }
+        }
+        if ($startsWithAction -and -not [Regex]::IsMatch($content, '\.[a-z0-9]{1,10}$')) {
+            $actionText += (' ' + $content)
+        }
+    }
+    $actionText = [Regex]::Replace(
+        $actionText,
+        '\b(?:create\s+(?:a\s+)?(?:word|pdf)\s+report|build\s+(?:an?\s+)?excel\s+workbook|add\s+slides|modify\s+report)\b',
+        ' ',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+    )
+    $hits = 0
+    $negativeSuffixes = @('不要', '无需', '无须', '禁止', '不得', '不', '已')
+    foreach ($pattern in @($Patterns)) {
+        if ([string]::IsNullOrWhiteSpace($pattern)) {
+            continue
+        }
+        $needle = $pattern.ToLowerInvariant()
+        $matchPattern = if ([Regex]::IsMatch($needle, '[\p{IsCJKUnifiedIdeographs}]')) {
+            [Regex]::Escape($needle)
+        } else {
+            '(?<![a-z0-9])' + [Regex]::Escape($needle) + '(?![a-z0-9])'
+        }
+        $affirmative = $false
+        foreach ($match in [Regex]::Matches($actionText, $matchPattern)) {
+            $before = if ($match.Index -gt 0) { [string]$actionText[$match.Index - 1] } else { '' }
+            $afterIndex = $match.Index + $match.Length
+            $after = if ($afterIndex -lt $actionText.Length) { [string]$actionText[$afterIndex] } else { '' }
+            if (
+                (-not [string]::IsNullOrEmpty($before) -and '\/_-.'.Contains($before)) -or
+                (-not [string]::IsNullOrEmpty($after) -and '\/_-.'.Contains($after))
+            ) {
+                continue
+            }
+            if ($needle -eq '安装' -and $after -eq '的') {
+                continue
+            }
+            $prefix = $actionText.Substring(0, $match.Index).TrimEnd()
+            $negated = $false
+            foreach ($suffix in $negativeSuffixes) {
+                if ($prefix.EndsWith($suffix, [System.StringComparison]::Ordinal)) {
+                    $negated = $true
+                    break
+                }
+            }
+            if (
+                $negated -or
+                [Regex]::IsMatch($prefix, '(?:不要|无需|无须|禁止|不得|不|已)(?:再|擅自|直接|继续|主动|随意|自行|额外|重新|重复)?\s*$') -or
+                [Regex]::IsMatch($prefix, '(?:\b(?:no|not|never|without|already|forbidden)\s*|\b(?:don''t|doesn''t|didn''t|can''t|cannot|won''t|shouldn''t|mustn''t)\s*|\b(?:do|must|should)\s+not\s*)$')
+            ) {
+                continue
+            }
+            $affirmative = $true
+            break
+        }
+        if ($affirmative) {
+            $hits++
+        }
+    }
+    return $hits
+}
+
 function Get-VibeInferredTaskType {
     param(
         [Parameter(Mandatory)] [string]$Task
@@ -5140,9 +4707,9 @@ function Get-VibeInferredTaskType {
         'fallback',
         'threshold',
         'confidence',
-        'candidate[- ]scor',
-        'grade[- ]selection',
-        'task[- ]classification'
+        'candidate[-_ ]scor',
+        'grade[-_ ]selection',
+        'task[-_ ]classification'
     )
     $reviewPatterns = @(
         'review',
@@ -5176,6 +4743,7 @@ function Get-VibeInferredTaskType {
         'error',
         '错误',
         '修复',
+        '调试',
         '问题',
         '失败',
         '报错',
@@ -5193,8 +4761,17 @@ function Get-VibeInferredTaskType {
         'literature',
         'paper',
         'investigate',
+        'read',
+        'analysis',
+        'analyze',
+        'compare',
         '调研',
-        '研究'
+        '研究',
+        '检索',
+        '分析',
+        '比较',
+        '梳理',
+        '综述'
     )
     $codingPatterns = @(
         'implement',
@@ -5209,12 +4786,13 @@ function Get-VibeInferredTaskType {
         'integrate',
         'integration',
         'install',
+        'refactor',
         'runtime',
         'router',
         'routing',
         '更新',
         '增强',
-        '执行',
+        '实现',
         '修改',
         '安装',
         '集成',
@@ -5222,15 +4800,120 @@ function Get-VibeInferredTaskType {
         '路由',
         '工作流'
     )
+    $explicitNonCodePatterns = @(
+        '不需要写代码',
+        '不需要代码',
+        '不写代码',
+        '不要写代码',
+        '不要把写代码',
+        '不要注入代码',
+        '不做代码',
+        '无需写代码',
+        'does not require code',
+        'no code',
+        'without code'
+    )
+    $affirmativeDebugPatterns = @(
+        'debug',
+        'fix',
+        'repair',
+        'patch',
+        'triage',
+        'diagnose',
+        'diagnosed',
+        'diagnosing',
+        '修复',
+        '调试',
+        '排查',
+        '定位'
+    )
+    $affirmativeCodingPatterns = @(
+        'implement',
+        'build',
+        'upgrade',
+        'update',
+        'enhance',
+        'modify',
+        'change',
+        'create',
+        'add',
+        'integrate',
+        'install',
+        'refactor',
+        '更新',
+        '增强',
+        '实现',
+        '修改',
+        '安装',
+        '集成',
+        '添加单元测试'
+    )
+    $debugContextPatterns = @(
+        $debugPatterns | Where-Object { $_ -notin $affirmativeDebugPatterns }
+    )
+    $strongCodingActionPatterns = @(
+        'implement',
+        'build',
+        'refactor',
+        '实现',
+        '添加单元测试',
+        '修改代码'
+    )
+    $taskWithoutLiterals = [Regex]::Replace($taskLower, '`[^`\r\n]*`|“[^”\r\n]*”|\u2018[^\u2019\r\n]*\u2019', ' ')
+    $affirmativeDebugScore = Get-VibeAffirmativeTaskSignalCount -TaskLower $taskLower -Patterns $affirmativeDebugPatterns
     $reviewScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $reviewPatterns
-    $debugScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $debugPatterns
+    $debugScore = [Math]::Max(
+        (Get-VibeTaskSignalCount -TaskLower $taskWithoutLiterals -Patterns $debugContextPatterns),
+        $affirmativeDebugScore
+    )
     $researchScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $researchPatterns
-    $codingScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $codingPatterns
-    $routerContextScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $routerDiagnosticContextPatterns
+    $codingScore = Get-VibeAffirmativeTaskSignalCount -TaskLower $taskLower -Patterns $affirmativeCodingPatterns
+    $explicitNonCode = (Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $explicitNonCodePatterns) -gt 0
+    $routerContextScore = Get-VibeTaskSignalCount -TaskLower $taskWithoutLiterals -Patterns $routerDiagnosticContextPatterns
     if ($routerContextScore -gt 0) {
-        $routerDebugScore = Get-VibeTaskSignalCount -TaskLower $taskLower -Patterns $routerDiagnosticPatterns
+        $routerDebugScore = Get-VibeTaskSignalCount -TaskLower $taskWithoutLiterals -Patterns $routerDiagnosticPatterns
         if ($routerDebugScore -gt $debugScore) {
             $debugScore = $routerDebugScore
+        }
+    }
+    if (
+        $codingScore -gt 0 -and
+        $codingScore -eq $researchScore -and
+        (
+            (Get-VibeAffirmativeTaskSignalCount -TaskLower $taskLower -Patterns $strongCodingActionPatterns) -gt 0 -or
+            [Regex]::IsMatch($taskLower, '\b(?:update|modify|change)\s+(?:the\s+)?[a-z0-9_./\\-]+\.py\b')
+        )
+    ) {
+        $codingScore++
+    }
+    if ($affirmativeDebugScore -gt 0) {
+        $debugScore = [Math]::Max($debugScore, [Math]::Max($codingScore, $affirmativeDebugScore))
+    }
+    if ($explicitNonCode) {
+        $scopedTaskLower = Get-VibeTaskTextWithoutExplicitNonCodeClauses `
+            -TaskLower $taskLower `
+            -ExplicitNonCodePatterns $explicitNonCodePatterns
+        $codingScore = Get-VibeAffirmativeTaskSignalCount -TaskLower $scopedTaskLower -Patterns $affirmativeCodingPatterns
+        $debugScore = Get-VibeAffirmativeTaskSignalCount -TaskLower $scopedTaskLower -Patterns $affirmativeDebugPatterns
+        if (
+            $codingScore -gt 0 -and
+            $codingScore -eq $researchScore -and
+            (
+                (Get-VibeAffirmativeTaskSignalCount -TaskLower $scopedTaskLower -Patterns $strongCodingActionPatterns) -gt 0 -or
+                [Regex]::IsMatch($scopedTaskLower, '\b(?:update|modify|change)\s+(?:the\s+)?[a-z0-9_./\\-]+\.py\b')
+            )
+        ) {
+            $codingScore++
+        }
+        if ($debugScore -gt 0) {
+            $debugScore = [Math]::Max($debugScore, $codingScore)
+        }
+        $scopedRouterContextScore = Get-VibeTaskSignalCount -TaskLower $scopedTaskLower -Patterns $routerDiagnosticContextPatterns
+        if ($debugScore -gt 0 -and $scopedRouterContextScore -gt 0) {
+            $debugScore = [Math]::Max(
+                $debugScore,
+                (Get-VibeTaskSignalCount -TaskLower $scopedTaskLower -Patterns $routerDiagnosticPatterns)
+            )
         }
     }
     $scores = [ordered]@{
@@ -5264,7 +4947,6 @@ function Get-VibeInternalGrade {
     $taskLower = $Task.ToLowerInvariant()
     $inferredTaskType = Get-VibeInferredTaskType -Task $Task
     $xlPatterns = @(
-        'xl',
         'multi-agent',
         'parallel',
         'wave',
@@ -5284,6 +4966,15 @@ function Get-VibeInternalGrade {
         '从安装到运行',
         '全链路',
         '端到端'
+    )
+    $compositeDeliveryPatternGroups = [object[]]@(
+        [string[]]@('data quality audit', 'quality audit', '数据质量审计', '数据审计', '质量审计'),
+        [string[]]@('cleaned data', 'clean data', '清洗数据'),
+        [string[]]@('reproducible script', 'analysis script', 'script', '脚本'),
+        [string[]]@('summary table', 'analysis table', '汇总表', '分析表'),
+        [string[]]@('png chart', 'chart', 'plot', '图表'),
+        [string[]]@('markdown report', 'word report', 'report', '报告'),
+        [string[]]@('verification evidence', 'validation evidence', '验证证据')
     )
     $planningPatterns = @(
         'design',
@@ -5319,7 +5010,7 @@ function Get-VibeInternalGrade {
         'threshold',
         'confidence',
         'classification',
-        'candidate[- ]scor',
+        'candidate[-_ ]scor',
         'heuristic',
         'windows',
         '访谈',
@@ -5353,12 +5044,60 @@ function Get-VibeInternalGrade {
         '用户故事',
         '验收标准'
     )
+    $workflowChoicePattern = '(?<![a-z0-9])(?:l(?:\s*级)?(?:\s*(?:/|\||or|and|vs\.?|与|和|或|还是)\s*|\s+)xl(?:\s*级)?|xl(?:\s*级)?(?:\s*(?:/|\||or|and|vs\.?|与|和|或|还是)\s*|\s+)l(?:\s*级)?)(?![a-z0-9])'
+    $workflowChoiceSeen = [Regex]::IsMatch($taskLower, $workflowChoicePattern)
+    $taskWithoutWorkflowChoice = [Regex]::Replace($taskLower, $workflowChoicePattern, ' ')
+    $taskWithoutWorkflowChoice = [Regex]::Replace($taskWithoutWorkflowChoice, '(?<![a-z0-9])xl[_-]plan(?![a-z0-9])', ' ')
+    $taskWithoutNonEscalation = [Regex]::Replace(
+        $taskWithoutWorkflowChoice,
+        '(?:不要|请勿)\s*(?:升级|升到|提升)(?:\s*到|\s*为)?\s*xl(?:\s*级)?',
+        ' '
+    )
 
+    if ([Regex]::IsMatch($taskWithoutNonEscalation.TrimEnd('.'), '(?<![a-z0-9\\/_\-.])xl(?![a-z0-9\\/_\-.])')) {
+        $grade = 'XL'
+    }
+
+    $taskForXlSignals = [Regex]::Replace(
+        $taskLower,
+        '\bdo\s+not\s+use\b[^.!?;。！？；\r\n]*',
+        ' '
+    )
     foreach ($pattern in $xlPatterns) {
-        if (Test-VibeTaskSignalHit -TaskLower $taskLower -Pattern $pattern) {
+        if (-not $grade -and (Test-VibeTaskSignalHit -TaskLower $taskForXlSignals -Pattern $pattern)) {
             $grade = 'XL'
             break
         }
+    }
+
+    if (-not $grade -and $inferredTaskType -eq 'research') {
+        $compositeTask = [Regex]::Replace(
+            $taskLower,
+            '\bdo\s+not\s+(?:produce|generate)\b[^.!?;。！？；\r\n]*',
+            ' '
+        )
+        $compositeTask = [Regex]::Replace(
+            $compositeTask,
+            '(?<![a-z0-9])(?:script\.md|chart\.png|report\.md)(?![a-z0-9])',
+            ' '
+        )
+        $compositeDeliverySignalCount = 0
+        foreach ($patternGroup in $compositeDeliveryPatternGroups) {
+            if ((Get-VibeTaskSignalCount -TaskLower $compositeTask -Patterns ([string[]]$patternGroup)) -gt 0) {
+                $compositeDeliverySignalCount++
+            }
+        }
+        if ($compositeDeliverySignalCount -ge 3) {
+            $grade = 'XL'
+        }
+    }
+
+    $explicitLRequestSeen = [Regex]::IsMatch(
+        $taskWithoutNonEscalation,
+        '(?:按|采用|使用|保持)\s*l(?:\s*级)?(?:\s*处理)?'
+    )
+    if (-not $grade -and ($workflowChoiceSeen -or $explicitLRequestSeen)) {
+        $grade = 'L'
     }
 
     if (-not $grade -and $inferredTaskType -in @('coding', 'debug', 'review', 'research')) {
@@ -5403,7 +5142,8 @@ function Get-VibeInternalGrade {
 function New-VibeIntentContractObject {
     param(
         [Parameter(Mandatory)] [string]$Task,
-        [Parameter(Mandatory)] [string]$Mode
+        [Parameter(Mandatory)] [string]$Mode,
+        [AllowNull()] [object]$HostDecision = $null
     )
 
     $Mode = Resolve-VibeRuntimeMode -Mode $Mode
@@ -5413,29 +5153,90 @@ function New-VibeIntentContractObject {
     $workflowLevelRecommendationReason = if ($recommendedWorkflowLevel -eq 'XL') {
         '当前任务看起来更像高协调成本交付：需要先冻结需求和计划，再把多技能或多产物工作拆成分波次执行，避免执行中途再回头重排分工。'
     } else {
-        '当前任务更像单主线交付：先冻结需求和计划，再按顺序推进已选中的任务 skills，通常比一开始就上分波次协作更省沟通成本。'
+        '当前任务更像单主线交付：先冻结需求和计划，再让 Agent 按模块组织一个较轻量的 skills 方案，通常比一开始就上分波次协作更省沟通成本。'
+    }
+    $taskType = Get-VibeInferredTaskType -Task $Task
+    $signalText = $Task.ToLowerInvariant()
+    $explicitArtifactReviewRequirements = Get-VibeNormalizedStringList -Values $(if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'artifact_review_requirements')) { $HostDecision.artifact_review_requirements } else { @() })
+    $baselineDocumentQualityDimensions = if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'baseline_document_quality_dimensions')) {
+        $explicitBaselineDocumentQualityDimensions = Get-VibeNormalizedStringList -Values $HostDecision.baseline_document_quality_dimensions
+        @($explicitBaselineDocumentQualityDimensions)
+    } else {
+        @()
+    }
+    $artifactReviewRequirements = if (@($explicitArtifactReviewRequirements).Count -gt 0) {
+        @($explicitArtifactReviewRequirements)
+    } else {
+        @()
+    }
+    $baselineUiQualityDimensions = if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'baseline_ui_quality_dimensions')) {
+        $explicitBaselineUiQualityDimensions = Get-VibeNormalizedStringList -Values $HostDecision.baseline_ui_quality_dimensions
+        @($explicitBaselineUiQualityDimensions)
+    } else {
+        @()
     }
     $assumptions = @()
-    $assumptions += 'Interactive clarification is allowed if unresolved ambiguity materially changes implementation.'
-    return [pscustomobject]@{
-        generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        title = $title
-        goal = $title
-        deliverable = 'Governed implementation artifacts, verification evidence, and cleanup receipts'
-        constraints = @(
+    $assumptions += 'Interactive clarification is allowed if unresolved ambiguity materially changes the requested outcome.'
+    $workflowLevelSkills = if ($taskType -in @('coding', 'debug')) {
+        '会先按模块搜索本地 skills、阅读候选 `SKILL.md`，再给出较轻量的 L 级组织方案；涉及代码改动或缺陷修复时，会补充 `tdd` 这类 failure-first 验证 skill，但不默认拆成多代理。'
+    } else {
+        '会先按模块搜索本地 skills、阅读候选 `SKILL.md`，再给出较轻量的 L 级组织方案；不会给非代码任务附加代码开发验证流程。'
+    }
+    $codeTaskTddDecision = Resolve-VibeCodeTaskTddDecision `
+        -HostDecision $HostDecision `
+        -Task $Task `
+        -TaskType $taskType `
+        -HeuristicRequiresTdd ($taskType -in @('coding', 'debug')) `
+        -DocumentArtifactBaseline (@($baselineDocumentQualityDimensions).Count -gt 0)
+    $deliverable = if (
+        $null -ne $HostDecision -and
+        (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'deliverable') -and
+        -not [string]::IsNullOrWhiteSpace([string]$HostDecision.deliverable)
+    ) {
+        [string]$HostDecision.deliverable
+    } else {
+        'The user-requested outcome described in the full goal, with supporting evidence appropriate to that outcome'
+    }
+    $constraints = if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'constraints')) {
+        @(Get-VibeNormalizedStringList -Values $HostDecision.constraints)
+    } else {
+        @(
             'Do not bypass the fixed six-stage governed runtime.',
             'Do not widen scope silently beyond the frozen requirement document.'
         )
-        acceptance_criteria = @(
+    }
+    $acceptanceCriteria = if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'acceptance_criteria')) {
+        @(Get-VibeNormalizedStringList -Values $HostDecision.acceptance_criteria)
+    } else {
+        @(
             'Requirement document is frozen before execution.',
-            'Execution plan exists before implementation.',
+            'Execution plan exists before task execution.',
             'Verification evidence exists before completion claims.',
             'Phase cleanup receipt is produced.'
         )
-        non_goals = @(
+    }
+    $nonGoals = if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'non_goals')) {
+        @(Get-VibeNormalizedStringList -Values $HostDecision.non_goals)
+    } else {
+        @(
             'Do not create separate M/L/XL entry commands.',
             'Do not introduce a second router or control plane.'
         )
+    }
+    $taskSpecificAcceptanceExtensions = Get-VibeNormalizedStringList -Values $(if ($null -ne $HostDecision -and (Test-VibeObjectHasProperty -InputObject $HostDecision -PropertyName 'task_specific_acceptance_extensions')) { $HostDecision.task_specific_acceptance_extensions } else { @() })
+    return [pscustomobject]@{
+        generated_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        title = $title
+        goal = $Task
+        deliverable = $deliverable
+        constraints = @($constraints)
+        acceptance_criteria = @($acceptanceCriteria)
+        non_goals = @($nonGoals)
+        artifact_review_requirements = @($artifactReviewRequirements)
+        baseline_document_quality_dimensions = @($baselineDocumentQualityDimensions)
+        baseline_ui_quality_dimensions = @($baselineUiQualityDimensions)
+        task_specific_acceptance_extensions = @($taskSpecificAcceptanceExtensions)
+        code_task_tdd_decision = $codeTaskTddDecision
         workflow_level_confirmation = [pscustomobject]@{
             enabled = $true
             user_visible = $true
@@ -5450,14 +5251,14 @@ function New-VibeIntentContractObject {
             }
             level_details = [pscustomobject]@{
                 L = [pscustomobject]@{
-                    workflow = '先冻结需求和计划，再由 vibe 在单主线里按顺序推进已选中的任务 skills；如果途中需要额外验证，才补充少量针对性的 skills。'
-                    skills = '由 `vibe` 主控串行协作；涉及代码改动或缺陷修复时，会补充 `tdd` 这类 failure-first 验证 skill，但不默认拆成多代理。'
+                    workflow = '先冻结需求和计划，再由一个主流程串行推进 Agent 组织出的方案。'
+                    skills = $workflowLevelSkills
                     why_this_fit = '适合仍然是一个主交付物、依赖链较短、并行收益不高的任务，可以把沟通成本压低，同时保留完整的冻结与验证边界。'
                     confirm_reply = '如果你认可这个较轻量但证据完整的流程，请回复：`走 L 级`。'
                 }
                 XL = [pscustomobject]@{
-                    workflow = '先冻结需求和计划，再把工作拆成分波次执行；只有在依赖安全时才允许小步并行，最后统一回到验证和收尾。'
-                    skills = '由 `vibe` 先组织已选中的任务 skills；当任务确实需要多代理拆分时，再引入 `subagent-driven-development` 协调受控子代理。'
+                    workflow = '先冻结需求和计划，再把 Agent 组织出的方案拆成分波次执行；只有在依赖安全时才允许小步并行，最后统一回到验证和收尾。'
+                    skills = '会先按模块组织更完整的本地 Skills；确需多代理时，由当前 Agent 依据已冻结计划分波次协调，不额外假定一个协调 Skill。'
                     why_this_fit = '适合多产物、多技能协作、研究交付或高风险改动，因为它能先讲清分工、阶段边界和证据清单，再进入执行。'
                     confirm_reply = '如果你希望先把分工和波次讲清楚，再进入更重的执行流程，请回复：`走 XL 级`。'
                 }
@@ -5512,15 +5313,4 @@ function Get-VibeRuntimeInputPacketPath {
 
     $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -ArtifactRoot $ArtifactRoot
     return [System.IO.Path]::GetFullPath((Join-Path $sessionRoot 'runtime-input-packet.json'))
-}
-
-function Get-VibeExecutionTopologyPath {
-    param(
-        [Parameter(Mandatory)] [string]$RepoRoot,
-        [Parameter(Mandatory)] [string]$RunId,
-        [AllowEmptyString()] [string]$ArtifactRoot = ''
-    )
-
-    $sessionRoot = Get-VibeSessionRoot -RepoRoot $RepoRoot -RunId $RunId -ArtifactRoot $ArtifactRoot
-    return [System.IO.Path]::GetFullPath((Join-Path $sessionRoot 'execution-topology.json'))
 }

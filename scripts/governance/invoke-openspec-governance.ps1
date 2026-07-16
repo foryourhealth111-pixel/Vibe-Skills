@@ -149,8 +149,8 @@ if (-not $advice -or -not $advice.enabled) {
         enforced = $false
         wrote_artifacts = $false
         route_mode = $route.route_mode
-        selected_pack = $route.selected.pack_id
-        selected_skill = $route.selected.skill
+        selected_pack = $route.candidate_focus.pack_id
+        selected_skill = $route.candidate_focus.skill
     } | ConvertTo-Json -Depth 10
     exit 0
 }
@@ -279,7 +279,7 @@ if ($strictPlanningBlocking) {
     artifact_path = $artifactPath
     missing_full_change_files = $missingFullChangeFiles
     route_mode = $route.route_mode
-    selected_pack = $route.selected.pack_id
-    selected_skill = $route.selected.skill
+    selected_pack = $route.candidate_focus.pack_id
+    selected_skill = $route.candidate_focus.skill
     openspec_advice = $advice
 } | ConvertTo-Json -Depth 10

@@ -66,4 +66,3 @@ def test_runtime_surface_contract_owns_runtime_ignore_policy() -> None:
     assert not hasattr(module, "SKILL_ONLY_ACTIVATION_HOSTS")
     assert module.is_ignored_runtime_artifact(Path("scripts/common/__pycache__/helper.cpython-310.pyc"))
     assert module.is_ignored_runtime_artifact(Path("scripts/.coverage"))
-    assert not module.is_ignored_runtime_artifact(Path("scripts/runtime/native_specialist_runner.py"))

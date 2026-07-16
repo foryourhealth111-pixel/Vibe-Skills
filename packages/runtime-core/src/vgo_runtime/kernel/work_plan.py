@@ -18,6 +18,16 @@ class SkillProvenance:
 
 
 @dataclass(frozen=True, slots=True)
+class AcceptanceCriterion:
+    criterion_id: str
+    description: str
+    verification_mode: str
+
+    def model_dump(self) -> dict[str, object]:
+        return asdict(self)
+
+
+@dataclass(frozen=True, slots=True)
 class WorkUnit:
     id: str
     goal: str
@@ -28,6 +38,7 @@ class WorkUnit:
     fallback_skills: tuple[str, ...]
     expected_artifacts: tuple[str, ...]
     verification: tuple[str, ...]
+    acceptance_criteria: tuple[AcceptanceCriterion, ...] = ()
     selected_skill_provenance: SkillProvenance | None = None
     status: str = "pending"
     lifecycle_state: str = "active"

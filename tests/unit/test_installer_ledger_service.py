@@ -50,7 +50,7 @@ def test_build_install_ledger_tracks_payload_summary(tmp_path) -> None:
         runtime_roots={vibe_root},
         compatibility_roots={brainstorm_root},
         sidecar_roots={tmp_path / '.vibeskills'},
-        specialist_wrapper_paths=[
+        host_visible_entry_paths=[
             wrapper_root / 'vibe.md',
         ],
         config_rollbacks=[{'path': settings_path, 'created_if_absent': False, 'managed_key': 'vibeskills'}],
@@ -74,6 +74,8 @@ def test_build_install_ledger_tracks_payload_summary(tmp_path) -> None:
     assert ledger['payload_summary']['installed_skill_names'] == ['brainstorming', 'vibe']
     assert ledger['payload_summary']['public_skill_names'] == ['brainstorming', 'vibe']
     assert ledger['payload_summary']['host_visible_entry_names'] == ['vibe']
+    assert ledger['host_visible_entry_paths'] == [str((wrapper_root / 'vibe.md').resolve())]
+    assert 'specialist_wrapper_paths' not in ledger
     assert 'installed_skill_count' not in ledger['payload_summary']
     assert 'public_skill_count' not in ledger['payload_summary']
     assert 'host_visible_entry_count' not in ledger['payload_summary']
@@ -178,7 +180,7 @@ def test_build_payload_summary_reads_installed_skills_from_external_runtime_root
             'managed_skill_names': ['vibe', 'verification-before-completion'],
             'runtime_root': str(runtime_root.resolve()),
             'internal_skill_target_relpath': '',
-            'specialist_wrapper_paths': [str((bridge_root / 'skills' / 'vibe' / 'SKILL.md').resolve())],
+            'host_visible_entry_paths': [str((bridge_root / 'skills' / 'vibe' / 'SKILL.md').resolve())],
             'runtime_roots': ['skills/vibe'],
             'compatibility_roots': [],
             'sidecar_roots': [],
@@ -254,7 +256,7 @@ def test_payload_summary_counts_upgrade_status_when_present(tmp_path) -> None:
     assert refreshed['installed_file_count'] == 2
 
 
-def test_build_payload_summary_ignores_wrapper_paths_outside_target_root(tmp_path) -> None:
+def test_build_payload_summary_ignores_host_visible_entry_paths_outside_target_root(tmp_path) -> None:
     with tempfile.TemporaryDirectory() as external_dir:
         external_wrapper = Path(external_dir) / 'vibe-how-do-we-do.md'
         external_wrapper.write_text('# vibe-how-do-we-do\n', encoding='utf-8')
@@ -263,7 +265,7 @@ def test_build_payload_summary_ignores_wrapper_paths_outside_target_root(tmp_pat
             tmp_path,
             {
                 'managed_skill_names': [],
-                'specialist_wrapper_paths': [str(external_wrapper)],
+                'host_visible_entry_paths': [str(external_wrapper)],
                 'packaging_manifest': {},
                 'runtime_roots': [],
                 'compatibility_roots': [],

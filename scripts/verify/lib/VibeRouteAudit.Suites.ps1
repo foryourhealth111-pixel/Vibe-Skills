@@ -23,7 +23,7 @@ function Invoke-VibeRouteNoLocalCandidateAudit {
             $label = [string]$case.id
             $results += Assert-VibeRouteTrue -Condition ([string]$route.route_mode -eq "no_local_candidate") -Message "[$label] route mode stays no_local_candidate"
             $results += Assert-VibeRouteTrue -Condition ([string]$route.route_reason -eq "no_local_candidate_above_threshold") -Message "[$label] route reason explains the no-match fallback"
-            $results += Assert-VibeRouteTrue -Condition ($null -eq $route.selected) -Message "[$label] selected candidate is empty"
+            $results += Assert-VibeRouteTrue -Condition ($null -eq $route.candidate_focus) -Message "[$label] selected candidate is empty"
             $results += Assert-VibeRouteTrue -Condition ([double]$route.top1_top2_gap -ge 0) -Message "[$label] top1_top2_gap is non-negative"
             $results += Assert-VibeRouteTrue -Condition (-not ($route.PSObject.Properties.Name -contains "confirm_ui")) -Message "[$label] no confirm_ui is emitted for no-match fallback"
         }
@@ -55,11 +55,11 @@ function Invoke-VibeRouteLocalOwnerAudit {
                 -TaskType ([string]$case.task_type)
 
             $label = [string]$case.id
-            $expectedPack = [string]$case.expected.selected_pack
-            $expectedSkill = [string]$case.expected.selected_skill
+            $expectedPack = [string]$case.expected.candidate_focus_pack
+            $expectedSkill = [string]$case.expected.candidate_focus_skill
             $results += Assert-VibeRouteTrue -Condition ([string]$route.route_mode -eq "local_skill_overlay") -Message "[$label] route mode lands on local_skill_overlay"
-            $results += Assert-VibeRouteTrue -Condition ([string]$route.selected.pack_id -eq $expectedPack) -Message "[$label] selected pack is $expectedPack"
-            $results += Assert-VibeRouteTrue -Condition ([string]$route.selected.skill -eq $expectedSkill) -Message "[$label] selected skill is $expectedSkill"
+            $results += Assert-VibeRouteTrue -Condition ([string]$route.candidate_focus.pack_id -eq $expectedPack) -Message "[$label] selected pack is $expectedPack"
+            $results += Assert-VibeRouteTrue -Condition ([string]$route.candidate_focus.skill -eq $expectedSkill) -Message "[$label] selected skill is $expectedSkill"
             $results += Assert-VibeRouteTrue -Condition ([string]$route.candidate_source -eq "local_skill_index") -Message "[$label] candidate source stays local_skill_index"
             $results += Assert-VibeRouteTrue -Condition ([double]$route.top1_top2_gap -ge 0) -Message "[$label] top1_top2_gap is non-negative"
         }
@@ -111,8 +111,8 @@ function Invoke-VibeRouteRequestedSkillAudit {
 
             $label = [string]$case.Name
             $results += Assert-VibeRouteTrue -Condition ([string]$route.route_mode -eq "local_skill_overlay") -Message "[$label] route mode stays local_skill_overlay"
-            $results += Assert-VibeRouteTrue -Condition ([string]$route.selected.pack_id -eq "local-skill-index") -Message "[$label] selected pack stays local-skill-index"
-            $results += Assert-VibeRouteTrue -Condition ([string]$route.selected.skill -eq [string]$case.ExpectedSkill) -Message "[$label] selected skill is $($case.ExpectedSkill)"
+            $results += Assert-VibeRouteTrue -Condition ([string]$route.candidate_focus.pack_id -eq "local-skill-index") -Message "[$label] selected pack stays local-skill-index"
+            $results += Assert-VibeRouteTrue -Condition ([string]$route.candidate_focus.skill -eq [string]$case.ExpectedSkill) -Message "[$label] selected skill is $($case.ExpectedSkill)"
         }
 
         $missingRequested = Invoke-VibeRouteAudit `

@@ -1,10 +1,14 @@
 # Built-In Skill Routing Remediation
 
+> Historical remediation record. After the Agent-led skill discovery cutover,
+> `vibe` remains runtime authority, the Agent freezes `agent_skill_organization`,
+> and the retained router is compatibility candidate audit only.
+
 ## Why This Exists
 
 当前内置 skill 库有一个治理断层：
 
-- runtime 实际上已经由 router / canonical `vibe` 决定能力入口；
+- runtime authority 由 canonical `vibe` 保持，task skill 由 Agent 在阅读候选 `SKILL.md` 后组织；
 - 但不少 bundled `SKILL.md` 仍然自称“自动激活”“自动触发”“自动执行”；
 - 还有一批 skill 元信息过于模板化，场景边界不清，导致多个 skill 在用户语义上互相重叠；
 - 最终结果不是“每个 skill 都能被路由”，而是少数 metadata 更强的 skill 持续赢，其他 skill 长期处于假可用状态。
@@ -36,14 +40,14 @@
 
 内置 skills 的整改遵循以下原则：
 
-1. Router 才是运行时入口裁决者
-   built-in skill 不能在 `SKILL.md` 中宣称自己会自动激活、自动派发、自动接管。
+1. Agent 是 task skill 选择者
+   built-in skill 不能在 `SKILL.md` 中宣称自己会自动激活、自动派发、自动接管；route 结果也不能替代 Agent 的模块拆分与 `SKILL.md` 阅读。
 
-2. 技能文案与路由元数据分层
-   `SKILL.md` 负责告诉人“这个 skill 适合什么问题、不适合什么问题”；真正的命中权重、负关键词、任务类型边界仍由路由配置负责。
+2. 技能文案与候选审计分层
+   `SKILL.md` 负责告诉 Agent“这个 skill 适合什么问题、不适合什么问题”；路由分数、关键词和排序只用于兼容审计，不产生 task skill truth。
 
 3. 场景定义必须可区分
-   一个 routed built-in skill 必须能回答三个问题：
+   一个可被 Agent 选择的 built-in skill 必须能回答三个问题：
    - 它解决哪类主问题
    - 它不解决哪类相邻问题
    - 它与最容易冲突的 1-3 个 skill 如何区分

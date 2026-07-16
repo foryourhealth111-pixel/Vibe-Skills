@@ -15,9 +15,7 @@
     }
   },
   "bridges": {
-    "confirm_ui_policy": "config/confirm-ui-policy.json",
     "deep_discovery_policy": "config/deep-discovery-policy.json",
-    "plan_execution_policy": "config/plan-execution-policy.json",
-    "execution_runtime_policy": "config/execution-runtime-policy.json"
+    "plan_execution_policy": "config/plan-execution-policy.json"
   }
 }

@@ -9,50 +9,34 @@ PACK_MANIFEST = json.loads((REPO_ROOT / "config" / "pack-manifest.json").read_te
 ROUTER_THRESHOLDS = json.loads((REPO_ROOT / "config" / "router-thresholds.json").read_text(encoding="utf-8-sig"))
 
 
-def pack_by_id(pack_id: str) -> dict[str, object]:
+def test_retired_router_authority_fallback_fields_are_absent() -> None:
+    retired_pack_fields = {
+        "authority_tier",
+        "fallback_owner_pack_id",
+        "fallback_owner_skill",
+    }
+
+    assert "authority" not in ROUTER_THRESHOLDS
     for pack in PACK_MANIFEST["packs"]:
-        if pack["id"] == pack_id:
-            return pack
-    raise AssertionError(f"missing pack: {pack_id}")
+        assert retired_pack_fields.isdisjoint(pack)
 
 
-def test_first_wave_packs_define_authority_tiers() -> None:
-    code_quality = pack_by_id("code-quality")
-    integration_devops = pack_by_id("integration-devops")
-    docs_media = pack_by_id("docs-media")
-    scholarly = pack_by_id("scholarly-publishing-workflow")
-
-    assert code_quality["authority_tier"] == "broad_owner"
-    assert code_quality["fallback_owner_pack_id"] == "code-quality"
-    assert code_quality["fallback_owner_skill"] == "systematic-debugging"
-
-    assert integration_devops["authority_tier"] == "broad_owner"
-    assert integration_devops["fallback_owner_pack_id"] == "integration-devops"
-    assert integration_devops["fallback_owner_skill"] == "gh-fix-ci"
-
-    assert docs_media["authority_tier"] == "broad_owner"
-    assert docs_media["fallback_owner_pack_id"] == "docs-media"
-    assert docs_media["fallback_owner_skill"] == "pdf"
-
-    assert scholarly["authority_tier"] == "narrow_specialist"
-    assert scholarly["fallback_owner_pack_id"] == "code-quality"
-    assert scholarly["fallback_owner_skill"] == "systematic-debugging"
-
-
-def test_router_thresholds_define_safe_fallback_policy() -> None:
-    authority = ROUTER_THRESHOLDS["authority"]
-
-    assert authority["default_requires_positive_keyword_match_for_narrow"] is True
-    assert authority["supporting_keyword_weight"] == 0.35
-    assert authority["minimum_candidate_signal_by_tier"] == {
-        "broad_owner": 0.18,
-        "narrow_specialist": 0.32,
+def test_retired_programmatic_selection_thresholds_are_absent() -> None:
+    retired_thresholds = {
+        "auto_route",
+        "confirm_required",
+        "fallback_to_legacy_below",
+        "min_candidate_signal_for_confirm_override",
+        "min_candidate_signal_for_auto_route",
     }
-    assert authority["global_safe_fallback_by_task"]["debug"] == {
-        "pack_id": "code-quality",
-        "skill": "systematic-debugging",
-    }
-    assert authority["global_safe_fallback_by_task"]["review"] == {
-        "pack_id": "code-quality",
-        "skill": "code-reviewer",
+
+    assert "weights" not in ROUTER_THRESHOLDS
+    assert "safety" not in ROUTER_THRESHOLDS
+    assert "candidate_selection" not in ROUTER_THRESHOLDS
+    assert retired_thresholds.isdisjoint(ROUTER_THRESHOLDS.get("thresholds", {}))
+    assert ROUTER_THRESHOLDS["thresholds"] == {
+        "candidate_focus": 0.45,
+        "min_top1_top2_gap": 0.06,
+        "min_candidate_signal_for_near_match": 0.2,
+        "min_candidate_signal_for_focus": 0.6,
     }

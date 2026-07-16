@@ -222,3 +222,27 @@ def test_installer_core_uses_local_bootstrap_helper_for_contract_path_setup() ->
         assert 'CONTRACTS_SRC =' not in content
 
     assert 'ensure_repo_src_on_path(repo_root, "packages/skill-catalog/src")' in install_runtime
+
+
+def test_installer_and_bootstrap_surfaces_do_not_reference_retired_specialist_fields() -> None:
+    source_paths = (
+        REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'host_closure.py',
+        REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'install_runtime.py',
+        REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'ledger_service.py',
+        REPO_ROOT / 'packages' / 'installer-core' / 'src' / 'vgo_installer' / 'uninstall_service.py',
+        REPO_ROOT / 'packages' / 'contracts' / 'src' / 'vgo_contracts' / 'host_runtime_readiness.py',
+        REPO_ROOT / 'packages' / 'verification-core' / 'src' / 'vgo_verify' / 'bootstrap_doctor_runtime.py',
+    )
+    retired_fields = (
+        'specialist_execution',
+        'specialist_wrapper',
+        'specialist_wrapper_paths',
+        'specialist_wrapper_ready',
+        'specialist_wrapper_required',
+        'same_session_specialist_routing',
+    )
+
+    for source_path in source_paths:
+        content = source_path.read_text(encoding='utf-8')
+        for retired_field in retired_fields:
+            assert retired_field not in content, f'{retired_field} remains in {source_path}'

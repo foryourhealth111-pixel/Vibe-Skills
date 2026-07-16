@@ -14,34 +14,29 @@ def read_doc(name: str) -> str:
 def test_current_routing_contract_frames_route_chain_as_compatibility_only() -> None:
     text = read_doc("current-routing-contract.md")
 
-    assert "This is not the start-here explanation of the system." in text
+    assert "It is not the main runtime truth contract." in text
     assert "[`current-runtime-field-contract.md`](current-runtime-field-contract.md)" in text
-    assert "You usually do not need this file unless a compatibility reader still exposes" in text
-    assert "Default reading stop for most runs:" in text
-    assert "task_card -> work_plan -> work_binding -> work_results -> verification" in text
-    assert "Compatibility Follow-On Chain" in text
-    assert (
-        "skill_candidates -> skill_routing.selected -> skill_execution_lock -> "
-        "selected_skill_execution -> "
-        "skill_usage.used / skill_usage.unused"
-    ) in text
-    assert "This is not a workflow to follow." in text
-    assert "`work_binding` stays the bounded-work truth." in text
-    assert "`skill_execution_lock` | The approved-plan execution lock that preserves selected specialists across bounded re-entry. It is not a use claim." in text
-    assert "If a normal run cannot be understood without this file, the work-first" in text
-    assert "This is the only model current user-facing docs and generated runtime outputs should teach." not in text
+    assert "requirement: skill_search_guide" in text
+    assert "plan truth: agent_skill_organization" in text
+    assert "The retained router is a compatibility candidate audit." in text
+    assert "Those fields do not choose task skills, bind work, stop stage progression, or" in text
+    assert "A route candidate becomes executable only after the Agent" in text
+    assert "Require `module_assignments` skill ids to match the organization's selected skill ids." in text
+    assert "Treat uncovered modules as explicit gaps; do not fabricate coverage." in text
     assert "skill_routing.selected -> skill_usage.used" not in text
 
 
 def test_runtime_field_contract_puts_work_truth_before_compatibility_chain() -> None:
     text = read_doc("current-runtime-field-contract.md")
 
-    assert "## Work-First Truth" in text
-    assert "runtime input truth: work_binding + specialist_decision" in text
-    assert "later work-loop truth: task_card -> work_plan -> work_binding -> work_results -> verification" in text
-    assert "## Compatibility Mirrors" in text
-    assert "`skill_execution_lock` records specialists that crossed the approved-plan boundary" in text
-    assert "Do not treat route-era packet summaries as the main explanation of the system." in text
+    assert "## Canonical Truth Chain" in text
+    assert "plan truth: agent_skill_organization -> module-work-plan.json" in text
+    assert "handoff truth: module-work-plan.json -> agent-execution-handoff.json" in text
+    assert "execution truth: agent-execution-handoff.json -> module-execution.json" in text
+    assert "acceptance truth: module-execution.json -> delivery-acceptance-report.json" in text
+    assert "## Compatibility Audit Fields" in text
+    assert "They are audit mirrors only." in text
+    assert "must not populate `agent_skill_organization`, bind work, or" in text
 
 
 def test_governance_readme_points_to_work_truth_before_routing_history() -> None:
@@ -97,10 +92,12 @@ def test_docs_root_readme_keeps_delivery_acceptance_out_of_current_runtime_entry
 def test_delivery_acceptance_governance_page_uses_work_first_truth_lead() -> None:
     text = read_doc("vibe-governed-project-delivery-acceptance-governance.md")
 
-    assert "task_card -> work_plan -> work_binding -> work_results -> verification" in text
-    assert "`work_binding`" in text
     assert (
-        "skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage"
+        "The current work truth is `module-work-plan.json -> agent-execution-handoff.json\n"
+        "-> module-execution.json -> delivery-acceptance-report.json`."
+    ) in text
+    assert (
+        "skill_candidates -> skill_routing.selected -> module_skill_dispatch -> skill_usage"
     ) not in text
 
 
@@ -110,4 +107,77 @@ def test_runtime_protocol_sets_work_truth_reading_order_before_routing_compatibi
     assert "When you need to explain a run or inspect artifacts, use this reading order:" in text
     assert "start with `current-runtime-field-contract.md` plus the run's work artifacts" in text
     assert "for most normal runs, stop there and read the work truth" in text
-    assert "read `current-routing-contract.md` only if you still need the compatibility selection or execution chain" in text
+    assert "read `current-routing-contract.md` only if you still need the compatibility candidate-audit chain" in text
+
+
+def test_runtime_protocol_hands_module_work_to_the_current_agent() -> None:
+    text = (REPO_ROOT / "protocols" / "runtime.md").read_text(encoding="utf-8")
+
+    assert "`plan_execute` compiles `module-work-plan.json` into `agent-execution-handoff.json`" in text
+    assert "The current Agent reads every assigned `skill_entrypoint`" in text
+    assert "writes the complete result to `module-execution.json`" in text
+    assert "returns it through canonical `vibe` re-entry for acceptance" in text
+    assert "`agent_action_required`" in text
+
+    for retired_claim in (
+        "native_skill_entrypoint",
+        "`L` runs serial native units",
+        "bounded native units",
+        "actually executing Skills",
+        "`module_skill_dispatch`",
+        "execution-manifest operational accounting",
+        "execution-manifest skill execution accounting",
+        "execution receipts, cleanup receipts",
+        "execution locks",
+    ):
+        assert retired_claim not in text
+
+
+def test_retired_router_exact_golden_gate_is_absent_from_current_surfaces() -> None:
+    assert not (REPO_ROOT / "scripts" / "verify" / "vibe-router-contract-gate.ps1").exists()
+    assert not (
+        REPO_ROOT / "tests" / "replay" / "route" / "router-contract-gate-golden.json"
+    ).exists()
+
+    current_surfaces = [
+        "docs/contributor-default-runbooks.md",
+        "docs/developer-change-governance.md",
+        "docs/operator-default-runbooks.md",
+        "docs/status/non-regression-proof-bundle.md",
+        "docs/status/protected-capability-baseline.md",
+        "docs/governance/router-modularization-governance.md",
+        "docs/architecture/legacy-topology-audit.md",
+        "references/change-proof-matrix.md",
+        "scripts/verify/README.md",
+        "scripts/verify/gate-family-index.md",
+        "tests/replay/README.md",
+        "tests/replay/route/README.md",
+    ]
+    for relative_path in current_surfaces:
+        text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "vibe-router-contract-gate.ps1" not in text, relative_path
+        assert "router-contract-gate-golden.json" not in text, relative_path
+
+
+def test_retired_selected_route_mirror_is_absent_from_current_runtime_surfaces() -> None:
+    current_surfaces = [
+        "config/current-routing-debt-erasure.json",
+        "config/kernel-boundary-demotion-matrix.json",
+        "docs/governance/current-routing-contract.md",
+        "docs/governance/current-runtime-field-contract.md",
+        "packages/runtime-core/src/vgo_runtime/canonical_entry.py",
+        "scripts/runtime/VibeRuntime.Common.ps1",
+        "scripts/verify/vibe-canonical-entry-truth-gate.ps1",
+        "scripts/verify/vibe-no-silent-fallback-contract-gate.ps1",
+        "scripts/verify/vibe-runtime-execution-proof-gate.ps1",
+    ]
+    for relative_path in current_surfaces:
+        text = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "skill_routing.selected" not in text, relative_path
+        assert "compatibility.skill_routing.selected" not in text, relative_path
+        assert "derived_from_skill_routing_selected" not in text, relative_path
+
+    canonical_entry = (REPO_ROOT / "packages/runtime-core/src/vgo_runtime/canonical_entry.py").read_text(
+        encoding="utf-8"
+    )
+    assert "_skill_routing_selected_skill_ids" not in canonical_entry

@@ -1,6 +1,6 @@
 # Simplified Skill Routing
 
-> Historical / Retired Note: This document records the older simplification pass. The current work-first truth model is `task_card -> work_plan -> work_binding -> work_results -> verification`. `skill_routing.selected` may remain visible only as an optional compatibility mirror.
+> Historical / Retired Note: This document records the older simplification pass. The current work-first truth model is `task_card -> work_plan -> module_assignments -> work_results -> verification`. `skill_routing.selected` may remain visible only as an optional compatibility mirror.
 
 Current readers should use:
 
@@ -12,7 +12,7 @@ Current readers should use:
 
 The durable decision from this document is that Vibe-Skills should not expose a
 multi-state helper architecture to users. The current model keeps a small
-work-first truth chain, with `work_binding` as the first runtime truth and
+work-first truth chain, with `module_assignments` as the first runtime truth and
 compatibility fields such as `skill_routing.selected` staying secondary.
 
 ## Retired Context

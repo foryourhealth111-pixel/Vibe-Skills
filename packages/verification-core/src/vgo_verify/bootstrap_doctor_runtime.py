@@ -102,12 +102,10 @@ def collect_host_runtime(repo_root: Path, target_root: Path) -> dict[str, Any]:
         or _resolve_declared_path(host_closure_payload.get("commands_root"), target_root=target_root)
         or (target_root / "commands").resolve()
     )
-    specialist_wrapper = host_closure_payload.get("specialist_wrapper") if host_closure_valid else None
-    specialist_wrapper_ready = bool(specialist_wrapper.get("ready")) if isinstance(specialist_wrapper, dict) else False
     runtime_readiness = evaluate_host_runtime_readiness(
         repo_root,
         host_id or None,
-        specialist_wrapper_ready=specialist_wrapper_ready,
+        bridge_runtime_ready=bool(host_settings_payload) or commands_root.exists(),
     )
 
     runtime_skill_entry_path = str(runtime_skill_entry.resolve())
@@ -153,7 +151,6 @@ def collect_host_runtime(repo_root: Path, target_root: Path) -> dict[str, Any]:
         "host_closure_runtime_matches": host_closure_runtime_matches,
         "host_closure_commands_match": host_closure_commands_match,
         "host_closure_commands_materialized": host_closure_commands_materialized,
-        "specialist_wrapper_ready": specialist_wrapper_ready,
         "settings_surface_path": str(settings_surface_path),
         "settings_surface_exists": settings_surface_exists,
         "settings_surface_kind": settings_surface_kind,

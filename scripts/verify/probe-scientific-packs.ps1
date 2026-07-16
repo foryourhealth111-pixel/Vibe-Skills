@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$OutputDirectory,
     [switch]$DefaultIncludePrompt,
     [switch]$Unattended
@@ -19,8 +19,8 @@ function Get-CaseMetrics {
         [object]$Result
     )
 
-    $selectedPack = if ($Result -and $Result.selected) { [string]$Result.selected.pack_id } else { "" }
-    $selectedSkill = if ($Result -and $Result.selected) { [string]$Result.selected.skill } else { "" }
+    $selectedPack = if ($Result -and $Result.candidate_focus) { [string]$Result.candidate_focus.pack_id } else { "" }
+    $selectedSkill = if ($Result -and $Result.candidate_focus) { [string]$Result.candidate_focus.skill } else { "" }
 
     $expectedPack = if ($Case.expected_pack) { [string]$Case.expected_pack } else { "" }
     $expectedSkill = if ($Case.expected_skill) { [string]$Case.expected_skill } else { "" }

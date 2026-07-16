@@ -11,22 +11,21 @@ Complete reference of VCO execution tools, their capabilities, APIs, state paths
 | 3 | Ralph-loop | Plugin (hooks + skills) | Stop | .claude/ralph-loop.local.md | ✅ |
 | 4 | Claude-code-settings | Plugin (skills + agents) | None | .specify/, .kiro/, .autonomous/ | ✅ |
 | 5 | Everything-claude-code | Plugin (hooks + skills + agents) | SessionStart, PreToolUse, PostToolUse, Stop | ~/.claude/sessions/, ~/.claude/homunculus/ | ✅ |
-| 6 | Claude-flow/ruflo (collaboration backend) | MCP Server | PreToolUse, PostToolUse, PreCompact, Stop | .claude-flow/ | ⚠️ MCP依赖 |
-| 7 | Codex native team runtime | Native runtime APIs | None | Session runtime | ✅ |
-| 8 | Open Ralph Wiggum CLI (optional) | External CLI | None | .ralph/ | ⚠️ Optional |
-| 9 | Cognee (optional long-term memory) | External graph memory backend | None | External/adapter-managed | ⚠️ Optional |
-| 10 | xan (optional large-CSV backend) | External CLI | None | Dataset files / shell pipelines | ⚠️ Optional |
-| 11 | fuck-u-code (optional quality debt analyzer) | External CLI | None | Analyzer workspace / report output | ⚠️ Optional |
-| 12 | ivy (optional framework interop backend) | Python library / optional CLI | None | Python runtime / interop artifacts | ⚠️ Optional |
-| 13 | Made-With-ML lifecycle patterns (optional governance source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
-| 14 | clean-code-python patterns (optional Python quality source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
-| 15 | system-design-primer patterns (optional architecture source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
-| 16 | LeetCUDA patterns (optional CUDA optimization source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
-| 17 | Scrapling (optional) | External CLI + MCP server | None | None (writes user-specified output files) | ⚠️ Optional |
-| 18 | Docling MCP / provider contract | Provider contract / document-plane governance | None | Canonical config + references + verify gates | ✅ |
-| 19 | Connector admission layer | Governance layer (catalog + provider admission) | None | Canonical config + matrix + verify gates | ✅ |
-| 20 | Role-pack distillation layer | Governance layer (role cards + skill distillation rules) | None | Canonical docs + references + verify gates | ✅ |
-| 21 | Capability catalog corpus | Governance layer (capability discovery / eval inputs) | None | Canonical config + references + verify gates | ✅ |
+| 6 | Codex native team runtime | Native runtime APIs | None | Session runtime | ✅ |
+| 7 | Open Ralph Wiggum CLI (optional) | External CLI | None | .ralph/ | ⚠️ Optional |
+| 8 | Cognee (optional long-term memory) | External graph memory backend | None | External/adapter-managed | ⚠️ Optional |
+| 9 | xan (optional large-CSV backend) | External CLI | None | Dataset files / shell pipelines | ⚠️ Optional |
+| 10 | fuck-u-code (optional quality debt analyzer) | External CLI | None | Analyzer workspace / report output | ⚠️ Optional |
+| 11 | ivy (optional framework interop backend) | Python library / optional CLI | None | Python runtime / interop artifacts | ⚠️ Optional |
+| 12 | Made-With-ML lifecycle patterns (optional governance source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
+| 13 | clean-code-python patterns (optional Python quality source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
+| 14 | system-design-primer patterns (optional architecture source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
+| 15 | LeetCUDA patterns (optional CUDA optimization source) | Methodology overlay | None | Config-driven advisory metadata | ⚠️ Optional |
+| 16 | Scrapling (optional) | External CLI + MCP server | None | None (writes user-specified output files) | ⚠️ Optional |
+| 17 | Docling MCP / provider contract | Provider contract / document-plane governance | None | Canonical config + references + verify gates | ✅ |
+| 18 | Connector admission layer | Governance layer (catalog + provider admission) | None | Canonical config + matrix + verify gates | ✅ |
+| 19 | Role-pack distillation layer | Governance layer (role cards + skill distillation rules) | None | Canonical docs + references + verify gates | ✅ |
+| 20 | Capability catalog corpus | Governance layer (capability discovery / eval inputs) | None | Canonical config + references + verify gates | ✅ |
 
 ## Verification Status Legend
 
@@ -146,9 +145,6 @@ Complete reference of VCO execution tools, their capabilities, APIs, state paths
 | ui-engineer | Frontend/UI development | ✅ |
 | github-issue-fixer | Issue resolution workflow | ✅ |
 
-### MCP Server
-- Chrome DevTools MCP (chrome-devtools-mcp) ⚠️ Requires Chrome running
-
 ### Characteristics
 - No hooks registered
 - Provides LiteLLM proxy configuration (localhost:4000)
@@ -196,47 +192,7 @@ Complete reference of VCO execution tools, their capabilities, APIs, state paths
 
 ---
 
-## 6. Claude-flow/ruflo (Collaboration Backend)
-
-**Version**: 3.1.0-alpha.41
-**MCP Server**: ruflo ⚠️ MCP 依赖
-- 150+ 工具已注册为 deferred tools，需通过 ToolSearch 加载后使用
-- 首次调用任何 ruflo 工具前，必须先 ToolSearch 加载对应工具
-- MCP server 未运行时所有工具不可用，走 fallback chain
-**Location**: ~/.npm-global/node_modules/claude-flow/
-
-### MCP Tool Categories (100+ tools)
-| Category | Key Tools | Purpose | Verified |
-|----------|-----------|---------|----------|
-| agent | agent_spawn, agent_list, agent_pool | Agent lifecycle management | ⚠️ MCP依赖 |
-| swarm | swarm_init, swarm_status | Basic coordination | ⚠️ MCP依赖 |
-| hive-mind | hive-mind_spawn, hive-mind_consensus | Advanced collective intelligence | ⚠️ MCP依赖 |
-| memory | memory_store, memory_search | HNSW vector memory | ⚠️ MCP依赖 |
-| workflow | workflow_create, workflow_execute | Workflow engine (5 step types) | ⚠️ MCP依赖 |
-| task | task_create, task_list | Task queue management | ⚠️ MCP依赖 |
-| session | session_save, session_restore | Session management | ⚠️ MCP依赖 |
-
-### State Directory
-```
-.claude-flow/
-  agents/store.json
-  memory/ (sql.js + HNSW)
-  hive-mind/state.json
-  workflows/store.json
-  tasks/store.json
-  sessions/
-```
-
-### Characteristics
-- 60+ agent type templates with model routing（基于 prompt 模板的角色分化）
-- 3 aggregation modes (Majority voting, Weighted voting, Multi-perspective validation)
-- HNSW vector search (150x-12,500x faster than JSON)
-- File-based state in .claude-flow/ (per-project)
-- No API keys required (local embeddings)
-
----
-
-## 7. Codex Native Team Runtime (Primary XL Executor)
+## 6. Codex Native Team Runtime (Primary XL Executor)
 
 Runtime-native APIs for multi-agent orchestration:
 

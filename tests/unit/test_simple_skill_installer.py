@@ -93,7 +93,6 @@ def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None
         "adapters/index.json",
         "scripts/common/vibe-governance-helpers.ps1",
         "scripts/runtime/VibeRuntime.Common.ps1",
-        "scripts/router/modules/46-confirm-ui.ps1",
         "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
     ):
         _write(repo_root / relpath)
@@ -114,7 +113,6 @@ def test_install_copies_only_the_simplified_vibe_package(tmp_path: Path) -> None
         script_files=(
             "scripts/common/vibe-governance-helpers.ps1",
             "scripts/runtime/VibeRuntime.Common.ps1",
-            "scripts/router/modules/46-confirm-ui.ps1",
             "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
         ),
         package_dirs=(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sys
+import uuid
 
 import pytest
 
@@ -19,6 +20,66 @@ from vgo_runtime.kernel.planner import build_work_plan
 from vgo_runtime.kernel.run_state import load_run_state, write_run_state
 from vgo_runtime.kernel.task_card import build_task_card
 from vgo_runtime.kernel.verifier import verify_run
+
+
+def run_local_kernel_with_agent_choice(**kwargs: object) -> dict[str, object]:
+    discovery = run_local_kernel(
+        **{
+            **kwargs,
+            "run_id": f"{kwargs.get('run_id', 'run-default')}-agent-discovery-{uuid.uuid4().hex[:8]}",
+            "execute": False,
+        }
+    )
+    modules: list[dict[str, object]] = []
+    selected_by_skill: dict[str, dict[str, object]] = {}
+    uncovered_modules: list[dict[str, object]] = []
+    for unit in discovery["plan"]["work_units"]:
+        candidate_skill_ids = list(unit["fallback_skills"])
+        modules.append(
+            {
+                "module_id": unit["id"],
+                "goal": unit["goal"],
+                "candidate_skill_ids": candidate_skill_ids,
+                "execution_mode": "skill_assigned" if candidate_skill_ids else "blocked_gap",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": f"{unit['id']}-result",
+                        "description": f"{unit['goal']} satisfies the requested outcome.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            }
+        )
+        if not candidate_skill_ids:
+            uncovered_modules.append(
+                {"module_id": unit["id"], "reason": "No local candidate owns this test module."}
+            )
+            continue
+        skill_id = candidate_skill_ids[0]
+        selected = selected_by_skill.setdefault(
+            skill_id,
+            {
+                "skill_id": skill_id,
+                "module_ids": [],
+                "responsibility": unit["goal"],
+                "reason": "The test Agent selected the first matching local owner.",
+            },
+        )
+        selected["module_ids"].append(unit["id"])
+
+    organization = {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "L",
+        "modules": modules,
+        "selected_skills": list(selected_by_skill.values()),
+        "uncovered_modules": uncovered_modules,
+        "workflow_level_contract": {
+            "L": "Use one serial governed lane.",
+            "XL": "Use bounded waves when needed.",
+        },
+    }
+    return run_local_kernel(**kwargs, agent_skill_organization=organization)
 
 
 def _with_source_metadata(
@@ -89,6 +150,30 @@ def test_execute_work_unit_records_scaffold_that_needs_execution() -> None:
     assert result.checked_targets == ("review notes exists", "review findings are explicit")
     assert result.proof[0] == "wu-1: scaffolded for bound skill code-review"
     assert "requires real execution evidence" in result.notes[0]
+
+
+def test_run_local_kernel_without_agent_organization_does_not_bind_planner_choice(tmp_path: Path) -> None:
+    agent_root = tmp_path / "agent-root"
+    skill_dir = agent_root / "vibe" / "skills" / "local" / "code-review"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nid: code-review\nname: Code Review\ndescription: Review implementation risk and test gaps.\nenabled: true\n---\n",
+        encoding="utf-8",
+    )
+
+    result = run_local_kernel(
+        agent_root=agent_root,
+        prompt="Review the runtime redesign and produce review notes.",
+        run_id="agent-organization-required",
+        execute=False,
+    )
+
+    assert result["state"] == "awaiting_agent_skill_organization"
+    assert result["agent_skill_organization"] is None
+    assert result["module_assignments"]["source"] is None
+    assert result["module_assignments"]["units"] == []
+    assert result["plan"]["work_units"][0]["preferred_skill"] is None
+    assert "code-review" in result["plan"]["work_units"][0]["fallback_skills"]
 
 
 def test_verify_run_requests_rework_when_a_work_unit_fails() -> None:
@@ -176,7 +261,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    result = run_local_kernel(
+    result = run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Review the runtime redesign and produce review notes.",
         context={
@@ -196,7 +281,7 @@ enabled: true
     assert result["artifacts"]["work_dossier_markdown"].endswith("work-dossier.md")
     assert result["artifacts"]["task_card"].endswith("task-card.json")
     assert result["artifacts"]["work_plan"].endswith("plan.json")
-    assert result["artifacts"]["work_binding"].endswith("work-binding.json")
+    assert result["artifacts"]["module_assignments"].endswith("module-assignments.json")
     assert result["artifacts"]["work_results"].endswith("work-results.json")
     assert result["artifacts"]["verification"].endswith("verification.json")
     assert result["work_summary"]["proof_ready"] is False
@@ -205,22 +290,23 @@ enabled: true
     assert result["work_summary"]["primary_artifact_path"].endswith("work-dossier.json")
     assert result["work_dossier"]["task_card"]["id"] == result["task_card"]["id"]
     assert result["work_dossier"]["work_plan"]["task_id"] == result["task_card"]["id"]
-    assert result["work_dossier"]["work_binding"]["task_id"] == result["task_card"]["id"]
+    assert result["work_dossier"]["module_assignments"]["task_id"] == result["task_card"]["id"]
     assert result["work_dossier"]["verification"]["result"] == "needs_execution"
     assert result["work_dossier"]["closure"]["task"] == result["task_card"]["goal"]
     assert result["work_dossier"]["closure"]["skills"]["bound_skill_ids"] == ["code-review"]
+    assert set(result["work_dossier"]["closure"]["skills"]) == {"bound_skill_ids"}
     assert result["work_dossier"]["closure"]["outputs"]["artifacts"] == ["review notes"]
     assert result["work_dossier"]["reading_order"] == [
         "task_card",
         "work_plan",
-        "work_binding",
+        "module_assignments",
         "work_results",
         "verification",
         "proof",
     ]
     assert result["work_dossier"]["artifact_paths"]["task_card"].endswith("task-card.json")
     assert result["work_dossier"]["artifact_paths"]["work_plan"].endswith("plan.json")
-    assert result["work_dossier"]["artifact_paths"]["work_binding"].endswith("work-binding.json")
+    assert result["work_dossier"]["artifact_paths"]["module_assignments"].endswith("module-assignments.json")
     assert result["work_dossier"]["artifact_paths"]["work_results"].endswith("work-results.json")
     assert result["work_dossier"]["artifact_paths"]["verification"].endswith("verification.json")
     assert result["work_dossier"]["artifact_paths"]["proof"].endswith("work-dossier.json")
@@ -228,7 +314,7 @@ enabled: true
     assert result["work_dossier"]["closure"]["proof"]["result"] == "needs_execution"
     assert result["work_dossier"]["closure"]["proof"]["evidence_count"] == len(result["verification"]["evidence"])
     assert result["work_plan"]["task_id"] == result["task_card"]["id"]
-    assert result["work_binding"]["task_id"] == result["task_card"]["id"]
+    assert result["module_assignments"]["task_id"] == result["task_card"]["id"]
     assert result["work_results"]["work_results"][0]["status"] == "needs_execution"
     assert result["work_results"]["work_results"][0]["used_skill"] is None
     assert result["work_results"]["work_results"][0]["artifact_kind"] == "scaffold"
@@ -240,7 +326,7 @@ enabled: true
     assert (run_root / "work-dossier.md").exists()
     assert (run_root / "task-card.json").exists()
     assert (run_root / "plan.json").exists()
-    assert (run_root / "work-binding.json").exists()
+    assert (run_root / "module-assignments.json").exists()
     assert (run_root / "work-results.json").exists()
     assert (run_root / "work-units" / "wu-1" / "artifacts").exists()
     assert (run_root / "work-units" / "wu-1" / "execution-receipt.json").exists()
@@ -261,7 +347,7 @@ enabled: true
     assert "## Proof" in dossier_text
     assert "- task card: " in dossier_text
     assert "- work plan: " in dossier_text
-    assert "- work binding: " in dossier_text
+    assert "- module assignments: " in dossier_text
     assert "- work results: " in dossier_text
     assert "- verification: " in dossier_text
     assert dossier_text.index("## Task Card") < dossier_text.index("## Task Evolution")
@@ -333,7 +419,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Review the runtime redesign and produce review notes.",
         context={
@@ -361,7 +447,7 @@ enabled: true
     assert inspected["work_dossier"]["reading_order"] == [
         "task_card",
         "work_plan",
-        "work_binding",
+        "module_assignments",
         "work_results",
         "verification",
         "proof",
@@ -373,9 +459,9 @@ enabled: true
     assert inspected["artifacts"]["work_plan"].endswith("plan.json")
     assert inspected["work_plan"]["work_units"]
     assert inspected["artifacts"]["plan"] == inspected["artifacts"]["work_plan"]
-    assert inspected["work_binding"]["units"][0]["bound_skill"] == "code-review"
-    assert inspected["work_binding"]["units"][0]["binding_profile"] == "general_support_owner"
-    assert inspected["work_binding"]["units"][0]["binding_reason"] == "Selected the only supporting skill."
+    assert inspected["module_assignments"]["units"][0]["bound_skill"] == "code-review"
+    assert inspected["module_assignments"]["units"][0]["binding_profile"] == "agent_selected"
+    assert inspected["module_assignments"]["units"][0]["binding_reason"] == "The test Agent selected the first matching local owner."
     assert inspected["work_results"]["work_results"][0]["status"] == "needs_execution"
     assert inspected["work_results"]["work_results"][0]["used_skill"] is None
     assert inspected["work_results"]["work_results"][0]["artifact_kind"] == "scaffold"
@@ -385,7 +471,7 @@ enabled: true
     assert inspected["work_results"]["work_results"][0]["execution_receipt_path"].endswith("execution-receipt.json")
     assert not inspected["verification"]["evidence"]
     assert inspected["artifacts"]["verification"].endswith("verification.json")
-    assert inspected["artifacts"]["work_binding"].endswith("work-binding.json")
+    assert inspected["artifacts"]["module_assignments"].endswith("module-assignments.json")
     assert inspected["artifacts"]["work_results"].endswith("work-results.json")
 
 
@@ -521,7 +607,7 @@ enabled: true
         skill_dir.mkdir(parents=True, exist_ok=True)
         (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Review the runtime redesign and produce an implementation plan and add focused tests.",
         run_id="skill-aware-run",
@@ -566,7 +652,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Summarize the benchmark results and produce a report.",
         run_id="report-run",
@@ -602,7 +688,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Review the runtime redesign. Produce review notes.",
         run_id="resume-run",
@@ -611,6 +697,29 @@ enabled: true
         agent_root=agent_root,
         prompt="Continue by adding focused tests and provide verification evidence.",
         run_id="resume-run",
+        agent_skill_organization={
+            "schema_version": "agent_skill_organization_v1",
+            "derived_by": "agent",
+            "workflow_level": "L",
+            "modules": [
+                {"module_id": "wu-1", "goal": "Produce review notes", "candidate_skill_ids": ["code-review"], "execution_mode": "skill_assigned", "acceptance_criteria": [{"criterion_id": "wu-1-result", "description": "The review notes exist.", "verification_mode": "automated"}]},
+                {"module_id": "wu-2", "goal": "Produce focused tests", "candidate_skill_ids": ["code-review"], "execution_mode": "skill_assigned", "acceptance_criteria": [{"criterion_id": "wu-2-result", "description": "The focused tests exist.", "verification_mode": "automated"}]},
+                {"module_id": "wu-3", "goal": "Produce verification evidence", "candidate_skill_ids": ["code-review"], "execution_mode": "skill_assigned", "acceptance_criteria": [{"criterion_id": "wu-3-result", "description": "The verification evidence exists.", "verification_mode": "automated"}]},
+            ],
+            "selected_skills": [
+                {
+                    "skill_id": "code-review",
+                    "module_ids": ["wu-1", "wu-2", "wu-3"],
+                    "responsibility": "Review the change and produce its test evidence.",
+                    "reason": "The Agent selected the local review owner.",
+                }
+            ],
+            "uncovered_modules": [],
+            "workflow_level_contract": {
+                "L": "Use one serial governed lane.",
+                "XL": "Use bounded waves when needed.",
+            },
+        },
     )
 
     assert resumed["task_card"]["goal"] == "Review the runtime redesign. Produce review notes."
@@ -639,11 +748,97 @@ enabled: true
     assert inspected["summary"]["accepted_revision_count"] == 1
     assert inspected["summary"]["reused_work_unit_count"] == 0
     assert inspected["summary"]["superseded_work_unit_count"] == 0
-    assert [unit["bound_skill"] for unit in inspected["work_binding"]["units"]] == [
+    assert [unit["bound_skill"] for unit in inspected["module_assignments"]["units"]] == [
         "code-review",
         "code-review",
-        None,
+        "code-review",
     ]
+
+
+def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Path) -> None:
+    agent_root = tmp_path / "agent-root"
+    discovery = run_local_kernel(
+        agent_root=agent_root,
+        prompt="Summarize the local note.",
+        run_id="invalid-acceptance-discovery",
+        execute=False,
+    )
+    module_id = discovery["plan"]["work_units"][0]["id"]
+
+    with pytest.raises(ValueError, match="acceptance_criteria must contain objects"):
+        run_local_kernel(
+            agent_root=agent_root,
+            prompt="Summarize the local note.",
+            run_id="invalid-acceptance",
+            execute=False,
+            agent_skill_organization={
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "L",
+                "modules": [
+                    {
+                        "module_id": module_id,
+                        "goal": "Summarize the note.",
+                        "candidate_skill_ids": [],
+                        "execution_mode": "agent_direct",
+                        "acceptance_criteria": ["The summary exists."],
+                    }
+                ],
+                "selected_skills": [],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Run the direct module serially.",
+                    "XL": "Use bounded waves if scope expands.",
+                },
+            },
+        )
+
+
+def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> None:
+    agent_root = tmp_path / "agent-root"
+    discovery = run_local_kernel(
+        agent_root=agent_root,
+        prompt="Summarize the local note.",
+        run_id="preserve-acceptance-discovery",
+        execute=False,
+    )
+    module_id = discovery["plan"]["work_units"][0]["id"]
+    acceptance = [
+        {
+            "criterion_id": "summary-result",
+            "description": "The summary answers the requested facts.",
+            "verification_mode": "automated",
+        }
+    ]
+
+    result = run_local_kernel(
+        agent_root=agent_root,
+        prompt="Summarize the local note.",
+        run_id="preserve-acceptance",
+        execute=False,
+        agent_skill_organization={
+            "schema_version": "agent_skill_organization_v1",
+            "derived_by": "agent",
+            "workflow_level": "L",
+            "modules": [
+                {
+                    "module_id": module_id,
+                    "goal": "Summarize the note.",
+                    "candidate_skill_ids": [],
+                    "execution_mode": "agent_direct",
+                    "acceptance_criteria": acceptance,
+                }
+            ],
+            "selected_skills": [],
+            "uncovered_modules": [],
+            "workflow_level_contract": {
+                "L": "Run the direct module serially.",
+                "XL": "Use bounded waves if scope expands.",
+            },
+        },
+    )
+
+    assert list(result["plan"]["work_units"][0]["acceptance_criteria"]) == acceptance
 
 
 def test_inspect_local_run_reports_skills_catalog_and_selected_skill_source_kind(tmp_path: Path) -> None:
@@ -669,7 +864,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Summarize the benchmark results and produce a report.",
         run_id="inspect-host-aware-run",
@@ -681,13 +876,11 @@ enabled: true
 
     assert inspected["artifacts"]["skills_catalog"].endswith("skills-catalog.json")
     assert Path(inspected["artifacts"]["skills_catalog"]).is_file()
-    unit = inspected["work_binding"]["units"][0]
+    unit = inspected["module_assignments"]["units"][0]
     assert unit["bound_skill"] == "write-report"
     assert unit["provenance"]["source_kind"] == "host_installed"
     assert unit["skill_source_kind"] == "host_installed"
-    assert [row["binding_profile"] for row in inspected["work_binding"]["units"]] == [
-        "general_support_owner",
-    ]
+    assert [row["binding_profile"] for row in inspected["module_assignments"]["units"]] == ["agent_selected"]
     assert inspected["work_dossier"]["artifact_paths"]["skills_catalog"].endswith("skills-catalog.json")
     assert inspected["skills_catalog"]["host_roots"] == [
         str(agent_root.resolve()),
@@ -820,13 +1013,13 @@ enabled: true
         encoding="utf-8",
     )
 
-    first = run_local_kernel(
+    first = run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Summarize the benchmark results and produce a report.",
         run_id="source-shift-run",
     )
 
-    assert first["work_binding"]["units"][0]["provenance"]["source_kind"] == "vibe_local"
+    assert first["module_assignments"]["units"][0]["provenance"]["source_kind"] == "vibe_local"
     assert first["reused_work_units"] == []
 
     host_skill_dir = agent_root / "write-report"
@@ -849,7 +1042,7 @@ enabled: true
         encoding="utf-8",
     )
 
-    resumed = run_local_kernel(
+    resumed = run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Summarize the benchmark results and produce a report.",
         run_id="source-shift-run",
@@ -858,7 +1051,7 @@ enabled: true
     )
 
     assert resumed["reused_work_units"] == []
-    assert resumed["work_binding"]["units"][0]["provenance"]["source_kind"] == "host_installed"
+    assert resumed["module_assignments"]["units"][0]["provenance"]["source_kind"] == "host_installed"
     assert resumed["work_results"]["work_results"][0]["reused_from_work_unit_id"] is None
 
 
@@ -902,12 +1095,12 @@ enabled: true
         skill_dir.mkdir(parents=True, exist_ok=True)
         (skill_dir / "SKILL.md").write_text(manifest, encoding="utf-8")
 
-    run_local_kernel(
+    run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Review the runtime redesign. Produce review notes.",
         run_id="replace-run",
     )
-    replaced = run_local_kernel(
+    replaced = run_local_kernel_with_agent_choice(
         agent_root=agent_root,
         prompt="Instead produce a report.",
         context={

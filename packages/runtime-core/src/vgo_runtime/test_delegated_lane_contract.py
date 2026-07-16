@@ -400,79 +400,6 @@ class CliProcessPowerShellPolicyTests(unittest.TestCase):
 
 class DelegatedLaneContractTests(unittest.TestCase):
     """Assert delegated-lane contract and runtime policy wiring."""
-    def test_plan_execute_uses_repo_root_first_working_directory_logic(self):
-        """Keep delegated-lane working-directory fallback rooted at the repository first."""
-        script_text = SCRIPT_PATH.read_text(encoding="utf-8")
-        self.assertIn("Resolve-VibeDelegatedLaneWorkingDirectory", script_text)
-        self.assertIn("requested_lane_root = $requestedLaneRoot", script_text)
-        self.assertIn("lane_root_invalid", script_text)
-        self.assertIn("requested_working_directory = if", script_text)
-        self.assertIn("effective_working_directory = [string]$workingDirectoryInfo.effective_working_directory", script_text)
-        self.assertIn("repo_root_invalid", script_text)
-        self.assertIn("repo_root_missing", script_text)
-
-    def test_plan_execute_recovers_payload_from_artifact_when_stdout_missing(self):
-        """Recover delegated-lane payloads from receipt artifacts when stdout is empty."""
-        script_text = SCRIPT_PATH.read_text(encoding="utf-8")
-        self.assertIn("Resolve-VibeDelegatedLanePayload", script_text)
-        self.assertIn("source = 'lane_payload_artifact'", script_text)
-        self.assertIn("lane_payload_artifact:read_failed", script_text)
-        self.assertIn("empty_lane_receipt_path", script_text)
-        self.assertIn("payload_source = [string]$payloadRecovery.source", script_text)
-
-    def test_plan_execute_failure_message_is_actionable(self):
-        """Include lane and artifact context in delegated payload failure messages."""
-        script_text = SCRIPT_PATH.read_text(encoding="utf-8")
-        self.assertIn("Delegated lane payload handoff failed for lane_id=", script_text)
-        self.assertIn("effective_working_directory=", script_text)
-        self.assertIn("stdout_path=", script_text)
-        self.assertIn("stderr_path=", script_text)
-        self.assertIn("payload_path=", script_text)
-
-    def test_delegated_lane_launch_metadata_records_host_resolution(self):
-        """Persist PowerShell host-resolution details in delegated lane launch metadata."""
-        script_text = SCRIPT_PATH.read_text(encoding="utf-8")
-        self.assertIn("host_kind = if ($invocation.PSObject.Properties.Name -contains 'host_kind')", script_text)
-        self.assertIn("fallback_used = [bool]$(if ($invocation.PSObject.Properties.Name -contains 'fallback_used')", script_text)
-        self.assertIn("lane_root_fallback_reason = if ($null -eq $workingDirectoryInfo.lane_root_fallback_reason)", script_text)
-        self.assertIn("resolved_command = [string]($invocation.host_path)", script_text)
-        self.assertIn("resolved_arguments = @($invocation.arguments)", script_text)
-        self.assertIn("arguments_render_mode = 'RenderedString'", script_text)
-        self.assertIn("preflight = [pscustomobject]@{", script_text)
-
-    def test_runtime_execution_records_preflight_and_render_mode(self):
-        """Record process preflight fields and argument render mode in runtime metadata."""
-        script_text = (REPO_ROOT / "scripts" / "runtime" / "VibeExecution.Common.ps1").read_text(encoding="utf-8")
-        self.assertIn("function New-VibeProcessPreflightResult", script_text)
-        self.assertIn("command = [string]$Command", script_text)
-        self.assertIn("Preflight.resolved_command", script_text)
-        self.assertIn("Failed to persist launch metadata to", script_text)
-        self.assertIn("Process preflight failed:", script_text)
-        self.assertIn("arguments_render_mode = if ($usedArgumentList) { 'ArgumentList' } else { 'RenderedString' }", script_text)
-        self.assertIn("launch_metadata_path", script_text)
-        self.assertIn("script_used_as_executable", script_text)
-
-    def test_parallel_lane_failure_cleans_up_remaining_handles(self):
-        """Stop leftover delegated lane handles when one parallel lane fails."""
-        script_text = SCRIPT_PATH.read_text(encoding="utf-8")
-        self.assertIn("function Stop-VibeDelegatedLaneHandle", script_text)
-        self.assertIn("$completedLaneIds = New-Object 'System.Collections.Generic.HashSet[string]'", script_text)
-        self.assertIn("Stop-VibeDelegatedLaneHandle -Handle $remainingHandle", script_text)
-
-    def test_runtime_execution_mentions_unicode_path_preflight_surfaces(self):
-        """Keep preflight error text explicit for missing paths and host resolution failures."""
-        script_text = (REPO_ROOT / "scripts" / "runtime" / "VibeExecution.Common.ps1").read_text(encoding="utf-8")
-        self.assertIn("resolved executable does not exist:", script_text)
-        self.assertIn("working directory does not exist:", script_text)
-        self.assertIn("powershell script path is being used as the executable instead of the host:", script_text)
-        self.assertIn("python command spec did not resolve to a host executable:", script_text)
-
-    def test_execution_runtime_policy_uses_existing_coherence_gate_path(self):
-        """Reference the runtime coherence gate instead of the retired version gate."""
-        policy_text = (REPO_ROOT / "config" / "execution-runtime-policy.json").read_text(encoding="utf-8")
-        self.assertIn("scripts/verify/vibe-release-install-runtime-coherence-gate.ps1", policy_text)
-        self.assertNotIn("scripts/verify/vibe-version-consistency-gate.ps1", policy_text)
-
     def test_runtime_summary_artifacts_allow_early_bounded_stop_nulls(self):
         """Allow empty bounded-stop artifact paths to round-trip as nulls in summaries."""
         script_text = (REPO_ROOT / "scripts" / "runtime" / "VibeRuntime.Common.ps1").read_text(encoding="utf-8")
@@ -790,11 +717,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                             "deferred_skill_ids": ["scikit-learn"],
                             "rejected_skill_ids": [],
                         },
-                        "work_binding": {"units": []},
-                        "specialist_decision": {
-                            "decision_state": "no_specialist_recommendations",
-                            "resolution_mode": "no_specialist_needed",
-                        },
+                        "module_assignments": {"units": []},
                     }
                 ),
                 encoding="utf-8",
@@ -1099,14 +1022,6 @@ class BridgeFailureLayeringTests(unittest.TestCase):
         self.assertIn(str(cwd), message)
         self.assertIn("桥接", message)
 
-
-    def test_real_bridge_smoke_surfaces_preflight_script_missing_instead_of_invalid_python_host(self):
-        """Keep preflight failures focused on missing scripts rather than Python host confusion."""
-        helper_text = (REPO_ROOT / "scripts" / "common" / "vibe-governance-helpers.ps1").read_text(encoding="utf-8")
-        runtime_text = (REPO_ROOT / "scripts" / "runtime" / "VibeExecution.Common.ps1").read_text(encoding="utf-8")
-        self.assertIn("Test-VgoWindowsRunnableCommandPath", helper_text)
-        self.assertIn("powershell script path does not exist:", runtime_text)
-        self.assertIn("Process startup failed for {0}:", runtime_text)
 
     def test_canonical_entry_builds_command_for_unicode_repo_root(self):
         """Build the canonical bridge command correctly when the repo root contains Unicode."""

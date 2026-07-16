@@ -484,23 +484,6 @@ foreach ($repoUrl in $repoUrls) {
 }
 
 $npmRows = New-Object System.Collections.Generic.List[object]
-if (-not $NoNpm) {
-    foreach ($packageName in @('claude-flow')) {
-        $doc = Try-InvokeRestJson -Url ("https://registry.npmjs.org/{0}" -f $packageName) -Headers @{}
-        if (-not $doc) { continue }
-        $latest = ''
-        if ($doc.'dist-tags' -and $doc.'dist-tags'.latest) {
-            $latest = [string]$doc.'dist-tags'.latest
-        }
-        $modified = ''
-        if ($doc.time -and $latest -and $doc.time.$latest) {
-            $modified = [string]$doc.time.$latest
-        } elseif ($doc.time -and $doc.time.modified) {
-            $modified = [string]$doc.time.modified
-        }
-        $npmRows.Add([pscustomobject]@{ package = $packageName; latest = $latest; modified = $modified }) | Out-Null
-    }
-}
 
 $now = Get-Date
 $timestamp = $now.ToString('yyyyMMdd-HHmmss')

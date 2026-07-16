@@ -50,7 +50,7 @@ function Get-RouteMetrics {
         $route = Invoke-Route -Prompt $case.prompt -Grade $case.grade -TaskType $case.task
         $total++
 
-        $selectedPack = [string]$route.selected.pack_id
+        $selectedPack = [string]$route.candidate_focus.pack_id
         $isCorrect = if ($case.PSObject.Properties.Name -contains "blocked" -and $case.blocked) {
             $selectedPack -ne $case.blocked
         } else {

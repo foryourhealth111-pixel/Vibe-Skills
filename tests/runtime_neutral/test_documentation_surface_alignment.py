@@ -231,7 +231,7 @@ def test_readmes_describe_local_installed_skill_story_without_repromoting_a_cent
 
     assert "installed local skills are the only specialist reference surface" in english_lower
     assert "readable `skill.md`" in english_lower
-    assert "work_binding" in english
+    assert "module_assignments" in english
     assert "runtime truth" in english_lower or "first truth surface" in english_lower
     assert (
         "without a new central catalog" in english_lower
@@ -247,7 +247,7 @@ def test_readmes_describe_local_installed_skill_story_without_repromoting_a_cent
     assert "已安装的本地 skill 根目录" in chinese
     assert "唯一专家来源" in chinese or "唯一 specialist 参考面" in chinese
     assert "SKILL.md" in chinese
-    assert "work_binding" in chinese
+    assert "module_assignments" in chinese
     assert "第一真相面" in chinese or "真相面" in chinese
     assert "不长出新的中心目录" in chinese or "不是更大的中心技能目录" in chinese
     assert "外部优先扩展" not in chinese
@@ -377,7 +377,7 @@ def test_custom_governance_rules_are_archived_not_active_install_guidance() -> N
         assert (REPO_ROOT / "docs" / "archive" / "install-legacy" / "2026-07-02" / Path(path).name).exists()
 
 
-def test_kernel_architecture_docs_describe_local_skill_roots_and_work_binding_truth() -> None:
+def test_kernel_architecture_docs_describe_agent_led_binding_truth() -> None:
     architecture = _read("docs/architecture/local-agent-kernel-v2.md")
     interfaces = _read("docs/architecture/local-agent-kernel-v2-interfaces.md")
     architecture_lower = architecture.lower()
@@ -389,8 +389,14 @@ def test_kernel_architecture_docs_describe_local_skill_roots_and_work_binding_tr
     assert "external-first" not in interfaces_lower
     assert "skills/local" not in architecture_lower
     assert "skills/local" not in interfaces_lower
-    assert "work_binding" in architecture
-    assert "first runtime truth" in architecture_lower or "first truth surface" in architecture_lower
+    assert "module_assignments" in architecture
+    expected_flow = "candidate discovery -> agent reads `skill.md` -> `agent_skill_organization` -> `module_assignments` -> execution"
+    assert expected_flow in architecture_lower
+    assert expected_flow in interfaces_lower
+    assert "validated execution projection" in architecture_lower
+    assert "validated execution projection" in interfaces_lower
+    assert "planner preference is candidate audit only" in architecture_lower
+    assert "planner preference is candidate audit only" in interfaces_lower
     assert "repo-owned" in architecture_lower and ("not the main extension story" in architecture_lower or "no repo-owned bundled corpus as the main extension surface" in architecture_lower)
     assert "skills-catalog.json" in interfaces
     assert "skills-index.json" in interfaces
@@ -459,6 +465,30 @@ def test_runtime_protocol_maps_public_proof_layers_without_reintroducing_install
     assert "online-ready" not in protocol
 
 
+def test_active_runtime_docs_use_agent_skill_organization_as_skill_truth() -> None:
+    english = _read("README.md")
+    chinese = _read("README.zh.md")
+    protocol = _read("protocols/runtime.md")
+    team = _read("protocols/team.md")
+    routing_contract = _read("docs/governance/current-routing-contract.md")
+    field_contract = _read("docs/governance/current-runtime-field-contract.md")
+    remediation = _read("docs/governance/built-in-skill-routing-remediation.md")
+
+    for content in (english, chinese, protocol, team, routing_contract, field_contract):
+        assert "agent_skill_organization" in content
+
+    assert "route candidates are compatibility audit evidence only" in protocol
+    assert "Agent-confirmed skill organization" in routing_contract
+    assert "agent_skill_organization -> module-work-plan.json" in field_contract
+    assert "module-work-plan.json -> agent-execution-handoff.json" in field_contract
+    assert "agent-execution-handoff.json -> module-execution.json" in field_contract
+    assert "Agent-led skill discovery cutover" in remediation
+    assert "runtime 实际上已经由 router / canonical `vibe` 决定能力入口" not in remediation
+    assert "eligible route candidates should auto-promote" not in protocol
+    assert "route truth points at a selected skill" not in protocol
+    assert "skill_candidates -> skill_routing.selected" not in routing_contract
+
+
 def test_non_regression_proof_bundle_is_positioned_as_operator_closeout_contract() -> None:
     proof_bundle = _read("docs/status/non-regression-proof-bundle.md")
 
@@ -509,16 +539,12 @@ def test_recommended_full_and_enterprise_reference_pages_are_archived_not_active
         assert (REPO_ROOT / "docs" / "archive" / "install-legacy" / "2026-07-02" / Path(path).name).exists()
 
 
-def test_opencode_reference_page_stays_preview_scaffold_not_main_install_guidance() -> None:
+def test_opencode_reference_page_is_archived_not_active_install_guidance() -> None:
     active_note = REPO_ROOT / "docs/install/opencode-path.en.md"
     archived_note = REPO_ROOT / "docs/archive/install-legacy/2026-07-02/opencode-path.en.md"
     archived_cn_note = REPO_ROOT / "docs/archive/install-legacy/2026-07-02/opencode-path.md"
 
-    assert active_note.exists()
+    assert not active_note.exists()
     assert archived_note.exists()
     assert archived_cn_note.exists()
     assert not (REPO_ROOT / "docs/install/opencode-path.md").exists()
-
-    text = active_note.read_text(encoding="utf-8")
-    assert "preview host-adapter guide" in text
-    assert "not the main public install story" in text

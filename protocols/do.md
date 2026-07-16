@@ -132,8 +132,9 @@ Defer to vibe-team protocol (wave-sequential orchestration + step-level bounded 
 
 ## Browser Testing
 When UI testing is needed:
-- Primary: Claude-code-settings Chrome MCP (chrome-devtools-mcp)
-- Alternative: Playwright MCP (if available)
+- Use only host-native tools that are already available and allowed by the
+  current host policy.
+- Do not install or recommend MCP servers as part of Vibe execution.
 
 ## Quality Injection: Core Tier (L/XL Default)
 

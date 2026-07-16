@@ -50,7 +50,7 @@ $requiredFiles = @(
     'config/runtime-modes.json',
     'config/fallback-governance.json',
     'config/implementation-guardrails.json',
-    'config/execution-runtime-policy.json',
+    'config/runtime-input-packet-policy.json',
     'config/requirement-doc-policy.json',
     'config/plan-execution-policy.json',
     'config/phase-cleanup-policy.json',
@@ -66,7 +66,7 @@ $requiredFiles = @(
     'scripts/runtime/Invoke-PlanExecute.ps1',
     'scripts/runtime/Invoke-PhaseCleanup.ps1',
     'scripts/verify/vibe-runtime-execution-proof-gate.ps1',
-    'scripts/verify/vibe-specialist-dispatch-closure-gate.ps1',
+    'scripts/verify/vibe-module-dispatch-closure-gate.ps1',
     'scripts/verify/vibe-no-silent-fallback-contract-gate.ps1',
     'scripts/verify/vibe-no-self-introduced-fallback-gate.ps1',
     'scripts/verify/vibe-release-truth-consistency-gate.ps1'
@@ -96,16 +96,79 @@ Add-Assertion -Results ([ref]$results) -Condition (
 ) -Message 'SKILL.md documents the fixed stage machine'
 Add-Assertion -Results ([ref]$results) -Condition ($skillText.Contains('governance-capsule.json')) -Message 'SKILL.md documents governance capsule artifact'
 Add-Assertion -Results ([ref]$results) -Condition ($skillText.Contains('stage-lineage.json')) -Message 'SKILL.md documents stage-lineage artifact'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $skillText.Contains('agent-execution-handoff.json.result_contract') -and
+    $skillText.Contains('not execution evidence') -and
+    $skillText.Contains('creates `module-execution.json`')
+) -Message 'SKILL.md keeps the result contract separate from Agent execution evidence'
 
 $teamText = Get-Content -LiteralPath (Join-Path $repoRoot 'protocols\team.md') -Raw -Encoding UTF8
 Add-Assertion -Results ([ref]$results) -Condition ($teamText.Contains('$vibe')) -Message 'team protocol requires subagent prompts to end with $vibe'
 $runtimeText = Get-Content -LiteralPath (Join-Path $repoRoot 'protocols\runtime.md') -Raw -Encoding UTF8
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeText.Contains('governance-capsule.json')) -Message 'runtime protocol documents governance capsule artifact'
 Add-Assertion -Results ([ref]$results) -Condition ($runtimeText.Contains('delegation-envelope.json')) -Message 'runtime protocol documents delegation envelope artifact'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $runtimeText.Contains('agent-execution-handoff.json.result_contract') -and
+    $runtimeText.Contains('not execution evidence') -and
+    $runtimeText.Contains('writes the complete result to `module-execution.json`')
+) -Message 'runtime protocol keeps the result contract separate from Agent execution evidence'
 
 $runId = "contract-gate-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
 $artifactRoot = Join-Path $repoRoot (".tmp\governed-runtime-contract-{0}" -f $runId)
-$summary = & $runtimeEntryPath -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode interactive_governed -RunId $runId -ArtifactRoot $artifactRoot
+$hostRoot = Join-Path $artifactRoot '.agents'
+$hostSkillsRoot = Join-Path $hostRoot 'skills'
+$originalAgentsHome = $env:VIBE_AGENTS_HOME
+
+New-Item -ItemType Directory -Path $hostSkillsRoot -Force | Out-Null
+Copy-Item `
+    -LiteralPath (Join-Path $repoRoot 'bundled\skills\systematic-debugging') `
+    -Destination (Join-Path $hostSkillsRoot 'systematic-debugging') `
+    -Recurse `
+    -Force
+
+$hostDecisionJson = @{
+    agent_skill_organization = [ordered]@{
+        schema_version = 'agent_skill_organization_v1'
+        derived_by = 'agent'
+        workflow_level = 'L'
+        modules = @(
+            [ordered]@{
+                module_id = 'debug_investigation'
+                goal = 'Investigate the failing test and stack trace.'
+                candidate_skill_ids = @('systematic-debugging')
+                execution_mode = 'skill_assigned'
+                acceptance_criteria = @(
+                    [ordered]@{
+                        criterion_id = 'debug-investigation-result'
+                        description = 'The debugging investigation satisfies the approved module goal.'
+                        verification_mode = 'automated'
+                    }
+                )
+            }
+        )
+        selected_skills = @(
+            [ordered]@{
+                skill_id = 'systematic-debugging'
+                module_ids = @('debug_investigation')
+                responsibility = 'Own the approved debugging module.'
+                reason = 'The Agent selected this Skill after reading its SKILL.md.'
+            }
+        )
+        uncovered_modules = @()
+        workflow_level_contract = [ordered]@{
+            L = 'Use one serial governed lane.'
+            XL = 'Use bounded waves when the approved organization needs them.'
+        }
+    }
+} | ConvertTo-Json -Depth 20 -Compress
+
+try {
+    $env:VIBE_AGENTS_HOME = $hostRoot
+    $summary = & $runtimeEntryPath -Task 'I have a failing test and a stack trace. Help me debug systematically before proposing fixes.' -Mode interactive_governed -RunId $runId -ArtifactRoot $artifactRoot -HostDecisionJson $hostDecisionJson
+}
+finally {
+    $env:VIBE_AGENTS_HOME = $originalAgentsHome
+}
 
 Add-Assertion -Results ([ref]$results) -Condition ($summary.mode -eq 'interactive_governed') -Message 'runtime smoke summary keeps interactive_governed as the effective mode'
 
@@ -116,10 +179,11 @@ $artifactPaths = @(
     $summary.summary.artifacts.stage_lineage,
     $summary.summary.artifacts.requirement_doc,
     $summary.summary.artifacts.execution_plan,
+    $summary.summary.artifacts.module_work_plan,
+    $summary.summary.artifacts.agent_execution_handoff,
     $summary.summary.artifacts.execute_receipt,
     $summary.summary.artifacts.execution_manifest,
-    $summary.summary.artifacts.execution_proof_manifest,
-    $summary.summary.artifacts.cleanup_receipt
+    $summary.summary.artifacts.host_user_briefing
 )
 
 foreach ($artifactPath in $artifactPaths) {
@@ -128,92 +192,97 @@ foreach ($artifactPath in $artifactPaths) {
 
 $executeReceipt = Get-Content -LiteralPath $summary.summary.artifacts.execute_receipt -Raw -Encoding UTF8 | ConvertFrom-Json
 $executionManifest = Get-Content -LiteralPath $summary.summary.artifacts.execution_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
-$proofManifest = Get-Content -LiteralPath $summary.summary.artifacts.execution_proof_manifest -Raw -Encoding UTF8 | ConvertFrom-Json
+$moduleWorkPlan = Get-Content -LiteralPath $summary.summary.artifacts.module_work_plan -Raw -Encoding UTF8 | ConvertFrom-Json
+$agentExecutionHandoff = Get-Content -LiteralPath $summary.summary.artifacts.agent_execution_handoff -Raw -Encoding UTF8 | ConvertFrom-Json
 $runtimeInputPacket = Get-Content -LiteralPath $summary.summary.artifacts.runtime_input_packet -Raw -Encoding UTF8 | ConvertFrom-Json
 $governanceCapsule = Get-Content -LiteralPath $summary.summary.artifacts.governance_capsule -Raw -Encoding UTF8 | ConvertFrom-Json
 $stageLineage = Get-Content -LiteralPath $summary.summary.artifacts.stage_lineage -Raw -Encoding UTF8 | ConvertFrom-Json
 $generatedRequirement = Get-Content -LiteralPath $summary.summary.artifacts.requirement_doc -Raw -Encoding UTF8
 $generatedPlan = Get-Content -LiteralPath $summary.summary.artifacts.execution_plan -Raw -Encoding UTF8
+$hostUserBriefing = Get-Content -LiteralPath $summary.summary.artifacts.host_user_briefing -Raw -Encoding UTF8
+$resultContract = $agentExecutionHandoff.result_contract
+$actualModuleWorkPlanDigest = (Get-FileHash -LiteralPath $summary.summary.artifacts.module_work_plan -Algorithm SHA256).Hash.ToLowerInvariant()
+$plannedUnitIds = @($moduleWorkPlan.work_units | ForEach-Object { [string]$_.unit_id })
+$handoffUnitIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.unit_id })
+$resultContractUnitIds = @($resultContract.units | ForEach-Object { [string]$_.unit_id })
+$plannedUnitBindings = @($moduleWorkPlan.work_units | Select-Object unit_id, module_id, skill_id, role)
+$handoffUnitBindings = @($agentExecutionHandoff.units | Select-Object unit_id, module_id, skill_id, role)
+$resultContractUnitBindings = @($resultContract.units | Select-Object unit_id, module_id, skill_id, role)
+$plannedUnitBindingsJson = ConvertTo-Json -InputObject $plannedUnitBindings -Depth 10 -Compress
+$handoffUnitBindingsJson = ConvertTo-Json -InputObject $handoffUnitBindings -Depth 10 -Compress
+$resultContractUnitBindingsJson = ConvertTo-Json -InputObject $resultContractUnitBindings -Depth 10 -Compress
+$plannedModules = @($moduleWorkPlan.modules | Select-Object module_id, required, execution_mode, gap_reason, acceptance_criteria)
+$resultContractModules = @($resultContract.modules | Select-Object module_id, required, execution_mode, gap_reason, acceptance_criteria)
+$plannedModulesJson = ConvertTo-Json -InputObject $plannedModules -Depth 20 -Compress
+$resultContractModulesJson = ConvertTo-Json -InputObject $resultContractModules -Depth 20 -Compress
 $expectedStageIds = @($runtimeContract.stages | ForEach-Object { [string]$_.id })
+$expectedHandoffStageIds = @($expectedStageIds | Where-Object { $_ -ne 'phase_cleanup' })
 
 Add-Assertion -Results ([ref]$results) -Condition ($governanceCapsule.runtime_selected_skill -eq 'vibe') -Message 'runtime smoke governance capsule keeps vibe authority'
 Add-Assertion -Results ([ref]$results) -Condition ((
     @($stageLineage.stages | ForEach-Object { [string]$_.stage_name }) -join '|'
-) -eq ($expectedStageIds -join '|')) -Message 'runtime smoke stage-lineage preserves the fixed governed stage order'
-Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -ne 'execution-contract-prepared') -Message 'runtime smoke execute receipt is not receipt-only'
-Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'completed') -Message 'runtime smoke execution manifest completed' -Details $executionManifest.status
-Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.executed_unit_count -ge 2) -Message 'runtime smoke executes at least two governed execution units' -Details $executionManifest.executed_unit_count
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$proofManifest.proof_passed) -Message 'runtime smoke execution proof manifest is green'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Primary Objective')) -Message 'runtime smoke requirement doc includes anti-drift primary objective section'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Completion State')) -Message 'runtime smoke requirement doc includes anti-drift completion section'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Anti-Proxy-Goal-Drift Controls')) -Message 'runtime smoke execution plan includes anti-drift controls section'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('### Primary Objective')) -Message 'runtime smoke execution plan includes anti-drift primary objective control'
-$specialistDecision = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_decision') { $runtimeInputPacket.specialist_decision } else { $null }
-$noSpecialistResolved = (
-    $null -ne $specialistDecision -and
-    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
-    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
-    [string]$specialistDecision.decision_state -eq 'no_specialist_recommendations' -and
-    [string]$specialistDecision.resolution_mode -in @('no_matching_specialist', 'no_specialist_needed')
-)
-$degradedSpecialistResolved = (
-    $null -ne $specialistDecision -and
-    $specialistDecision.PSObject.Properties.Name -contains 'decision_state' -and
-    $specialistDecision.PSObject.Properties.Name -contains 'resolution_mode' -and
-    [string]$specialistDecision.decision_state -eq 'degraded' -and
-    [string]$specialistDecision.resolution_mode -eq 'degraded' -and
-    (
-        (($specialistDecision.PSObject.Properties.Name -contains 'degraded_skill_ids') -and @($specialistDecision.degraded_skill_ids).Count -gt 0) -or
-        (($specialistDecision.PSObject.Properties.Name -contains 'surfaced_skill_ids') -and @($specialistDecision.surfaced_skill_ids).Count -gt 0) -or
-        (($specialistDecision.PSObject.Properties.Name -contains 'recommendation_count') -and [int]$specialistDecision.recommendation_count -gt 0)
-    )
-)
-$noSpecialistResolved = ($noSpecialistResolved -or $degradedSpecialistResolved)
-$legacySkillRouting = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'legacy_skill_routing') { $runtimeInputPacket.legacy_skill_routing } else { $null }
-$specialistRecommendations = if ($runtimeInputPacket.PSObject.Properties.Name -contains 'specialist_recommendations') {
-    @($runtimeInputPacket.specialist_recommendations)
-} elseif ($null -ne $legacySkillRouting -and $legacySkillRouting.PSObject.Properties.Name -contains 'specialist_recommendations') {
-    @($legacySkillRouting.specialist_recommendations)
-} else {
-    @()
-}
-$specialistRecommendationIds = @($specialistRecommendations | ForEach-Object { [string]$_.skill_id })
-$selectedSkillIds = if (
-    $runtimeInputPacket.PSObject.Properties.Name -contains 'skill_routing' -and
-    $null -ne $runtimeInputPacket.skill_routing -and
-    $runtimeInputPacket.skill_routing.PSObject.Properties.Name -contains 'selected'
-) {
-    @($runtimeInputPacket.skill_routing.selected | ForEach-Object { [string]$_.skill_id })
-} else {
-    @()
-}
-$approvedDispatchSkillIds = if (
-    $null -ne $specialistDecision -and
-    $specialistDecision.PSObject.Properties.Name -contains 'approved_dispatch_skill_ids'
-) {
-    @($specialistDecision.approved_dispatch_skill_ids | ForEach-Object { [string]$_ })
-} else {
-    @()
-}
-$boundSkillIds = @(Get-VibeWorkBindingBoundSkillIds -RuntimeInputPacket $runtimeInputPacket)
-$routeSnapshotSkill = [string](Get-VibePrimaryBoundSkillId -RuntimeInputPacket $runtimeInputPacket)
-$runtimeAuthoritySkill = [string]$runtimeInputPacket.authority_flags.explicit_runtime_skill
-$intentionalSelectedSkillSplit = (
-    $routeSnapshotSkill -ne $runtimeAuthoritySkill -and
-    ((@($boundSkillIds) -contains $routeSnapshotSkill) -or (@($selectedSkillIds) -contains $routeSnapshotSkill) -or (@($specialistRecommendationIds) -contains $routeSnapshotSkill))
-)
-Add-Assertion -Results ([ref]$results) -Condition (($routeSnapshotSkill -eq 'vibe') -or $intentionalSelectedSkillSplit -or $noSpecialistResolved) -Message 'runtime smoke bounded specialist skill is vibe or preserved separately from runtime authority'
-Add-Assertion -Results ([ref]$results) -Condition ($runtimeAuthoritySkill -eq 'vibe') -Message 'runtime smoke keeps vibe as explicit runtime skill'
-Add-Assertion -Results ([ref]$results) -Condition ((-not [bool]$runtimeInputPacket.divergence_shadow.skill_mismatch) -or $intentionalSelectedSkillSplit -or $noSpecialistResolved) -Message 'runtime smoke permits router/runtime split only for selected bounded skills'
-Add-Assertion -Results ([ref]$results) -Condition ((@($boundSkillIds).Count -ge 1) -or $noSpecialistResolved) -Message 'runtime smoke work_binding carries selected bounded skills or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ((@($selectedSkillIds).Count -eq 0) -or ((@($selectedSkillIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($selectedSkillIds).Count)) -Message 'runtime smoke keeps compatibility selected skills subordinate to work_binding'
-Add-Assertion -Results ([ref]$results) -Condition ((@($specialistRecommendationIds).Count -eq 0) -or ((@($specialistRecommendationIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($specialistRecommendationIds).Count)) -Message 'runtime smoke keeps legacy specialist recommendations subordinate to work_binding when they remain visible'
-Add-Assertion -Results ([ref]$results) -Condition ((@($approvedDispatchSkillIds).Count -gt 0 -and ((@($approvedDispatchSkillIds) | Where-Object { $_ -in @($boundSkillIds) }).Count -eq @($approvedDispatchSkillIds).Count)) -or $noSpecialistResolved) -Message 'runtime smoke preserves approved dispatch skills in work_binding or records no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Skill Execution Decision')) -Message 'runtime smoke requirement doc includes skill execution decision section'
-Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Selected Skill Execution Plan')) -Message 'runtime smoke execution plan includes selected skill execution section'
-Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.specialist_accounting) -and (([int]$executionManifest.specialist_accounting.recommendation_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke execution manifest carries skill execution accounting or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition (($null -ne $executionManifest.plan_shadow) -and (([int]$executionManifest.plan_shadow.skill_execution_unit_count -ge 1) -or $noSpecialistResolved)) -Message 'runtime smoke plan shadow counts skill execution units or no-specialist resolution'
-Add-Assertion -Results ([ref]$results) -Condition ([bool]$executionManifest.dispatch_integrity.proof_passed) -Message 'runtime smoke skill execution integrity proof passes'
+) -eq ($expectedHandoffStageIds -join '|')) -Message 'runtime smoke stage-lineage stops at Agent execution handoff'
+Add-Assertion -Results ([ref]$results) -Condition ($summary.summary.terminal_stage -eq 'plan_execute') -Message 'runtime smoke stops before phase cleanup'
+Add-Assertion -Results ([ref]$results) -Condition ($null -eq $summary.summary.artifacts.cleanup_receipt) -Message 'runtime smoke omits cleanup receipt before Agent module execution'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-logs'))) -Message 'runtime smoke does not create kernel execution logs before Agent work'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-results'))) -Message 'runtime smoke does not create kernel execution results before Agent work'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath (Join-Path $summary.summary.session_root 'execution-proof'))) -Message 'runtime smoke does not create kernel execution proof directories before Agent work'
+Add-Assertion -Results ([ref]$results) -Condition ($executeReceipt.status -eq 'agent_action_required') -Message 'runtime smoke execute receipt requires Agent action'
+Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.status -eq 'agent_action_required') -Message 'runtime smoke execution manifest requires Agent action' -Details $executionManifest.status
+Add-Assertion -Results ([ref]$results) -Condition (-not ($executionManifest.PSObject.Properties.Name -contains 'plan_shadow')) -Message 'runtime smoke execution manifest omits retired plan shadow'
+Add-Assertion -Results ([ref]$results) -Condition ($agentExecutionHandoff.schema_version -eq 'agent_execution_handoff_v1') -Message 'runtime smoke emits the Agent execution handoff contract'
+Add-Assertion -Results ([ref]$results) -Condition ($agentExecutionHandoff.status -eq 'agent_action_required' -and $agentExecutionHandoff.control_owner -eq 'agent') -Message 'runtime smoke gives skill execution control to the Agent'
+Add-Assertion -Results ([ref]$results) -Condition ($agentExecutionHandoff.module_execution_path -eq (Join-Path $artifactRoot "outputs\runtime\vibe-sessions\$runId\module-execution.json")) -Message 'runtime smoke binds the Agent result path in the handoff contract'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContract.schema_version -ceq 'module_execution_v1') -Message 'runtime smoke result_contract freezes the module_execution_v1 submission schema'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $resultContract.source_run_id -ceq $runId -and
+    $resultContract.source_run_id -ceq [string]$moduleWorkPlan.source_run_id -and
+    $resultContract.source_run_id -ceq [string]$agentExecutionHandoff.source_run_id
+) -Message 'runtime smoke result_contract binds the source run'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContract.module_work_plan_digest -ceq $actualModuleWorkPlanDigest) -Message 'runtime smoke result_contract binds the actual module-work-plan.json SHA256 digest'
+Add-Assertion -Results ([ref]$results) -Condition ((@($resultContract.terminal_states) -join '|') -ceq 'completed|failed|blocked') -Message 'runtime smoke result_contract allows terminal results only'
+Add-Assertion -Results ([ref]$results) -Condition (
+    ($resultContractUnitIds -join '|') -ceq ($plannedUnitIds -join '|') -and
+    ($resultContractUnitIds -join '|') -ceq ($handoffUnitIds -join '|')
+) -Message 'runtime smoke result_contract unit ids match the plan and handoff'
+Add-Assertion -Results ([ref]$results) -Condition (
+    $resultContractUnitBindingsJson -ceq $plannedUnitBindingsJson -and
+    $resultContractUnitBindingsJson -ceq $handoffUnitBindingsJson
+) -Message 'runtime smoke result_contract preserves every unit role, module, and Skill binding'
+Add-Assertion -Results ([ref]$results) -Condition ($resultContractModulesJson -ceq $plannedModulesJson) -Message 'runtime smoke result_contract modules match the approved plan'
+Add-Assertion -Results ([ref]$results) -Condition (
+    @($resultContract.units | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0 -and
+    @($resultContract.modules | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0
+) -Message 'runtime smoke result_contract contains no prewritten execution results'
+Add-Assertion -Results ([ref]$results) -Condition ($hostUserBriefing.Contains('Use `result_contract` from `agent-execution-handoff.json`')) -Message 'runtime smoke user briefing points the Agent to result_contract'
+Add-Assertion -Results ([ref]$results) -Condition ($null -eq $summary.summary.artifacts.module_execution) -Message 'runtime smoke does not publish Agent module results before re-entry'
+Add-Assertion -Results ([ref]$results) -Condition (-not (Test-Path -LiteralPath $agentExecutionHandoff.module_execution_path)) -Message 'runtime smoke leaves module-execution.json for the Agent to write'
+Add-Assertion -Results ([ref]$results) -Condition (
+    @($agentExecutionHandoff.units | Where-Object { $_.PSObject.Properties.Name -contains 'state' }).Count -eq 0
+) -Message 'runtime smoke handoff contains work instructions, not prewritten result states'
+Add-Assertion -Results ([ref]$results) -Condition ($executionManifest.module_handoff.status -eq 'agent_action_required' -and $executionManifest.module_handoff.control_owner -eq 'agent') -Message 'runtime smoke module_handoff records Agent control'
+Add-Assertion -Results ([ref]$results) -Condition ([int]$executionManifest.module_handoff.module_work_unit_count -eq @($moduleWorkPlan.work_units).Count) -Message 'runtime smoke module_handoff covers every approved work unit'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedRequirement.Contains('## Skill Search Guide')) -Message 'runtime smoke requirement doc includes Agent skill-search guidance'
+Add-Assertion -Results ([ref]$results) -Condition (-not $generatedRequirement.Contains('## Skill Execution Decision')) -Message 'runtime smoke requirement doc does not expose preselected skill truth'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Task Modules')) -Message 'runtime smoke execution plan includes Agent task modules'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Candidate Skills By Module')) -Message 'runtime smoke execution plan includes module candidate audit'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Module Work Plan')) -Message 'runtime smoke execution plan includes the approved module work plan'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## Uncovered Modules')) -Message 'runtime smoke execution plan discloses uncovered modules'
+Add-Assertion -Results ([ref]$results) -Condition ($generatedPlan.Contains('## L / XL Organization Difference')) -Message 'runtime smoke execution plan explains L and XL organization'
+
+$agentOrganization = $runtimeInputPacket.agent_skill_organization
+$agentSelectedSkillIds = @($agentOrganization.selected_skills | ForEach-Object { [string]$_.skill_id } | Sort-Object -Unique)
+$boundSkillIds = @(Get-VibeModuleAssignmentsBoundSkillIds -RuntimeInputPacket $runtimeInputPacket | Sort-Object -Unique)
+$handedOffSkillIds = @($agentExecutionHandoff.units | ForEach-Object { [string]$_.skill_id } | Sort-Object -Unique)
+
+Add-Assertion -Results ([ref]$results) -Condition ($agentOrganization.schema_version -eq 'agent_skill_organization_v1') -Message 'runtime smoke packet carries Agent-confirmed skill organization'
+Add-Assertion -Results ([ref]$results) -Condition ($runtimeInputPacket.module_assignments.source -eq 'agent_skill_organization') -Message 'runtime smoke module_assignments projects Agent skill organization'
+Add-Assertion -Results ([ref]$results) -Condition (($boundSkillIds -join '|') -eq ($agentSelectedSkillIds -join '|')) -Message 'runtime smoke module_assignments matches Agent-selected skills'
+Add-Assertion -Results ([ref]$results) -Condition ($moduleWorkPlan.schema_version -eq 'module_work_plan_v1') -Message 'runtime smoke uses the approved module work plan as execution authority'
+Add-Assertion -Results ([ref]$results) -Condition (($handedOffSkillIds -join '|') -eq ($agentSelectedSkillIds -join '|')) -Message 'runtime smoke hands off only Agent-selected skills'
+Add-Assertion -Results ([ref]$results) -Condition (($executionManifest.module_handoff.assigned_skill_ids -join '|') -eq ($handedOffSkillIds -join '|')) -Message 'runtime smoke module_handoff matches agent-execution-handoff.json'
+Add-Assertion -Results ([ref]$results) -Condition (@($agentOrganization.uncovered_modules).Count -eq 0 -and @($agentOrganization.selected_skills).Count -eq 1) -Message 'runtime smoke preserves the Agent-selected module owner'
+Add-Assertion -Results ([ref]$results) -Condition ([string]$runtimeInputPacket.authority_flags.explicit_runtime_skill -eq 'vibe') -Message 'runtime smoke keeps vibe as explicit runtime skill'
 
 $failureCount = @($results | Where-Object { -not $_.passed }).Count
 $gatePassed = ($failureCount -eq 0)

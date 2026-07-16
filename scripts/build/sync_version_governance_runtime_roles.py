@@ -11,10 +11,7 @@ CONTRACTS_SRC = REPO_ROOT / 'packages' / 'contracts' / 'src'
 if str(CONTRACTS_SRC) not in sys.path:
     sys.path.insert(0, str(CONTRACTS_SRC))
 
-from vgo_contracts.governance_runtime_roles import (
-    derive_required_runtime_marker_projection,
-    derive_runtime_payload_roles,
-)
+from vgo_contracts.governance_runtime_roles import derive_runtime_payload_roles
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -42,9 +39,13 @@ def sync_version_governance_runtime_roles(repo_root: Path | str) -> dict[str, An
 
     runtime_root = dict(governance.get('runtime') or {})
     installed_runtime = dict(runtime_root.get('installed_runtime') or {})
-    projection = derive_required_runtime_marker_projection(list(installed_runtime.get('required_runtime_markers') or []))
-    installed_runtime['required_runtime_marker_groups'] = projection['required_runtime_marker_groups']
-    installed_runtime['required_runtime_marker_notes'] = projection['required_runtime_marker_notes']
+    for retired_field in (
+        'shell_degraded_behavior',
+        'required_runtime_markers',
+        'required_runtime_marker_groups',
+        'required_runtime_marker_notes',
+    ):
+        installed_runtime.pop(retired_field, None)
     runtime_root['installed_runtime'] = installed_runtime
     governance['runtime'] = runtime_root
 

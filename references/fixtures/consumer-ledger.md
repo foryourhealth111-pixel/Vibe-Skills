@@ -12,7 +12,6 @@ This ledger records which `references/fixtures/**` families are still live regre
 | `retro-compare/` | active | `tests/runtime_neutral/test_outputs_boundary_migration.py`, `references/fixtures/migration-map.json`, `config/outputs-boundary-policy.json` | keep live |
 | `verify/routing-stability/` | active | `tests/runtime_neutral/test_outputs_boundary_migration.py`, `references/fixtures/migration-map.json`, `config/outputs-boundary-policy.json` | keep live |
 | `anti-proxy-goal-drift/` | retired-from-live-surface | historical verification corpus; current repo no longer carries a live `vibe-anti-proxy-goal-drift-*.ps1` family reference | remove tracked live copies; recover through git history if needed |
-| `runtime-contract/` | active-but-ambiguous | `tests/runtime_neutral/test_runtime_contract_goldens.py` | keep live |
 
 ## Rules
 

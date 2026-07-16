@@ -317,8 +317,8 @@ foreach ($file in $scannedFiles) {
                 default { 'Retired field appears in a current output construction path.' }
             }
             $suggestedFix = switch ($category) {
-                'P1' { 'Move the old-field reader or fixture into a legacy/retired file, or rewrite it to current skill_routing and skill_usage fields.' }
-                'P2' { 'Rewrite the text to the current candidate/selected/execution/used/unused/evidence model, or mark it as retired history.' }
+                'P1' { 'Move the old-field reader or fixture into a legacy/retired file, or rewrite it to current Agent organization and completed module-work fields.' }
+                'P2' { 'Rewrite the text to the current Agent organization, module handoff, and module-result model, or mark it as retired history.' }
                 default { 'Remove the retired field from current output and assert the field is absent.' }
             }
 

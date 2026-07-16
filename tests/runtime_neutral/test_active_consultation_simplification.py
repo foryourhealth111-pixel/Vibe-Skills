@@ -50,6 +50,51 @@ def run_runtime(task: str, artifact_root: Path) -> dict[str, object]:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = "pytest-active-consult-off-" + uuid.uuid4().hex[:10]
+    target_root = artifact_root / ".agents"
+    skill_path = target_root / "skills" / "systematic-debugging" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True)
+    skill_path.write_text(
+        "---\nname: systematic-debugging\ndescription: Debug failing tests and stack traces systematically.\n---\n",
+        encoding="utf-8",
+    )
+    host_decision_json = json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "L",
+                "modules": [
+                    {
+                        "module_id": "debug_failure",
+                        "goal": "Debug the failing test and stack trace.",
+                        "candidate_skill_ids": ["systematic-debugging"],
+                        "execution_mode": "skill_assigned",
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "diagnosis-result",
+                                "description": "The failure diagnosis identifies a verified root cause.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [
+                    {
+                        "skill_id": "systematic-debugging",
+                        "module_ids": ["debug_failure"],
+                        "responsibility": "Own systematic failure diagnosis.",
+                        "reason": "Its SKILL.md directly owns this work.",
+                    }
+                ],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Use one bounded serial debugging lane.",
+                    "XL": "Use bounded parallel diagnosis and review lanes.",
+                },
+            }
+        },
+        separators=(",", ":"),
+    )
     completed = subprocess.run(
         [
             shell,
@@ -64,7 +109,8 @@ def run_runtime(task: str, artifact_root: Path) -> dict[str, object]:
                 f"-Task {ps_quote(task)} "
                 "-Mode interactive_governed "
                 f"-RunId {ps_quote(run_id)} "
-                f"-ArtifactRoot {ps_quote(str(artifact_root))}; "
+                f"-ArtifactRoot {ps_quote(str(artifact_root))} "
+                f"-HostDecisionJson {ps_quote(host_decision_json)}; "
                 "$result | ConvertTo-Json -Depth 20 }"
             ),
         ],
@@ -75,10 +121,7 @@ def run_runtime(task: str, artifact_root: Path) -> dict[str, object]:
         check=True,
         env={
             **os.environ,
-            "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1",
-            "VGO_ENABLE_NATIVE_SPECIALIST_EXECUTION": "0",
-            "VGO_SPECIALIST_CONSULTATION_MODE": "",
-            "VGO_NATIVE_SPECIALIST_EXECUTION_MODE": "",
+            "VIBE_AGENTS_HOME": str(target_root),
         },
     )
     return json.loads(completed.stdout)
@@ -101,79 +144,39 @@ class ActiveConsultationSimplificationTests(unittest.TestCase):
                 sorted(path.name for path in session_root.glob("*specialist-consultation*.json")),
             )
 
-            lifecycle = summary["specialist_lifecycle_disclosure"]
-            layer_ids = [str(layer["layer_id"]) for layer in list(lifecycle["layers"])]
-            self.assertNotIn("discussion_consultation", layer_ids)
-            self.assertNotIn("planning_consultation", layer_ids)
-            self.assertNotIn("consultation", str(lifecycle["truth_model"]).lower())
+            self.assertNotIn("specialist_lifecycle_disclosure", summary)
 
             requirement_doc = Path(artifacts["requirement_doc"]).read_text(encoding="utf-8")
             execution_plan = Path(artifacts["execution_plan"]).read_text(encoding="utf-8")
-            for text in (requirement_doc, execution_plan, lifecycle["rendered_text"]):
+            for text in (requirement_doc, execution_plan):
                 self.assertNotIn("## Specialist Consultation", text)
                 self.assertNotIn("consultation truth", text)
                 self.assertNotIn("stage assistant", text.lower())
-            self.assertIn("## Skill Execution Decision", requirement_doc)
-            self.assertIn("Decision state: approved_dispatch", requirement_doc)
-            self.assertIn("## Selected Skill", requirement_doc)
-            self.assertIn("Selected Skill: diagnose", requirement_doc)
-            self.assertIn("## Skill Execution Decision Plan", execution_plan)
-            self.assertIn("Frozen decision state: approved_dispatch", execution_plan)
-            self.assertIn("## Selected Skill Execution Plan", execution_plan)
+            self.assertNotIn("## Skill Execution Decision", requirement_doc)
+            self.assertNotIn("Decision state: approved_dispatch", requirement_doc)
+            self.assertNotIn("## Selected Skill", requirement_doc)
+            self.assertNotIn("Selected Skill: diagnose", requirement_doc)
+            self.assertNotIn("## Skill Execution Decision Plan", execution_plan)
+            self.assertNotIn("Frozen decision state: approved_dispatch", execution_plan)
+            self.assertIn("## Module Work Plan", execution_plan)
 
-    def test_legacy_consultation_projection_remains_readable_without_usage_claim(self) -> None:
-        shell = resolve_powershell()
-        if shell is None:
-            self.skipTest("PowerShell executable not available in PATH")
+    def test_retired_consultation_script_and_policy_are_not_packaged(self) -> None:
+        self.assertFalse((REPO_ROOT / "scripts" / "runtime" / "VibeConsultation.Common.ps1").exists())
+        self.assertFalse((REPO_ROOT / "scripts" / "runtime" / "legacy" / "VibeRetiredConsultation.Common.ps1").exists())
+        self.assertFalse((REPO_ROOT / "config" / "specialist-consultation-policy.json").exists())
 
-        script = (
-            "& { "
-            f". {ps_quote(str(RUNTIME_COMMON))}; "
-            "$receipt = [pscustomobject]@{ "
-            "enabled = $true; "
-            "window_id = 'discussion'; "
-            "stage = 'deep_interview'; "
-            "user_disclosures = @([pscustomobject]@{ "
-            "skill_id = 'legacy-skill'; "
-            "why_now = 'old packet disclosure'; "
-            "native_skill_entrypoint = 'C:\\legacy\\SKILL.md'; "
-            "native_skill_description = 'legacy compatibility only' "
-            "}); "
-            "consulted_units = @(); "
-            "routed_units = @([pscustomobject]@{ "
-            "skill_id = 'legacy-skill'; "
-            "status = 'routed_pending_current_session'; "
-            "summary = 'old routed receipt, not use evidence' "
-            "}); "
-            "summary = [pscustomobject]@{ consulted_unit_count = 0; routed_unit_count = 1 }; "
-            "freeze_gate = [pscustomobject]@{ passed = $true; errors = @() } "
-            "}; "
-            "$layer = New-VibeRetiredSpecialistConsultationLifecycleLayerProjection -ConsultationReceipt $receipt; "
-            "$segment = New-VibeHostUserBriefingSegmentProjection -LifecycleLayer $layer -ConsultationReceipt $receipt; "
-            "[pscustomobject]@{ "
-            "layer_id = $layer.layer_id; "
-            "truth_layer = $layer.truth_layer; "
-            "skill_state = $layer.skills[0].state; "
-            "segment_category = $segment.category; "
-            "rendered_text = $segment.rendered_text "
-            "} | ConvertTo-Json -Depth 20 "
-            "}"
-        )
-        completed = subprocess.run(
-            [shell, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=True,
-        )
-        payload = json.loads(completed.stdout)
-
-        self.assertEqual("discussion_consultation", payload["layer_id"])
-        self.assertEqual("consultation", payload["truth_layer"])
-        self.assertEqual("routed_pending_current_session", payload["skill_state"])
-        self.assertEqual("consultation", payload["segment_category"])
-        self.assertIn("Usage claims still require `skill_usage` evidence", payload["rendered_text"])
+        current_surfaces = [
+            REPO_ROOT / "config" / "runtime-script-manifest.json",
+            REPO_ROOT / "config" / "runtime-config-manifest.json",
+            REPO_ROOT / "config" / "version-governance.json",
+            REPO_ROOT / "scripts" / "runtime" / "VibeRuntime.Common.ps1",
+        ]
+        for path in current_surfaces:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("VibeConsultation.Common.ps1", text, str(path))
+            self.assertNotIn("VibeRetiredConsultation.Common.ps1", text, str(path))
+            self.assertNotIn("RetiredConsultation", text, str(path))
+            self.assertNotIn("specialist-consultation-policy.json", text, str(path))
 
 
 if __name__ == "__main__":

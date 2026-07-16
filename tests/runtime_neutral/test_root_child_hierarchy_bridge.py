@@ -13,6 +13,55 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def ps_quote(value: object) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def agent_skill_organization(selected_skill_ids: list[str]) -> dict[str, object]:
+    module_id = "root_child_hierarchy"
+    return {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "XL",
+        "modules": [
+            {
+                "module_id": module_id,
+                "goal": "Verify root and child governed-runtime hierarchy behavior.",
+                "candidate_skill_ids": selected_skill_ids,
+                "execution_mode": "skill_assigned" if selected_skill_ids else "blocked_gap",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": "hierarchy-result",
+                        "description": "The governed root and child hierarchy outcome is verified.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            }
+        ],
+        "selected_skills": [
+            {
+                "skill_id": skill_id,
+                "module_ids": [module_id],
+                "responsibility": "Own the module work delegated through the hierarchy test.",
+                "reason": "The Agent selected this skill after reading its SKILL.md.",
+            }
+            for skill_id in selected_skill_ids
+        ],
+        "uncovered_modules": []
+        if selected_skill_ids
+        else [
+            {
+                "module_id": module_id,
+                "reason": "The hierarchy assertion does not require a module Skill owner.",
+            }
+        ],
+        "workflow_level_contract": {
+            "L": "Use one serial governed lane.",
+            "XL": "Use bounded waves when the approved organization needs them.",
+        },
+    }
+
+
 def resolve_powershell() -> str | None:
     candidates = [
         shutil.which("pwsh"),
@@ -29,19 +78,10 @@ def resolve_powershell() -> str | None:
 
 
 def selected_skill_ids_from_packet(runtime_input_packet: dict[str, object]) -> set[str]:
-    routing = runtime_input_packet.get("skill_routing")
-    if isinstance(routing, dict):
-        selected = routing.get("selected")
-        if isinstance(selected, list) and selected:
-            return {
-                str(skill.get("skill_id", "")).strip()
-                for skill in selected
-                if isinstance(skill, dict) and str(skill.get("skill_id", "")).strip()
-            }
-    work_binding = runtime_input_packet.get("work_binding")
-    if not isinstance(work_binding, dict):
+    module_assignments = runtime_input_packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
         return set()
-    units = work_binding.get("units")
+    units = module_assignments.get("units")
     if not isinstance(units, list):
         return set()
     return {
@@ -51,13 +91,20 @@ def selected_skill_ids_from_packet(runtime_input_packet: dict[str, object]) -> s
     }
 
 
-def run_governed_runtime(task: str, artifact_root: Path) -> dict[str, object]:
+def run_governed_runtime(
+    task: str,
+    artifact_root: Path,
+    selected_skill_ids: list[str] | None = None,
+) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
     run_id = "pytest-root-child-" + uuid.uuid4().hex[:10]
+    host_decision_json = json.dumps(
+        {"agent_skill_organization": agent_skill_organization(selected_skill_ids or [])}
+    )
     command = [
         shell,
         "-NoLogo",
@@ -67,12 +114,13 @@ def run_governed_runtime(task: str, artifact_root: Path) -> dict[str, object]:
         "-Command",
         (
             "& { "
-            f"$result = & '{script_path}' "
-            f"-Task '{task}' "
+            f"$result = & {ps_quote(script_path)} "
+            f"-Task {ps_quote(task)} "
             "-Mode interactive_governed "
             "-GovernanceScope root "
-            f"-RunId '{run_id}' "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-RunId {ps_quote(run_id)} "
+            f"-ArtifactRoot {ps_quote(artifact_root)} "
+            f"-HostDecisionJson {ps_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -84,7 +132,7 @@ def run_governed_runtime(task: str, artifact_root: Path) -> dict[str, object]:
         encoding="utf-8",
         errors="replace",
         check=True,
-        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+        env={**os.environ},
     )
     stdout = completed.stdout.strip()
     if stdout in ("", "null"):
@@ -101,7 +149,6 @@ def run_child_runtime(
     inherited_requirement_doc_path: Path,
     inherited_execution_plan_path: Path,
     artifact_root: Path,
-    approved_specialist_skill_ids: list[str] | None = None,
     delegation_envelope_path: Path | None = None,
     run_id: str | None = None,
 ) -> dict[str, object]:
@@ -111,14 +158,11 @@ def run_child_runtime(
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
     effective_run_id = run_id or ("pytest-child-lane-" + uuid.uuid4().hex[:10])
-    approved = approved_specialist_skill_ids or []
-    approved_literal = (
-        "@(" + ",".join("'" + skill.replace("'", "''") + "'" for skill in approved) + ")"
-        if approved
-        else "@()"
+    host_decision_json = json.dumps(
+        {"agent_skill_organization": agent_skill_organization([])}
     )
     delegation_literal = (
-        f"-DelegationEnvelopePath '{delegation_envelope_path}' "
+        f"-DelegationEnvelopePath {ps_quote(delegation_envelope_path)} "
         if delegation_envelope_path is not None
         else ""
     )
@@ -131,19 +175,19 @@ def run_child_runtime(
         "-Command",
         (
             "& { "
-            f"$result = & '{script_path}' "
-            f"-Task '{task}' "
+            f"$result = & {ps_quote(script_path)} "
+            f"-Task {ps_quote(task)} "
             "-Mode interactive_governed "
             "-GovernanceScope child "
-            f"-RunId '{effective_run_id}' "
-            f"-RootRunId '{root_run_id}' "
-            f"-ParentRunId '{root_run_id}' "
+            f"-RunId {ps_quote(effective_run_id)} "
+            f"-RootRunId {ps_quote(root_run_id)} "
+            f"-ParentRunId {ps_quote(root_run_id)} "
             "-ParentUnitId 'pytest-child-unit' "
-            f"-InheritedRequirementDocPath '{inherited_requirement_doc_path}' "
-            f"-InheritedExecutionPlanPath '{inherited_execution_plan_path}' "
-            f"-ApprovedSpecialistSkillIds {approved_literal} "
+            f"-InheritedRequirementDocPath {ps_quote(inherited_requirement_doc_path)} "
+            f"-InheritedExecutionPlanPath {ps_quote(inherited_execution_plan_path)} "
             f"{delegation_literal}"
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-ArtifactRoot {ps_quote(artifact_root)} "
+            f"-HostDecisionJson {ps_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -155,7 +199,7 @@ def run_child_runtime(
         encoding="utf-8",
         errors="replace",
         check=True,
-        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+        env={**os.environ},
     )
     stdout = completed.stdout.strip()
     if stdout in ("", "null"):
@@ -170,9 +214,7 @@ def write_delegation_envelope_fixture(
     artifact_root: Path,
     root_payload: dict[str, object],
     child_run_id: str,
-    approved_specialists: list[str] | None = None,
 ) -> Path:
-    approved = approved_specialists or []
     root_summary = root_payload["summary"]
     root_artifacts = root_summary["artifacts"]
     session_root = artifact_root / "outputs" / "runtime" / "vibe-sessions" / child_run_id
@@ -187,8 +229,7 @@ def write_delegation_envelope_fixture(
         "requirement_doc_path": str(Path(root_artifacts["requirement_doc"]).resolve()),
         "execution_plan_path": str(Path(root_artifacts["execution_plan"]).resolve()),
         "write_scope": "pytest:child-lane",
-        "approved_specialists": approved,
-        "review_mode": "native_contract",
+        "review_mode": "module_acceptance",
         "prompt_tail_required": "$vibe",
         "allow_requirement_freeze": False,
         "allow_plan_freeze": False,
@@ -211,7 +252,11 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
         stable_text = stable_doc.read_text(encoding="utf-8")
         self.assertIn("Root `vibe`: the only top-level governor", stable_text)
         self.assertIn("Child `vibe`: a subordinate execution lane", stable_text)
-        self.assertIn("A child lane may detect that more specialist help is useful", stable_text)
+        self.assertIn("module-work-plan.json", stable_text)
+        self.assertIn("agent-execution-handoff.json", stable_text)
+        self.assertIn("module-execution.json", stable_text)
+        self.assertNotIn("Specialist-Native Lane", stable_text)
+        self.assertNotIn("bounded native units", stable_text)
 
     def test_runtime_input_policy_declares_hierarchy_fields(self) -> None:
         policy_path = REPO_ROOT / "config" / "runtime-input-packet-policy.json"
@@ -221,19 +266,25 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
         expected_tokens = [
             "governance_scope",
             "hierarchy_contract",
-            "child_specialist_suggestion_contract",
             "allow_requirement_freeze",
             "allow_plan_freeze",
             "allow_global_dispatch",
             "allow_completion_claim",
-            "selected_skill_execution",
-            "skill_execution_contract",
-            "auto_promote_when_safe_same_round",
+            "agent_skill_organization",
+            "module_assignments",
+            "module_skill_contract",
             "escalation_required",
         ]
         for token in expected_tokens:
             with self.subTest(token=token):
                 self.assertIn(token, policy_text)
+        for retired_token in (
+            "skill_execution_contract",
+            "native_skill_entrypoint",
+            "direct_current_session_route",
+        ):
+            with self.subTest(retired_token=retired_token):
+                self.assertNotIn(retired_token, policy_text)
 
     def test_root_runtime_keeps_vibe_authority_and_single_canonical_surfaces(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -248,14 +299,19 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
             requirement_doc_path = Path(artifacts["requirement_doc"])
             execution_plan_path = Path(artifacts["execution_plan"])
             execution_manifest_path = Path(artifacts["execution_manifest"])
+            handoff_path = Path(artifacts["agent_execution_handoff"])
 
             runtime_input_packet = json.loads(runtime_input_packet_path.read_text(encoding="utf-8"))
             execution_manifest = json.loads(execution_manifest_path.read_text(encoding="utf-8"))
+            handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+            result_contract = handoff["result_contract"]
+            module_execution_path = Path(handoff["module_execution_path"])
+            module_handoff = execution_manifest["module_handoff"]
 
             selected_skill_ids = selected_skill_ids_from_packet(runtime_input_packet)
             bound_skill_ids = {
                 str(unit.get("bound_skill", "")).strip()
-                for unit in list(runtime_input_packet["work_binding"]["units"])
+                for unit in list(runtime_input_packet["module_assignments"]["units"])
                 if str(unit.get("bound_skill", "")).strip()
             }
             self.assertEqual(bound_skill_ids, selected_skill_ids)
@@ -269,9 +325,27 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
             self.assertEqual("requirements", requirement_doc_path.parent.name)
             self.assertEqual("plans", execution_plan_path.parent.name)
             self.assertEqual("root", execution_manifest["governance_scope"])
-            self.assertTrue(execution_manifest["authority"]["completion_claim_allowed"])
-            self.assertEqual("vibe", execution_manifest["route_runtime_alignment"]["runtime_selected_skill"])
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
+            self.assertNotIn("route_runtime_alignment", execution_manifest)
+            self.assertEqual("agent_action_required", module_handoff["status"])
+            self.assertEqual("agent", module_handoff["control_owner"])
+            self.assertEqual([], module_handoff["assigned_skill_ids"])
+            self.assertEqual("agent_execution_handoff_v1", handoff["schema_version"])
+            self.assertEqual(module_handoff["status"], handoff["status"])
+            self.assertEqual(module_handoff["control_owner"], handoff["control_owner"])
+            self.assertEqual(module_handoff["work_units"], handoff["units"])
+            self.assertEqual("module_execution_v1", result_contract["schema_version"])
+            self.assertEqual(summary["run_id"], result_contract["source_run_id"])
+            self.assertEqual("plan_execute", summary["terminal_stage"])
+            self.assertFalse(artifacts["cleanup_receipt"])
+            self.assertIsNone(artifacts["module_execution"])
+            self.assertFalse(module_execution_path.exists())
+            self.assertEqual([], handoff["units"])
+            self.assertEqual([], result_contract["units"])
+            self.assertEqual(
+                ["blocked_gap"],
+                [module["execution_mode"] for module in result_contract["modules"]],
+            )
+            self.assertTrue(result_contract["modules"][0]["gap_reason"])
 
     def test_child_runtime_requires_delegation_envelope(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -290,11 +364,11 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
                     artifact_root=artifact_root,
                 )
 
-    def test_child_specialist_policy_prefers_same_round_auto_promotion(self) -> None:
+    def test_child_runtime_keeps_agent_organization_authoritative(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             artifact_root = Path(tempdir)
             root_payload = run_governed_runtime(
-                "Root specialist dispatch seed for child escalation checks.",
+                "Root module handoff seed for child authority checks.",
                 artifact_root=artifact_root,
             )
             root_summary = root_payload["summary"]
@@ -303,34 +377,30 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
                 Path(root_artifacts["runtime_input_packet"]).read_text(encoding="utf-8")
             )
 
-            root_selected_skills = sorted(selected_skill_ids_from_packet(root_runtime_input_packet))
-            approved_skill_ids: list[str] = []
-            if root_selected_skills:
-                first_skill_id = str(root_selected_skills[0]).strip()
-                if first_skill_id and first_skill_id != "vibe":
-                    approved_skill_ids = [first_skill_id]
-
+            self.assertEqual(set(), selected_skill_ids_from_packet(root_runtime_input_packet))
             child_run_id = "pytest-child-lane-" + uuid.uuid4().hex[:10]
             envelope_path = write_delegation_envelope_fixture(
                 artifact_root=artifact_root,
                 root_payload=root_payload,
                 child_run_id=child_run_id,
-                approved_specialists=approved_skill_ids,
             )
 
             child_payload = run_child_runtime(
-                task="Child specialist escalation advisory smoke.",
+                task="Child module handoff authority smoke.",
                 root_run_id=str(root_summary["run_id"]),
                 inherited_requirement_doc_path=Path(root_artifacts["requirement_doc"]),
                 inherited_execution_plan_path=Path(root_artifacts["execution_plan"]),
                 artifact_root=artifact_root,
-                approved_specialist_skill_ids=approved_skill_ids,
                 delegation_envelope_path=envelope_path,
                 run_id=child_run_id,
             )
             child_summary = child_payload["summary"]
             runtime_input_packet = json.loads(Path(child_summary["artifacts"]["runtime_input_packet"]).read_text(encoding="utf-8"))
             execution_manifest = json.loads(Path(child_summary["artifacts"]["execution_manifest"]).read_text(encoding="utf-8"))
+            handoff = json.loads(Path(child_summary["artifacts"]["agent_execution_handoff"]).read_text(encoding="utf-8"))
+            result_contract = handoff["result_contract"]
+            module_execution_path = Path(handoff["module_execution_path"])
+            module_handoff = execution_manifest["module_handoff"]
             requirement_receipt = json.loads(Path(child_summary["artifacts"]["requirement_receipt"]).read_text(encoding="utf-8"))
             plan_receipt = json.loads(Path(child_summary["artifacts"]["execution_plan_receipt"]).read_text(encoding="utf-8"))
             delegation_validation_receipt = json.loads(
@@ -357,39 +427,39 @@ class RootChildHierarchyBridgeTests(unittest.TestCase):
             )
 
             self.assertNotIn("specialist_dispatch", runtime_input_packet)
-            specialist_decision = runtime_input_packet["specialist_decision"]
-            local_suggestions = list(specialist_decision.get("local_suggestion_skill_ids") or [])
-            approved_ids = {
-                str(skill_id)
-                for skill_id in list(specialist_decision.get("approved_dispatch_skill_ids") or [])
-                if str(skill_id).strip()
-            }
-
-            if local_suggestions:
-                self.assertEqual("local_suggestion_only", str(specialist_decision.get("decision_state", "")))
-                for suggestion_skill_id in local_suggestions:
-                    with self.subTest(suggestion=str(suggestion_skill_id)):
-                        self.assertNotIn(str(suggestion_skill_id), approved_ids)
-            else:
-                self.assertIn(
-                    str(specialist_decision.get("decision_state", "")),
-                    {"approved_dispatch", "no_specialist_recommendations"},
-                )
+            self.assertNotIn("specialist_decision", runtime_input_packet)
+            self.assertEqual([], list(runtime_input_packet["agent_skill_organization"]["selected_skills"]))
+            self.assertEqual(set(), selected_skill_ids_from_packet(runtime_input_packet))
             self.assertEqual("child", execution_manifest["governance_scope"])
             self.assertFalse(execution_manifest["authority"]["completion_claim_allowed"])
-            self.assertEqual("vibe", execution_manifest["route_runtime_alignment"]["runtime_selected_skill"])
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["local_suggestions_contained"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["executed_specialists_subset_of_approved_dispatch"]))
-            if local_suggestions:
-                self.assertIn(
-                    str(execution_manifest["specialist_accounting"]["auto_absorb_gate"]["status"]),
-                    {"auto_approved_same_round", "partially_auto_approved_same_round"},
-                )
+            self.assertNotIn("route_runtime_alignment", execution_manifest)
+            self.assertEqual("agent_action_required", module_handoff["status"])
+            self.assertEqual("agent", module_handoff["control_owner"])
+            self.assertEqual([], module_handoff["assigned_skill_ids"])
+            self.assertEqual("agent_execution_handoff_v1", handoff["schema_version"])
+            self.assertEqual(module_handoff["status"], handoff["status"])
+            self.assertEqual(module_handoff["control_owner"], handoff["control_owner"])
+            self.assertEqual(module_handoff["work_units"], handoff["units"])
+            self.assertEqual(module_handoff["waves"], handoff["waves"])
+            self.assertEqual("module_execution_v1", result_contract["schema_version"])
+            self.assertEqual(child_run_id, result_contract["source_run_id"])
+            self.assertNotIn("specialist_accounting", execution_manifest)
+            self.assertNotIn("specialist_decision", execution_manifest)
+            self.assertNotIn("specialist_user_disclosure", execution_manifest)
+            self.assertEqual([], handoff["units"])
+            self.assertEqual([], handoff["waves"])
+            self.assertEqual([], result_contract["units"])
+            self.assertEqual(
+                ["blocked_gap"],
+                [module["execution_mode"] for module in result_contract["modules"]],
+            )
+            self.assertTrue(result_contract["modules"][0]["gap_reason"])
+            self.assertIsNone(child_summary["artifacts"]["module_execution"])
+            self.assertFalse(module_execution_path.exists())
+            self.assertFalse(child_summary["artifacts"]["cleanup_receipt"])
             self.assertEqual(child_run_id, delegation_validation_receipt["child_run_id"])
             self.assertEqual(str(envelope_path.resolve()), str(Path(delegation_validation_receipt["envelope_path"]).resolve()))
             self.assertTrue(bool(delegation_validation_receipt["write_scope_valid"]))
-            self.assertTrue(bool(delegation_validation_receipt["specialist_approval_valid"]))
 
     def test_child_runtime_rejects_delegation_envelope_for_other_child_run(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

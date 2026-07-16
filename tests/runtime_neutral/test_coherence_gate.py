@@ -40,11 +40,6 @@ class CoherenceGateTests(unittest.TestCase):
                     "post_install_gate": "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
                     "coherence_gate": "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
                     "receipt_contract_version": 1,
-                    "shell_degraded_behavior": "warn_and_skip_authoritative_runtime_gate",
-                    "required_runtime_markers": [
-                        "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
-                        "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1",
-                    ],
                 }
             }
         }
@@ -55,7 +50,7 @@ class CoherenceGateTests(unittest.TestCase):
             "release only governs repo parity\nexecution-context lock\n", encoding="utf-8"
         )
         (self.root / "docs" / "runtime-freshness-install-sop.md").write_text(
-            "receipt contract\nshell degraded behavior\n", encoding="utf-8"
+            "receipt contract\ndoes not require the installed folder to be a full repository mirror\n", encoding="utf-8"
         )
         (self.root / "install.ps1").write_text(
             "param([string]$SkillsDir = '')\n"
@@ -110,15 +105,6 @@ class CoherenceGateTests(unittest.TestCase):
             "Write-Host 'sync'\n", encoding="utf-8"
         )
         self.target_root = self.root / "target"
-        verify_pkg = self.root / "packages" / "verification-core" / "src" / "vgo_verify"
-        verify_pkg.mkdir(parents=True, exist_ok=True)
-        (verify_pkg / "runtime_freshness.py").write_text(
-            "from .runtime_freshness_support import write_freshness_receipt\n", encoding="utf-8"
-        )
-        (verify_pkg / "runtime_freshness_support.py").write_text(
-            "def write_freshness_receipt():\n    return {\"receipt_version\": 1, \"gate_result\": \"PASS\"}\n",
-            encoding="utf-8",
-        )
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()

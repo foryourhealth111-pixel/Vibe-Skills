@@ -53,11 +53,11 @@ def invoke_canonical_router(args: argparse.Namespace, shell: str) -> dict:
         command.extend(['-HostId', args.host_id])
     if args.target_root:
         command.extend(['-TargetRoot', args.target_root])
-    return run_powershell_json_command(command, cwd=repo_root, bridge_label="canonical router bridge")
+    return run_powershell_json_command(command, cwd=repo_root, bridge_label="compatibility candidate-audit bridge")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Host-neutral VCO router entrypoint.')
+    parser = argparse.ArgumentParser(description='Host-neutral compatibility candidate-discovery entrypoint.')
     parser.add_argument('--prompt', required=True)
     parser.add_argument('--grade', default='M', choices=['M', 'L', 'XL'])
     parser.add_argument('--task-type', default='planning', choices=['planning', 'coding', 'review', 'debug', 'research'])

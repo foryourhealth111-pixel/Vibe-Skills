@@ -14,7 +14,7 @@ Role pack v2 focuses on role clarity, handoff readiness, and bounded ownership u
 ## Required Invariants
 
 - `second_orchestrator_forbidden = true` stays fixed.
-- `codex_native_team_runtime_only = true` remains the only execution topology assumption.
+- `module-work-plan.json -> agent-execution-handoff.json -> module-execution.json` remains the only active work-flow contract.
 - Role pack evidence can support planning and handoff quality, not route authority.
 - Every promoted role pack must preserve explicit done definitions and reviewer ownership.
 

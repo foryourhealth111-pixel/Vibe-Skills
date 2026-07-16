@@ -1,11 +1,10 @@
 {
-  "contract_id": "vibe-project-delivery-acceptance-v5",
-  "version": 5,
+  "contract_id": "vibe-project-delivery-acceptance-v6",
+  "version": 6,
   "truth_layers": [
     "governance_truth",
     "engineering_verification_truth",
-    "specialist_disclosure_truth",
-    "specialist_decision_truth",
+    "module_acceptance_truth",
     "code_task_tdd_evidence_truth",
     "workflow_completion_truth",
     "artifact_review_truth",
@@ -45,7 +44,7 @@
     {
       "source": "runtime_status",
       "value": "completed_with_failures",
-      "reason": "partial execution cannot be reported as full downstream delivery"
+      "reason": "incomplete module work cannot be reported as full downstream delivery"
     },
     {
       "source": "runtime_status",
@@ -62,8 +61,7 @@
     "must_report_fields": [
       "governance_truth",
       "engineering_verification_truth",
-      "specialist_disclosure_truth",
-      "specialist_decision_truth",
+      "module_acceptance_truth",
       "code_task_tdd_evidence_truth",
       "workflow_completion_truth",
       "artifact_review_truth",

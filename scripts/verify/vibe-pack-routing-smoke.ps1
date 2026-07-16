@@ -214,20 +214,13 @@ foreach ($pack in $packManifest.packs) {
     }
 }
 
-$autoRoute = [double]$thresholds.thresholds.auto_route
-$confirmRequired = [double]$thresholds.thresholds.confirm_required
-$fallbackBelow = [double]$thresholds.thresholds.fallback_to_legacy_below
+$candidateFocus = [double]$thresholds.thresholds.candidate_focus
+$nearMatch = [double]$thresholds.thresholds.min_candidate_signal_for_near_match
+$focusedSignal = [double]$thresholds.thresholds.min_candidate_signal_for_focus
 
-$results += Assert-True -Condition ($autoRoute -gt $confirmRequired) -Message "auto_route threshold higher than confirm_required"
-$results += Assert-True -Condition ($confirmRequired -ge $fallbackBelow) -Message "confirm_required is not lower than fallback threshold"
+$results += Assert-True -Condition ($focusedSignal -gt $candidateFocus) -Message "focused candidate signal is higher than ordinary candidate focus"
+$results += Assert-True -Condition ($candidateFocus -gt $nearMatch) -Message "ordinary candidate focus is higher than near-match signal"
 $results += Assert-True -Condition ($thresholds.thresholds.min_top1_top2_gap -ne $null) -Message "min_top1_top2_gap threshold configured"
-$results += Assert-True -Condition ($thresholds.safety.enforce_grade_boundary -eq $true) -Message "grade boundary safety is enabled"
-$results += Assert-True -Condition ($thresholds.safety.enforce_task_boundary -eq $true) -Message "task boundary safety is enabled"
-$results += Assert-True -Condition ($thresholds.safety.enforce_confirm_on_legacy_fallback -eq $true) -Message "legacy fallback confirm guard is enabled"
-$results += Assert-True -Condition ($thresholds.weights.skill_keyword_signal -ne $null) -Message "skill_keyword_signal weight is configured"
-$results += Assert-True -Condition ($thresholds.candidate_selection.rule_positive_keyword_bonus -ne $null) -Message "candidate_selection positive bonus configured"
-$results += Assert-True -Condition ($thresholds.candidate_selection.rule_negative_keyword_penalty -ne $null) -Message "candidate_selection negative penalty configured"
-$results += Assert-True -Condition ($thresholds.candidate_selection.canonical_for_task_bonus -ne $null) -Message "candidate_selection canonical bonus configured"
 foreach ($skill in $deletedSkillIds) {
     $results += Assert-True -Condition ((-not $deepDiscoveryEnabled) -or ($capabilityCatalogJson -notmatch [regex]::Escape($skill))) -Message "deleted skill '$skill' absent from capability catalog"
 }

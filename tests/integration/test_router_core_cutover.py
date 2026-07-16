@@ -24,7 +24,7 @@ def test_router_entrypoint_uses_runtime_core_modules() -> None:
 
 
 
-def test_router_contract_runtime_keeps_support_and_selection_helpers_but_owns_route_presentation() -> None:
+def test_router_contract_runtime_keeps_candidate_audit_without_route_confirmation_surface() -> None:
     runtime = (REPO_ROOT / 'packages' / 'runtime-core' / 'src' / 'vgo_runtime' / 'router_contract_runtime.py').read_text(encoding='utf-8')
     support = (REPO_ROOT / 'packages' / 'runtime-core' / 'src' / 'vgo_runtime' / 'runtime_support.py').read_text(encoding='utf-8')
 
@@ -46,5 +46,8 @@ def test_router_contract_runtime_keeps_support_and_selection_helpers_but_owns_ro
     assert 'def normalize_text(' in support
     assert 'def resolve_target_root(' in support
     assert 'def read_skill_descriptor(' in support
-    assert 'def build_confirm_ui(' in runtime
+    assert 'def build_confirm_ui(' not in runtime
+    assert '"confirm_ui"' not in runtime
+    assert not (REPO_ROOT / 'scripts' / 'router' / 'modules' / '46-confirm-ui.ps1').exists()
+    assert not (REPO_ROOT / 'config' / 'confirm-ui-policy.json').exists()
     assert 'def build_fallback_truth(' in runtime

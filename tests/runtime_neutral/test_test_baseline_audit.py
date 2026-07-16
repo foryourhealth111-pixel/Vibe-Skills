@@ -138,7 +138,6 @@ class TestBaselineAuditPolicyTests(unittest.TestCase):
                 "pytest",
                 "tests/integration/test_host_global_bootstrap_shell_lifecycle.py",
                 "tests/integration/test_install_rerun_matrix.py",
-                "tests/integration/test_powershell_captured_process_argument_integrity.py",
                 "tests/integration/test_powershell_wrapper_host_validation_dedupe.py",
                 "--collect-only",
                 "-q",

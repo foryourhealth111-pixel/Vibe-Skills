@@ -35,9 +35,9 @@ VibeSkills 是一个给 AI Agent 用的工作流运行时。它会把一条任�
 
 在公开叙事里，已安装的本地 skill 根目录仍然是唯一专家来源。宿主声明的额外本地根目录，是沿着同一条本地扩展面继续扩展，不长出新的中心目录。这不是在宣称最终架构已经完成。
 
-一个 skill 只有在真实执行证据支持时，才会被算作实际使用，`work_binding` 记录的是本次运行里真正绑定了什么。
+一个 skill 只有在当前 Agent 把工作结果写入 `module-execution.json`，并通过 canonical 验收后，才会被算作实际使用。`module_assignments` 只记录批准后的绑定关系，不证明工作已经执行。
 
-在当前运行时边界里，Python 负责最终 truth artifacts、canonical validation、任务语义、`work_binding`、专家决策真相和结构化运行结果。PowerShell 仍然承担阶段编排、环境准备、脚本桥接、宿主收据、shell 原生检查和叶子执行。不要把新的任务语义继续加到 PowerShell；现有 PowerShell 阶段脚本只是迁移期编排面。
+在当前运行时边界里，Python 负责 canonical validation、任务语义、`module_assignments`，以及从 `agent_skill_organization` 到 `module-work-plan.json`、`agent-execution-handoff.json`、`module-execution.json` 的真相链。PowerShell 负责阶段编排、环境准备、脚本桥接、宿主收据和 shell 原生检查；批准后的模块工作由当前 Agent 真正完成。不要再把新的任务语义或任务执行加到 PowerShell；现有 PowerShell 阶段脚本只是迁移期编排面。
 
 </details>
 
@@ -123,7 +123,7 @@ VibeSkills 是一个给 AI Agent 用的工作流运行时。它会把一条任�
 | **本地 skill 根目录** | 运行时只从声明的本地 skill 根目录里发现额外 Skills；一个 skill 必须有可读取的 `SKILL.md`，才可能被选中。 |
 | **TDD / 验证交付** | 完成不能只靠模型一句“做好了”，而要有测试、检查、产物证据，或明确的人工复核状态。 |
 | **工作区记忆** | 结构化保存需求、计划、决策和证据，让后续会话不用从零开始。 |
-| **实际绑定记录** | 最终到底绑定了哪个 skill，要以 `work_binding` 为准。发现缓存或宽泛产品说法都不能替代这份记录。 |
+| **实际绑定记录** | 最终到底绑定了哪个 skill，要以 `module_assignments` 为准。发现缓存或宽泛产品说法都不能替代这份记录。 |
 
 </details>
 
@@ -134,7 +134,7 @@ VibeSkills 是一个给 AI Agent 用的工作流运行时。它会把一条任�
 >
 > 运行时会先澄清请求、规划工作、在合适的位置绑定本地 Skills，并保留评审或继续工作需要的证据。
 >
-> 在当前版本里，公开入口保持收敛：`vibe` 是公开入口，额外 Skills 只会从声明的本地 skill 根目录里发现，重复 skill id 按根目录优先级处理，`work_binding` 记录本次运行实际绑定了什么。
+> 在当前版本里，公开入口保持收敛：`vibe` 是公开入口，额外 Skills 只会从声明的本地 skill 根目录里发现，重复 skill id 按根目录优先级处理，`module_assignments` 记录本次运行实际绑定了什么。
 
 <br/>
 
@@ -184,7 +184,7 @@ flowchart LR
 | `one entry` | 从 `vibe` 开始，用 `update` 刷新同一个已安装 skills 目录。 |
 | `late skill binding` | 先把工作边界说清楚，再在合适步骤绑定合适 Skills。 |
 | `local skill roots` | 运行时只从声明的本地 skill 根目录里发现额外 Skills；如果有重复项，按扫描顺序保留第一个可用入口。 |
-| `actual binding record` | 选中 skill 的来源和最终绑定结果，运行时以 `work_binding` 为准，即使同时也会写 discovery 或 benchmark 产物。 |
+| `actual binding record` | Agent 先冻结 `agent_skill_organization`，`module_assignments` 是它经过校验后的执行投影；discovery 和 benchmark 产物只保留审计价值。 |
 | `proof trail` | 测试、检查、产物证据或人工复核状态支撑交付声明。 |
 | `memory plane` | 需求、计划、决策和证据不会随着聊天窗口消失。 |
 
@@ -348,7 +348,7 @@ VibeSkills 适合希望 AI Agent 更容易上手、更泛用、更少手动控�
 
 - 额外 Skills 只会从声明的本地 skill 根目录里发现
 - 一个 skill 必须有可读取的 `SKILL.md`，才可能被选中或锁定
-- 运行时第一真相面仍然是 `work_binding`，它记录了实际绑定了什么
+- 运行时第一真相面仍然是 `module_assignments`，它记录了实际绑定了什么
 
 <div align="center">
 
@@ -369,7 +369,7 @@ VibeSkills 适合希望 AI Agent 更容易上手、更泛用、更少手动控�
 - **按工作单元绑定 Skills**：需求、规划、实现、测试、评审、清理，可以各自绑定不同 Skills。
 - **结果必须落到证据**：TDD、定向检查、产物审阅和交付验收共同约束完成声明。
 - **上下文要能延续**：运行时保存足够结构，方便下一个会话或下一个代理继续工作。
-- **实际绑定要可回看**：`work_binding` 会记录每个工作单元最终绑定了哪个 skill，以及可审计的来源信息。
+- **实际绑定要可回看**：`module_assignments` 会记录每个工作单元最终绑定了哪个 skill，以及可审计的来源信息。
 
 ---
 
@@ -411,7 +411,7 @@ VibeSkills 适合希望 AI Agent 更容易上手、更泛用、更少手动控�
 - 旧阶段别名不再作为公开入口，也不会被安装成宿主可见的 command 或 skill wrapper。
 - 公开允许的轻量级别覆盖只有 `--l` 和 `--xl`。像 `vibe-l`、`vibe-xl` 或阶段入口叠加级别的组合别名是故意不支持的。
 - 当内部调用 `tdd-guide`、`code-review` 这类专项技能时，它们只负责当前阶段或当前任务单元，不会接管全局协调。
-- 在 XL 多代理流程里，子代理可以提出候选 skill，但最终由协调者确认选中项。
+- 进入 `xl_plan` 前，Agent 会搜索声明的本地 skill 根目录、阅读候选 `SKILL.md`，并冻结 `agent_skill_organization`；XL 子代理只继承这份选择，不会重新选 skill。
 
 </details>
 
@@ -554,7 +554,7 @@ VibeSkills 并不声称要替代、也不会完整复刻下面列出的每一个
 >
 > 本项目参考、适配或接入了以下项目中的部分思路、工作流或工具能力：
 >
-> `superpower` · `claude-scientific-skills` · `get-shit-done` · `OpenSpec` · `spec-kit` · `mem0` · `scrapling` · `claude-flow` · `serena`
+> `superpower` · `claude-scientific-skills` · `get-shit-done` · `OpenSpec` · `spec-kit` · `mem0` · `scrapling` · `serena`
 >
 > _我们会尽量认真处理上游来源的署名与说明。如果有遗漏，或某处表述不准确，欢迎在 Issue 中指出，我们会及时修正。_
 >

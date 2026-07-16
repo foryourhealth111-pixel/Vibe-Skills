@@ -47,12 +47,18 @@ def evaluate_router_bridge(repo_root: Path) -> dict[str, Any]:
         missing_fields = sorted(required_fields - observed_fields)
         expected = case["expected"]
         expected_modes = expected.get("allowed_route_modes") or ([expected["route_mode"]] if expected.get("route_mode") else [])
-        selected = result.get("selected") or {}
+        candidate_focus = result.get("candidate_focus") or {}
         ok = (
             not missing_fields
             and (not expected_modes or result.get("route_mode") in expected_modes)
-            and (expected.get("selected_pack") is None or selected.get("pack_id") == expected.get("selected_pack"))
-            and (expected.get("selected_skill") is None or selected.get("skill") == expected.get("selected_skill"))
+            and (
+                expected.get("candidate_focus_pack") is None
+                or candidate_focus.get("pack_id") == expected.get("candidate_focus_pack")
+            )
+            and (
+                expected.get("candidate_focus_skill") is None
+                or candidate_focus.get("skill") == expected.get("candidate_focus_skill")
+            )
         )
         record(ok, f"{case['id']} satisfies runtime-neutral route expectation")
         results.append(
@@ -61,8 +67,8 @@ def evaluate_router_bridge(repo_root: Path) -> dict[str, Any]:
                 "prompt": case["prompt"],
                 "route_mode": result.get("route_mode"),
                 "route_reason": result.get("route_reason"),
-                "selected_pack": selected.get("pack_id"),
-                "selected_skill": selected.get("skill"),
+                "candidate_focus_pack": candidate_focus.get("pack_id"),
+                "candidate_focus_skill": candidate_focus.get("skill"),
                 "missing_fields": missing_fields,
             }
         )

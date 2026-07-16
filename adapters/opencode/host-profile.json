@@ -7,7 +7,6 @@
     "config/opencode/commands/vibe.md",
     "config/opencode/agents/vibe-plan.md",
     "config/opencode/opencode.json.example",
-    "docs/install/opencode-path.en.md",
     "adapters/opencode/closure.json",
     "install.ps1",
     "check.ps1"

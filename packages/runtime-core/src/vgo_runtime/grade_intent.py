@@ -32,6 +32,7 @@ def suggest_internal_grade(task_type: str, task: str | None = None) -> str:
         "parallel",
         "wave",
         "batch",
+        "无人值守",
         "autonomous",
         "benchmark",
         "end-to-end",
@@ -45,6 +46,20 @@ def suggest_internal_grade(task_type: str, task: str | None = None) -> str:
         "从安装到运行",
         "全链路",
         "端到端",
+    )
+    xl_patterns = (
+        r"front.*back",
+        r"install.*runtime",
+        r"runtime.*install",
+    )
+    composite_delivery_marker_groups = (
+        ("data quality audit", "quality audit", "数据质量审计", "数据审计", "质量审计"),
+        ("cleaned data", "clean data", "清洗数据"),
+        ("reproducible script", "analysis script", "script", "脚本"),
+        ("summary table", "analysis table", "汇总表", "分析表"),
+        ("png chart", "chart", "plot", "图表"),
+        ("markdown report", "word report", "report", "报告"),
+        ("verification evidence", "validation evidence", "验证证据"),
     )
     planning_markers = (
         "design",
@@ -96,8 +111,63 @@ def suggest_internal_grade(task_type: str, task: str | None = None) -> str:
         "验收标准",
     )
 
-    if task_lower and any(_marker_matches(task_lower, marker) for marker in xl_markers):
+    workflow_choice_pattern = (
+        r"(?<![a-z0-9])(?:"
+        r"l(?:\s*级)?(?:\s*(?:/|\||or|and|vs\.?|与|和|或|还是)\s*|\s+)xl(?:\s*级)?"
+        r"|xl(?:\s*级)?(?:\s*(?:/|\||or|and|vs\.?|与|和|或|还是)\s*|\s+)l(?:\s*级)?"
+        r")(?![a-z0-9])"
+    )
+    workflow_choice_seen = re.search(workflow_choice_pattern, task_lower) is not None
+    task_without_workflow_choice = re.sub(workflow_choice_pattern, " ", task_lower)
+    task_without_workflow_choice = re.sub(
+        r"(?<![a-z0-9])xl[_-]plan(?![a-z0-9])",
+        " ",
+        task_without_workflow_choice,
+    )
+    task_without_non_escalation = re.sub(
+        r"(?:不要|请勿)\s*(?:升级|升到|提升)(?:\s*到|\s*为)?\s*xl(?:\s*级)?",
+        " ",
+        task_without_workflow_choice,
+    )
+    if re.search(
+        r"(?<![a-z0-9\\/_\-.])xl(?![a-z0-9\\/_\-.])",
+        task_without_non_escalation.rstrip("."),
+    ):
         return "XL"
+    task_for_xl_signals = re.sub(
+        r"\bdo\s+not\s+use\b[^.!?;。！？；\r\n]*",
+        " ",
+        task_lower,
+    )
+    if task_for_xl_signals and (
+        any(_marker_matches(task_for_xl_signals, marker) for marker in xl_markers)
+        or any(re.search(pattern, task_for_xl_signals) for pattern in xl_patterns)
+    ):
+        return "XL"
+    if normalized == "research":
+        composite_task = re.sub(
+            r"\bdo\s+not\s+(?:produce|generate)\b[^.!?;。！？；\r\n]*",
+            " ",
+            task_lower,
+        )
+        composite_task = re.sub(
+            r"(?<![a-z0-9])(?:script\.md|chart\.png|report\.md)(?![a-z0-9])",
+            " ",
+            composite_task,
+        )
+        composite_delivery_count = sum(
+            1
+            for markers in composite_delivery_marker_groups
+            if any(_marker_matches(composite_task, marker) for marker in markers)
+        )
+        if composite_delivery_count >= 3:
+            return "XL"
+    explicit_l_request_seen = re.search(
+        r"(?:按|采用|使用|保持)\s*l(?:\s*级)?(?:\s*处理)?",
+        task_without_non_escalation,
+    ) is not None
+    if workflow_choice_seen or explicit_l_request_seen:
+        return "L"
     if normalized in {"coding", "debug", "review", "research"}:
         return "L"
     if task_lower and (

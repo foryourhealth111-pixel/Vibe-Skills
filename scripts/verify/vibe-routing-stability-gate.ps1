@@ -1,4 +1,4 @@
-﻿param(
+param(
     [switch]$Strict,
     [switch]$WriteArtifacts,
     [string]$OutputDirectory
@@ -57,7 +57,7 @@ function Get-SelectedRouteInfo {
 
     $selected = $null
     if ($Route -and ($Route.PSObject.Properties.Name -contains "selected")) {
-        $selected = @($Route.selected)[0]
+        $selected = @($Route.candidate_focus)[0]
     }
 
     $packId = $null

@@ -10,7 +10,7 @@ from .finder import SkillCandidate
 from .finder import find_skill_candidates
 from .task_card import TaskCard, build_task_card, infer_task_type
 from .text_tokens import SKILL_MATCH_STOPWORDS, expand_tokens, tokens_from_text
-from .work_binding import WorkBinding, build_work_binding
+from .module_assignments import ModuleAssignments, build_module_assignments
 from .work_plan import SkillProvenance, WorkPlan, WorkUnit
 
 GOVERNED_STAGES = (
@@ -93,7 +93,7 @@ class KernelPlanningResult:
     task_card: TaskCard
     candidates: tuple[SkillCandidate, ...]
     work_plan: WorkPlan
-    work_binding: WorkBinding
+    module_assignments: ModuleAssignments
     inferred_task_type: str
     preferred_skill: str | None
     resolved_task_type: str
@@ -105,7 +105,7 @@ class KernelPlanningResult:
             "task_card": self.task_card.model_dump(),
             "candidates": [candidate.model_dump() for candidate in self.candidates],
             "work_plan": self.work_plan.model_dump(),
-            "work_binding": self.work_binding.model_dump(),
+            "module_assignments": self.module_assignments.model_dump(),
             "inferred_task_type": self.inferred_task_type,
             "preferred_skill": self.preferred_skill,
             "resolved_task_type": self.resolved_task_type,
@@ -318,7 +318,7 @@ def build_kernel_plan(
     )
     candidates = find_skill_candidates(task_card, load_runtime_route_index())
     work_plan = build_work_plan(task_card, candidates)
-    work_binding = build_work_binding(work_plan)
+    module_assignments = build_module_assignments(work_plan)
     first_unit = work_plan.work_units[0] if work_plan.work_units else None
     preferred_skill = first_unit.preferred_skill if first_unit else (candidates[0].skill_id if candidates else None)
     resolved_task_type = resolve_runtime_task_type(
@@ -332,7 +332,7 @@ def build_kernel_plan(
         task_card=task_card,
         candidates=candidates,
         work_plan=work_plan,
-        work_binding=work_binding,
+        module_assignments=module_assignments,
         inferred_task_type=inferred_task_type,
         preferred_skill=preferred_skill,
         resolved_task_type=resolved_task_type,

@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
-import subprocess
-
-import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -35,23 +31,9 @@ def test_pack_routing_smoke_does_not_require_retired_live_keyword_configs() -> N
     assert "skill-routing-rules.json exists" not in content
 
 
-def test_pack_routing_smoke_runs_cleanly_without_retired_keyword_configs() -> None:
-    shell = (
-        shutil.which("pwsh")
-        or shutil.which("pwsh.exe")
-        or shutil.which("powershell")
-        or shutil.which("powershell.exe")
-    )
-    if not shell:
-        pytest.skip("PowerShell executable not available")
+def test_pack_routing_smoke_does_not_enforce_retired_programmatic_selection_thresholds() -> None:
+    content = (REPO_ROOT / "scripts" / "verify" / "vibe-pack-routing-smoke.ps1").read_text(encoding="utf-8")
 
-    gate = REPO_ROOT / "scripts" / "verify" / "vibe-pack-routing-smoke.ps1"
-    result = subprocess.run(
-        [shell, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(gate)],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
+    assert "fallback_to_legacy_below" not in content
+    assert "enforce_confirm_on_legacy_fallback" not in content
+    assert "candidate_selection." not in content

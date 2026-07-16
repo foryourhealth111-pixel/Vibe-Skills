@@ -638,15 +638,15 @@ function Get-VibeRufloCardCandidates {
     }
 
     $manifest = Get-Content -LiteralPath $ExecutionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $summary = 'XL handoff for {0}: executed {1} units with {2} failures.' -f $RunId, [int]$manifest.executed_unit_count, [int]$manifest.failed_unit_count
+    $summary = 'XL module handoff for {0}: completed {1} units with {2} failures and {3} blocks.' -f $RunId, [int]$manifest.completed_unit_count, [int]$manifest.failed_unit_count, [int]$manifest.blocked_unit_count
     return @(
         [pscustomobject]@{
             scope = 'xl'
             summary = $summary
             items = @(
                 ('execution_status:{0}' -f [string]$manifest.status),
-                ('delegation_mode:{0}' -f [string]$manifest.execution_topology.delegation_mode),
-                ('specialist_execution_status:{0}' -f [string]$manifest.specialist_accounting.effective_execution_status)
+                ('workflow_level:{0}' -f [string]$manifest.module_handoff.workflow_level),
+                ('module_handoff_status:{0}' -f [string]$manifest.module_handoff.status)
             )
             evidence_paths = @($ExecutionManifestPath)
             keywords = @(Get-VibeSearchKeywords -Task $Task -ExtraTokens @('xl', 'handoff', 'milestone'))
@@ -760,8 +760,7 @@ function New-VibeExecutionMemoryWriteAction {
     $manifest = Get-Content -LiteralPath $ExecutionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $items = @(
         ('Execution status: {0}' -f [string]$manifest.status),
-        ('Executed units: {0}; failures: {1}' -f [int]$manifest.executed_unit_count, [int]$manifest.failed_unit_count),
-        ('Specialist execution status: {0}' -f [string]$manifest.specialist_accounting.effective_execution_status)
+        ('Module handoff status: {0}' -f [string]$manifest.module_handoff.status)
     )
     $artifactPath = Join-Path (Get-VibeMemoryArtifactsRoot -SessionRoot $SessionRoot) 'execution-handoff-card.json'
     $artifact = [pscustomobject]@{

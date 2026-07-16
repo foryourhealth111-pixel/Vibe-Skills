@@ -76,7 +76,7 @@ function New-ChildDelegationEnvelopeForGate {
         -ExecutionPlanPath ([string]$RootSummary.summary.artifacts.execution_plan) `
         -WriteScope 'gate:canonical-surface' `
         -ApprovedSpecialists @() `
-        -ReviewMode 'native_contract' | Out-Null
+        -ReviewMode 'module_acceptance' | Out-Null
     return $envelopePath
 }
 

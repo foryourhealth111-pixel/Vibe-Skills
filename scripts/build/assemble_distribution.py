@@ -19,10 +19,7 @@ for rel in (
 
 from vgo_adapters.descriptor_loader import load_descriptor
 from vgo_catalog.exporter import export_catalog_descriptor
-from vgo_contracts.governance_runtime_roles import (
-    derive_required_runtime_marker_projection,
-    derive_runtime_payload_roles,
-)
+from vgo_contracts.governance_runtime_roles import derive_runtime_payload_roles
 from vgo_installer.runtime_packaging import resolve_runtime_core_projection_path
 
 
@@ -57,11 +54,7 @@ def assemble_distribution(output_dir: Path | str, *, host_id: str, profile: str 
     governance_path = (REPO_ROOT / 'config' / 'version-governance.json').resolve()
     governance = load_json(governance_path)
     governance_packaging = dict(governance.get('packaging') or {})
-    governance_runtime = dict((governance.get('runtime') or {}).get('installed_runtime') or {})
     governance_payload_roles = derive_runtime_payload_roles(dict(governance_packaging.get('runtime_payload') or {}))
-    governance_marker_projection = derive_required_runtime_marker_projection(list(governance_runtime.get('required_runtime_markers') or []))
-    governance_marker_groups = dict(governance_marker_projection['required_runtime_marker_groups'])
-    governance_marker_notes = dict(governance_marker_projection['required_runtime_marker_notes'])
     adapter_descriptor = load_descriptor(host_id)
     catalog_descriptor = export_catalog_descriptor(target_dir, profile=profile)
 
@@ -101,8 +94,6 @@ def assemble_distribution(output_dir: Path | str, *, host_id: str, profile: str 
         'governance_runtime_roles': {
             'source_governance': str(governance_path),
             'runtime_payload_roles': governance_payload_roles,
-            'required_runtime_marker_groups': governance_marker_groups,
-            'required_runtime_marker_notes': governance_marker_notes,
         },
         'artifacts': {
             'catalog_descriptor_path': str((target_dir / 'catalog' / 'metadata' / 'index.json').resolve()),

@@ -15,11 +15,11 @@
 
 ### Mode A: Quick Health (Before Doing Anything Risky)
 
-Run the fast router and contract checks first.
+Run the fast candidate-audit and retired-routing debt checks first.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-pack-routing-smoke.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-router-contract-gate.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify\vibe-current-routing-debt-gate.ps1
 ```
 
 ### Mode B: Closure / Release Evidence (Zero Regression Budget)

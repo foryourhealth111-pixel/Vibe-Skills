@@ -62,11 +62,5 @@ def skill_output_looks_truncated(stdout: str) -> bool:
 def build_real_opencode_config(_target_root: Path) -> dict[str, Any]:
     return {
         '$schema': 'https://opencode.ai/config.json',
-        'mcp': {
-            'playwright': {
-                'enabled': True,
-                'type': 'local',
-                'command': ['npx', '@playwright/mcp@latest'],
-            }
-        },
+        'theme': 'system',
     }

@@ -1,6 +1,6 @@
 # Cold Platform And Quantum Pack Deletion
 
-> Historical / Retired Note: This document discusses retired or cleanup-context routing terminology. The current routing model is `skill_candidates -> skill_routing.selected -> selected_skill_execution -> skill_usage`; old terms here are historical only and are not current runtime states.
+> Historical / Retired Note: This document discusses retired or cleanup-context routing terminology. The current routing model is `skill_candidates -> skill_routing.selected -> module_skill_dispatch -> skill_usage`; old terms here are historical only and are not current runtime states.
 
 Date: 2026-04-30
 
@@ -84,4 +84,4 @@ Observed outcomes:
 
 This change proves route/config/docs/tests cleanup only. It does not prove that any skill was materially used in a real task.
 
-Material skill-use evidence still requires task artifacts such as `specialist-execution.json`, `phase-execute.json`, source code, generated outputs, metrics, figures, paper sources, or final PDFs from an actual governed run.
+Material skill-use evidence still requires task artifacts such as `module-execution.json`, `phase-execute.json`, source code, generated outputs, metrics, figures, paper sources, or final PDFs from an actual governed run.

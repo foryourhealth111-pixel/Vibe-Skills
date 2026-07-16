@@ -13,7 +13,6 @@
       "steady_state_contract": "TaskCard",
       "demoted_layers": [
         "packages/runtime-core/src/vgo_runtime/task_intent.py",
-        "packages/runtime-core/src/vgo_runtime/router.py",
         "packages/runtime-core/src/vgo_runtime/governance.py"
       ]
     },
@@ -68,9 +67,7 @@
       ],
       "steady_state_contract": "SkillCandidate",
       "demoted_layers": [
-        "packages/runtime-core/src/vgo_runtime/router.py",
-        "packages/runtime-core/src/vgo_runtime/route_index.py",
-        "packages/runtime-core/src/vgo_runtime/router_contract_selection.py"
+        "packages/runtime-core/src/vgo_runtime/route_index.py"
       ]
     },
     {
@@ -97,7 +94,6 @@
       ],
       "steady_state_contract": "WorkUnitResult",
       "demoted_layers": [
-        "packages/runtime-core/src/vgo_runtime/execution.py",
         "packages/runtime-core/src/vgo_runtime/runtime_bridge.py"
       ]
     },
@@ -110,7 +106,6 @@
       ],
       "steady_state_contract": "VerificationResult",
       "demoted_layers": [
-        "packages/runtime-core/src/vgo_runtime/execution.py",
         "docs/governance/current-runtime-field-contract.md"
       ]
     },
@@ -141,20 +136,6 @@
       ]
     },
     {
-      "capability": "compatibility_projection",
-      "authority_layer": "compatibility",
-      "primary_entry_file": "packages/runtime-core/src/vgo_runtime/execution.py",
-      "authority_files": [
-        "packages/runtime-core/src/vgo_runtime/execution.py",
-        "packages/runtime-core/src/vgo_runtime/execution_snapshot.py"
-      ],
-      "steady_state_contract": "projection only",
-      "demoted_layers": [
-        "docs/governance/current-routing-contract.md",
-        "docs/governance/current-runtime-field-contract.md"
-      ]
-    },
-    {
       "capability": "host_wiring",
       "authority_layer": "host_adapter",
       "primary_entry_file": "packages/runtime-core/src/vgo_runtime/powershell_bridge.py",
@@ -176,7 +157,6 @@
         "id": "no-new-live-semantic-authority",
         "applies_to_authority_layers": [
           "entry_wrapper",
-          "compatibility",
           "host_adapter"
         ],
         "forbidden_change_classes": [
@@ -198,7 +178,6 @@
         "id": "zero-expansion-budget",
         "applies_to_authority_layers": [
           "entry_wrapper",
-          "compatibility",
           "host_adapter"
         ],
         "rule": "Migration phases may remove compatibility residue, but they must not introduce new compatibility-owned semantic capabilities."
@@ -218,19 +197,6 @@
           "entry delegation",
           "request normalization",
           "summary projection"
-        ],
-        "deletion_target_phase": "phase_4"
-      },
-      {
-        "capability": "compatibility_projection",
-        "authority_layer": "compatibility",
-        "kernel_owner_capabilities": [
-          "execution",
-          "verification"
-        ],
-        "allowed_change_roles": [
-          "projection only",
-          "historical contract reader"
         ],
         "deletion_target_phase": "phase_4"
       },
@@ -296,10 +262,10 @@
         "id": "selected-skill-mirror-across-kernel-selection-and-compatibility-summaries",
         "semantic_fact": "routed helper skill chosen for the current work",
         "owner_capability": "skill_selection",
-        "current_preferred_source": "runtime packet work_binding.units[*].bound_skill",
+        "current_preferred_source": "runtime packet module_assignments.units[*].bound_skill",
         "compatibility_mirrors": [],
         "current_role": "retired default duplicate mirror",
-        "current_reason_retained": "work_binding now carries the live bounded-work selection truth, and skill_routing.selected has been removed from the default packet. Older readers may still reconstruct a selected-dispatch view from work_binding when they need it, but current packet truth no longer emits this duplicate mirror by default.",
+        "current_reason_retained": "module_assignments carries the live bounded-work selection truth. Current packets do not emit a duplicate route-selected mirror.",
         "retirement_target_phase": "phase_4",
         "retirement_proof_paths": [
           "packages/runtime-core/src/vgo_runtime/canonical_entry.py",

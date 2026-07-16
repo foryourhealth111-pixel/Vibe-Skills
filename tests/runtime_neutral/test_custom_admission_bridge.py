@@ -42,16 +42,15 @@ def normalize_path_text(value: object) -> str:
     return str(value).replace("\\", "/")
 
 
+def _ps_single_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
 def selected_rows_from_packet(packet: dict[str, object]) -> list[dict[str, object]]:
-    routing = packet.get("skill_routing")
-    if isinstance(routing, dict):
-        selected = routing.get("selected")
-        if isinstance(selected, list) and selected:
-            return [item for item in selected if isinstance(item, dict)]
-    work_binding = packet.get("work_binding")
-    if not isinstance(work_binding, dict):
+    module_assignments = packet.get("module_assignments")
+    if not isinstance(module_assignments, dict):
         return []
-    units = work_binding.get("units")
+    units = module_assignments.get("units")
     if not isinstance(units, list):
         return []
     rows: list[dict[str, object]] = []
@@ -65,6 +64,51 @@ def selected_rows_from_packet(packet: dict[str, object]) -> list[dict[str, objec
         row["skill_id"] = skill_id
         rows.append(row)
     return rows
+
+
+def agent_skill_organization(selected_skill_ids: list[str]) -> dict[str, object]:
+    module_id = "custom_admission"
+    return {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "XL",
+        "modules": [
+            {
+                "module_id": module_id,
+                "goal": "Exercise custom skill admission through the governed runtime.",
+                "candidate_skill_ids": selected_skill_ids,
+                "execution_mode": "skill_assigned" if selected_skill_ids else "blocked_gap",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": "custom-admission-result",
+                        "description": "The custom admission outcome is present and verified.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            }
+        ],
+        "selected_skills": [
+            {
+                "skill_id": skill_id,
+                "module_ids": [module_id],
+                "responsibility": "Own the custom governed workflow.",
+                "reason": "The Agent selected this skill after reading its SKILL.md.",
+            }
+            for skill_id in selected_skill_ids
+        ],
+        "uncovered_modules": []
+        if selected_skill_ids
+        else [
+            {
+                "module_id": module_id,
+                "reason": "No standard SKILL.md entrypoint was available for selection.",
+            }
+        ],
+        "workflow_level_contract": {
+            "L": "Use one serial governed lane.",
+            "XL": "Use bounded waves when the approved organization needs them.",
+        },
+    }
 
 
 def run_router(
@@ -98,7 +142,7 @@ def run_router(
         capture_output=True,
         text=True,
         check=True,
-        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+        env=os.environ.copy(),
     )
     return json.loads(completed.stdout)
 
@@ -160,7 +204,7 @@ def run_runtime_freeze(
     *,
     task: str,
     target_root: Path,
-    approved_specialist_skill_ids: list[str] | None = None,
+    selected_skill_ids: list[str],
     artifact_root: Path,
 ) -> dict[str, object]:
     shell = resolve_powershell()
@@ -168,11 +212,9 @@ def run_runtime_freeze(
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = "pytest-custom-admission-" + uuid.uuid4().hex[:10]
-    approved = approved_specialist_skill_ids or []
-    approved_literal = (
-        "@(" + ",".join("'" + skill.replace("'", "''") + "'" for skill in approved) + ")"
-        if approved
-        else "@()"
+    host_decision_json = json.dumps(
+        {"agent_skill_organization": agent_skill_organization(selected_skill_ids)},
+        ensure_ascii=False,
     )
     command = [
         shell,
@@ -184,13 +226,13 @@ def run_runtime_freeze(
         (
             "& { "
             f"$env:VCO_HOST_ID = 'codex'; "
-            f"$env:VIBE_AGENTS_HOME = '{target_root}'; "
-            f"$result = & '{FREEZE_SCRIPT}' "
-            f"-Task '{task}' "
+            f"$env:VIBE_AGENTS_HOME = {_ps_single_quote(str(target_root))}; "
+            f"$result = & {_ps_single_quote(str(FREEZE_SCRIPT))} "
+            f"-Task {_ps_single_quote(task)} "
             "-Mode interactive_governed "
-            f"-RunId '{run_id}' "
-            f"-ApprovedSpecialistSkillIds {approved_literal} "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-RunId {_ps_single_quote(run_id)} "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -201,7 +243,7 @@ def run_runtime_freeze(
         text=True,
         encoding="utf-8",
         check=True,
-        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+        env=os.environ.copy(),
     )
     payload = json.loads(completed.stdout)
     if payload is None:
@@ -216,7 +258,7 @@ def run_full_runtime(
     *,
     task: str,
     target_root: Path,
-    approved_specialist_skill_ids: list[str] | None = None,
+    selected_skill_ids: list[str],
     artifact_root: Path,
 ) -> dict[str, object]:
     shell = resolve_powershell()
@@ -224,11 +266,9 @@ def run_full_runtime(
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = "pytest-custom-runtime-" + uuid.uuid4().hex[:10]
-    approved = approved_specialist_skill_ids or []
-    approved_literal = (
-        "@(" + ",".join("'" + skill.replace("'", "''") + "'" for skill in approved) + ")"
-        if approved
-        else "@()"
+    host_decision_json = json.dumps(
+        {"agent_skill_organization": agent_skill_organization(selected_skill_ids)},
+        ensure_ascii=False,
     )
     command = [
         shell,
@@ -240,13 +280,13 @@ def run_full_runtime(
         (
             "& { "
             f"$env:VCO_HOST_ID = 'codex'; "
-            f"$env:VIBE_AGENTS_HOME = '{target_root}'; "
-            f"$result = & '{INVOKE_RUNTIME_SCRIPT}' "
-            f"-Task '{task}' "
+            f"$env:VIBE_AGENTS_HOME = {_ps_single_quote(str(target_root))}; "
+            f"$result = & {_ps_single_quote(str(INVOKE_RUNTIME_SCRIPT))} "
+            f"-Task {_ps_single_quote(task)} "
             "-Mode interactive_governed "
-            f"-RunId '{run_id}' "
-            f"-ApprovedSpecialistSkillIds {approved_literal} "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-RunId {_ps_single_quote(run_id)} "
+            f"-ArtifactRoot {_ps_single_quote(str(artifact_root))} "
+            f"-HostDecisionJson {_ps_single_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
@@ -257,7 +297,7 @@ def run_full_runtime(
         text=True,
         encoding="utf-8",
         check=True,
-        env={**os.environ, "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "1"},
+        env=os.environ.copy(),
     )
     payload = json.loads(completed.stdout)
     if payload is None:
@@ -307,9 +347,9 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             custom_ranked = next((row for row in result["ranked"] if row["skill"] == "genomics-qc-flow"), None)
             self.assertIsNotNone(custom_ranked)
             self.assertNotIn("route_authority_eligible", custom_ranked)
-            self.assertEqual("genomics-qc-flow", result["selected"]["skill"])
-            self.assertEqual("local-skill-index", result["selected"]["pack_id"])
-            self.assertEqual("local_skill_index", result["selected"]["candidate_source"])
+            self.assertEqual("genomics-qc-flow", result["candidate_focus"]["skill"])
+            self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
+            self.assertEqual("local_skill_index", result["candidate_focus"]["candidate_source"])
 
     def test_runtime_neutral_router_explicit_request_can_activate_custom_route_authority(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -325,8 +365,8 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             )
 
             self.assertEqual("disabled_default_local_index_only", result["custom_admission"]["status"])
-            self.assertEqual("genomics-qc-flow", result["selected"]["skill"])
-            self.assertEqual("local-skill-index", result["selected"]["pack_id"])
+            self.assertEqual("genomics-qc-flow", result["candidate_focus"]["skill"])
+            self.assertEqual("local-skill-index", result["candidate_focus"]["pack_id"])
             self.assertEqual("explicit_local_skill", result["route_reason"])
 
     def test_runtime_neutral_router_reports_missing_custom_dependencies(self) -> None:
@@ -365,7 +405,7 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             payload = run_runtime_freeze(
                 task="Need bioanalysis qc workflow and governed planning for genomics deliverables.",
                 target_root=target_root,
-                approved_specialist_skill_ids=["genomics-qc-flow"],
+                selected_skill_ids=["genomics-qc-flow"],
                 artifact_root=artifact_root,
             )
             packet = payload["packet"]
@@ -382,10 +422,11 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             self.assertEqual("in_execution", custom_recommendation["dispatch_phase"])
             self.assertEqual("inherit_grade", custom_recommendation["lane_policy"])
             self.assertTrue(bool(custom_recommendation["parallelizable_in_root_xl"]))
-            self.assertTrue(bool(custom_recommendation["native_usage_required"]))
+            self.assertNotIn("native_usage_required", custom_recommendation)
+            self.assertNotIn("usage_required", custom_recommendation)
             self.assertTrue(bool(custom_recommendation["must_preserve_workflow"]))
             self.assertTrue(
-                normalize_path_text(custom_recommendation["native_skill_entrypoint"]).endswith(
+                normalize_path_text(custom_recommendation["skill_entrypoint"]).endswith(
                     "skills/custom/genomics-qc-flow/SKILL.md"
                 )
             )
@@ -408,7 +449,7 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             payload = run_runtime_freeze(
                 task="Need bioanalysis qc workflow and governed planning for genomics deliverables.",
                 target_root=target_root,
-                approved_specialist_skill_ids=["genomics-qc-flow"],
+                selected_skill_ids=[],
                 artifact_root=artifact_root,
             )
             packet = payload["packet"]
@@ -430,21 +471,18 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             payload = run_full_runtime(
                 task="Need bioanalysis qc workflow and governed planning for genomics deliverables.",
                 target_root=target_root,
-                approved_specialist_skill_ids=["genomics-qc-flow"],
+                selected_skill_ids=["genomics-qc-flow"],
                 artifact_root=artifact_root,
             )
             summary = payload["summary"]
             execution_manifest = json.loads(Path(summary["artifacts"]["execution_manifest"]).read_text(encoding="utf-8"))
 
-            self.assertGreaterEqual(int(execution_manifest["specialist_accounting"]["recommendation_count"]), 1)
-            self.assertGreaterEqual(int(execution_manifest["specialist_accounting"]["skill_execution_unit_count"]), 1)
-            self.assertIn(
-                "genomics-qc-flow",
-                [str(skill_id) for skill_id in execution_manifest["specialist_accounting"]["specialist_skills"]],
-            )
+            self.assertEqual("agent_action_required", execution_manifest["module_handoff"]["status"])
+            self.assertIn("genomics-qc-flow", execution_manifest["module_handoff"]["assigned_skill_ids"])
             self.assertTrue(bool(execution_manifest["dispatch_integrity"]["proof_passed"]))
-            self.assertFalse(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_executed"]))
-            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["approved_dispatch_fully_resolved"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["planned_units_fully_handed_off"]))
+            self.assertTrue(bool(execution_manifest["dispatch_integrity"]["handed_off_skills_match_plan"]))
+            self.assertNotIn("approved_dispatch_fully_handed_off", execution_manifest["dispatch_integrity"])
             self.assertNotIn(
                 "prompt_injection_complete_for_executed_specialists",
                 execution_manifest["dispatch_integrity"],
@@ -455,7 +493,7 @@ class CustomAdmissionBridgeTests(unittest.TestCase):
             )
             self.assertIn(
                 "genomics-qc-flow",
-                [str(skill_id) for skill_id in execution_manifest["dispatch_integrity"]["direct_routed_specialist_skill_ids"]],
+                [str(skill_id) for skill_id in execution_manifest["dispatch_integrity"]["handed_off_skill_ids"]],
             )
 
 

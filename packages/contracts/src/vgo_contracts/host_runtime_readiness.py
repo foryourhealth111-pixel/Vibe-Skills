@@ -107,7 +107,6 @@ def evaluate_host_runtime_readiness(
     host_id: str | None,
     *,
     bridge_runtime_ready: bool | None = None,
-    specialist_wrapper_ready: bool | None = None,
 ) -> dict[str, Any]:
     """Evaluate whether a host is truly ready for canonical vibe execution."""
     resolved_repo_root = _resolve_repo_root(repo_root)
@@ -122,11 +121,7 @@ def evaluate_host_runtime_readiness(
         contract = _fallback_canonical_vibe_contract(host_id)
 
     normalized_host_id = str(contract.get("host_id") or "").strip().lower()
-    effective_bridge_ready = (
-        bool(bridge_runtime_ready)
-        if bridge_runtime_ready is not None
-        else bool(specialist_wrapper_ready)
-    )
+    effective_bridge_ready = bool(bridge_runtime_ready)
     readiness_driver = "direct_runtime" if contract["entry_mode"] == "direct_runtime" else str(contract["launcher_kind"])
     direct_runtime: dict[str, Any] = {
         "required": False,
@@ -157,8 +152,6 @@ def evaluate_host_runtime_readiness(
         "entry_mode": str(contract["entry_mode"]),
         "launcher_kind": str(contract["launcher_kind"]),
         "readiness_driver": readiness_driver,
-        "specialist_wrapper_required": False,
-        "specialist_wrapper_ready": False,
         "bridge_runtime": bridge_runtime,
         "effective_runtime_ready": bool(effective_runtime_ready),
         "recommended_host_closure_state": "closed_ready" if effective_runtime_ready else "configured_offline_unready",

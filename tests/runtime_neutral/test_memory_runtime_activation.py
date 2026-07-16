@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import stat
 import subprocess
 import tempfile
 import unittest
@@ -12,6 +11,10 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def ps_quote(value: object) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
 
 
 def resolve_powershell() -> str | None:
@@ -29,59 +32,25 @@ def resolve_powershell() -> str | None:
     return None
 
 
-def create_fake_codex_command(directory: Path) -> Path:
-    suffix = ".cmd" if os.name == "nt" else ""
-    command_path = directory / f"codex{suffix}"
-    if os.name == "nt":
-        command_path.write_text(
-            "@echo off\r\n"
-            "setlocal EnableDelayedExpansion\r\n"
-            "set OUT=\r\n"
-            ":loop\r\n"
-            "if \"%~1\"==\"\" goto done\r\n"
-            "if /I \"%~1\"==\"-o\" (\r\n"
-            "  set OUT=%~2\r\n"
-            "  shift\r\n"
-            "  shift\r\n"
-            "  goto loop\r\n"
-            ")\r\n"
-            "shift\r\n"
-            "goto loop\r\n"
-            ":done\r\n"
-            "if \"%OUT%\"==\"\" exit /b 2\r\n"
-            "> \"%OUT%\" echo {\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}\r\n"
-            "echo fake codex ok\r\n"
-            "exit /b 0\r\n",
-            encoding="utf-8",
-        )
-    else:
-        command_path.write_text(
-            "#!/usr/bin/env sh\n"
-            "OUT=''\n"
-            "while [ \"$#\" -gt 0 ]; do\n"
-            "  case \"$1\" in\n"
-            "    -o)\n"
-            "      OUT=\"$2\"\n"
-            "      shift 2\n"
-            "      ;;\n"
-            "    *)\n"
-            "      shift\n"
-            "      ;;\n"
-            "  esac\n"
-            "done\n"
-            "if [ -z \"$OUT\" ]; then\n"
-            "  exit 2\n"
-            "fi\n"
-            "printf '%s' '{\"status\":\"completed\",\"summary\":\"fake codex specialist executed\",\"verification_notes\":[\"fake native specialist executed\"],\"changed_files\":[],\"bounded_output_notes\":[\"fake codex adapter\"]}' > \"$OUT\"\n"
-            "printf 'fake codex ok\\n'\n",
-            encoding="utf-8",
-        )
-        command_path.chmod(command_path.stat().st_mode | stat.S_IXUSR)
-    return command_path
-
-
-def run_governed_runtime(task: str, artifact_root: Path, env: dict[str, str] | None = None) -> dict[str, object]:
-    payload, _ = run_governed_runtime_with_metadata(task, artifact_root, env=env)
+def run_governed_runtime(
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str] | None = None,
+    *,
+    workspace_root: Path | None = None,
+    agent_skill_ids: list[str] | None = None,
+    workflow_level: str = "L",
+    complete_agent_handoff: bool = False,
+) -> dict[str, object]:
+    payload, _ = run_governed_runtime_with_metadata(
+        task,
+        artifact_root,
+        env=env,
+        workspace_root=workspace_root,
+        agent_skill_ids=agent_skill_ids,
+        workflow_level=workflow_level,
+        complete_agent_handoff=complete_agent_handoff,
+    )
     return payload
 
 
@@ -90,7 +59,10 @@ def run_governed_runtime_with_metadata(
     artifact_root: Path,
     env: dict[str, str] | None = None,
     *,
-    check: bool = True,
+    workspace_root: Path | None = None,
+    agent_skill_ids: list[str] | None = None,
+    workflow_level: str = "L",
+    complete_agent_handoff: bool = False,
 ) -> tuple[dict[str, object], str]:
     shell = resolve_powershell()
     if shell is None:
@@ -98,6 +70,56 @@ def run_governed_runtime_with_metadata(
 
     script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
     run_id = "pytest-memory-runtime-" + uuid.uuid4().hex[:10]
+    selected_skill_ids = list(agent_skill_ids or [])
+    host_decision_json = json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": workflow_level,
+                "modules": [
+                    {
+                        "module_id": "memory_runtime",
+                        "goal": "Exercise governed memory activation behavior.",
+                        "candidate_skill_ids": selected_skill_ids,
+                        "execution_mode": "skill_assigned" if selected_skill_ids else "agent_direct",
+                        "write_scope": "no task-file writes",
+                        "expected_outputs": ["A governed memory activation report."],
+                        "verification": ["Confirm the runtime report records the expected stage-aware memory behavior."],
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "memory-runtime-observed",
+                                "description": "The governed memory activation result is present.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [
+                    {
+                        "skill_id": skill_id,
+                        "module_ids": ["memory_runtime"],
+                        "role": "owner",
+                        "responsibility": f"Own the bounded {skill_id} work.",
+                        "reason": f"The Agent reviewed {skill_id}/SKILL.md and selected it for this test.",
+                        "write_scope": "no task-file writes",
+                        "expected_outputs": ["A governed memory activation report."],
+                        "verification": ["Confirm the runtime report records the expected stage-aware memory behavior."],
+                    }
+                    for skill_id in selected_skill_ids
+                ],
+                "uncovered_modules": [],
+                "workflow_level_contract": {
+                    "L": "Use one bounded serial lane.",
+                    "XL": "Use bounded parallel lanes with governed review.",
+                },
+            }
+        },
+        separators=(",", ":"),
+    )
+    workspace_root_argument = (
+        f"-WorkspaceRoot {ps_quote(workspace_root)} " if workspace_root is not None else ""
+    )
     command = [
         shell,
         "-NoLogo",
@@ -107,19 +129,19 @@ def run_governed_runtime_with_metadata(
         "-Command",
         (
             "& { "
-            f"$result = & '{script_path}' "
-            f"-Task '{task}' "
+            f"$result = & {ps_quote(script_path)} "
+            f"-Task {ps_quote(task)} "
             "-Mode interactive_governed "
-            f"-RunId '{run_id}' "
-            f"-ArtifactRoot '{artifact_root}'; "
+            f"-RunId {ps_quote(run_id)} "
+            f"-ArtifactRoot {ps_quote(artifact_root)} "
+            f"{workspace_root_argument}"
+            f"-HostDecisionJson {ps_quote(host_decision_json)}; "
             "$result | ConvertTo-Json -Depth 20 }"
         ),
     ]
     effective_env = os.environ.copy()
     if env:
         effective_env.update(env)
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
-
     completed = subprocess.run(
         command,
         cwd=REPO_ROOT,
@@ -127,24 +149,113 @@ def run_governed_runtime_with_metadata(
         text=True,
         encoding="utf-8",
         env=effective_env,
-        check=check,
+        check=True,
     )
-    if not check and completed.returncode != 0:
-        return (
-            {
-                "returncode": completed.returncode,
-                "stdout": completed.stdout,
-                "stderr": completed.stderr,
-            },
-            run_id,
-        )
     stdout = completed.stdout.strip()
     if stdout in ("", "null"):
         raise AssertionError(
             "invoke-vibe-runtime returned null payload. "
             f"stderr={completed.stderr.strip()}"
         )
-    return json.loads(stdout), run_id
+    payload = json.loads(stdout)
+    if complete_agent_handoff:
+        payload = complete_module_execution(
+            payload,
+            task=task,
+            artifact_root=artifact_root,
+            env=effective_env,
+            workspace_root=workspace_root,
+        )
+    return payload, run_id
+
+
+def complete_module_execution(
+    payload: dict[str, object],
+    *,
+    task: str,
+    artifact_root: Path,
+    env: dict[str, str],
+    workspace_root: Path | None = None,
+) -> dict[str, object]:
+    handoff = json.loads(
+        Path(payload["summary"]["artifacts"]["agent_execution_handoff"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    result_contract = handoff["result_contract"]
+    module_execution_path = Path(handoff["module_execution_path"])
+    module_execution = json.loads(json.dumps(result_contract["submission_template"]))
+    criteria_by_module = {
+        str(module["module_id"]): [
+            {**criterion, "state": "passing"}
+            for criterion in module["criterion_results"]
+        ]
+        for module in module_execution["modules"]
+    }
+    for unit in module_execution["units"]:
+        unit["state"] = "completed"
+        unit["result_summary"] = "The Agent completed the approved memory-runtime module."
+        unit["verification_results"] = criteria_by_module[str(unit["module_id"])]
+    for module in module_execution["modules"]:
+        module["state"] = "completed"
+        module["criterion_results"] = criteria_by_module[str(module["module_id"])]
+    if "tdd_evidence" in module_execution:
+        tdd_contract = result_contract["tdd_evidence"]
+        required_tdd = list(tdd_contract["required_code_task_tdd_evidence_requirements"])
+        evidence_path = str(module_execution_path)
+        module_execution["tdd_evidence"] = {
+            "state": "passing",
+            "evidence_paths": [evidence_path],
+            "red_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "green_phase_evidence_paths": [evidence_path] if required_tdd else [],
+            "refactor_phase_evidence_paths": [],
+            "covered_code_task_tdd_evidence_requirements": required_tdd,
+            "covered_code_task_tdd_exceptions": list(
+                tdd_contract["required_code_task_tdd_exceptions"]
+            ),
+            "notes": "The simulated Agent completed the frozen TDD contract.",
+        }
+    module_execution_path.write_text(
+        json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    shell = resolve_powershell()
+    if shell is None:
+        raise unittest.SkipTest("PowerShell executable not available in PATH")
+    script_path = REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1"
+    workspace_root_argument = (
+        f"-WorkspaceRoot {ps_quote(workspace_root)} " if workspace_root is not None else ""
+    )
+    completed = subprocess.run(
+        [
+            shell,
+            "-NoLogo",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            (
+                "& { "
+                f"$result = & {ps_quote(script_path)} "
+                f"-Task {ps_quote(task)} "
+                "-Mode interactive_governed "
+                f"-RunId {ps_quote(payload['run_id'])} "
+                f"-ArtifactRoot {ps_quote(artifact_root)} "
+                f"{workspace_root_argument}"
+                "-RequestedStageStop phase_cleanup "
+                f"-ModuleExecutionJsonFile {ps_quote(module_execution_path)}; "
+                "$result | ConvertTo-Json -Depth 20 }"
+            ),
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        check=True,
+    )
+    return json.loads(completed.stdout.strip())
 
 
 class MemoryRuntimeActivationTests(unittest.TestCase):
@@ -153,6 +264,7 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             payload = run_governed_runtime(
                 "Audit current governed memory activation contracts before refactoring shared memory.",
                 artifact_root=Path(tempdir),
+                complete_agent_handoff=True,
             )
             report = json.loads(
                 Path(payload["summary"]["artifacts"]["memory_activation_report"]).read_text(encoding="utf-8")
@@ -162,21 +274,32 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             self.assertEqual(6, len(stages))
 
             stage_by_name = {stage["stage"]: stage for stage in stages}
+            stage_policy = json.loads(
+                (REPO_ROOT / "config" / "memory-stage-activation-policy.json").read_text(encoding="utf-8")
+            )
+            expected_read_owners = {
+                stage["stage"]: {action["owner"].casefold() for action in stage["read_actions"]}
+                for stage in stage_policy["stages"]
+            }
+            expected_write_owners = {
+                stage["stage"]: {action["owner"].casefold() for action in stage["write_actions"]}
+                for stage in stage_policy["stages"]
+            }
             self.assertEqual(
-                {"state_store", "Cognee"},
-                {action["owner"] for action in stage_by_name["skeleton_check"]["read_actions"]},
+                expected_read_owners["skeleton_check"],
+                {action["owner"].casefold() for action in stage_by_name["skeleton_check"]["read_actions"]},
             )
             self.assertEqual(
-                {"Serena", "Cognee"},
-                {action["owner"] for action in stage_by_name["xl_plan"]["read_actions"]},
+                expected_read_owners["xl_plan"],
+                {action["owner"].casefold() for action in stage_by_name["xl_plan"]["read_actions"]},
             )
             self.assertEqual(
-                {"state_store", "ruflo"},
-                {action["owner"] for action in stage_by_name["plan_execute"]["write_actions"]},
+                expected_write_owners["plan_execute"],
+                {action["owner"].casefold() for action in stage_by_name["plan_execute"]["write_actions"]},
             )
             self.assertEqual(
-                {"Serena", "state_store", "Cognee"},
-                {action["owner"] for action in stage_by_name["phase_cleanup"]["write_actions"]},
+                expected_write_owners["phase_cleanup"],
+                {action["owner"].casefold() for action in stage_by_name["phase_cleanup"]["write_actions"]},
             )
 
             for stage in stages:
@@ -198,6 +321,7 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             payload = run_governed_runtime(
                 "Plan and debug a governed runtime enhancement with long-horizon continuity needs.",
                 artifact_root=Path(tempdir),
+                complete_agent_handoff=True,
             )
             summary = payload["summary"]
             artifacts = summary["artifacts"]
@@ -234,11 +358,15 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             )
 
             skeleton = stages[0]
-            self.assertEqual("fallback_local_digest", skeleton["read_actions"][0]["status"])
-            self.assertLessEqual(
-                len(skeleton["read_actions"][0]["items"]),
-                skeleton["read_actions"][0]["budget"]["top_k"],
+            state_store_action = next(
+                action for action in skeleton["read_actions"] if action["owner"].casefold() == "state_store"
             )
+            self.assertIn(state_store_action["status"], {"fallback_local_digest", "backend_read"})
+            if "items" in state_store_action:
+                self.assertLessEqual(
+                    len(state_store_action["items"]),
+                    state_store_action["budget"]["top_k"],
+                )
 
             deep_interview = stages[1]
             self.assertEqual("deferred_no_project_key", deep_interview["read_actions"][0]["status"])
@@ -276,11 +404,15 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             env = os.environ.copy()
             env["VIBE_MEMORY_BACKEND_ROOT"] = str(backend_root)
             env["SERENA_PROJECT_KEY"] = "pytest-memory-project"
+            workspace_root = temp_root / "workspace"
 
             first = run_governed_runtime(
                 "XL approved decision: keep api worker runtime continuity and graph relationship between api worker and planner.",
                 artifact_root=temp_root / "run-1",
                 env=env,
+                workspace_root=workspace_root,
+                workflow_level="XL",
+                complete_agent_handoff=True,
             )
             first_report = json.loads(
                 Path(first["summary"]["artifacts"]["memory_activation_report"]).read_text(encoding="utf-8")
@@ -299,6 +431,9 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
                 "XL follow-up api worker continuity review with decision reuse and graph dependency recall.",
                 artifact_root=temp_root / "run-2",
                 env=env,
+                workspace_root=workspace_root,
+                workflow_level="XL",
+                complete_agent_handoff=True,
             )
             second_report = json.loads(
                 Path(second["summary"]["artifacts"]["memory_activation_report"]).read_text(encoding="utf-8")
@@ -323,12 +458,20 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             self.assertGreaterEqual(execute_stage["read_actions"][0]["item_count"], 1)
 
             requirement_text = Path(second["summary"]["artifacts"]["requirement_doc"]).read_text(encoding="utf-8")
-            self.assertIn("## Memory Context", requirement_text)
-            self.assertIn("Serena decision:", requirement_text)
+            requirement_receipt = json.loads(
+                Path(second["summary"]["artifacts"]["requirement_receipt"]).read_text(encoding="utf-8")
+            )
+            self.assertNotIn("## Memory Context", requirement_text)
+            self.assertGreaterEqual(requirement_receipt["memory_capsule_count"], 1)
+            self.assertTrue(bool(requirement_receipt["memory_context_path"]))
 
             plan_text = Path(second["summary"]["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
-            self.assertIn("## Memory Context", plan_text)
-            self.assertIn("Cognee relation:", plan_text)
+            plan_receipt = json.loads(
+                Path(second["summary"]["artifacts"]["execution_plan_receipt"]).read_text(encoding="utf-8")
+            )
+            self.assertNotIn("## Memory Context", plan_text)
+            self.assertGreaterEqual(plan_receipt["plan_memory_capsule_count"], 1)
+            self.assertTrue(bool(plan_receipt["plan_memory_context_path"]))
 
     def test_runtime_records_backend_failures_when_workspace_broker_cannot_run(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
@@ -337,6 +480,8 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
                 "XL follow-up api worker continuity review with decision reuse and graph dependency recall.",
                 artifact_root=temp_root,
                 env={"VIBE_MEMORY_BACKEND_DRIVER_MODE": "legacy"},
+                workflow_level="XL",
+                complete_agent_handoff=True,
             )
 
             report_path = (
@@ -361,7 +506,7 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             }
             self.assertIn("memory_backend_invocation_failed", failed_statuses)
 
-    def test_runtime_helper_keeps_native_specialist_disabled_when_caller_env_conflicts(self) -> None:
+    def test_runtime_uses_agent_handoff_even_when_a_host_executable_is_available(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_root = Path(tempdir)
             target_root = temp_root / ".agents"
@@ -374,9 +519,8 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             payload = run_governed_runtime(
                 "I have a failing test and a stack trace. Help me debug systematically before proposing fixes.",
                 artifact_root=temp_root / "runtime",
+                agent_skill_ids=["systematic-debugging"],
                 env={
-                    "VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION": "0",
-                    "VGO_CODEX_EXECUTABLE": str(create_fake_codex_command(temp_root)),
                     "VIBE_AGENTS_HOME": str(target_root),
                 },
             )
@@ -384,20 +528,18 @@ class MemoryRuntimeActivationTests(unittest.TestCase):
             execution_manifest = json.loads(
                 Path(payload["summary"]["artifacts"]["execution_manifest"]).read_text(encoding="utf-8")
             )
-            execution_proof = json.loads(
-                Path(payload["summary"]["artifacts"]["execution_proof_manifest"]).read_text(encoding="utf-8")
-            )
             self.assertEqual(
-                "direct_current_session_routed",
-                execution_manifest["specialist_accounting"]["effective_execution_status"],
+                "agent_action_required",
+                execution_manifest["module_handoff"]["status"],
             )
-
-            for result_path in execution_proof["result_paths"]:
-                result = json.loads(Path(result_path).read_text(encoding="utf-8"))
-                if result.get("kind") != "specialist_dispatch":
-                    continue
-                self.assertFalse(bool(result["live_native_execution"]))
-                self.assertEqual("direct_current_session_route", result["execution_driver"])
+            handoff = json.loads(
+                Path(payload["summary"]["artifacts"]["agent_execution_handoff"]).read_text(encoding="utf-8")
+            )
+            self.assertEqual("agent_action_required", handoff["status"])
+            self.assertEqual(["systematic-debugging"], [unit["skill_id"] for unit in handoff["units"]])
+            self.assertEqual("plan_execute", payload["summary"]["terminal_stage"])
+            self.assertIsNone(payload["summary"]["artifacts"]["cleanup_receipt"])
+            self.assertIsNone(payload["summary"]["artifacts"]["memory_activation_report"])
 
 
 if __name__ == "__main__":

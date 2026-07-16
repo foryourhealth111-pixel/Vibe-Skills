@@ -68,12 +68,12 @@ def test_build_kernel_plan_returns_typed_kernel_planning_result() -> None:
     assert kernel_plan.task_card.goal == 'design the architecture and write an implementation plan'
     assert kernel_plan.candidates == ()
     assert kernel_plan.work_plan.task_id == kernel_plan.task_card.id
-    assert kernel_plan.work_binding.task_id == kernel_plan.task_card.id
-    assert kernel_plan.work_binding.units[0].work_unit_id == "wu-1"
-    assert kernel_plan.work_binding.units[0].bound_skill is None
+    assert kernel_plan.module_assignments.task_id == kernel_plan.task_card.id
+    assert kernel_plan.module_assignments.units[0].work_unit_id == "wu-1"
+    assert kernel_plan.module_assignments.units[0].bound_skill is None
     assert kernel_plan.inferred_task_type == 'planning'
     assert kernel_plan.preferred_skill is None
-    assert kernel_plan.model_dump()['work_binding']['units'][0]['bound_skill'] is None
+    assert kernel_plan.model_dump()['module_assignments']['units'][0]['bound_skill'] is None
     assert kernel_plan.resolved_task_type == 'planning'
     assert kernel_plan.suggested_internal_grade == 'L'
     assert kernel_plan.suggested_stage_stop == 'phase_cleanup'

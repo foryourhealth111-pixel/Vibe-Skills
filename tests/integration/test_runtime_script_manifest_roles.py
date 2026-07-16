@@ -18,7 +18,7 @@ def _expected_governed_runtime_support_files() -> set[str]:
         path.as_posix().replace(str(REPO_ROOT.as_posix()) + "/", "")
         for path in sorted(RUNTIME_SCRIPT_DIR.glob("*"))
         if path.is_file()
-    } | {"scripts/runtime/legacy/VibeRetiredConsultation.Common.ps1"}
+    }
 
 
 def test_runtime_script_manifest_role_groups_cover_flat_projection() -> None:

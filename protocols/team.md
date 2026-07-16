@@ -13,7 +13,7 @@
 > - **Root/Child lane**: One coordinator (root lane) and multiple workers (child lanes). Only root makes the final completion claim for the whole task.
 > - **Wave-sequential execution**: Large tasks are split into sequential "waves." Within a wave, independent sub-tasks may run in parallel.
 > - **Scatter-gather**: Fan-out (assign task variants to multiple agents in parallel) then fan-in (collect all results and synthesize one output).
-> - **Skill execution**: Using a specific skill (e.g. `tdd-guide`, `code-review`) for a bounded sub-task. Must be selected by root in the frozen plan before execution.
+> - **Agent Skill work**: The current Agent follows an assigned skill (for example `tdd-guide` or `code-review`) while completing one bounded module. Vibe assigns and validates the work; it does not run the skill itself.
 > - **Dialectic mode**: A structured design analysis where two groups of agents argue different perspectives, then a coordinator synthesizes the best ideas from both.
 > - **ruflo**: An optional memory and workflow orchestration component for vector memory, session persistence, and formal consensus.
 > - **spawn_agent / send_input / wait / close_agent**: Internal XL orchestration API calls. Users do not call these directly.
@@ -23,7 +23,8 @@ Protocol for XL-grade multi-agent tasks requiring coordination.
 
 ## Governed Runtime Position
 
-This protocol is the XL execution topology used inside runtime stage 5 `plan_execute`.
+This protocol describes how the current Agent may coordinate XL work after
+runtime stage 5 `plan_execute` emits `agent-execution-handoff.json`.
 It is not a separate user entrypoint.
 
 The fixed user-facing runtime path remains:
@@ -36,6 +37,11 @@ The fixed user-facing runtime path remains:
 6. `phase_cleanup`
 
 This protocol only activates after the requirement and plan are already frozen.
+The active work contract is `module-work-plan.json -> agent-execution-handoff.json
+-> module-execution.json`.
+`plan_execute` does not perform the assigned work. It hands the approved modules
+to the current Agent, which returns one complete `module-execution.json` through
+canonical `vibe` re-entry before `phase_cleanup` can begin.
 
 subagent-driven-development is treated as an absorbed method here, not as a route-owning specialist. The decision to use child lanes belongs to `vibe.plan_execute` and must follow the frozen M/L/XL plan.
 
@@ -67,23 +73,23 @@ Runtime enforcement for child lanes:
 
 - root emits a `delegation-envelope.json` before delegated child execution
 - child startup validates inherited requirement/plan truth against that envelope
-- child emits `delegation-validation-receipt.json` before executing the bounded unit
+- child records delegation validation before starting the bounded unit
 
 Child-governed lanes must not:
 
 - create a second canonical requirement surface
 - create a second canonical execution-plan surface
 - emit final completion claims for the full root task
-- self-approve new global selected skill execution
+- change the root-frozen `agent_skill_organization`
 
-## Execution Topology Truth
+## Agent Work Coordination Truth
 
-- `L` execution is handled in `do.md` as serial native execution; this protocol is not the default L executor.
+- `L` work is completed serially by the current Agent; this protocol covers the XL coordination case.
 - `XL` execution is wave-sequential by dependency.
 - Parallel work in `XL` is step-scoped and bounded to independent units only.
-- Specialist recommendations are expected on governed runs, but process methods such as brainstorming, planning, and child-lane decomposition are owned by `vibe` stages rather than external route authorities.
-- Selected skill execution is phase-bound: `pre_execution`, `in_execution`, `post_execution`, `verification`.
-- In `XL`, selected skill execution lanes may join bounded parallel windows only when their write scopes are disjoint and their lane policy allows it.
+- The Agent-confirmed `agent_skill_organization` is frozen before XL planning; route candidates remain compatibility audit evidence rather than execution authority.
+- Module skill work is phase-bound: `pre_execution`, `in_execution`, `post_execution`, `verification`.
+- In `XL`, module work-unit lanes may join bounded parallel windows only when their write scopes are disjoint and their lane policy allows it.
 
 ### Role Division
 
@@ -112,38 +118,40 @@ Lead-agent rules:
 - subagents may surface report-only warnings, but must not invent a new hard gate,
 - if an existing approved policy or failed gate truly blocks progress, cite that exact surface,
 - aggregation must not flatten bounded-specialization outputs into generalized completion claims.
-- when a skill is selected for execution, keep its native workflow intact instead of rewriting it into generic lead-agent prose.
+- when a Skill is assigned, preserve the relevant instructions from its `SKILL.md` instead of replacing them with generic lead-agent prose.
 - only root-governed aggregation may publish final completion claims for the full task.
 
-## Native Skill Execution
+## Agent Skill Work
 
-Within XL execution, a selected skill is a bounded helper, not a replacement runtime.
+A selected Skill guides a bounded module. Vibe organizes the work and checks the
+returned result; it does not directly run the Skill.
 
 Read bounded work first:
 
-- `work_binding` remains the source of truth for which bounded work units actually carry a skill owner
-- `selected_skill_execution` is the execution-side copy of those root-approved bounded work units
-- child lanes should inherit bounded work contracts, not improvise a second routing story
+- `agent_skill_organization` is the root-frozen task-skill truth
+- `module_assignments` is the validated work projection of that organization
+- `agent-execution-handoff.json` carries those root-approved work units to the current Agent
+- child lanes should inherit bounded work contracts, not improvise a second skill-selection story
 
 Rules:
 
 - `vibe` keeps final control of stage order, plan authority, and completion claims
-- skill execution candidates should always be surfaced in governed runtime output, and safe bounded candidates should aggressively promote into selected skill execution
-- when selected skill execution exists, root-governed execution must emit one unified pre-execution disclosure that names only the actually executing Skills and their real `native_skill_entrypoint`
-- each selected skill receives a bounded subtask contract plus the frozen requirement context
-- skill outputs must stay in the native format or workflow expected by that selected skill
-- each selected skill also carries phase binding, lane policy, write scope, and review mode
-- lead aggregation may summarize skill output, but must not erase skill-specific verification notes
-- a skill execution candidate is advisory until the governed plan selects it for execution
+- route candidates may be surfaced as compatibility audit evidence, but they never auto-promote into approved module work units
+- when module Skill work exists, `plan_execute` must emit one `agent-execution-handoff.json` naming each module, work-unit role, assigned Skill, and `skill_entrypoint`
+- the current Agent reads each assigned `SKILL.md` and completes its bounded work under the frozen requirement context
+- the Agent returns expected outputs, result summaries, failures, blocking reasons, and module states in one `module-execution.json`
+- each work unit also carries phase binding, lane policy, write scope, and review mode
+- lead aggregation may summarize module results, but must not erase Skill-specific verification notes
+- a new skill can enter execution only through a user-approved plan revision that freezes an updated `agent_skill_organization`
 
-Hierarchy-specific skill execution semantics:
+Hierarchy-specific work semantics:
 
-- `selected_skill_execution`: execution-side copy of root-approved bounded work from `work_binding`; child lanes may execute only those inherited bounded units directly
-- `local_suggestion`: residual child-lane skill suggestion that remains advisory only after safe same-round auto-promotion has been exhausted or blocked
+- `agent-execution-handoff.json`: root-approved bounded work from `module_assignments`; child lanes may receive only those inherited units
+- `local_suggestion`: residual child-lane skill suggestion that remains audit or escalation evidence until root governance freezes an approved revision
 
 Escalation rule:
 
-- child lanes needing non-approved skill execution must emit explicit escalation evidence to root
+- child lanes needing a non-approved Skill must return an explicit escalation to root
 - no silent skill activation is allowed in child lanes
 
 ## Orchestration Options
@@ -268,7 +276,7 @@ Contract rules:
 - Prefer `verification` that is command-shaped (copy/paste runnable).
 - If required info is missing, return `status=blocked` with `handoff_questions` (do not guess).
 - The same contract maps cleanly to the GSD wave contract (`entry_criteria`/`exit_criteria`/`verify_commands`).
-- If the subtask is owned by a specialist skill, keep the contract narrow enough that native specialist workflow still applies without improvising a new method.
+- If the subtask has an assigned Skill, keep the contract narrow enough that the child can follow that `SKILL.md` without improvising a new method.
 
 ## Shared Memory Contract (3-Tier)
 
@@ -486,7 +494,7 @@ Close all 4 agents via `close_agent`.
 
 ### L-Grade Adaptation
 
-L grade does not run XL team orchestration. Use 2 native agents sequentially:
+L grade does not use XL team orchestration. Use 2 host agents sequentially:
 
 ```
 1. Agent-A: spawn_agent(agent_type="default" or "worker", prompt="{question} 从 {perspective_A} 视角分析")
@@ -508,13 +516,14 @@ Limitations vs XL: no intra-group dialogue (only 1 agent per perspective), no Ph
 - Ralph-loop and active team orchestration are mutually exclusive
 - Only one team active per project at a time
 - Prefer native agent communication via `send_input`
-- Do NOT bypass runtime stage 6; XL execution must still hand off into `phase_cleanup`
+- Do NOT bypass canonical re-entry; XL work must return a complete `module-execution.json` before `phase_cleanup`
 
 ## BrowserOps / DesktopOps Governance Hooks
 
 在 Wave24–30 之后，XL 团队执行涉及真实浏览器或 open-world GUI 任务时，必须额外遵守以下边界：
 
-- BrowserOps 只通过 provider policy 建议 `API / Playwright / Chrome / TuriX-CUA / browser-use`，不得绕开 VCO 主路由。
+- BrowserOps 只通过 provider policy 建议已允许的宿主能力，不得安装 MCP，
+  也不得绕开 VCO 主路由。
 - DesktopOps 只允许以 `shadow/advisory/contract` 形式吸收 `Agent-S` 思路，不得把任何外部桌面代理提升为默认执行 owner。
 - 若 BrowserOps / DesktopOps 建议与主计划冲突，优先服从 `references/conflict-rules.md` 与 cross-plane conflict policy。
 - 进入 soft/strict 之前，必须能提供对应 gate 与 rollback command。

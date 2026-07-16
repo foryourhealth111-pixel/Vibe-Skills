@@ -73,8 +73,8 @@ function Write-ObservabilityRouteEvent {
         if ($userKey.Length -gt 12) { $userKey = $userKey.Substring(0, 12) }
     }
 
-    $selectedPack = if ($Result.selected) { [string]$Result.selected.pack_id } else { "none" }
-    $selectedSkill = if ($Result.selected) { [string]$Result.selected.skill } else { "none" }
+    $selectedPack = if ($Result.candidate_focus) { [string]$Result.candidate_focus.pack_id } else { "none" }
+    $selectedSkill = if ($Result.candidate_focus) { [string]$Result.candidate_focus.skill } else { "none" }
     $scenarioKey = "{0}|{1}|{2}|{3}|{4}|{5}" -f [string]$Result.task_type, [string]$Result.grade, [string]$Result.route_mode, $selectedPack, $languageMix, $envProfileId
 
     $storePromptRaw = [bool]$ObservabilityPolicy.telemetry.store_prompt_raw
@@ -178,6 +178,5 @@ function Write-ObservabilityRouteEvent {
         throw
     }
 }
-
 
 

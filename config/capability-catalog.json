@@ -272,7 +272,6 @@
         "修复"
       ],
       "skills": [
-        "autonomous-builder",
         "tdd-guide",
         "systematic-debugging"
       ],
@@ -777,7 +776,6 @@
       ],
       "skills": [
         "prompt-lookup",
-        "documentation-lookup",
         "openai-docs",
         "docs-write"
       ],
@@ -916,7 +914,6 @@
       ],
       "skills": [
         "flashrag-evidence",
-        "verification-quality-assurance",
         "context-hunter"
       ],
       "problem_domains": [
@@ -1129,7 +1126,6 @@
       ],
       "skills": [
         "research-lookup",
-        "documentation-lookup",
         "skill-lookup",
         "mcp-integration"
       ],
@@ -1273,7 +1269,6 @@
       "skills": [
         "research-lookup",
         "playwright",
-        "documentation-lookup",
         "vibe"
       ],
       "problem_domains": [

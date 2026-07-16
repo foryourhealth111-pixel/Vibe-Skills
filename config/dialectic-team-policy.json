@@ -24,7 +24,6 @@
     "planning": "writing-plans",
     "research": "claude-skills",
     "review": "vibe",
-    "coding": "autonomous-builder",
     "debug": "think-harder"
   },
   "require_second_confirm": true

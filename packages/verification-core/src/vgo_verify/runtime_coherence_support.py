@@ -8,13 +8,12 @@ from .policies import read_text_if_exists, write_text
 
 
 def content_contains(path: Path, pattern: str) -> bool:
-    return pattern in read_text_if_exists(path)
+    return pattern.casefold() in read_text_if_exists(path).casefold()
 
 
 def freshness_gate_sources(repo_root: Path, runtime: dict[str, Any]) -> list[Path]:
     candidates = [
         repo_root / "packages" / "verification-core" / "src" / "vgo_verify" / "runtime_freshness.py",
-        repo_root / "packages" / "verification-core" / "src" / "vgo_verify" / "runtime_freshness_support.py",
         repo_root / str(runtime.get("neutral_freshness_gate") or ""),
     ]
     gate_rel = str(runtime.get("post_install_gate") or "").strip()

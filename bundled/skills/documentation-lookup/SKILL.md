@@ -1,53 +1,25 @@
 ---
 name: documentation-lookup
-description: This skill should be used when the user asks about libraries, frameworks, API references, or needs code examples. Activates for setup questions, code generation involving libraries, or mentions of specific frameworks like React, Vue, Next.js, Prisma, Supabase, etc.
+description: Use when the user needs current library, framework, or API documentation and version-specific code examples.
 ---
 
-When the user asks about libraries, frameworks, or needs code examples, use Context7 to fetch current documentation instead of relying on training data.
+# Documentation Lookup
 
-## When to Use This Skill
+Use current official documentation instead of relying on memory when the answer depends on a library, framework, API, or version.
 
-Activate this skill when the user:
+## Workflow
 
-- Asks setup or configuration questions ("How do I configure Next.js middleware?")
-- Requests code involving libraries ("Write a Prisma query for...")
-- Needs API references ("What are the Supabase auth methods?")
-- Mentions specific frameworks (React, Vue, Svelte, Express, Tailwind, etc.)
+1. Identify the exact project, package, and version from the request or local dependency files.
+2. Prefer an installed documentation set, package source, or purpose-built connector, API, or CLI that reaches the official primary source.
+3. Read only the pages needed to answer the question.
+4. State the version or documentation date when it affects the answer.
+5. Cite the official page or local source path used.
 
-## How to Fetch Documentation
+If a current official source is unavailable, say what could not be verified and do not guess. Do not install or recommend an unrelated documentation service as a workaround.
 
-### Step 1: Resolve the Library ID
+## Selection Rules
 
-Call `resolve-library-id` with:
-
-- `libraryName`: The library name extracted from the user's question
-- `query`: The user's full question (improves relevance ranking)
-
-### Step 2: Select the Best Match
-
-From the resolution results, choose based on:
-
-- Exact or closest name match to what the user asked for
-- Higher benchmark scores indicate better documentation quality
-- If the user mentioned a version (e.g., "React 19"), prefer version-specific IDs
-
-### Step 3: Fetch the Documentation
-
-Call `query-docs` with:
-
-- `libraryId`: The selected Context7 library ID (e.g., `/vercel/next.js`)
-- `query`: The user's specific question
-
-### Step 4: Use the Documentation
-
-Incorporate the fetched documentation into your response:
-
-- Answer the user's question using current, accurate information
-- Include relevant code examples from the docs
-- Cite the library version when relevant
-
-## Guidelines
-
-- **Be specific**: Pass the user's full question as the query for better results
-- **Version awareness**: When users mention versions ("Next.js 15", "React 19"), use version-specific library IDs if available from the resolution step
-- **Prefer official sources**: When multiple matches exist, prefer official/primary packages over community forks
+- Prefer the library owner's documentation over tutorials, aggregators, and community mirrors.
+- Match version-specific questions to the same version of the documentation.
+- Keep examples limited to the user's requested API and environment.
+- Separate verified documentation facts from implementation advice.

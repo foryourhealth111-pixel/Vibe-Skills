@@ -40,6 +40,44 @@ def ps_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def all_uncovered_host_decision_json() -> str:
+    return json.dumps(
+        {
+            "agent_skill_organization": {
+                "schema_version": "agent_skill_organization_v1",
+                "derived_by": "agent",
+                "workflow_level": "XL",
+                "modules": [
+                    {
+                        "module_id": "runtime_contract_schema",
+                        "goal": "Verify shared runtime packet, manifest, and receipt truth.",
+                        "candidate_skill_ids": [],
+                        "execution_mode": "blocked_gap",
+                        "acceptance_criteria": [
+                            {
+                                "criterion_id": "runtime-contract-result",
+                                "description": "The shared runtime contract truth is verified.",
+                                "verification_mode": "automated",
+                            }
+                        ],
+                    }
+                ],
+                "selected_skills": [],
+                "uncovered_modules": [
+                    {
+                        "module_id": "runtime_contract_schema",
+                        "reason": "The schema contract does not require a task specialist.",
+                    }
+                ],
+                "workflow_level_contract": {
+                    "L": "Use one serial governed lane.",
+                    "XL": "Use bounded waves when the approved organization needs them.",
+                },
+            }
+        }
+    )
+
+
 def run_ps_json(body: str) -> dict[str, object]:
     shell = resolve_powershell()
     if shell is None:
@@ -62,10 +100,10 @@ def run_runtime(artifact_root: Path, *, extra_env: dict[str, str] | None = None)
         raise unittest.SkipTest("PowerShell executable not available in PATH")
 
     run_id = "pytest-contract-" + uuid.uuid4().hex[:10]
+    host_decision_json = all_uncovered_host_decision_json()
     effective_env = os.environ.copy()
     if extra_env:
         effective_env.update(extra_env)
-    effective_env["VGO_DISABLE_NATIVE_SPECIALIST_EXECUTION"] = "1"
 
     completed = subprocess.run(
         [
@@ -77,11 +115,12 @@ def run_runtime(artifact_root: Path, *, extra_env: dict[str, str] | None = None)
             "-Command",
             (
                 "& { "
-                f"$result = & '{RUNTIME_ENTRY}' "
-                f"-Task '{SPECIALIST_TASK}' "
+                f"$result = & {ps_quote(str(RUNTIME_ENTRY))} "
+                f"-Task {ps_quote(SPECIALIST_TASK)} "
                 "-Mode interactive_governed "
-                f"-RunId '{run_id}' "
-                f"-ArtifactRoot '{artifact_root}'; "
+                f"-RunId {ps_quote(run_id)} "
+                f"-ArtifactRoot {ps_quote(str(artifact_root))} "
+                f"-HostDecisionJson {ps_quote(host_decision_json)}; "
                 "$result | ConvertTo-Json -Depth 20 }"
             ),
         ],
@@ -123,7 +162,7 @@ class RuntimeContractSchemaTests(unittest.TestCase):
         self.assertEqual(expected_project_descriptor, payload["memory_plane"]["identity_root"])
         self.assertEqual("workspace_shared_memory_v1", payload["memory_plane"]["driver_contract"])
 
-    def test_runtime_packet_storage_keeps_workspace_identity_when_artifact_root_is_overridden(self) -> None:
+    def test_runtime_packet_storage_uses_artifact_root_as_workspace_when_workspace_is_omitted(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             payload = run_runtime(
                 Path(tempdir),
@@ -132,10 +171,10 @@ class RuntimeContractSchemaTests(unittest.TestCase):
             runtime_input = load_json(payload["summary"]["artifacts"]["runtime_input_packet"])
             storage = runtime_input["storage"]
 
-        expected_workspace_root = REPO_ROOT.resolve()
+        expected_workspace_root = Path(tempdir).resolve()
         self.assertEqual(str(expected_workspace_root), storage["workspace_root"])
         self.assertEqual(str((expected_workspace_root / ".vibeskills").resolve()), storage["workspace_sidecar_root"])
-        self.assertEqual(str(Path(tempdir).resolve()), storage["artifact_root"])
+        self.assertEqual(str(expected_workspace_root), storage["artifact_root"])
         self.assertEqual("explicit_override", storage["artifact_root_source"])
         self.assertFalse(storage["default_workspace_sidecar_artifact_root"])
 
@@ -147,11 +186,12 @@ class RuntimeContractSchemaTests(unittest.TestCase):
             execution_manifest = load_json(summary["artifacts"]["execution_manifest"])
 
         runtime_host = runtime_input["host_adapter"]
-        alignment = execution_manifest["route_runtime_alignment"]
         self.assertEqual("openclaw", runtime_host["requested_host_id"])
         self.assertEqual("openclaw", runtime_host["effective_host_id"])
-        self.assertEqual(runtime_host["requested_host_id"], alignment["requested_host_adapter_id"])
-        self.assertEqual(runtime_host["effective_host_id"], alignment["effective_host_adapter_id"])
+        handoff = execution_manifest["module_handoff"]
+        self.assertEqual(runtime_host["requested_host_id"], handoff["requested_host_adapter_id"])
+        self.assertEqual(runtime_host["effective_host_id"], handoff["effective_host_adapter_id"])
+        self.assertNotIn("route_runtime_alignment", execution_manifest)
         self.assertEqual(runtime_input["hierarchy"], execution_manifest["hierarchy"])
         self.assertEqual("root", runtime_input["hierarchy"]["governance_scope"])
         self.assertEqual(runtime_input["run_id"], runtime_input["hierarchy"]["root_run_id"])
@@ -177,17 +217,14 @@ class RuntimeContractSchemaTests(unittest.TestCase):
             payload = run_runtime(Path(tempdir), extra_env={"VCO_HOST_ID": "openclaw"})
             summary = payload["summary"]
             summary_from_file = load_json(payload["summary_path"])
-            memory_report = load_json(summary["artifacts"]["memory_activation_report"])
-            delivery_report = load_json(summary["artifacts"]["delivery_acceptance_report"])
 
         self.assertEqual(summary, summary_from_file)
-        self.assertEqual(memory_report["policy"]["mode"], summary["memory_activation"]["policy_mode"])
-        self.assertEqual(memory_report["summary"]["fallback_event_count"], summary["memory_activation"]["fallback_event_count"])
-        self.assertEqual(delivery_report["summary"]["gate_result"], summary["delivery_acceptance"]["gate_result"])
-        self.assertEqual(
-            delivery_report["summary"]["completion_language_allowed"],
-            summary["delivery_acceptance"]["completion_language_allowed"],
-        )
+        self.assertEqual("plan_execute", summary["terminal_stage"])
+        self.assertIsNotNone(summary["artifacts"]["agent_execution_handoff"])
+        self.assertIsNone(summary["artifacts"]["memory_activation_report"])
+        self.assertIsNone(summary["memory_activation"])
+        self.assertIsNone(summary["artifacts"]["delivery_acceptance_report"])
+        self.assertIsNone(summary["delivery_acceptance"])
 
 
 if __name__ == "__main__":

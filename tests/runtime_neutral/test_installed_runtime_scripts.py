@@ -155,6 +155,33 @@ class InstalledRuntimeScriptsTests(unittest.TestCase):
         self.assertIn("config/capability-catalog.json", payload["missing_files"])
         self.assertIn("config/deep-discovery-policy.json", payload["drifted_files"])
 
+    def test_installed_freshness_gate_verifies_receipt_owned_hashes(self) -> None:
+        powershell = resolve_powershell()
+        if powershell is None:
+            self.skipTest("PowerShell executable not available in PATH")
+
+        self.install_powershell_runtime(powershell)
+        installed_root = self.skills_dir / "vibe"
+        gate_path = installed_root / "scripts" / "verify" / "vibe-installed-runtime-freshness-gate.ps1"
+        command = [
+            powershell,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(gate_path),
+            "-TargetRoot",
+            str(self.root),
+        ]
+
+        fresh = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(0, fresh.returncode, fresh.stderr)
+
+        (installed_root / "SKILL.md").write_text("drifted\n", encoding="utf-8")
+        drifted = subprocess.run(command, capture_output=True, text=True)
+        self.assertNotEqual(0, drifted.returncode)
+        self.assertIn("hash mismatch: SKILL.md", drifted.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
