@@ -39,15 +39,15 @@
 
 </div>
 
-<p align="center">Skills 是优秀的实践资产，但是任务一复杂，Agent 往往反复调用最容易触发的几个，其余 Skills 很少被安排进计划；多个 Skills 一起参与时，分工和结果也容易接不上。</p>
-
-<p align="center">VibeSkills 会通过一套规范化、宿主中立的 harness 把这些资源组织起来，可用于所有支持本地 Skills 的 AI 应用。</p>
-
-<p align="center">它参考了 Superpowers 和 GSD-Lite 的 harness 方式，拥有完整的 harness 流程和状态机，把需求确认、执行规划、Skills 组织、框架化 harness 执行、测试与评估连接为一个整体。</p>
-
-<p align="center"><em>最终想要给用户完成具体任务的端到端交付体验，降低 AI 使用时的认知负担和门槛。</em></p>
-
-<p align="center"><em>让用户不再担心下载不常用的 Skills 而闲置，也不再担心不知道该用哪些 Skills 而需要反复记忆。</em></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark) and (max-width: 600px)" srcset="./docs/assets/readme-preface-cn-mobile-dark.svg">
+    <source media="(prefers-color-scheme: light) and (max-width: 600px)" srcset="./docs/assets/readme-preface-cn-mobile-light.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/readme-preface-cn-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/assets/readme-preface-cn-light.svg">
+    <img src="./docs/assets/readme-preface-cn-light.svg" width="880" alt="Skills 是优秀的实践资产，但是任务一复杂，Agent 往往反复调用最容易触发的几个，其余 Skills 很少被安排进计划；多个 Skills 一起参与时，分工和结果也容易接不上。 VibeSkills 会通过一套规范化、宿主中立的 harness 把这些资源组织起来，可用于所有支持本地 Skills 的 AI 应用。 它参考了 Superpowers 和 GSD-Lite 的 harness 方式，拥有完整的 harness 流程和状态机，把需求确认、执行规划、Skills 组织、框架化 harness 执行、测试与评估连接为一个整体。 最终想要给用户完成具体任务的端到端交付体验，降低 AI 使用时的认知负担和门槛。 让用户不再担心下载不常用的 Skills 而闲置，也不再担心不知道该用哪些 Skills 而需要反复记忆。">
+  </picture>
+</p>
 
 <a id="vibeskills-ml-practice-case"></a>
 <h2 align="center">

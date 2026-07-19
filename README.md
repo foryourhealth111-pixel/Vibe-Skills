@@ -39,15 +39,15 @@
 
 </div>
 
-<p align="center">Skills are valuable working assets. But as a task becomes more complex, an agent often falls back on the few Skills that are easiest to trigger, while the rest rarely enter the plan. When several Skills take part, responsibilities and outputs can also fail to connect.</p>
-
-<p align="center">VibeSkills organizes these resources through a structured, host-neutral harness. It can be used in any AI application that supports local Skills.</p>
-
-<p align="center">It draws on the harness approaches of Superpowers and GSD-Lite, with a complete workflow and state machine that bring requirement confirmation, execution planning, Skill organization, harness-guided execution, testing, and evaluation together.</p>
-
-<p align="center"><em>The goal is to give users an end-to-end delivery experience for concrete tasks while lowering the cognitive burden and barrier to using AI.</em></p>
-
-<p align="center"><em>Users should not have to worry that less frequently used Skills will sit idle, or repeatedly remember which Skills should be used for which task.</em></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark) and (max-width: 600px)" srcset="./docs/assets/readme-preface-en-mobile-dark.svg">
+    <source media="(prefers-color-scheme: light) and (max-width: 600px)" srcset="./docs/assets/readme-preface-en-mobile-light.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/readme-preface-en-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/assets/readme-preface-en-light.svg">
+    <img src="./docs/assets/readme-preface-en-light.svg" width="880" alt="Skills are valuable working assets. But as a task becomes more complex, an agent often falls back on the few Skills that are easiest to trigger, while the rest rarely enter the plan. When several Skills take part, responsibilities and outputs can also fail to connect. VibeSkills organizes these resources through a structured, host-neutral harness. It can be used in any AI application that supports local Skills. It draws on the harness approaches of Superpowers and GSD-Lite, with a complete workflow and state machine that bring requirement confirmation, execution planning, Skill organization, harness-guided execution, testing, and evaluation together. The goal is to give users an end-to-end delivery experience for concrete tasks while lowering the cognitive burden and barrier to using AI. Users should not have to worry that less frequently used Skills will sit idle, or repeatedly remember which Skills should be used for which task.">
+  </picture>
+</p>
 
 <a id="vibeskills-ml-practice-case"></a>
 <h2 align="center">
