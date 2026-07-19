@@ -21,7 +21,7 @@
 <br>
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">
-  <img src="https://img.shields.io/github/v/release/foryourhealth111-pixel/Vibe-Skills?display_name=tag&sort=semver&style=for-the-badge&color=14515B" alt="Latest release">
+  <strong>Latest release · v4.0.0</strong>
 </a>
 
 <br>
@@ -37,7 +37,7 @@
 <br>
 
 <a href="./docs/quick-start.en.md">Quick start</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/tag/v4.0.0">v4.0.0 release</a> ·
+<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">Release notes</a> ·
 <a href="./docs/README.md">Documentation</a> ·
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">Star the project</a>
 
@@ -49,7 +49,7 @@
     <source media="(prefers-color-scheme: light) and (max-width: 600px)" srcset="./docs/assets/readme-preface-en-mobile-light.svg">
     <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/readme-preface-en-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="./docs/assets/readme-preface-en-light.svg">
-    <img src="./docs/assets/readme-preface-en-light.svg" width="760" alt="Skills are excellent local assets of reusable experience. After downloading and installing many Skills, it is easy to sometimes forget which Skills have already been installed and not know which Skills to invoke. Further, when a complex task involves the combined organization and invocation of multiple Skills from different domains, planning becomes complicated for people: they must explain to the AI in detail which Skills each module should use, while the AI may forget these designs during execution. Many current harness frameworks do not actively plan how to make good use of local Skill resources, and may even fall into an either-or scheduling conflict between the harness framework and domain Skill resources. The core of this project is to follow harness frameworks similar to Superpower and GSD. Based on modular decomposition by the planning state machine, it uses different Skills to assist different modules, fully schedules existing local resources, reduces users' planning and cognitive burden, and gives users an end-to-end delivery experience. It is committed to becoming a handy steward for the Skill resources around you. When a complex task appears, it can help users slowly sort out which modules are needed and which good experiences can be reused, then deliver an excellent result.">
+    <img src="./docs/assets/readme-preface-en-light.svg" width="900" alt="Skills are excellent local assets of reusable experience. After downloading and installing many Skills, it is easy to sometimes forget which Skills have already been installed and not know which Skills to invoke. Further, when a complex task involves the combined organization and invocation of multiple Skills from different domains, planning becomes complicated for people: they must explain to the AI in detail which Skills each module should use, while the AI may forget these designs during execution. Many current harness frameworks do not actively plan how to make good use of local Skill resources, and may even fall into an either-or scheduling conflict between the harness framework and domain Skill resources. The core of this project is to follow harness frameworks similar to Superpower and GSD. Based on modular decomposition by the planning state machine, it uses different Skills to assist different modules, fully schedules existing local resources, reduces users' planning and cognitive burden, and gives users an end-to-end delivery experience. It is committed to becoming a handy steward for the Skill resources around you. When a complex task appears, it can help users slowly sort out which modules are needed and which good experiences can be reused, then deliver an excellent result.">
   </picture>
 </p>
 

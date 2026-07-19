@@ -21,7 +21,7 @@
 <br>
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">
-  <img src="https://img.shields.io/github/v/release/foryourhealth111-pixel/Vibe-Skills?display_name=tag&sort=semver&style=for-the-badge&color=14515B" alt="最新版本">
+  <strong>最新版本 · v4.0.0</strong>
 </a>
 
 <br>
@@ -37,7 +37,7 @@
 <br>
 
 <a href="./docs/quick-start.md">快速开始</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/tag/v4.0.0">v4.0.0 发布页</a> ·
+<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">发布记录</a> ·
 <a href="./docs/README.md">文档索引</a> ·
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">Star 项目</a>
 
@@ -49,7 +49,7 @@
     <source media="(prefers-color-scheme: light) and (max-width: 600px)" srcset="./docs/assets/readme-preface-cn-mobile-light.svg">
     <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/readme-preface-cn-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="./docs/assets/readme-preface-cn-light.svg">
-    <img src="./docs/assets/readme-preface-cn-light.svg" width="760" alt="Skills是优秀的本地可复用经验资产。下载和安装了很多 skills 之后，很容易有些时候搞忘了已经安装了什么 skills，不知道该调用什么 skills。 进一步，在复杂任务的时候,会涉及到不同领域的多个 skills 的复合组织调用时，人类规划起来比较复杂,要详细跟AI阐明每个模块要用什么skills，同时AI 在执行过程中可能会遗忘这些设计。 而目前的 harness 框架很多并不会主动去规划好利用本地的skills资源，甚至有些时候陷入了harness框架和领域skills资源非此即彼的调度矛盾。 这个项目的核心就是效仿 superpower 和 GSD 类似的 harness 框架，基于负责规划的状态机模块拆分，在每个不同的模块中使用不一样的 skills 来辅助任务，充分调度本地的已有资源，减少用户的规划和认知负担，给用户端到端的交付体验。 致力于成为身边顺手的skills资源调度大管家，遇到复杂任务的时候，可以帮用户慢慢捋清楚要有哪些模块，有哪些好的经验可以复用，给用户最终交付一个优秀的结果。">
+    <img src="./docs/assets/readme-preface-cn-light.svg" width="900" alt="Skills是优秀的本地可复用经验资产。下载和安装了很多 skills 之后，很容易有些时候搞忘了已经安装了什么 skills，不知道该调用什么 skills。 进一步，在复杂任务的时候,会涉及到不同领域的多个 skills 的复合组织调用时，人类规划起来比较复杂,要详细跟AI阐明每个模块要用什么skills，同时AI 在执行过程中可能会遗忘这些设计。 而目前的 harness 框架很多并不会主动去规划好利用本地的skills资源，甚至有些时候陷入了harness框架和领域skills资源非此即彼的调度矛盾。 这个项目的核心就是效仿 superpower 和 GSD 类似的 harness 框架，基于负责规划的状态机模块拆分，在每个不同的模块中使用不一样的 skills 来辅助任务，充分调度本地的已有资源，减少用户的规划和认知负担，给用户端到端的交付体验。 致力于成为身边顺手的skills资源调度大管家，遇到复杂任务的时候，可以帮用户慢慢捋清楚要有哪些模块，有哪些好的经验可以复用，给用户最终交付一个优秀的结果。">
   </picture>
 </p>
 

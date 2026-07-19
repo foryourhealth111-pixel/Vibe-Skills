@@ -34,6 +34,20 @@ def test_readmes_use_themed_install_cta_assets() -> None:
         assert f"./docs/assets/install-cta-{language}.svg" not in readme
 
 
+def test_readmes_use_native_latest_release_links() -> None:
+    labels = {
+        "en": "Latest release · v4.0.0",
+        "cn": "最新版本 · v4.0.0",
+    }
+
+    for language, contract in CTA_CONTRACTS.items():
+        readme = contract["readme"].read_text(encoding="utf-8")
+
+        assert labels[language] in readme
+        assert "https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest" in readme
+        assert "img.shields.io/github/v/release" not in readme
+
+
 def test_install_cta_assets_are_path_only_engraved_plaques() -> None:
     for language, contract in CTA_CONTRACTS.items():
         for asset_name in _asset_names(language):

@@ -50,7 +50,7 @@ def test_readmes_use_responsive_unnumbered_preface_assets() -> None:
             assert paragraph in readme
 
         assert readme.count("(max-width: 600px)") >= 2
-        assert 'width="760"' in readme
+        assert 'width="900"' in readme
         assert "readme-preface" in readme
         assert "Ⅰ" not in readme
         assert "Ⅱ" not in readme
@@ -82,4 +82,4 @@ def test_preface_assets_are_path_only_and_accessible() -> None:
             if "-mobile-" in asset_name:
                 assert view_box[2] == contract["mobile_width"]
             else:
-                assert view_box[2] == 800
+                assert view_box[2] == 960
