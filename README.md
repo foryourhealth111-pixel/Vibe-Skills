@@ -72,6 +72,13 @@ To evaluate performance in production-like environments where a large number of 
 
 <p align="center"><sub>Resource use: 491.122M to 345.756M total tokens, with tool calls reduced from 9,954 to 6,664.</sub></p>
 
+Analysis of the logs from the original benchmark shows that ***VibeSkills achieves better task performance not by invoking more Skills***.
+
+Instead, it first clarifies the task objective and delivery requirements, then decomposes a complex task into several verifiable subtasks. It subsequently selects only a small number of truly relevant capabilities from a large pool of candidate Skills and executes them in an order determined by their dependencies. This helps reduce misunderstandings of the task, omitted steps, and incorrect Skill selection, thereby improving overall task performance.
+
+***In terms of token cost and tool usage***, this workflow also eliminates a substantial amount of ineffective trial and error. Native agents are more likely to repeatedly invoke tools in unproductive directions, reread the same context, and redo previous work. In contrast, VibeSkills converges more quickly on the critical steps through clearer planning and pre-delivery checks. As a result, it not only improves task quality, but also significantly reduces tool-call loops and the token overhead caused by repeated context processing.
+
+
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.md">Study, public data, and reproduction</a> ·
 </p>

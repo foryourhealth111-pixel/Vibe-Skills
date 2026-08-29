@@ -72,6 +72,8 @@ vibeskills的4.1.0版本在Skillsbench (https://www.skillsbench.ai/) 上使用De
 
 <p align="center"><sub>资源消耗：总 Token 从 491.122M 降至 345.756M，工具调用从 9,954 次降至 6,664 次。</sub></p>
 
+通过对原始测试的日志分析发现，***VibeSkills能取得更好的任务效果，并没有调用了更多 Skills***。 而是通过明确目标和交付要求，再把复杂任务拆成若干可检查的子任务，随后从大量候选 Skills中选择少量真正相关的能力，并按照依赖关系有序执行。这样可以减少任务理解错误、步骤遗漏和 Skill 选择失误，从而提高最终任务的表现性能。 ***在token成本和工具调用***上，这套工作流也减少了大量无效试错。Native 更容易在错误方向上反复调用工具、重复读取上下文和返工，而 VibeSkills通过更清晰的计划和交付前检查，更快收敛到关键步骤。因此它不仅提高了完成质量，也显著减少了工具循环和重复上下文带来的 Token 消耗。
+
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.zh-CN.md">完整研究、公开数据与复现方法</a> ·
 </p>
