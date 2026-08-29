@@ -37,12 +37,8 @@
 <br>
 
 <a href="./docs/quick-start.md">快速开始</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/actions/workflows/vco-gates.yml">当前 CI 与 proof</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">发布记录</a> ·
-<a href="./docs/README.md">文档索引</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">Star 项目</a>
 
-<p><code>pwsh ./check.ps1</code> 可查看当前本地运行时状态。</p>
+
 
 </div>
 
@@ -54,10 +50,11 @@
   <strong>总 Token：-29.6%</strong> · <strong>工具调用：-33.1%</strong>
 </p>
 
-VibeSkills 4.1.0 吸收的核心工作流设计，曾通过冻结的 Lean Vibe 候选版本在
-195 个 Skills 共存的生产近似环境中进行评测。Lean Vibe 与 Native 使用相同的模型、
-任务、Verifier 和 OpenHands 执行框架。82 个有效配对任务的平均 Verifier Reward
-从 `50.28%` 提升到 `71.40%`；Token 与工具调用分析覆盖其中 81 个记录完整的任务。
+**SkillsBench**是一个用跨领域的专业任务来测试 AI Agent 能否有效调用Skills完成工作的基准，其意义是衡量给模型配上专业Skills后，实际解决复杂任务的能力提升。
+
+为了评估在生产环境中面对大量已安装Skills的场景下的性能，我们将SkillsBench改造成更接近生产环境的大量Skills共存测试（把SkillsBench 从每题只提供配套的Skill专业，改造成每题都配套全局195个专业Skill环境下测试，其余条件保持不变），用来评估 Agent 能否从众多已安装 Skills 中自主发现、选择并组织相关能力，形成有效工作流完成复杂任务。
+
+vibeskills的4.1.0版本在Skillsbench (https://www.skillsbench.ai/) 上使用DeepSeekV4Flash-VE和Openhands进行基线测试。相比未使用vibeskills组的情况，vibeskills将平均任务得分提升21.12%，同时将Token消耗降低29.6%、工具调用减少33.1%。
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
@@ -77,10 +74,7 @@ VibeSkills 4.1.0 吸收的核心工作流设计，曾通过冻结的 Lean Vibe �
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.zh-CN.md">完整研究、公开数据与复现方法</a> ·
-  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/PUBLICATION.json">冻结版本溯源</a>
 </p>
-
-<p align="center"><sub>冻结候选：<code>r33-lean-vibe-v4</code> · <code>src-3a61f181</code> · <code>bld-4c07b302</code></sub></p>
 
 <p align="center">
   <picture>
