@@ -507,15 +507,4 @@ VibeSkills 的使用讨论和社区实践也可以在 [LINUX DO](https://linux.d
   </picture>
 </p>
 
-<a id="star-history"></a>
-<h2 align="center">Star History</h2>
 
-<p align="center">
-  <a href="https://www.star-history.com/?repos=foryourhealth111-pixel%2FVibe-Skills&type=date&legend=top-left">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=foryourhealth111-pixel/Vibe-Skills&type=date&theme=dark&legend=top-left&sealed_token=w0EqeLTm9wszGWgyHu06UcCcyQfiKZ7ok_801GPc3z6UHK3z6fsOGq9IfgXQYFpeGcDW9tJHUt4_60YrIc-4SYwecEzSccTbp4CTOESt9m6zQUu4Z4FGmFDSSwSX1m_N0QO7EaWdF9pNSNWvxLxLhOmZ8QdEZEsVK1MmLGm1SpggAS3tk9gWfYCFBb1A">
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=foryourhealth111-pixel/Vibe-Skills&type=date&legend=top-left&sealed_token=w0EqeLTm9wszGWgyHu06UcCcyQfiKZ7ok_801GPc3z6UHK3z6fsOGq9IfgXQYFpeGcDW9tJHUt4_60YrIc-4SYwecEzSccTbp4CTOESt9m6zQUu4Z4FGmFDSSwSX1m_N0QO7EaWdF9pNSNWvxLxLhOmZ8QdEZEsVK1MmLGm1SpggAS3tk9gWfYCFBb1A">
-      <img src="https://api.star-history.com/chart?repos=foryourhealth111-pixel/Vibe-Skills&type=date&legend=top-left&sealed_token=w0EqeLTm9wszGWgyHu06UcCcyQfiKZ7ok_801GPc3z6UHK3z6fsOGq9IfgXQYFpeGcDW9tJHUt4_60YrIc-4SYwecEzSccTbp4CTOESt9m6zQUu4Z4FGmFDSSwSX1m_N0QO7EaWdF9pNSNWvxLxLhOmZ8QdEZEsVK1MmLGm1SpggAS3tk9gWfYCFBb1A" width="820" alt="VibeSkills Star History 图表">
-    </picture>
-  </a>
-</p>
