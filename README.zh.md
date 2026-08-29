@@ -46,6 +46,42 @@
 
 </div>
 
+<a id="skillsbench-performance"></a>
+<h2 align="center">SkillsBench 实测表现</h2>
+
+<p align="center">
+  <strong>平均 Verifier Reward：+21.12 个百分点</strong><br>
+  <strong>总 Token：-29.6%</strong> · <strong>工具调用：-33.1%</strong>
+</p>
+
+VibeSkills 4.1.0 吸收的核心工作流设计，曾通过冻结的 Lean Vibe 候选版本在
+195 个 Skills 共存的生产近似环境中进行评测。Lean Vibe 与 Native 使用相同的模型、
+任务、Verifier 和 OpenHands 执行框架。82 个有效配对任务的平均 Verifier Reward
+从 `50.28%` 提升到 `71.40%`；Token 与工具调用分析覆盖其中 81 个记录完整的任务。
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-task-outcomes.png" width="900" alt="SkillsBench 配对任务效果：Lean Vibe 的平均 Reward 从 50.3% 提升到 71.4%，满分率从 47.6% 提升到 69.5%；逐题对比中 23 项更高、55 项相同、4 项更低">
+  </a>
+</p>
+
+<p align="center"><sub>任务效果：满分任务从 39 项增至 57 项；逐题对比中，Lean Vibe 领先 23 项，Native 领先 4 项，另有 55 项相同。</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-resource-use.png" width="900" alt="SkillsBench 资源消耗对比：总 Token 从 Native 的 491.1M 降至 Lean Vibe 的 345.8M，工具调用减少 33.1%">
+  </a>
+</p>
+
+<p align="center"><sub>资源消耗：总 Token 从 491.122M 降至 345.756M，工具调用从 9,954 次降至 6,664 次。</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.zh-CN.md">完整研究、公开数据与复现方法</a> ·
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/PUBLICATION.json">冻结版本溯源</a>
+</p>
+
+<p align="center"><sub>冻结候选：<code>r33-lean-vibe-v4</code> · <code>src-3a61f181</code> · <code>bld-4c07b302</code></sub></p>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark) and (max-width: 600px)" srcset="./docs/assets/readme-preface-v2-cn-mobile-dark.svg">

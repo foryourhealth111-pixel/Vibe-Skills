@@ -46,6 +46,44 @@
 
 </div>
 
+<a id="skillsbench-performance"></a>
+<h2 align="center">Measured on SkillsBench</h2>
+
+<p align="center">
+  <strong>Mean verifier reward: +21.12 pp</strong><br>
+  <strong>Total tokens: -29.6%</strong> · <strong>Tool calls: -33.1%</strong>
+</p>
+
+The workflow design carried into VibeSkills 4.1.0 was evaluated through the
+frozen Lean Vibe candidate in a production-like environment with 195
+coexisting Skills. Lean Vibe and Native used the same model, tasks, verifier,
+and OpenHands execution framework. Across 82 valid paired reward tasks, mean
+verifier reward increased from `50.28%` to `71.40%`. Resource analysis covers
+81 of those tasks with complete token and tool-call records.
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-task-outcomes.png" width="900" alt="SkillsBench paired task outcomes: Lean Vibe increased mean reward from 50.3% to 71.4%, increased the full-score rate from 47.6% to 69.5%, scored higher on 23 tasks, tied on 55, and scored lower on 4">
+  </a>
+</p>
+
+<p align="center"><sub>Task quality: 39 to 57 full-score tasks; Lean Vibe scored higher on 23 tasks, Native on 4, with 55 ties.</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-resource-use.png" width="900" alt="SkillsBench resource comparison: total token use fell from 491.1 million for Native to 345.8 million for Lean Vibe, while tool calls fell by 33.1%">
+  </a>
+</p>
+
+<p align="center"><sub>Resource use: 491.122M to 345.756M total tokens, with tool calls reduced from 9,954 to 6,664.</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.md">Study, public data, and reproduction</a> ·
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/PUBLICATION.json">Frozen snapshot provenance</a>
+</p>
+
+<p align="center"><sub>Frozen candidate: <code>r33-lean-vibe-v4</code> · <code>src-3a61f181</code> · <code>bld-4c07b302</code></sub></p>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark) and (max-width: 600px)" srcset="./docs/assets/readme-preface-v2-en-mobile-dark.svg">
