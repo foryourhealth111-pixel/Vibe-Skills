@@ -25,6 +25,7 @@ class SkillCandidate:
     resolved_skill_file: str
     path_contract: str
     path_base: str
+    content_sha256: str = ""
     warnings: tuple[str, ...] = ()
     inputs: tuple[str, ...] = ()
     outputs: tuple[str, ...] = ()
@@ -141,6 +142,7 @@ def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object],
                 resolved_skill_file=str(source_metadata["resolved_skill_file"]),
                 path_contract=str(source_metadata["path_contract"]),
                 path_base=str(source_metadata["path_base"]),
+                content_sha256=str(raw_entry.get("content_sha256") or "").strip().lower(),
             )
         )
     ranked = sorted(

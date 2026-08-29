@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -117,6 +118,7 @@ def _with_source_metadata(
         "resolved_skill_file": f"{base_path}/{skill_file}",
         "path_contract": "vibe_relative",
         "path_base": base_path,
+        "content_sha256": "b" * 64,
     }
 
 
@@ -896,6 +898,42 @@ def test_verify_run_rejects_incomplete_proof() -> None:
     assert any("missing artifact reference review notes" in note for note in verification.notes)
 
 
+def test_verify_run_rejects_artifact_content_changed_after_completion(tmp_path: Path) -> None:
+    task_card = build_task_card(prompt="Review the runtime change.")
+    plan = build_work_plan(task_card, find_skill_candidates(task_card, _index_payload()))
+    work_unit = plan.work_units[0]
+    artifact_path = tmp_path / "review-notes.md"
+    artifact_path.write_text("# Original review\n", encoding="utf-8")
+    receipt_path = tmp_path / "execution-receipt.json"
+    receipt_path.write_text("{}\n", encoding="utf-8")
+    result = WorkUnitResult(
+        work_unit_id=work_unit.id,
+        status="completed",
+        lifecycle_state="executed",
+        used_skill=work_unit.preferred_skill,
+        artifacts=work_unit.expected_artifacts,
+        artifact_paths=(str(artifact_path.resolve()),),
+        proof_artifact_paths=(),
+        checked_targets=work_unit.verification,
+        notes=("execution completed",),
+        proof=(
+            f"{work_unit.id}: used skill {work_unit.preferred_skill}",
+            *(f"{work_unit.id}: artifact {artifact}" for artifact in work_unit.expected_artifacts),
+            *(f"{work_unit.id}: checked {target}" for target in work_unit.verification),
+        ),
+        execution_receipt_path=str(receipt_path.resolve()),
+        artifact_kind="final",
+        proof_ready=True,
+        artifact_sha256=(hashlib.sha256(artifact_path.read_bytes()).hexdigest(),),
+    )
+    artifact_path.write_text("# Replaced review\n", encoding="utf-8")
+
+    verification = verify_run(task_card, plan, (result,))
+
+    assert verification.result == "revise_execution"
+    assert f"{work_unit.id}: artifact content changed after completion" in verification.notes
+
+
 def test_run_local_kernel_writes_skill_aware_artifact_content(tmp_path: Path) -> None:
     agent_root = tmp_path / "agent-root"
     vibe_root = agent_root / "vibe"
@@ -1622,6 +1660,121 @@ enabled: true
     assert resumed["reused_work_units"] == []
     assert resumed["module_assignments"]["units"][0]["provenance"]["source_kind"] == "host_installed"
     assert resumed["work_results"]["work_results"][0]["reused_from_work_unit_id"] is None
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_execution_count", "expected_reused_work_units"),
+    [
+        ("unchanged", 1, ["wu-1"]),
+        ("skill_content", 2, []),
+        ("artifact_content", 2, []),
+    ],
+)
+def test_completed_work_reuse_requires_unchanged_skill_and_artifact_content(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    expected_execution_count: int,
+    expected_reused_work_units: list[str],
+) -> None:
+    agent_root = tmp_path / "agent-root"
+    skill_dir = agent_root / "vibe" / "skills" / "local" / "write-report"
+    skill_dir.mkdir(parents=True)
+    skill_path = skill_dir / "SKILL.md"
+    skill_content = """---
+id: write-report
+name: Write Report
+description: Turn results into a concise report or summary.
+when_to_use:
+  - The user needs a report, summary, or briefing.
+inputs:
+  - results
+outputs:
+  - report
+enabled: true
+---
+
+# Report workflow
+
+Use the verified results to write the report.
+"""
+    skill_path.write_text(skill_content, encoding="utf-8")
+    execution_count = 0
+
+    def complete_work_unit(
+        agent_root: Path,
+        task_card: object,
+        work_unit: object,
+        *,
+        work_root: Path | None = None,
+    ) -> WorkUnitResult:
+        del agent_root, task_card
+        nonlocal execution_count
+        execution_count += 1
+        assert work_root is not None
+        work_root.mkdir(parents=True, exist_ok=True)
+        artifact_path = work_root / "report.md"
+        artifact_path.write_text(f"# Report execution {execution_count}\n", encoding="utf-8")
+        receipt_path = work_root / "execution-receipt.json"
+        receipt_path.write_text("{}\n", encoding="utf-8")
+        skill_id = str(work_unit.preferred_skill)
+        proof = (
+            f"{work_unit.id}: used skill {skill_id}",
+            *(f"{work_unit.id}: artifact {artifact}" for artifact in work_unit.expected_artifacts),
+            *(f"{work_unit.id}: checked {target}" for target in work_unit.verification),
+        )
+        return WorkUnitResult(
+            work_unit_id=work_unit.id,
+            status="completed",
+            lifecycle_state="executed",
+            used_skill=skill_id,
+            artifacts=work_unit.expected_artifacts,
+            artifact_paths=(str(artifact_path.resolve()),),
+            proof_artifact_paths=(),
+            checked_targets=work_unit.verification,
+            notes=("execution completed",),
+            proof=proof,
+            execution_receipt_path=str(receipt_path.resolve()),
+            artifact_kind="final",
+            proof_ready=True,
+        )
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", complete_work_unit)
+    first = run_local_kernel_with_agent_choice(
+        agent_root=agent_root,
+        prompt="Summarize the benchmark results and produce a report.",
+        run_id="content-addressed-resume",
+    )
+    first_result = first["work_results"]["work_results"][0]
+    first_artifact_path = Path(first_result["artifact_paths"][0])
+
+    assert first["verification"]["result"] == "done"
+    assert first["module_assignments"]["units"][0]["provenance"]["content_sha256"] == hashlib.sha256(
+        skill_path.read_bytes()
+    ).hexdigest()
+    assert first_result["artifact_sha256"] == (
+        hashlib.sha256(first_artifact_path.read_bytes()).hexdigest(),
+    )
+
+    if mutation == "skill_content":
+        skill_path.write_text(
+            skill_content + "\nKeep the conclusion tied to the supplied evidence.\n",
+            encoding="utf-8",
+        )
+    elif mutation == "artifact_content":
+        first_artifact_path.write_text("# Replaced report content\n", encoding="utf-8")
+
+    resumed = run_local_kernel_with_agent_choice(
+        agent_root=agent_root,
+        prompt="Summarize the benchmark results and produce a report.",
+        run_id="content-addressed-resume",
+    )
+
+    assert execution_count == expected_execution_count
+    assert resumed["reused_work_units"] == expected_reused_work_units
+    assert resumed["verification"]["result"] == "done"
+    if expected_execution_count == 2:
+        assert first_artifact_path.read_text(encoding="utf-8") == "# Report execution 2\n"
 
 
 def test_run_local_kernel_can_replace_deliverables_and_mark_superseded_work(tmp_path: Path) -> None:

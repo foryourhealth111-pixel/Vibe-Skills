@@ -5,7 +5,12 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from .executor import WorkUnitResult, execute_work_unit
+from .executor import (
+    WorkUnitResult,
+    artifact_sha256_for_paths,
+    capture_completed_artifact_sha256,
+    execute_work_unit,
+)
 from .finder import find_skill_candidates
 from .host_skill_roots import resolve_host_skill_roots
 from .planner import build_work_plan
@@ -72,6 +77,7 @@ def _skill_provenance(candidate: object) -> SkillProvenance:
         source_order=int(getattr(candidate, "source_order")),
         path_contract=str(getattr(candidate, "path_contract")),
         path_base=str(getattr(candidate, "path_base")),
+        content_sha256=str(getattr(candidate, "content_sha256", "")),
     )
 
 
@@ -386,6 +392,7 @@ def _coerce_work_result(payload: dict[str, object]) -> WorkUnitResult:
             else None
         ),
         failure_reason=(str(payload["failure_reason"]) if payload.get("failure_reason") is not None else None),
+        artifact_sha256=tuple(str(value) for value in payload.get("artifact_sha256", [])),
     )
 
 
@@ -402,6 +409,7 @@ def _coerce_skill_provenance(payload: object) -> SkillProvenance | None:
         source_order=int(payload["source_order"]),
         path_contract=str(payload["path_contract"]),
         path_base=str(payload["path_base"]),
+        content_sha256=str(payload.get("content_sha256") or ""),
     )
 
 
@@ -476,6 +484,11 @@ def _unique_non_empty(values: list[str]) -> list[str]:
 def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_work_unit: WorkUnit) -> bool:
     if previous_work_unit is None:
         return False
+    if current_work_unit.preferred_skill is not None:
+        provenance = current_work_unit.selected_skill_provenance
+        content_sha256 = provenance.content_sha256 if provenance is not None else ""
+        if len(content_sha256) != 64 or any(character not in "0123456789abcdef" for character in content_sha256):
+            return False
     return (
         previous_work_unit.preferred_skill == current_work_unit.preferred_skill
         and previous_work_unit.selected_skill_provenance == current_work_unit.selected_skill_provenance
@@ -486,6 +499,17 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
         and previous_work_unit.plan_hints == current_work_unit.plan_hints
         and previous_work_unit.verify_hints == current_work_unit.verify_hints
     )
+
+
+def _completed_result_artifacts_are_current(result: WorkUnitResult) -> bool:
+    if result.status != "completed" or not result.artifact_paths:
+        return False
+    if len(result.artifact_paths) != len(result.artifacts):
+        return False
+    recorded = result.artifact_sha256
+    if len(recorded) != len(result.artifact_paths) or any(not digest for digest in recorded):
+        return False
+    return recorded == artifact_sha256_for_paths(result.artifact_paths)
 
 
 def _inspect_host_context(
@@ -850,16 +874,12 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
     closure_payload = closure if isinstance(closure, dict) else {}
     task_card_payload = work_dossier.get("task_card")
     task_card = task_card_payload if isinstance(task_card_payload, dict) else {}
-    work_plan_payload = work_dossier.get("work_plan")
-    work_plan = work_plan_payload if isinstance(work_plan_payload, dict) else {}
     module_assignments_payload = work_dossier.get("module_assignments")
     module_assignments = module_assignments_payload if isinstance(module_assignments_payload, dict) else {}
     work_results_payload = work_dossier.get("work_results")
     work_results = work_results_payload if isinstance(work_results_payload, dict) else {}
     work_payload = closure_payload.get("work")
     work_section = work_payload if isinstance(work_payload, dict) else {}
-    skills_payload = closure_payload.get("skills")
-    skills_section = skills_payload if isinstance(skills_payload, dict) else {}
     outputs_payload = closure_payload.get("outputs")
     outputs_section = outputs_payload if isinstance(outputs_payload, dict) else {}
     proof_payload = closure_payload.get("proof")
@@ -1144,9 +1164,13 @@ def run_local_kernel(
     for work_unit in plan.work_units:
         reused_result = previous_results_by_artifacts.get(work_unit.expected_artifacts)
         previous_work_unit = previous_work_units_by_artifacts.get(work_unit.expected_artifacts)
-        if reused_result is None or not _can_reuse_previous_work(
-            previous_work_unit=previous_work_unit,
-            current_work_unit=work_unit,
+        if (
+            reused_result is None
+            or not _can_reuse_previous_work(
+                previous_work_unit=previous_work_unit,
+                current_work_unit=work_unit,
+            )
+            or not _completed_result_artifacts_are_current(reused_result)
         ):
             planned_work_units.append(work_unit)
             continue
@@ -1226,9 +1250,13 @@ def run_local_kernel(
     for work_unit in (plan.work_units if should_execute else ()):
         reused_result = previous_results_by_artifacts.get(work_unit.expected_artifacts)
         previous_work_unit = previous_work_units_by_artifacts.get(work_unit.expected_artifacts)
-        if reused_result is not None and _can_reuse_previous_work(
-            previous_work_unit=previous_work_unit,
-            current_work_unit=work_unit,
+        if (
+            reused_result is not None
+            and _can_reuse_previous_work(
+                previous_work_unit=previous_work_unit,
+                current_work_unit=work_unit,
+            )
+            and _completed_result_artifacts_are_current(reused_result)
         ):
             work_results.append(
                 WorkUnitResult(
@@ -1245,6 +1273,7 @@ def run_local_kernel(
                     execution_receipt_path=reused_result.execution_receipt_path,
                     reused_from_work_unit_id=reused_result.work_unit_id,
                     failure_reason=reused_result.failure_reason,
+                    artifact_sha256=reused_result.artifact_sha256,
                 )
             )
             completed_work_units.append(work_unit.id)
@@ -1262,11 +1291,13 @@ def run_local_kernel(
             reused_work_units=tuple(reused_work_unit_ids),
             superseded_work_units=tuple(work_unit.id for work_unit in superseded_work_units),
         )
-        result = execute_work_unit(
-            resolved_agent_root,
-            task_card,
-            work_unit,
-            work_root=run_root / "work-units" / work_unit.id,
+        result = capture_completed_artifact_sha256(
+            execute_work_unit(
+                resolved_agent_root,
+                task_card,
+                work_unit,
+                work_root=run_root / "work-units" / work_unit.id,
+            )
         )
         work_results.append(result)
         if result.status == "completed":

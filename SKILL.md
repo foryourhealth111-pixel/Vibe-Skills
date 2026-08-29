@@ -250,6 +250,7 @@ Never claim success without evidence. Minimum invariants:
 - Expose failures, fallback, degraded status, or blocked state explicitly.
 - Do not add mock success paths, swallowed errors, or template-only pass results.
 - Treat scaffold or draft artifacts as `needs_execution` with `proof_ready = false`; do not call them completed work.
+- Reuse completed work only while its selected Skill content and delivered artifact hashes remain unchanged; rerun changed units before verification.
 - Do not use fallback or boundary behavior to bypass real execution,
   verification, or root-cause repair.
 - When a check fails within the confirmed scope, make at most one targeted

@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from .executor import artifact_sha256_for_paths
 from .task_card import TaskCard
 from .work_plan import WorkPlan
 
@@ -83,6 +84,7 @@ def verify_run(task_card: TaskCard, plan: WorkPlan, work_results: tuple[Any, ...
             continue
         used_skill = _result_attr(work_result, "used_skill", None)
         artifact_paths = tuple(str(value) for value in _result_attr(work_result, "artifact_paths", ()))
+        artifact_sha256 = tuple(str(value) for value in _result_attr(work_result, "artifact_sha256", ()))
         checked_targets = tuple(str(value) for value in _result_attr(work_result, "checked_targets", ()))
         execution_receipt_path = _result_attr(work_result, "execution_receipt_path", None)
         proof_text = " | ".join(proof)
@@ -93,6 +95,10 @@ def verify_run(task_card: TaskCard, plan: WorkPlan, work_results: tuple[Any, ...
                 weak_proof.append(f"{work_unit.id}: missing artifact reference {artifact}")
         if len(artifact_paths) != len(work_unit.expected_artifacts):
             weak_proof.append(f"{work_unit.id}: artifact_paths count does not match expected artifacts")
+        if len(artifact_sha256) != len(artifact_paths) or any(not digest for digest in artifact_sha256):
+            weak_proof.append(f"{work_unit.id}: artifact SHA-256 evidence is incomplete")
+        elif artifact_sha256 != artifact_sha256_for_paths(artifact_paths):
+            weak_proof.append(f"{work_unit.id}: artifact content changed after completion")
         for artifact_path in artifact_paths:
             if not Path(artifact_path).is_file():
                 weak_proof.append(f"{work_unit.id}: artifact file missing {artifact_path}")
