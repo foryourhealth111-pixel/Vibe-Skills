@@ -5,8 +5,8 @@
   "host_id": "opencode",
   "stability": "preview",
   "source_release": {
-    "version": "4.0.0",
-    "updated": "2026-07-17"
+    "version": "4.1.0",
+    "updated": "2026-08-29"
   },
   "summary": "OpenCode host adapter preview. The repo can install runtime-core plus OpenCode-native command and agent wrapper payload into OpenCode roots, but final host config and platform closure remain incomplete.",
   "runtime_ownership": {

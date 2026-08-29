@@ -363,6 +363,31 @@ class ReleaseCutOperatorTests(unittest.TestCase):
         self.assertIn("## Migration Notes", note)
         self.assertNotIn("TODO", note.upper())
 
+    def test_apply_skips_externalized_markdown_release_surfaces(self) -> None:
+        (self.root / "references" / "changelog.md").unlink()
+        shutil.rmtree(self.root / "docs" / "releases")
+        self._write(
+            "config/live-document-contract.json",
+            json.dumps(
+                {"artifact_sink": {"legacy_write_mode": "disabled"}},
+                indent=2,
+            )
+            + "\n",
+        )
+
+        self._run_release_cut("-Version", "9.9.9", "-Updated", "2026-03-30")
+
+        governance = json.loads(
+            (self.root / "config" / "version-governance.json").read_text(encoding="utf-8")
+        )
+        ledger_lines = (self.root / "references" / "release-ledger.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        self.assertEqual("9.9.9", governance["release"]["version"])
+        self.assertEqual("9.9.9", json.loads(ledger_lines[-1])["version"])
+        self.assertFalse((self.root / "references" / "changelog.md").exists())
+        self.assertFalse((self.root / "docs" / "releases").exists())
+
     def test_apply_appends_release_ledger_entry_when_file_has_no_trailing_newline(self) -> None:
         ledger_path = self.root / "references" / "release-ledger.jsonl"
         ledger_path.write_text('{"version":"9.9.8","updated":"2026-03-29","git_head":"deadbee"}', encoding="utf-8")

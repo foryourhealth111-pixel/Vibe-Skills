@@ -21,7 +21,7 @@
 <br>
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">
-  <strong>Latest release · v4.0.0</strong>
+  <strong>Latest release · v4.1.0</strong>
 </a>
 
 <br>

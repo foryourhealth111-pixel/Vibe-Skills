@@ -279,7 +279,7 @@ Read these references only after canonical launch or when maintaining the repo:
 ## Maintenance
 
 - Runtime family: governed-runtime-first
-- Version: 4.0.0
-- Updated: 2026-07-17
+- Version: 4.1.0
+- Updated: 2026-08-29
 - Local skill candidate audit: semantic owner `packages/runtime-core/src/vgo_runtime/router_contract_runtime.py`; compatibility bridge `scripts/router/resolve-pack-route.ps1`
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`

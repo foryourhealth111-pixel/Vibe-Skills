@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "4.0.0",
-    "updated": "2026-07-17",
+    "version": "4.1.0",
+    "updated": "2026-08-29",
     "channel": "stable",
-    "notes": "Agent-owned execution handoff, strict module-result re-entry, failure-safe delivery acceptance, retired legacy execution surfaces, task-fidelity hardening, and release/install guidance for the v4 runtime"
+    "notes": "Skill-guided work planning, explicit dependency organization, revision-safe execution guidance, verified delivery summaries, and release/install guidance for the v4.1 runtime"
   },
   "source_of_truth": {
     "canonical_root": ".",

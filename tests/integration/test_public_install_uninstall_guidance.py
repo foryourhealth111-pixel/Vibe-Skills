@@ -30,9 +30,10 @@ def test_root_chinese_readme_routes_lifecycle_commands_to_install_guide() -> Non
 def test_install_guide_points_to_versioned_release_zip() -> None:
     guide = (REPO_ROOT / "docs" / "install" / "README.en.md").read_text(encoding="utf-8")
 
-    assert "vibe-skills-4.0.0-public.zip" in guide
-    assert "releases/download/v4.0.0/vibe-skills-4.0.0-public.zip" in guide
-    assert "0b16a5f615a485b8d082407d458cc5c4ffe2cee443c6211fc941cd6678987dc9" in guide
+    assert "vibe-skills-4.1.0-public.zip" in guide
+    assert "releases/download/v4.1.0/vibe-skills-4.1.0-public.zip" in guide
+    assert "SHA-256 digest shown for the asset on the GitHub Release page" in guide
+    assert "0b16a5f615a485b8d082407d458cc5c4ffe2cee443c6211fc941cd6678987dc9" not in guide
 
 
 def test_install_readmes_describe_release_zip_not_repo_source_install() -> None:
