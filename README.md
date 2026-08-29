@@ -37,12 +37,7 @@
 <br>
 
 <a href="./docs/quick-start.en.md">Quick start</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/actions/workflows/vco-gates.yml">Current CI & proof</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">Release notes</a> ·
-<a href="./docs/README.md">Documentation</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">Star the project</a>
 
-<p><code>pwsh ./check.ps1</code> reports the current local runtime state.</p>
 
 </div>
 
@@ -54,12 +49,12 @@
   <strong>Total tokens: -29.6%</strong> · <strong>Tool calls: -33.1%</strong>
 </p>
 
-The workflow design carried into VibeSkills 4.1.0 was evaluated through the
-frozen Lean Vibe candidate in a production-like environment with 195
-coexisting Skills. Lean Vibe and Native used the same model, tasks, verifier,
-and OpenHands execution framework. Across 82 valid paired reward tasks, mean
-verifier reward increased from `50.28%` to `71.40%`. Resource analysis covers
-81 of those tasks with complete token and tool-call records.
+**SkillsBench** is a benchmark designed to evaluate whether AI agents can effectively use Skills to complete professional tasks across diverse domains. Its purpose is to measure how much a model’s ability to solve complex real-world tasks improves when it is equipped with specialized Skills.
+
+To evaluate performance in production-like environments where a large number of Skills are installed simultaneously, we adapted SkillsBench into a more realistic **large-scale multi-Skill setting**. In the original SkillsBench setup, each task is provided only with the specialized Skill associated with that task. In our modified setting, every task is evaluated in a global environment containing all **195 specialized Skills**, while all other experimental conditions remain unchanged. This setting is intended to assess whether an agent can autonomously discover, select, and orchestrate the relevant Skills from a large installed Skill pool, and organize them into an effective workflow for completing complex tasks.
+
+**vibeskills v4.1.0** was benchmarked on **SkillsBench** (https://www.skillsbench.ai/) using **DeepSeekV4Flash-VE** and **OpenHands** as the baseline evaluation setup. Compared with the baseline without vibeskills, vibeskills increased the **average task score by 21.12%**, while reducing **token consumption by 29.6%** and **tool calls by 33.1%**.
+
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
@@ -79,10 +74,8 @@ verifier reward increased from `50.28%` to `71.40%`. Resource analysis covers
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.md">Study, public data, and reproduction</a> ·
-  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/PUBLICATION.json">Frozen snapshot provenance</a>
 </p>
 
-<p align="center"><sub>Frozen candidate: <code>r33-lean-vibe-v4</code> · <code>src-3a61f181</code> · <code>bld-4c07b302</code></sub></p>
 
 <p align="center">
   <picture>
