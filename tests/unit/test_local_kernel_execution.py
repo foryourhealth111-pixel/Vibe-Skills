@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
-import shutil
 from pathlib import Path
+import shutil
 import sys
 import uuid
 
@@ -17,7 +18,7 @@ if str(RUNTIME_SRC) not in sys.path:
 from vgo_runtime.artifact_contract import _copy_run_tree
 from vgo_runtime.kernel.executor import WorkUnitResult, execute_work_unit
 from vgo_runtime.kernel.finder import find_skill_candidates
-from vgo_runtime.kernel.loop import inspect_local_run, inspect_main, run_local_kernel
+from vgo_runtime.kernel.loop import _can_reuse_previous_work, inspect_local_run, inspect_main, run_local_kernel
 from vgo_runtime.kernel.planner import build_work_plan
 from vgo_runtime.kernel.run_state import load_run_state, write_run_state
 from vgo_runtime.kernel.task_card import build_task_card
@@ -224,6 +225,28 @@ def test_verify_run_reports_needs_execution_for_scaffold_only_result() -> None:
     assert verification.result == "needs_execution"
     assert verification.failed_criteria == ("review exists",)
     assert any("requires real execution evidence" in note for note in verification.notes)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "changed_value"),
+    [
+        ("depends_on", ("wu-prerequisite",)),
+        ("verification", ("updated verification",)),
+        ("task_verification", ("updated task verification",)),
+        ("plan_hints", ("updated plan guidance",)),
+        ("verify_hints", ("updated verification guidance",)),
+    ],
+)
+def test_previous_work_is_not_reused_after_guidance_or_dependency_changes(
+    field_name: str,
+    changed_value: tuple[str, ...],
+) -> None:
+    task_card = build_task_card(prompt="Review the runtime change.")
+    previous = build_work_plan(task_card, find_skill_candidates(task_card, _index_payload())).work_units[0]
+    current = replace(previous, **{field_name: changed_value})
+
+    assert _can_reuse_previous_work(previous_work_unit=previous, current_work_unit=previous)
+    assert not _can_reuse_previous_work(previous_work_unit=previous, current_work_unit=current)
 
 
 def test_run_state_round_trip_persists_json(tmp_path: Path) -> None:

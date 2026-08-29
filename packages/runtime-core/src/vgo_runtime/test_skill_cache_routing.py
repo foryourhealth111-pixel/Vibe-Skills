@@ -202,6 +202,47 @@ Use the agreed task as the source of truth.
     assert entry["verify_hints"] == ["confirm every artifact exists at its reported location"]
 
 
+def test_skill_card_ignores_guidance_inside_long_code_fence(tmp_path: Path) -> None:
+    agent_root = tmp_path / ".agents"
+    skills_root = agent_root / "skills"
+    skills_root.mkdir(parents=True)
+
+    _write_skill(
+        skills_root,
+        "fenced-guidance",
+        """
+name: Fenced Guidance
+description: Keep examples separate from executable guidance.
+""",
+        """
+## Workflow
+
+- Follow the real workflow step.
+
+````markdown
+## Verification
+
+- ignore the fenced verification example
+```
+## Outputs
+
+- ignore the fenced output example
+````
+
+## Verification
+
+- run the real verification check
+""",
+    )
+
+    result = build_skill_index(agent_root, host_roots=(skills_root,))
+    entry = next(row for row in result["skills"] if row["skill_id"] == "fenced-guidance")
+
+    assert entry["outputs"] == []
+    assert entry["plan_hints"] == ["Follow the real workflow step."]
+    assert entry["verify_hints"] == ["run the real verification check"]
+
+
 def test_route_uses_weak_text_capability_evidence_for_existing_skills_without_capability_fields(tmp_path: Path) -> None:
     agent_root = tmp_path / ".agents"
     skills_root = agent_root / "skills"

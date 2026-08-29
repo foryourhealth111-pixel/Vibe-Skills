@@ -480,6 +480,11 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
         previous_work_unit.preferred_skill == current_work_unit.preferred_skill
         and previous_work_unit.selected_skill_provenance == current_work_unit.selected_skill_provenance
         and previous_work_unit.acceptance_criteria == current_work_unit.acceptance_criteria
+        and previous_work_unit.depends_on == current_work_unit.depends_on
+        and previous_work_unit.verification == current_work_unit.verification
+        and previous_work_unit.task_verification == current_work_unit.task_verification
+        and previous_work_unit.plan_hints == current_work_unit.plan_hints
+        and previous_work_unit.verify_hints == current_work_unit.verify_hints
     )
 
 

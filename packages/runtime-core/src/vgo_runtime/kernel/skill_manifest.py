@@ -277,13 +277,21 @@ def _extract_body_guidance(body_lines: list[str], *, limit_per_section: int = 12
         "verify_hints": [],
     }
     active_section = ""
-    in_code_fence = False
+    code_fence: str | None = None
     for line in body_lines:
         stripped = line.strip()
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            in_code_fence = not in_code_fence
+        fence_match = re.match(r"^(`{3,}|~{3,})", stripped)
+        if code_fence is None and fence_match is not None:
+            code_fence = fence_match.group(1)
             continue
-        if in_code_fence:
+        if code_fence is not None:
+            if (
+                fence_match is not None
+                and fence_match.group(1)[0] == code_fence[0]
+                and len(fence_match.group(1)) >= len(code_fence)
+                and len(fence_match.group(1)) == len(stripped)
+            ):
+                code_fence = None
             continue
         section = _body_guidance_section(stripped)
         if section is not None:
