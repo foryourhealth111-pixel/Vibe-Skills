@@ -12,6 +12,7 @@ class SkillProvenance:
     source_order: int
     path_contract: str
     path_base: str
+    content_sha256: str = ""
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -43,6 +44,9 @@ class WorkUnit:
     status: str = "pending"
     lifecycle_state: str = "active"
     reused_from_work_unit_id: str | None = None
+    task_verification: tuple[str, ...] = ()
+    plan_hints: tuple[str, ...] = ()
+    verify_hints: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         payload = asdict(self)

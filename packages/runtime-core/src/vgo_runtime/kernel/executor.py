@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -26,12 +27,45 @@ class WorkUnitResult:
     failure_reason: str | None = None
     artifact_kind: str = "scaffold"
     proof_ready: bool = False
+    artifact_sha256: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
 
     def artifact_evidence_paths(self) -> tuple[str, ...]:
         return tuple(path for path in (*self.artifact_paths, *self.proof_artifact_paths) if str(path).strip())
+
+
+def artifact_sha256_for_paths(artifact_paths: tuple[str, ...]) -> tuple[str, ...]:
+    digests: list[str] = []
+    for raw_path in artifact_paths:
+        path = Path(raw_path)
+        try:
+            is_file = path.is_file()
+        except OSError:
+            is_file = False
+        if not is_file:
+            digests.append("")
+            continue
+        digest = hashlib.sha256()
+        try:
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+        except OSError:
+            digests.append("")
+            continue
+        digests.append(digest.hexdigest())
+    return tuple(digests)
+
+
+def capture_completed_artifact_sha256(result: WorkUnitResult) -> WorkUnitResult:
+    if result.status != "completed":
+        return result
+    return replace(
+        result,
+        artifact_sha256=artifact_sha256_for_paths(result.artifact_paths),
+    )
 
 
 SLUG_PATTERN = re.compile(r"[^a-z0-9]+")

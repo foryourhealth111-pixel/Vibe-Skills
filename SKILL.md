@@ -80,6 +80,20 @@ Proof of canonical launch is post-launch and requires: `host-launch-receipt.json
 `local-agent-kernel` follows the same proof rule. If it cannot produce those truth artifacts, it may produce local work scaffolds, but it must not be treated as `canonical verified`.
 If canonical launch fails, report `blocked` with the concrete failure reason instead of simulating the missing stages or proof artifacts.
 
+## Consensus And Task Evolution
+
+Use `deep_interview` as a real conversation. Continue until the user and Agent
+share a concrete understanding of the goal, scope, constraints, deliverables,
+unknowns that affect the work, and completion criteria. A first clarification
+response is input to that conversation; freeze the requirement only when the
+user has confirmed the resulting task-specific summary.
+
+Keep that agreement in the existing TaskCard. When the user changes the work,
+append an accepted revision, update the affected work units and checks, and
+reuse completed work whose inputs and acceptance criteria remain valid. Surface
+a new decision only when it changes the agreed outcome, scope, risk, or required
+human judgment.
+
 ## Hard Stop And Re-entry
 
 `vibe` uses progressive governed stops:
@@ -118,7 +132,7 @@ cat > "$DECISION_JSON" <<'JSON'
   "approval_decision": "approve",
   "agent_skill_organization": {
     "schema_version": "agent_skill_organization_v1", "derived_by": "agent", "workflow_level": "L",
-    "modules": [{"module_id": "module-a", "goal": "...", "candidate_skill_ids": ["skill-a"], "execution_mode": "skill_assigned", "acceptance_criteria": [{"criterion_id": "module-a-result", "description": "The module result satisfies the frozen requirement.", "verification_mode": "automated"}]}],
+    "modules": [{"module_id": "module-a", "goal": "...", "candidate_skill_ids": ["skill-a"], "depends_on": [], "execution_mode": "skill_assigned", "acceptance_criteria": [{"criterion_id": "module-a-result", "description": "The module result satisfies the frozen requirement.", "verification_mode": "automated"}]}],
     "selected_skills": [{"skill_id": "skill-a", "module_ids": ["module-a"], "responsibility": "...", "reason": "..."}],
     "uncovered_modules": [],
     "workflow_level_contract": {"L": "smallest complete organization", "XL": "bounded multi-lane organization"}
@@ -162,6 +176,11 @@ Use the directory name that directly contains the retained `SKILL.md` as the exa
 Module acceptance criteria must be satisfiable before canonical module-result re-entry. They must not require cleanup receipts, delivery acceptance, or completion-language permission, because canonical `phase_cleanup` creates those only after `module-execution.json` is accepted. Verify ordinary modules from their actual deliverables and normal command or test output. Do not invent task-specific hashes, receipts, ledgers, matrices, scans, or proof files solely to prove execution order, Skill use, or file scope. Only require an extra evidence artifact when the user or domain contract needs that artifact.
 After plan approval, reuse the frozen `agent_skill_organization` for `plan_execute` and cleanup, and do not rerun procedural skill selection, silently add skills, or replace declared gaps unless the user revises the frozen requirement or plan. `stage_order` records dependency depth, not permission to run in parallel; L still emits one-unit sequential waves even when independent units share a dependency stage. XL may place at most two dependency-ready units in one wave, and nested or overlapping write scopes must remain serial.
 
+After the required plan confirmation, continue through dependency-ready work
+without asking for routine permission between units. Give concise progress
+updates at meaningful boundaries. If the user revises the agreed task, record
+the revision and replan only the affected work before continuing.
+
 ## Unified Runtime Contract
 
 Canonical `vibe` owns one runtime authority and one visible requirement/plan
@@ -196,6 +215,15 @@ the host-visible skill surface.
 The frozen `agent_skill_organization` is the only task-skill truth. Before plan
 approval, disclose modules, candidates, selected skills and reasons, gaps, and the L / XL difference.
 
+Organize each confirmed module as a verifiable work unit. Use declared Skill
+outputs to identify ownership, `plan_hints` to shape the work steps, and
+`verify_hints` to extend the module checks. Preserve explicit module
+dependencies and keep `agent_direct` as the visible fallback for a module with
+no suitable Skill. Every work unit must retain its intended outputs, checks,
+binding reason, and dependency links in the existing WorkPlan. Each bound
+assignment must project those fields and the selected Skill guidance into the
+existing ModuleAssignments artifact.
+
 Only selected skills become module-bound execution units. The host must not
 invent skills, promote route candidates, hide skill sessions, or open another
 requirement/plan/runtime surface. Selection, loading, planning, dispatch, or a
@@ -222,8 +250,21 @@ Never claim success without evidence. Minimum invariants:
 - Expose failures, fallback, degraded status, or blocked state explicitly.
 - Do not add mock success paths, swallowed errors, or template-only pass results.
 - Treat scaffold or draft artifacts as `needs_execution` with `proof_ready = false`; do not call them completed work.
+- Reuse completed work only while its selected Skill content and delivered artifact hashes remain unchanged; rerun changed units before verification.
 - Do not use fallback or boundary behavior to bypass real execution,
   verification, or root-cause repair.
+- When a check fails within the confirmed scope, make at most one targeted
+  repair for that failure and rerun the affected check. Report the remaining
+  blocker when the repair fails, needs a scope decision, or lacks required
+  evidence.
+
+## User Delivery
+
+Use the existing WorkDossier as the detailed evidence source. Give the user a
+short delivery summary containing the verified results, their locations, the
+checks that actually ran, and genuine blockers. Exclude scaffolds from
+completed results. Keep internal receipts and
+diagnostic detail in the dossier unless they help the user make a decision.
 
 ## Protocol Map
 
@@ -239,7 +280,7 @@ Read these references only after canonical launch or when maintaining the repo:
 ## Maintenance
 
 - Runtime family: governed-runtime-first
-- Version: 4.0.0
-- Updated: 2026-07-17
+- Version: 4.1.0
+- Updated: 2026-08-29
 - Local skill candidate audit: semantic owner `packages/runtime-core/src/vgo_runtime/router_contract_runtime.py`; compatibility bridge `scripts/router/resolve-pack-route.ps1`
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`

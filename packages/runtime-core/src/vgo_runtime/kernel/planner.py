@@ -212,6 +212,7 @@ def _selected_skill_provenance(candidate: SkillCandidate | None) -> SkillProvena
         source_order=candidate.source_order,
         path_contract=candidate.path_contract,
         path_base=candidate.path_base,
+        content_sha256=candidate.content_sha256,
     )
 
 
@@ -282,7 +283,21 @@ def build_work_plan(task_card: TaskCard, candidates: tuple[SkillCandidate, ...])
             deliverable,
             candidates,
         )
-        verification = _verification_for_deliverable(task_card, deliverable) or ("confirm work is complete",)
+        selected_candidate = next(
+            (candidate for candidate in candidates if candidate.skill_id == preferred_skill),
+            None,
+        )
+        plan_hints = selected_candidate.plan_hints if selected_candidate is not None else ()
+        verify_hints = selected_candidate.verify_hints if selected_candidate is not None else ()
+        task_verification = _verification_for_deliverable(task_card, deliverable) or ("confirm work is complete",)
+        verification = tuple(
+            dict.fromkeys(
+                (
+                    *task_verification,
+                    *verify_hints,
+                )
+            )
+        )
         work_unit = WorkUnit(
             id=unit_id,
             goal=f"Produce {deliverable}",
@@ -293,6 +308,9 @@ def build_work_plan(task_card: TaskCard, candidates: tuple[SkillCandidate, ...])
             fallback_skills=fallback_skills,
             expected_artifacts=(deliverable,),
             verification=verification,
+            task_verification=task_verification,
+            plan_hints=plan_hints,
+            verify_hints=verify_hints,
             selected_skill_provenance=selected_skill_provenance,
         )
         work_units.append(work_unit)

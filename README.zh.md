@@ -21,7 +21,7 @@
 <br>
 
 <a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">
-  <strong>最新版本 · v4.0.0</strong>
+  <strong>最新版本 · v4.1.0</strong>
 </a>
 
 <br>
@@ -37,14 +37,44 @@
 <br>
 
 <a href="./docs/quick-start.md">快速开始</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/actions/workflows/vco-gates.yml">当前 CI 与 proof</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest">发布记录</a> ·
-<a href="./docs/README.md">文档索引</a> ·
-<a href="https://github.com/foryourhealth111-pixel/Vibe-Skills/stargazers">Star 项目</a>
 
-<p><code>pwsh ./check.ps1</code> 可查看当前本地运行时状态。</p>
+
 
 </div>
+
+<a id="skillsbench-performance"></a>
+<h2 align="center">SkillsBench 实测表现</h2>
+
+<p align="center">
+  <strong>平均 Verifier Reward：+21.12 个百分点</strong><br>
+  <strong>总 Token：-29.6%</strong> · <strong>工具调用：-33.1%</strong>
+</p>
+
+**SkillsBench**是一个用跨领域的专业任务来测试 AI Agent 能否有效调用Skills完成工作的基准，其意义是衡量给模型配上专业Skills后，实际解决复杂任务的能力提升。
+
+为了评估在生产环境中面对大量已安装Skills的场景下的性能，我们将SkillsBench改造成更接近生产环境的大量Skills共存测试（把SkillsBench 从每题只提供配套的Skill专业，改造成每题都配套全局195个专业Skill环境下测试，其余条件保持不变），用来评估 Agent 能否从众多已安装 Skills 中自主发现、选择并组织相关能力，形成有效工作流完成复杂任务。
+
+vibeskills的4.1.0版本在Skillsbench (https://www.skillsbench.ai/) 上使用DeepSeekV4Flash-VE和Openhands进行基线测试。相比未使用vibeskills组的情况，vibeskills将平均任务得分提升21.12%，同时将Token消耗降低29.6%、工具调用减少33.1%。
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-task-outcomes.png" width="900" alt="SkillsBench 配对任务效果：Lean Vibe 的平均 Reward 从 50.3% 提升到 71.4%，满分率从 47.6% 提升到 69.5%；逐题对比中 23 项更高、55 项相同、4 项更低">
+  </a>
+</p>
+
+<p align="center"><sub>任务效果：满分任务从 39 项增至 57 项；逐题对比中，Lean Vibe 领先 23 项，Native 领先 4 项，另有 55 项相同。</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">
+    <img src="./docs/assets/skillsbench-resource-use.png" width="900" alt="SkillsBench 资源消耗对比：总 Token 从 Native 的 491.1M 降至 Lean Vibe 的 345.8M，工具调用减少 33.1%">
+  </a>
+</p>
+
+<p align="center"><sub>资源消耗：总 Token 从 491.122M 降至 345.756M，工具调用从 9,954 次降至 6,664 次。</sub></p>
+
+<p align="center">
+  <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/blob/main/studies/full-skills-comparison/README.zh-CN.md">完整研究、公开数据与复现方法</a> ·
+</p>
 
 <p align="center">
   <picture>

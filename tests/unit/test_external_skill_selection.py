@@ -15,6 +15,9 @@ from vgo_runtime.kernel.task_card import build_task_card
 from vgo_runtime.kernel.module_assignments import build_module_assignments
 
 
+SKILL_CONTENT_SHA256 = "a" * 64
+
+
 def _skill(
     *,
     skill_id: str,
@@ -57,6 +60,7 @@ def _skill(
         "resolved_skill_file": resolved_skill_file,
         "path_contract": path_contract,
         "path_base": path_base,
+        "content_sha256": SKILL_CONTENT_SHA256,
     }
 
 
@@ -128,6 +132,7 @@ def test_external_skill_beats_starter_when_both_match() -> None:
         "source_order": 1,
         "path_contract": "source_root_relative",
         "path_base": "C:/external-skills",
+        "content_sha256": SKILL_CONTENT_SHA256,
     }
 
 
@@ -294,6 +299,7 @@ def test_module_assignments_carries_selected_skill_provenance() -> None:
         "source_order": 3,
         "path_contract": "source_root_relative",
         "path_base": "C:/external-skills",
+        "content_sha256": SKILL_CONTENT_SHA256,
     }
     assert binding["units"][0]["bound_skill"] == "diagram-review"
     assert binding["units"][0]["provenance"] == {
@@ -304,7 +310,9 @@ def test_module_assignments_carries_selected_skill_provenance() -> None:
         "source_order": 3,
         "path_contract": "source_root_relative",
         "path_base": "C:/external-skills",
+        "content_sha256": SKILL_CONTENT_SHA256,
     }
+    assert binding["units"][0]["skill_content_sha256"] == SKILL_CONTENT_SHA256
 
 
 def test_more_relevant_skill_wins_within_same_source_priority() -> None:

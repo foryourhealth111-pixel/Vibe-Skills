@@ -15,6 +15,9 @@ class ModuleAssignmentsUnit:
     expected_artifacts: tuple[str, ...]
     verification: tuple[str, ...]
     provenance: SkillProvenance | None = None
+    depends_on: tuple[str, ...] = ()
+    plan_hints: tuple[str, ...] = ()
+    verify_hints: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         payload = asdict(self)
@@ -27,6 +30,7 @@ class ModuleAssignmentsUnit:
             payload["skill_source_order"] = provenance["source_order"]
             payload["skill_path_contract"] = provenance["path_contract"]
             payload["skill_path_base"] = provenance["path_base"]
+            payload["skill_content_sha256"] = provenance["content_sha256"]
         return payload
 
 
@@ -48,12 +52,15 @@ def build_module_assignments(plan: WorkPlan) -> ModuleAssignments:
         units=tuple(
             ModuleAssignmentsUnit(
                 work_unit_id=work_unit.id,
+                depends_on=work_unit.depends_on,
                 bound_skill=work_unit.preferred_skill,
                 binding_profile=work_unit.binding_profile,
                 binding_reason=work_unit.binding_reason,
                 alternative_skills=work_unit.fallback_skills,
                 expected_artifacts=work_unit.expected_artifacts,
                 verification=work_unit.verification,
+                plan_hints=work_unit.plan_hints,
+                verify_hints=work_unit.verify_hints,
                 provenance=work_unit.selected_skill_provenance,
             )
             for work_unit in plan.work_units

@@ -54,6 +54,23 @@ function Ensure-TrailingNewline {
     }
 }
 
+function Test-LegacyReleaseDocumentsEnabled {
+    param([Parameter(Mandatory)] [string]$RepoRoot)
+
+    $contractPath = Join-Path $RepoRoot 'config/live-document-contract.json'
+    if (-not (Test-Path -LiteralPath $contractPath -PathType Leaf)) {
+        return $true
+    }
+
+    $contract = Read-Json -Path $contractPath
+    if ($null -eq $contract.artifact_sink -or
+        -not ($contract.artifact_sink.PSObject.Properties.Name -contains 'legacy_write_mode')) {
+        return $true
+    }
+
+    return ([string]$contract.artifact_sink.legacy_write_mode -ne 'disabled')
+}
+
 function Update-MaintenanceSection {
     param(
         [string]$Path,
@@ -492,6 +509,7 @@ $releaseNotesDir = Join-Path $repoRoot ([string]$governance.logs.release_notes_d
 $releaseNotePath = Join-Path $releaseNotesDir ("v{0}.md" -f $Version)
 $releaseReadmeRel = 'docs/releases/README.md'
 $releaseReadmePath = Join-Path $repoRoot $releaseReadmeRel
+$legacyReleaseDocumentsEnabled = Test-LegacyReleaseDocumentsEnabled -RepoRoot $repoRoot
 $distManifestRels = @(Get-DistManifestOutputRelativePaths -RepoRoot $repoRoot)
 $releaseSummary = Get-ReleaseSummary -Governance $governance -Version $Version
 $syncScript = Join-Path $repoRoot 'scripts\governance\sync-bundled-vibe.ps1'
@@ -502,13 +520,19 @@ $head = (git -C $repoRoot rev-parse --short HEAD).Trim()
 if ($Preview) {
     $previewPath = Get-PreviewReceiptPath -RepoRoot $repoRoot -RequestedPath $PreviewOutputPath -Contract $previewContract
     $previewRoot = Split-Path -Parent $previewPath
+    $releaseDocumentActions = if ($legacyReleaseDocumentsEnabled) {
+        @(
+            [ordered]@{ path = [string]$governance.version_markers.changelog_path; action = 'ensure release changelog header' },
+            [ordered]@{ path = (Get-VgoRelativePathPortable -BasePath $repoRoot -TargetPath $releaseNotePath); action = 'create release notes if missing with governed section skeleton' },
+            [ordered]@{ path = $releaseReadmeRel; action = 'update current release surface and recent governed releases entry' }
+        )
+    } else {
+        @()
+    }
     $plannedFileActions = @(
         [ordered]@{ path = 'config/version-governance.json'; action = 'update release.version + release.updated' },
-        [ordered]@{ path = [string]$governance.version_markers.changelog_path; action = 'ensure release changelog header' },
-        [ordered]@{ path = $ledgerRel; action = 'append release ledger record' },
-        [ordered]@{ path = (Get-VgoRelativePathPortable -BasePath $repoRoot -TargetPath $releaseNotePath); action = 'create release notes if missing with governed section skeleton' },
-        [ordered]@{ path = $releaseReadmeRel; action = 'update current release surface and recent governed releases entry' }
-    ) + @($maintenanceFiles | ForEach-Object {
+        [ordered]@{ path = $ledgerRel; action = 'append release ledger record' }
+    ) + @($releaseDocumentActions) + @($maintenanceFiles | ForEach-Object {
         [ordered]@{ path = [string]$_; action = 'update maintenance section version/updated' }
     }) + @($distManifestRels | ForEach-Object {
         [ordered]@{ path = [string]$_; action = 'sync generated dist manifest from authoritative source config' }
@@ -565,7 +589,9 @@ foreach ($rel in $maintenanceFiles) {
     Update-MaintenanceSection -Path $path -Version $Version -Updated $Updated
 }
 
-Ensure-ChangelogHeader -Path $changelogPath -Version $Version -Updated $Updated
+if ($legacyReleaseDocumentsEnabled) {
+    Ensure-ChangelogHeader -Path $changelogPath -Version $Version -Updated $Updated
+}
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $ledgerPath) | Out-Null
 Ensure-TrailingNewline -Path $ledgerPath
@@ -597,14 +623,16 @@ if ($shouldAppend) {
     Append-VgoUtf8NoBomText -Path $ledgerPath -Content (($entry | ConvertTo-Json -Compress) + [Environment]::NewLine)
 }
 
-New-Item -ItemType Directory -Force -Path $releaseNotesDir | Out-Null
-if (-not (Test-Path -LiteralPath $releaseNotePath)) {
-    $note = New-ReleaseNoteTemplate -Version $Version -Updated $Updated -Head $head -Summary $releaseSummary
-    Write-Text -Path $releaseNotePath -Content $note
-}
+if ($legacyReleaseDocumentsEnabled) {
+    New-Item -ItemType Directory -Force -Path $releaseNotesDir | Out-Null
+    if (-not (Test-Path -LiteralPath $releaseNotePath)) {
+        $note = New-ReleaseNoteTemplate -Version $Version -Updated $Updated -Head $head -Summary $releaseSummary
+        Write-Text -Path $releaseNotePath -Content $note
+    }
 
-if (Test-Path -LiteralPath $releaseReadmePath) {
-    Update-ReleasesReadmeSurface -Path $releaseReadmePath -Version $Version -Updated $Updated -Summary $releaseSummary
+    if (Test-Path -LiteralPath $releaseReadmePath) {
+        Update-ReleasesReadmeSurface -Path $releaseReadmePath -Version $Version -Updated $Updated -Summary $releaseSummary
+    }
 }
 
 if (Test-Path -LiteralPath $syncScript) {

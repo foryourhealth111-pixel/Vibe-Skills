@@ -36,8 +36,8 @@ def test_readmes_use_themed_install_cta_assets() -> None:
 
 def test_readmes_use_native_latest_release_links() -> None:
     labels = {
-        "en": "Latest release · v4.0.0",
-        "cn": "最新版本 · v4.0.0",
+        "en": "Latest release · v4.1.0",
+        "cn": "最新版本 · v4.1.0",
     }
 
     for language, contract in CTA_CONTRACTS.items():
