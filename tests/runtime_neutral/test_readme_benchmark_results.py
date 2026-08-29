@@ -38,17 +38,18 @@ def test_readmes_show_benchmark_results_before_the_long_preface() -> None:
         preface_start = readme.index("readme-preface-v2-")
 
         assert section_start < preface_start
+        benchmark_section = readme[section_start:preface_start]
         for text in required_text:
-            assert text in readme
+            assert text in benchmark_section
         for asset_name in ASSET_DIMENSIONS:
-            assert f"./docs/assets/{asset_name}" in readme
-        assert "195" in readme
-        assert "82" in readme
-        assert "81" in readme
-        assert "r33-lean-vibe-v4" in readme
-        assert "src-3a61f181" in readme
-        assert "bld-4c07b302" in readme
-        assert "foryourhealth111-pixel/vibeskills-benchmark" in readme
+            assert f"./docs/assets/{asset_name}" in benchmark_section
+        assert "195" in benchmark_section
+        assert "82" in benchmark_section
+        assert "81" in benchmark_section
+        assert "r33-lean-vibe-v4" in benchmark_section
+        assert "src-3a61f181" in benchmark_section
+        assert "bld-4c07b302" in benchmark_section
+        assert "foryourhealth111-pixel/vibeskills-benchmark" in benchmark_section
 
 
 def test_readme_benchmark_figures_are_local_high_resolution_pngs() -> None:
