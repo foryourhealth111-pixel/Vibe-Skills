@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from vgo_runtime.kernel.skill_index import build_skill_index
@@ -109,6 +110,96 @@ capabilities:
     assert third_cards["beta-report"].stat().st_mtime_ns > beta_first_mtime
     assert third["skill_cache"]["reused_count"] >= 1
     assert third["skill_cache"]["refreshed_count"] >= 1
+
+
+def test_skill_card_preserves_declared_execution_guidance(tmp_path: Path) -> None:
+    agent_root = tmp_path / ".agents"
+    skills_root = agent_root / "skills"
+    skills_root.mkdir(parents=True)
+
+    _write_skill(
+        skills_root,
+        "delivery-planner",
+        """
+name: Delivery Planner
+description: Organize an agreed task into verifiable delivery work.
+inputs:
+  - agreed task card
+outputs:
+  - dependency-aware work plan
+plan_hints:
+  - keep independent deliverables in separate work units
+verify_hints:
+  - confirm every planned output has a delivery location
+""",
+    )
+
+    result = build_skill_index(agent_root, host_roots=(skills_root,))
+    entry = next(row for row in result["skills"] if row["skill_id"] == "delivery-planner")
+    card_path = next(
+        Path(row["card_path"])
+        for row in result["skill_cache"]["cards"]
+        if row["skill_id"] == "delivery-planner"
+    )
+    card = json.loads(card_path.read_text(encoding="utf-8"))
+
+    expected = {
+        "inputs": ["agreed task card"],
+        "outputs": ["dependency-aware work plan"],
+        "plan_hints": ["keep independent deliverables in separate work units"],
+        "verify_hints": ["confirm every planned output has a delivery location"],
+    }
+    for field, values in expected.items():
+        assert entry[field] == values
+        assert card[field] == values
+
+
+def test_skill_card_derives_execution_guidance_from_standard_sections(tmp_path: Path) -> None:
+    agent_root = tmp_path / ".agents"
+    skills_root = agent_root / "skills"
+    skills_root.mkdir(parents=True)
+
+    _write_skill(
+        skills_root,
+        "section-guided-delivery",
+        """
+name: Section Guided Delivery
+description: Build a checked delivery from an agreed task.
+""",
+        """
+# Overview
+
+Use the agreed task as the source of truth.
+
+## Inputs
+
+- agreed task card
+
+## Workflow
+
+1. Split distinct deliverables into work units.
+2. Order dependent work before its consumers.
+
+## Outputs
+
+- delivery-ready artifacts
+
+## Verification
+
+- confirm every artifact exists at its reported location
+""",
+    )
+
+    result = build_skill_index(agent_root, host_roots=(skills_root,))
+    entry = next(row for row in result["skills"] if row["skill_id"] == "section-guided-delivery")
+
+    assert entry["inputs"] == ["agreed task card"]
+    assert entry["outputs"] == ["delivery-ready artifacts"]
+    assert entry["plan_hints"] == [
+        "Split distinct deliverables into work units.",
+        "Order dependent work before its consumers.",
+    ]
+    assert entry["verify_hints"] == ["confirm every artifact exists at its reported location"]
 
 
 def test_route_uses_weak_text_capability_evidence_for_existing_skills_without_capability_fields(tmp_path: Path) -> None:

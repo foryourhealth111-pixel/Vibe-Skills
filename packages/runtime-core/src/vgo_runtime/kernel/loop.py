@@ -84,6 +84,9 @@ def _unbound_plan_for_agent(plan: WorkPlan) -> WorkPlan:
                 preferred_skill=None,
                 binding_profile="agent_selection_required",
                 binding_reason="Agent skill organization is required before this work unit can be bound.",
+                verification=unit.task_verification or unit.verification,
+                plan_hints=(),
+                verify_hints=(),
                 fallback_skills=tuple(
                     dict.fromkeys(
                         [
@@ -154,6 +157,38 @@ def _apply_agent_skill_organization(
     if set(modules) != work_unit_ids:
         raise ValueError("agent_skill_organization module ids must match the local kernel work units")
 
+    original_dependencies = {unit.id: unit.depends_on for unit in plan.work_units}
+    dependencies_by_module: dict[str, tuple[str, ...]] = {}
+    for module_id, module in modules.items():
+        if "depends_on" not in module:
+            dependencies_by_module[module_id] = original_dependencies[module_id]
+            continue
+        raw_dependencies = module["depends_on"]
+        if not isinstance(raw_dependencies, list):
+            raise ValueError(
+                f"agent_skill_organization module {module_id} depends_on must be a list"
+            )
+        dependencies = tuple(str(value).strip() for value in raw_dependencies)
+        if any(not dependency for dependency in dependencies):
+            raise ValueError(
+                f"agent_skill_organization module {module_id} depends_on must contain non-empty module ids"
+            )
+        if len(set(dependencies)) != len(dependencies):
+            raise ValueError(
+                f"agent_skill_organization module {module_id} depends_on contains duplicates"
+            )
+        if module_id in dependencies:
+            raise ValueError(
+                f"agent_skill_organization module {module_id} cannot depend on itself"
+            )
+        unknown_dependencies = [dependency for dependency in dependencies if dependency not in modules]
+        if unknown_dependencies:
+            raise ValueError(
+                f"agent_skill_organization module {module_id} depends on unknown module "
+                + ", ".join(unknown_dependencies)
+            )
+        dependencies_by_module[module_id] = dependencies
+
     candidate_by_id = {str(getattr(candidate, "skill_id")): candidate for candidate in candidates}
     selected_by_module: dict[str, dict[str, object]] = {}
     for row in raw_selected:
@@ -191,6 +226,7 @@ def _apply_agent_skill_organization(
         selected = selected_by_module.get(unit.id)
         uncovered = uncovered_by_module.get(unit.id)
         execution_mode = str(modules[unit.id].get("execution_mode") or "").strip()
+        task_verification = unit.task_verification or unit.verification
         acceptance_criteria = tuple(
             AcceptanceCriterion(
                 criterion_id=str(criterion["criterion_id"]).strip(),
@@ -213,9 +249,13 @@ def _apply_agent_skill_organization(
             organized_units.append(
                 replace(
                     unit,
+                    depends_on=dependencies_by_module[unit.id],
                     preferred_skill=None,
                     binding_profile="agent_direct",
                     binding_reason="The current Agent directly owns this approved module.",
+                    verification=task_verification,
+                    plan_hints=(),
+                    verify_hints=(),
                     acceptance_criteria=acceptance_criteria,
                     selected_skill_provenance=None,
                 )
@@ -225,9 +265,13 @@ def _apply_agent_skill_organization(
             organized_units.append(
                 replace(
                     unit,
+                    depends_on=dependencies_by_module[unit.id],
                     preferred_skill=None,
                     binding_profile="uncovered_by_agent",
                     binding_reason=str(uncovered.get("reason") or "The Agent left this module uncovered."),
+                    verification=task_verification,
+                    plan_hints=(),
+                    verify_hints=(),
                     acceptance_criteria=acceptance_criteria,
                     selected_skill_provenance=None,
                 )
@@ -235,6 +279,9 @@ def _apply_agent_skill_organization(
             continue
 
         skill_id = str(selected["skill_id"])
+        selected_candidate = candidate_by_id[skill_id]
+        plan_hints = tuple(str(value) for value in getattr(selected_candidate, "plan_hints", ()))
+        verify_hints = tuple(str(value) for value in getattr(selected_candidate, "verify_hints", ()))
         module_candidates = tuple(
             value
             for value in (str(item).strip() for item in modules[unit.id].get("candidate_skill_ids", []))
@@ -243,18 +290,38 @@ def _apply_agent_skill_organization(
         organized_units.append(
             replace(
                 unit,
+                depends_on=dependencies_by_module[unit.id],
                 preferred_skill=skill_id,
                 binding_profile="agent_selected",
                 binding_reason=str(selected.get("reason") or "The Agent selected this skill."),
                 fallback_skills=module_candidates,
+                verification=tuple(dict.fromkeys((*task_verification, *verify_hints))),
+                plan_hints=plan_hints,
+                verify_hints=verify_hints,
                 acceptance_criteria=acceptance_criteria,
-                selected_skill_provenance=_skill_provenance(candidate_by_id[skill_id]),
+                selected_skill_provenance=_skill_provenance(selected_candidate),
             )
         )
 
+    ordered_units: list[WorkUnit] = []
+    pending_units = list(organized_units)
+    completed_ids: set[str] = set()
+    while pending_units:
+        ready_units = [
+            unit
+            for unit in pending_units
+            if set(unit.depends_on).issubset(completed_ids)
+        ]
+        if not ready_units:
+            raise ValueError("agent_skill_organization module dependency graph contains a cycle")
+        for unit in ready_units:
+            ordered_units.append(unit)
+            completed_ids.add(unit.id)
+            pending_units.remove(unit)
+
     return WorkPlan(
         task_id=plan.task_id,
-        work_units=tuple(organized_units),
+        work_units=tuple(ordered_units),
         superseded_work_units=plan.superseded_work_units,
     )
 
@@ -349,6 +416,12 @@ def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
         fallback_skills=tuple(str(value) for value in payload.get("fallback_skills", [])),
         expected_artifacts=tuple(str(value) for value in payload.get("expected_artifacts", [])),
         verification=tuple(str(value) for value in payload.get("verification", [])),
+        task_verification=tuple(
+            str(value)
+            for value in payload.get("task_verification", payload.get("verification", []))
+        ),
+        plan_hints=tuple(str(value) for value in payload.get("plan_hints", [])),
+        verify_hints=tuple(str(value) for value in payload.get("verify_hints", [])),
         acceptance_criteria=tuple(
             AcceptanceCriterion(
                 criterion_id=str(item["criterion_id"]),
@@ -618,6 +691,48 @@ def _build_work_dossier(
         if isinstance(verification_evidence, (list, tuple))
         else []
     )
+    completed_result_rows = [
+        row
+        for row in result_rows
+        if isinstance(row, dict) and str(row.get("status") or "") == "completed"
+    ]
+    delivery_results = _unique_non_empty(
+        [
+            str(artifact)
+            for row in completed_result_rows
+            for artifact in row.get("artifacts", [])
+        ]
+    )
+    delivery_locations = _unique_non_empty(
+        [
+            str(path)
+            for row in completed_result_rows
+            for path in row.get("artifact_paths", [])
+        ]
+    )
+    delivery_checks = _unique_non_empty(
+        [
+            str(target)
+            for row in completed_result_rows
+            for target in row.get("checked_targets", [])
+        ]
+    )
+    delivery_blockers: list[str] = []
+    for row in result_rows:
+        if not isinstance(row, dict) or str(row.get("status") or "") == "completed":
+            continue
+        reason = str(row.get("failure_reason") or "").strip()
+        if not reason:
+            notes = row.get("notes", [])
+            if isinstance(notes, (list, tuple)):
+                reason = next((str(note).strip() for note in notes if str(note).strip()), "")
+        if reason:
+            work_unit_id = str(row.get("work_unit_id") or "work unit").strip()
+            delivery_blockers.append(f"{work_unit_id}: {reason}")
+    if str(verification.get("result") or "") != "done" and not delivery_blockers:
+        verification_notes = verification.get("notes", [])
+        if isinstance(verification_notes, (list, tuple)):
+            delivery_blockers = _unique_non_empty([str(note) for note in verification_notes])
     completed_work_unit_count = sum(
         1
         for row in result_rows
@@ -677,6 +792,13 @@ def _build_work_dossier(
             "proof",
         ],
         "artifact_paths": artifact_paths,
+        "delivery_summary": {
+            "status": str(verification.get("result") or ""),
+            "results": delivery_results,
+            "locations": delivery_locations,
+            "checks": delivery_checks,
+            "blockers": _unique_non_empty(delivery_blockers),
+        },
         "task_card": task_card,
         "work_plan": work_plan,
         "module_assignments": module_assignments,
@@ -749,6 +871,8 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
         if isinstance(reading_order_payload, (list, tuple))
         else []
     )
+    delivery_payload = work_dossier.get("delivery_summary")
+    delivery_summary = delivery_payload if isinstance(delivery_payload, dict) else {}
     accepted_revisions = revision_section.get("accepted_revisions", [])
     if not isinstance(accepted_revisions, (list, tuple)):
         accepted_revisions = []
@@ -769,9 +893,25 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
         f"- verification result: {proof_section.get('result', '')}",
         f"- continuation mode: {continuity_section.get('continuation_mode', 'fresh')}",
         "",
-        "## Reading Path",
+        "## Delivery Summary",
         "",
+        f"- status: {delivery_summary.get('status', '')}",
     ]
+    for result in delivery_summary.get("results", []):
+        lines.append(f"- result: {result}")
+    for location in delivery_summary.get("locations", []):
+        lines.append(f"- location: {location}")
+    for check in delivery_summary.get("checks", []):
+        lines.append(f"- check: {check}")
+    for blocker in delivery_summary.get("blockers", []):
+        lines.append(f"- blocker: {blocker}")
+    lines.extend(
+        [
+            "",
+            "## Reading Path",
+            "",
+        ]
+    )
     for step in reading_order:
         label = step.replace("_", " ")
         artifact_path = str(artifact_paths.get(step) or "")
@@ -1016,6 +1156,9 @@ def run_local_kernel(
                 fallback_skills=work_unit.fallback_skills,
                 expected_artifacts=work_unit.expected_artifacts,
                 verification=work_unit.verification,
+                task_verification=work_unit.task_verification,
+                plan_hints=work_unit.plan_hints,
+                verify_hints=work_unit.verify_hints,
                 acceptance_criteria=work_unit.acceptance_criteria,
                 selected_skill_provenance=work_unit.selected_skill_provenance,
                 status=work_unit.status,
@@ -1036,6 +1179,9 @@ def run_local_kernel(
             fallback_skills=work_unit.fallback_skills,
             expected_artifacts=work_unit.expected_artifacts,
             verification=work_unit.verification,
+            task_verification=work_unit.task_verification,
+            plan_hints=work_unit.plan_hints,
+            verify_hints=work_unit.verify_hints,
             acceptance_criteria=work_unit.acceptance_criteria,
             selected_skill_provenance=work_unit.selected_skill_provenance,
             status=work_unit.status,

@@ -10,6 +10,7 @@ if str(RUNTIME_SRC) not in sys.path:
     sys.path.insert(0, str(RUNTIME_SRC))
 
 from vgo_runtime.kernel.finder import find_skill_candidates
+from vgo_runtime.kernel.module_assignments import build_module_assignments
 from vgo_runtime.kernel.planner import build_work_plan
 from vgo_runtime.kernel.task_card import build_task_card
 
@@ -444,6 +445,63 @@ def test_build_work_plan_prefers_declared_output_owner_over_higher_general_score
     assert plan.work_units[0].binding_profile == "declared_output_owner"
     assert plan.work_units[0].binding_reason == "Selected this skill because its declared outputs overlap the deliverable."
     assert plan.work_units[0].fallback_skills == ("runtime-redesign-advisor",)
+
+
+def test_build_work_plan_carries_selected_skill_execution_guidance() -> None:
+    task_card = build_task_card(
+        prompt="Prepare a concise runtime release brief.",
+        context={
+            "deliverables": ["release brief", "supporting evidence"],
+            "completion_criteria": ["release brief is concise", "supporting evidence exists"],
+        },
+    )
+    index_payload = {
+        "version": 1,
+        "generated_at": "2026-06-20T00:00:00Z",
+        "roots": ["skills/local"],
+        "skills": [
+            _with_source_metadata({
+                "id": "release-brief-writer",
+                "name": "Release Brief Writer",
+                "description": "Turn runtime changes into a concise release brief.",
+                "when_to_use": ["The user needs a runtime release brief."],
+                "not_for": [],
+                "inputs": ["agreed release scope"],
+                "outputs": ["release brief"],
+                "plan_hints": [
+                    "Confirm the audience and agreed release scope.",
+                    "Lead with the shipped outcome.",
+                ],
+                "verify_hints": ["Check every claim against the release evidence."],
+                "tags": ["runtime", "release", "brief"],
+                "enabled": True,
+                "priority": 10,
+                "root_dir": "skills/local/release-brief-writer",
+                "skill_file": "skills/local/release-brief-writer/SKILL.md",
+            }),
+        ],
+    }
+
+    candidates = find_skill_candidates(task_card, index_payload)
+    plan = build_work_plan(task_card, candidates)
+    assignments = build_module_assignments(plan)
+
+    assert candidates[0].inputs == ("agreed release scope",)
+    assert candidates[0].outputs == ("release brief",)
+    assert plan.work_units[0].preferred_skill == "release-brief-writer"
+    assert plan.work_units[0].binding_profile == "declared_output_owner"
+    assert plan.work_units[0].plan_hints == (
+        "Confirm the audience and agreed release scope.",
+        "Lead with the shipped outcome.",
+    )
+    assert plan.work_units[0].verification == (
+        "release brief exists",
+        "release brief is concise",
+        "Check every claim against the release evidence.",
+    )
+    assert assignments.units[0].plan_hints == plan.work_units[0].plan_hints
+    assert assignments.units[0].verify_hints == plan.work_units[0].verify_hints
+    assert assignments.units[1].depends_on == ("wu-1",)
 
 
 def test_build_work_plan_does_not_claim_declared_output_owner_without_output_overlap() -> None:

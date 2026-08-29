@@ -26,6 +26,10 @@ class SkillCandidate:
     path_contract: str
     path_base: str
     warnings: tuple[str, ...] = ()
+    inputs: tuple[str, ...] = ()
+    outputs: tuple[str, ...] = ()
+    plan_hints: tuple[str, ...] = ()
+    verify_hints: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -45,6 +49,13 @@ def _required_int(raw_entry: dict[str, object], field_name: str) -> int:
     if not isinstance(value, int):
         raise ValueError(f"skill index entry must include integer field '{field_name}'")
     return value
+
+
+def _optional_strings(raw_entry: dict[str, object], field_name: str) -> tuple[str, ...]:
+    values = raw_entry.get(field_name)
+    if not isinstance(values, (list, tuple)):
+        return ()
+    return tuple(value for item in values if (value := str(item).strip()))
 
 
 def _validated_source_metadata(raw_entry: dict[str, object]) -> dict[str, object]:
@@ -91,6 +102,10 @@ def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object],
         search_tokens.update(tokens_from_values(raw_entry.get("when_to_use"), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
         search_tokens.update(tokens_from_values(raw_entry.get("tags"), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
         owner_tokens = tokens_from_values(raw_entry.get("outputs"), stem=True, stopwords=SKILL_MATCH_STOPWORDS)
+        inputs = _optional_strings(raw_entry, "inputs")
+        outputs = _optional_strings(raw_entry, "outputs")
+        plan_hints = _optional_strings(raw_entry, "plan_hints")
+        verify_hints = _optional_strings(raw_entry, "verify_hints")
         support_tokens = set(search_tokens)
         support_tokens.update(owner_tokens)
         blocked_tokens = tokens_from_values(raw_entry.get("not_for"), stem=True, stopwords=SKILL_MATCH_STOPWORDS)
@@ -108,6 +123,10 @@ def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object],
                 score=score,
                 matched_tokens=tuple(matched),
                 search_tokens=tuple(sorted(search_tokens)),
+                inputs=inputs,
+                outputs=outputs,
+                plan_hints=plan_hints,
+                verify_hints=verify_hints,
                 owner_tokens=tuple(sorted(owner_tokens)),
                 support_tokens=tuple(sorted(support_tokens)),
                 blocked_tokens=tuple(sorted(blocked_tokens)),

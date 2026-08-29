@@ -16,6 +16,26 @@ ALLOWED_FIELDS = frozenset(
     + ("enabled", "priority")
 )
 INTEGER_PATTERN = re.compile(r"^-?\d+$")
+BODY_HEADING_PATTERN = re.compile(r"^#{1,6}\s+(.+?)\s*$")
+BODY_GUIDANCE_ITEM_PATTERN = re.compile(r"^(?:[-*+]\s+|\d+[.)]\s+)(.+)$")
+BODY_GUIDANCE_SECTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^(?:inputs?|prerequisites?|输入|前置条件)$", re.IGNORECASE), "inputs"),
+    (re.compile(r"^(?:outputs?|deliverables?|输出|交付物)$", re.IGNORECASE), "outputs"),
+    (
+        re.compile(
+            r"^(?:workflow(?:\s*\([^)]*\))?|process|work steps?|steps?|plan|implementation plan|工作流|流程|步骤|计划)$",
+            re.IGNORECASE,
+        ),
+        "plan_hints",
+    ),
+    (
+        re.compile(
+            r"^(?:verification|validation|checks?|exit criteria|acceptance criteria|验证|检查|验收标准)$",
+            re.IGNORECASE,
+        ),
+        "verify_hints",
+    ),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +71,10 @@ class InstalledSkillManifest:
     root_dir: str = ""
     skill_file: str = ""
     content_sha256: str = ""
+    inputs: tuple[str, ...] = ()
+    outputs: tuple[str, ...] = ()
+    plan_hints: tuple[str, ...] = ()
+    verify_hints: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -234,6 +258,48 @@ def _dedupe_non_empty(values: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(deduped)
 
 
+def _body_guidance_section(line: str) -> str | None:
+    heading_match = BODY_HEADING_PATTERN.match(line.strip())
+    if heading_match is None:
+        return None
+    heading = heading_match.group(1).strip()
+    for pattern, section in BODY_GUIDANCE_SECTIONS:
+        if pattern.fullmatch(heading):
+            return section
+    return ""
+
+
+def _extract_body_guidance(body_lines: list[str], *, limit_per_section: int = 12) -> dict[str, tuple[str, ...]]:
+    values: dict[str, list[str]] = {
+        "inputs": [],
+        "outputs": [],
+        "plan_hints": [],
+        "verify_hints": [],
+    }
+    active_section = ""
+    in_code_fence = False
+    for line in body_lines:
+        stripped = line.strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
+        section = _body_guidance_section(stripped)
+        if section is not None:
+            active_section = section
+            continue
+        if not active_section or len(values[active_section]) >= limit_per_section:
+            continue
+        item_match = BODY_GUIDANCE_ITEM_PATTERN.match(stripped)
+        if item_match is None:
+            continue
+        item = item_match.group(1).strip()
+        if item:
+            values[active_section].append(item)
+    return {key: _dedupe_non_empty(tuple(items)) for key, items in values.items()}
+
+
 def _extract_body_not_for_lines(body_lines: list[str]) -> tuple[str, ...]:
     items: list[str] = []
     in_not_for_section = False
@@ -326,12 +392,21 @@ def parse_installed_skill_manifest(skill_file: Path, *, skill_id: str | None = N
     not_for = _dedupe_non_empty(
         _coerce_string_list(frontmatter.get("not_for")) + _extract_body_not_for_lines(body_lines)
     )
+    body_guidance = _extract_body_guidance(body_lines)
     return InstalledSkillManifest(
         skill_id=resolved_skill_id,
         name=name,
         description=description,
         capabilities=_coerce_string_list(frontmatter.get("capabilities")),
         not_for=not_for,
+        inputs=_dedupe_non_empty(_coerce_string_list(frontmatter.get("inputs")) + body_guidance["inputs"]),
+        outputs=_dedupe_non_empty(_coerce_string_list(frontmatter.get("outputs")) + body_guidance["outputs"]),
+        plan_hints=_dedupe_non_empty(
+            _coerce_string_list(frontmatter.get("plan_hints")) + body_guidance["plan_hints"]
+        ),
+        verify_hints=_dedupe_non_empty(
+            _coerce_string_list(frontmatter.get("verify_hints")) + body_guidance["verify_hints"]
+        ),
         tags=_coerce_string_list(frontmatter.get("tags")),
         headings=_extract_heading_lines(body_lines),
         root_dir=str(resolved_file.parent),

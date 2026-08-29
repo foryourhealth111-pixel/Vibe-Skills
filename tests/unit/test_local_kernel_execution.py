@@ -15,7 +15,7 @@ if str(RUNTIME_SRC) not in sys.path:
     sys.path.insert(0, str(RUNTIME_SRC))
 
 from vgo_runtime.artifact_contract import _copy_run_tree
-from vgo_runtime.kernel.executor import execute_work_unit
+from vgo_runtime.kernel.executor import WorkUnitResult, execute_work_unit
 from vgo_runtime.kernel.finder import find_skill_candidates
 from vgo_runtime.kernel.loop import inspect_local_run, inspect_main, run_local_kernel
 from vgo_runtime.kernel.planner import build_work_plan
@@ -166,7 +166,10 @@ def test_run_local_kernel_without_agent_organization_does_not_bind_planner_choic
     skill_dir = agent_root / "vibe" / "skills" / "local" / "code-review"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nid: code-review\nname: Code Review\ndescription: Review implementation risk and test gaps.\nenabled: true\n---\n",
+        "---\nid: code-review\nname: Code Review\ndescription: Review implementation risk and test gaps.\n"
+        "plan_hints:\n  - Inspect the changed interfaces.\n"
+        "verify_hints:\n  - Confirm every finding has direct evidence.\n"
+        "enabled: true\n---\n",
         encoding="utf-8",
     )
 
@@ -183,6 +186,9 @@ def test_run_local_kernel_without_agent_organization_does_not_bind_planner_choic
     assert result["module_assignments"]["units"] == []
     assert result["plan"]["work_units"][0]["preferred_skill"] is None
     assert "code-review" in result["plan"]["work_units"][0]["fallback_skills"]
+    assert result["plan"]["work_units"][0]["plan_hints"] == ()
+    assert result["plan"]["work_units"][0]["verify_hints"] == ()
+    assert "Confirm every finding has direct evidence." not in result["plan"]["work_units"][0]["verification"]
 
 
 def test_verify_run_requests_rework_when_a_work_unit_fails() -> None:
@@ -330,6 +336,13 @@ enabled: true
     assert result["work_dossier"]["artifact_paths"]["proof_markdown"].endswith("work-dossier.md")
     assert result["work_dossier"]["closure"]["proof"]["result"] == "needs_execution"
     assert result["work_dossier"]["closure"]["proof"]["evidence_count"] == len(result["verification"]["evidence"])
+    assert result["work_dossier"]["delivery_summary"] == {
+        "status": "needs_execution",
+        "results": [],
+        "locations": [],
+        "checks": [],
+        "blockers": ["wu-1: requires real execution evidence for bound skill code-review"],
+    }
     assert result["work_plan"]["task_id"] == result["task_card"]["id"]
     assert result["module_assignments"]["task_id"] == result["task_card"]["id"]
     assert result["work_results"]["work_results"][0]["status"] == "needs_execution"
@@ -355,6 +368,7 @@ enabled: true
     assert "## Evidence To Check" in artifact_text
     assert "- review notes exists" in artifact_text
     assert "## Conclusion" in dossier_text
+    assert "## Delivery Summary" in dossier_text
     assert "## Reading Path" in dossier_text
     assert "## Task Card" in dossier_text
     assert "## Work Plan" in dossier_text
@@ -367,11 +381,80 @@ enabled: true
     assert "- module assignments: " in dossier_text
     assert "- work results: " in dossier_text
     assert "- verification: " in dossier_text
+    assert "- blocker: wu-1: requires real execution evidence for bound skill code-review" in dossier_text
+    assert dossier_text.index("## Delivery Summary") < dossier_text.index("## Reading Path")
     assert dossier_text.index("## Task Card") < dossier_text.index("## Task Evolution")
     assert dossier_text.index("## Verification") < dossier_text.index("## Proof")
     delivery_path = Path(result["work_results"]["work_results"][0]["artifact_paths"][0])
     assert delivery_path.is_file()
     assert "work-products" in str(delivery_path)
+
+
+def test_work_dossier_delivery_summary_reports_only_verified_results(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent_root = tmp_path / "agent-root"
+    skill_dir = agent_root / "vibe" / "skills" / "local" / "code-review"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: Code Review\ndescription: Review implementation risk and test gaps.\n"
+        "outputs:\n  - review notes\nenabled: true\n---\n",
+        encoding="utf-8",
+    )
+
+    def complete_work_unit(
+        _: Path,
+        __: object,
+        work_unit: object,
+        *,
+        work_root: Path,
+    ) -> WorkUnitResult:
+        work_root.mkdir(parents=True, exist_ok=True)
+        artifact_path = work_root / "review-notes.md"
+        artifact_path.write_text("# Verified review notes\n", encoding="utf-8")
+        receipt_path = work_root / "execution-receipt.json"
+        receipt_path.write_text("{}\n", encoding="utf-8")
+        skill_id = str(work_unit.preferred_skill)
+        proof = (
+            f"{work_unit.id}: used skill {skill_id}",
+            *(f"{work_unit.id}: artifact {artifact}" for artifact in work_unit.expected_artifacts),
+            *(f"{work_unit.id}: checked {target}" for target in work_unit.verification),
+        )
+        return WorkUnitResult(
+            work_unit_id=work_unit.id,
+            status="completed",
+            lifecycle_state="executed",
+            used_skill=skill_id,
+            artifacts=work_unit.expected_artifacts,
+            artifact_paths=(str(artifact_path.resolve()),),
+            proof_artifact_paths=(),
+            checked_targets=work_unit.verification,
+            notes=("execution completed",),
+            proof=proof,
+            execution_receipt_path=str(receipt_path.resolve()),
+            artifact_kind="final",
+            proof_ready=True,
+        )
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", complete_work_unit)
+
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent_root,
+        prompt="Review the runtime redesign and produce review notes.",
+        context={
+            "deliverables": ["review notes"],
+            "completion_criteria": ["review notes exists"],
+        },
+        run_id="verified-delivery-summary",
+    )
+
+    delivery = result["work_dossier"]["delivery_summary"]
+    assert delivery["status"] == "done"
+    assert delivery["results"] == ["review notes"]
+    assert delivery["locations"] == list(result["work_results"]["work_results"][0]["artifact_paths"])
+    assert delivery["checks"] == ["review notes exists"]
+    assert delivery["blockers"] == []
 
 
 def test_run_local_kernel_infers_deliverables_without_explicit_context(tmp_path: Path) -> None:
@@ -1065,6 +1148,237 @@ def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> 
     )
 
     assert list(result["plan"]["work_units"][0]["acceptance_criteria"]) == acceptance
+
+
+def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path: Path) -> None:
+    organization = {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "L",
+        "modules": [
+            {
+                "module_id": "wu-1",
+                "goal": "Write the release brief from the verified change.",
+                "candidate_skill_ids": [],
+                "depends_on": ["wu-2"],
+                "execution_mode": "agent_direct",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": "brief-result",
+                        "description": "The release brief reflects the verified change.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            },
+            {
+                "module_id": "wu-2",
+                "goal": "Verify the code change.",
+                "candidate_skill_ids": [],
+                "depends_on": [],
+                "execution_mode": "agent_direct",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": "verification-result",
+                        "description": "The code change has direct verification evidence.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            },
+        ],
+        "selected_skills": [],
+        "uncovered_modules": [],
+        "workflow_level_contract": {
+            "L": "Run confirmed dependencies serially.",
+            "XL": "Use bounded waves for independent modules.",
+        },
+    }
+
+    result = run_local_kernel(
+        agent_root=tmp_path / "agent-root",
+        prompt="Prepare a release brief and verify the code change.",
+        context={"deliverables": ["release brief", "code change"]},
+        run_id="explicit-dependency-order",
+        agent_skill_organization=organization,
+        execute=False,
+    )
+
+    assert [unit["id"] for unit in result["plan"]["work_units"]] == ["wu-2", "wu-1"]
+    assert result["plan"]["work_units"][0]["depends_on"] == ()
+    assert result["plan"]["work_units"][1]["depends_on"] == ("wu-2",)
+
+
+@pytest.mark.parametrize(
+    ("depends_on", "message"),
+    [
+        (["wu-missing"], "wu-1 depends on unknown module wu-missing"),
+        (["wu-1"], "wu-1 cannot depend on itself"),
+        (["wu-1", "wu-1"], "wu-1 depends_on contains duplicates"),
+        ([""], "wu-1 depends_on must contain non-empty module ids"),
+        ("wu-missing", "wu-1 depends_on must be a list"),
+    ],
+)
+def test_local_kernel_rejects_invalid_confirmed_module_dependency(
+    tmp_path: Path,
+    depends_on: object,
+    message: str,
+) -> None:
+    organization = {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "L",
+        "modules": [
+            {
+                "module_id": "wu-1",
+                "goal": "Write the release brief.",
+                "candidate_skill_ids": [],
+                "depends_on": depends_on,
+                "execution_mode": "agent_direct",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": "brief-result",
+                        "description": "The release brief exists.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            }
+        ],
+        "selected_skills": [],
+        "uncovered_modules": [],
+    }
+
+    with pytest.raises(ValueError, match=message):
+        run_local_kernel(
+            agent_root=tmp_path / "agent-root",
+            prompt="Prepare a release brief.",
+            context={"deliverables": ["release brief"]},
+            run_id="unknown-module-dependency",
+            agent_skill_organization=organization,
+            execute=False,
+        )
+
+
+def test_local_kernel_rejects_confirmed_module_dependency_cycle(tmp_path: Path) -> None:
+    organization = {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "L",
+        "modules": [
+            {
+                "module_id": module_id,
+                "goal": goal,
+                "candidate_skill_ids": [],
+                "depends_on": [dependency],
+                "execution_mode": "agent_direct",
+                "acceptance_criteria": [
+                    {
+                        "criterion_id": f"{module_id}-result",
+                        "description": f"{goal} is complete.",
+                        "verification_mode": "automated",
+                    }
+                ],
+            }
+            for module_id, goal, dependency in (
+                ("wu-1", "Write the release brief", "wu-2"),
+                ("wu-2", "Verify the code change", "wu-1"),
+            )
+        ],
+        "selected_skills": [],
+        "uncovered_modules": [],
+    }
+
+    with pytest.raises(ValueError, match="dependency graph contains a cycle"):
+        run_local_kernel(
+            agent_root=tmp_path / "agent-root",
+            prompt="Prepare a release brief and verify the code change.",
+            context={"deliverables": ["release brief", "code change"]},
+            run_id="module-dependency-cycle",
+            agent_skill_organization=organization,
+            execute=False,
+        )
+
+
+def test_local_kernel_uses_guidance_from_agent_selected_skill(tmp_path: Path) -> None:
+    skills_root = tmp_path / "agent-root" / "vibe" / "skills" / "local"
+    for skill_id, priority, plan_hint, verify_hint in (
+        (
+            "a-release-writer",
+            90,
+            "Draft the broad release narrative.",
+            "Check the broad release narrative.",
+        ),
+        (
+            "z-release-writer",
+            10,
+            "Lead with the agreed shipped outcome.",
+            "Check every claim against release evidence.",
+        ),
+    ):
+        skill_dir = skills_root / skill_id
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            f"""---
+name: {skill_id}
+description: Prepare a concise runtime release brief.
+outputs:
+  - release brief
+plan_hints:
+  - {plan_hint}
+verify_hints:
+  - {verify_hint}
+priority: {priority}
+---
+""",
+            encoding="utf-8",
+        )
+
+    result = run_local_kernel(
+        agent_root=tmp_path / "agent-root",
+        prompt="Prepare a concise runtime release brief.",
+        context={"deliverables": ["release brief"]},
+        run_id="agent-selected-guidance",
+        agent_skill_organization={
+            "schema_version": "agent_skill_organization_v1",
+            "derived_by": "agent",
+            "workflow_level": "L",
+            "modules": [
+                {
+                    "module_id": "wu-1",
+                    "goal": "Prepare the agreed release brief.",
+                    "candidate_skill_ids": ["a-release-writer", "z-release-writer"],
+                    "depends_on": [],
+                    "execution_mode": "skill_assigned",
+                    "acceptance_criteria": [
+                        {
+                            "criterion_id": "release-brief-result",
+                            "description": "The release brief states the shipped outcome.",
+                            "verification_mode": "automated",
+                        }
+                    ],
+                }
+            ],
+            "selected_skills": [
+                {
+                    "skill_id": "z-release-writer",
+                    "module_ids": ["wu-1"],
+                    "responsibility": "Own the release brief.",
+                    "reason": "Its workflow matches the agreed delivery style.",
+                }
+            ],
+            "uncovered_modules": [],
+        },
+        execute=False,
+    )
+
+    work_unit = result["plan"]["work_units"][0]
+    assignment = result["module_assignments"]["units"][0]
+    assert work_unit["preferred_skill"] == "z-release-writer"
+    assert work_unit["plan_hints"] == ("Lead with the agreed shipped outcome.",)
+    assert work_unit["verify_hints"] == ("Check every claim against release evidence.",)
+    assert "Check every claim against release evidence." in work_unit["verification"]
+    assert "Check the broad release narrative." not in work_unit["verification"]
+    assert assignment["depends_on"] == ()
+    assert assignment["plan_hints"] == work_unit["plan_hints"]
+    assert assignment["verify_hints"] == work_unit["verify_hints"]
 
 
 def test_inspect_local_run_reports_skills_catalog_and_selected_skill_source_kind(tmp_path: Path) -> None:
