@@ -351,3 +351,224 @@ def test_uninstall_removes_owned_files_but_keeps_user_files(tmp_path: Path) -> N
     assert "config/runtime-script-manifest.json" in removed_files
     assert user_file.read_text(encoding="utf-8") == "keep me\n"
     assert (skills_dir / "vibe").is_dir()
+
+
+def test_uninstall_collects_file_failures_and_keeps_receipt_for_retry(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    receipt_path = install_root / ".vibeskills" / "install-receipt.json"
+    locked_file = install_root / "SKILL.md"
+    original_unlink = Path.unlink
+
+    def fail_locked_file(path: Path, *args, **kwargs) -> None:
+        if path == locked_file:
+            raise PermissionError(f"locked: {path}")
+        original_unlink(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "unlink", fail_locked_file)
+        result = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert result["ok"] is False
+    assert result["status"] == "partial_failure"
+    assert result["failed_files"] == ["SKILL.md"]
+    assert receipt_path.is_file()
+
+    retry = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert retry["ok"] is True
+    assert not install_root.exists()
+
+
+def test_uninstall_reports_empty_directory_cleanup_failure_before_dropping_receipt(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    receipt_path = install_root / ".vibeskills" / "install-receipt.json"
+    locked_directory = install_root / "config"
+    original_rmdir = Path.rmdir
+
+    def fail_locked_directory(path: Path, *args, **kwargs) -> None:
+        if path == locked_directory:
+            raise PermissionError(f"locked: {path}")
+        original_rmdir(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "rmdir", fail_locked_directory)
+        result = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert result["ok"] is False
+    assert result["status"] == "partial_failure"
+    assert result["failed_directories"] == ["config"]
+    assert receipt_path.is_file()
+
+    retry = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert retry["ok"] is True
+    assert not install_root.exists()
+
+
+def test_uninstall_final_root_cleanup_failure_keeps_resumable_state(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    receipt_path = install_root / ".vibeskills" / "install-receipt.json"
+    recovery_path = install_root / ".vibeskills" / "uninstall-state.json"
+    original_rmdir = Path.rmdir
+
+    def fail_install_root(path: Path, *args, **kwargs) -> None:
+        if path == install_root:
+            raise PermissionError(f"locked: {path}")
+        original_rmdir(path, *args, **kwargs)
+
+    with monkeypatch.context() as context:
+        context.setattr(Path, "rmdir", fail_install_root)
+        result = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert result["ok"] is False
+    assert result["status"] == "partial_failure"
+    assert result["failed_directories"] == ["."]
+    assert not receipt_path.exists()
+    assert recovery_path.is_file()
+
+    retry = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    assert retry["ok"] is True
+    assert not install_root.exists()
+
+
+def test_reinstall_uses_uninstall_state_without_overwriting_user_files(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    user_file = install_root / "notes.md"
+    user_file.write_text("keep me\n", encoding="utf-8")
+
+    result = uninstall_vibe_skill(skills_dir=skills_dir)
+
+    recovery_path = install_root / ".vibeskills" / "uninstall-state.json"
+    assert result["ok"] is True
+    assert result["status"] == "uninstalled_with_preserved_files"
+    assert result["preserved_files"] == ["notes.md"]
+    assert recovery_path.is_file()
+
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T09:00:00Z",
+        source_git_commit="def456",
+        source_git_dirty=False,
+    )
+
+    assert user_file.read_text(encoding="utf-8") == "keep me\n"
+    assert (install_root / ".vibeskills" / "install-receipt.json").is_file()
+    assert not recovery_path.exists()
+    assert check_vibe_skill(skills_dir=skills_dir)["extra_files"] == ["notes.md"]
+
+
+def test_reinstall_with_receipt_ignores_incomplete_uninstall_state(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    recovery_path = install_root / ".vibeskills" / "uninstall-state.json"
+    recovery_path.write_text("{\n", encoding="utf-8")
+
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T09:00:00Z",
+        source_git_commit="def456",
+        source_git_dirty=False,
+    )
+
+    assert (install_root / ".vibeskills" / "install-receipt.json").is_file()
+    assert not recovery_path.exists()
+
+
+def test_reinstall_from_uninstall_state_rejects_new_package_path_collision(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+        source_git_commit="abc123",
+        source_git_dirty=False,
+    )
+    install_root = skills_dir / "vibe"
+    (install_root / "notes.md").write_text("keep me\n", encoding="utf-8")
+    uninstall_vibe_skill(skills_dir=skills_dir)
+    user_collision = install_root / "SKILL.md"
+    user_collision.write_text("# user-owned\n", encoding="utf-8")
+
+    try:
+        install_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc="2026-07-02T09:00:00Z",
+            source_git_commit="def456",
+            source_git_dirty=False,
+        )
+    except RuntimeError as exc:
+        assert "Install path exists but is not owned" in str(exc)
+    else:
+        raise AssertionError("reinstall should reject a new user-owned package path")
+
+    assert user_collision.read_text(encoding="utf-8") == "# user-owned\n"

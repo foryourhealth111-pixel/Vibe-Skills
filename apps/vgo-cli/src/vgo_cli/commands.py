@@ -8,7 +8,13 @@ import subprocess
 import sys
 
 from .core_bridge import run_canonical_entry_core, run_compatibility_exit_core, run_entry_locator_core, run_inspect_run_core, run_local_kernel_core, run_router_core, run_skill_index_core
-from .errors import CliError
+from .errors import (
+    CliError,
+    CliIoError,
+    CliMissingResourceError,
+    CliPermissionError,
+    CliStateError,
+)
 from .output import print_json_payload
 from .process import print_process_output, run_powershell_file, run_subprocess
 from .repo import get_installed_runtime_config, get_local_release_metadata
@@ -16,6 +22,16 @@ from .workspace import extend_workspace_package_path
 
 
 PROJECT_URL = "https://github.com/foryourhealth111-pixel/Vibe-Skills"
+
+
+def _installer_cli_error(exc: RuntimeError | OSError) -> CliError:
+    if isinstance(exc, PermissionError):
+        return CliPermissionError(str(exc))
+    if isinstance(exc, FileNotFoundError):
+        return CliMissingResourceError(str(exc))
+    if isinstance(exc, OSError):
+        return CliIoError(str(exc))
+    return CliStateError(str(exc))
 
 
 def _resolve_skills_dir(raw_value: str) -> Path:
@@ -101,12 +117,15 @@ def install_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import install_vibe_skill
 
-    receipt = install_vibe_skill(
-        repo_root=repo_root,
-        skills_dir=skills_dir,
-        installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
-        **_install_source_kwargs(repo_root),
-    )
+    try:
+        receipt = install_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
+            **_install_source_kwargs(repo_root),
+        )
+    except (RuntimeError, OSError) as exc:
+        raise _installer_cli_error(exc) from exc
     print_json_payload(receipt)
     return 0
 
@@ -117,7 +136,13 @@ def uninstall_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import uninstall_vibe_skill
 
-    print_json_payload(uninstall_vibe_skill(skills_dir=skills_dir))
+    try:
+        result = uninstall_vibe_skill(skills_dir=skills_dir)
+    except (RuntimeError, OSError) as exc:
+        raise _installer_cli_error(exc) from exc
+    print_json_payload(result)
+    if not result.get("ok"):
+        raise CliIoError("Vibe uninstall is incomplete; retry after resolving the reported failures.")
     return 0
 
 
@@ -127,12 +152,15 @@ def update_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import update_vibe_skill
 
-    receipt = update_vibe_skill(
-        repo_root=repo_root,
-        skills_dir=skills_dir,
-        installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
-        **_install_source_kwargs(repo_root),
-    )
+    try:
+        receipt = update_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
+            **_install_source_kwargs(repo_root),
+        )
+    except (RuntimeError, OSError) as exc:
+        raise _installer_cli_error(exc) from exc
     print_json_payload(receipt)
     return 0
 
@@ -143,7 +171,10 @@ def check_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import check_vibe_skill
 
-    result = check_vibe_skill(skills_dir=skills_dir)
+    try:
+        result = check_vibe_skill(skills_dir=skills_dir)
+    except (RuntimeError, OSError) as exc:
+        raise _installer_cli_error(exc) from exc
     result["current_state"] = {
         "local_runtime": {
             "result": "PASS" if result.get("ok") else "FAIL",

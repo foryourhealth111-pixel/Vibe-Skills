@@ -40,6 +40,8 @@ PACKAGE_RUNTIME_TEST_ENTRYPOINTS = {
     "packages/verification-core/src/vgo_verify/test_baseline_audit.py",
 }
 RECEIPT_RELPATH = ".vibeskills/install-receipt.json"
+UNINSTALL_STATE_RELPATH = ".vibeskills/uninstall-state.json"
+UNINSTALL_STATE_KIND = "vibe-skill-uninstall-state"
 
 
 def _sha256_file(path: Path) -> str:
@@ -168,6 +170,122 @@ def _receipt_file_paths(receipt: dict[str, object]) -> set[str]:
     return owned
 
 
+def _uninstall_state_path(skills_dir: Path) -> Path:
+    return skills_dir.resolve() / "vibe" / UNINSTALL_STATE_RELPATH
+
+
+def _read_uninstall_state(
+    state_path: Path,
+    *,
+    skills_dir: Path,
+    install_root: Path,
+) -> dict[str, object]:
+    state = _read_json(state_path)
+    expected_skills_dir = skills_dir.resolve()
+    expected_install_root = install_root.resolve()
+    if state.get("schema_version") != 1:
+        raise RuntimeError(f"Unsupported Vibe uninstall state schema: {state_path}")
+    if state.get("state_kind") != UNINSTALL_STATE_KIND or state.get("skill_id") != "vibe":
+        raise RuntimeError(f"Invalid Vibe uninstall state: {state_path}")
+    if Path(str(state.get("skills_dir") or "")).resolve() != expected_skills_dir:
+        raise RuntimeError(f"Vibe uninstall state Skills directory mismatch: {state_path}")
+    if Path(str(state.get("install_root") or "")).resolve() != expected_install_root:
+        raise RuntimeError(f"Vibe uninstall state install root mismatch: {state_path}")
+    if state.get("status") != "managed_files_removed":
+        raise RuntimeError(f"Invalid Vibe uninstall state status: {state_path}")
+    return state
+
+
+def _is_recoverable_empty_install_root(install_root: Path) -> bool:
+    if not install_root.is_dir() or install_root.is_symlink():
+        return False
+    try:
+        entries = list(install_root.rglob("*"))
+    except OSError:
+        return False
+    for entry in entries:
+        if entry.is_symlink() or not entry.is_dir():
+            return False
+        if entry.relative_to(install_root).as_posix() != ".vibeskills":
+            return False
+    return True
+
+
+def _assert_install_destination_is_local(install_root: Path, destination: Path) -> None:
+    if install_root.is_symlink():
+        raise RuntimeError(f"Install root must not be a symbolic link: {install_root}")
+    current = destination.parent
+    while current != install_root.parent:
+        if current.is_symlink():
+            raise RuntimeError(f"Install path traverses a symbolic link: {destination}")
+        if current == install_root:
+            return
+        current = current.parent
+    raise RuntimeError(f"Install path escapes the Vibe install root: {destination}")
+
+
+def _preserved_file_relpaths(install_root: Path, *, owned_files: set[str]) -> list[str]:
+    internal_files = {RECEIPT_RELPATH, UNINSTALL_STATE_RELPATH}
+    preserved: list[str] = []
+    for path in install_root.rglob("*"):
+        if not path.is_file() and not path.is_symlink():
+            continue
+        relpath = path.relative_to(install_root).as_posix()
+        if relpath not in internal_files and relpath not in owned_files:
+            preserved.append(relpath)
+    return sorted(set(preserved))
+
+
+def _prune_empty_directories(install_root: Path) -> list[str]:
+    metadata_dir = install_root / ".vibeskills"
+    try:
+        directories = sorted(
+            (path for path in install_root.rglob("*") if path.is_dir()),
+            key=lambda path: len(path.parts),
+            reverse=True,
+        )
+    except OSError:
+        return ["."]
+
+    failed: list[str] = []
+    for directory in directories:
+        if directory == metadata_dir or metadata_dir in directory.parents:
+            continue
+        try:
+            directory.rmdir()
+        except PermissionError:
+            failed.append(directory.relative_to(install_root).as_posix())
+        except OSError:
+            try:
+                is_empty = next(directory.iterdir(), None) is None
+            except OSError:
+                is_empty = True
+            if is_empty:
+                failed.append(directory.relative_to(install_root).as_posix())
+    return sorted(set(failed))
+
+
+def _uninstall_result(
+    *,
+    ok: bool,
+    status: str,
+    removed_files: list[str],
+    failed_files: list[str] | None = None,
+    failed_directories: list[str] | None = None,
+    preserved_files: list[str] | None = None,
+    recovery_state: str = "",
+) -> dict[str, object]:
+    return {
+        "ok": ok,
+        "status": status,
+        "removed_files": sorted(set(removed_files)),
+        "failed_files": sorted(set(failed_files or [])),
+        "failed_directories": sorted(set(failed_directories or [])),
+        "preserved_files": sorted(set(preserved_files or [])),
+        "recovery_state": recovery_state,
+    }
+
+
 def _remove_retired_owned_files(install_root: Path, *, old_owned: set[str], next_owned: set[str]) -> None:
     for relpath in sorted(old_owned - next_owned, reverse=True):
         file_path = install_root / relpath
@@ -217,17 +335,35 @@ def install_vibe_skill(
     resolved_skills_dir = skills_dir.resolve()
     install_root = resolved_skills_dir / "vibe"
     receipt_path = install_root / RECEIPT_RELPATH
-    if install_root.exists() and not receipt_path.is_file():
+    uninstall_state_path = install_root / UNINSTALL_STATE_RELPATH
+    if install_root.exists() and install_root.is_symlink():
+        raise RuntimeError(f"Install root must not be a symbolic link: {install_root}")
+
+    has_receipt = receipt_path.is_file()
+    has_uninstall_state = uninstall_state_path.is_file()
+    if has_uninstall_state and not has_receipt:
+        _read_uninstall_state(
+            uninstall_state_path,
+            skills_dir=resolved_skills_dir,
+            install_root=install_root,
+        )
+    if (
+        install_root.exists()
+        and not has_receipt
+        and not has_uninstall_state
+        and not _is_recoverable_empty_install_root(install_root)
+    ):
         raise RuntimeError(f"Install root already exists without a Vibe install receipt: {install_root}")
 
     install_root.mkdir(parents=True, exist_ok=True)
     next_owned = _package_file_relpaths(source_root)
     old_owned: set[str] = set()
-    if receipt_path.is_file():
+    if has_receipt:
         old_owned = _receipt_file_paths(_read_json(receipt_path))
     for relpath in next_owned:
         destination = install_root / relpath
-        if destination.exists() and relpath not in old_owned:
+        _assert_install_destination_is_local(install_root, destination)
+        if (destination.exists() or destination.is_symlink()) and relpath not in old_owned:
             raise RuntimeError(f"Install path exists but is not owned by the Vibe receipt: {destination}")
     _remove_retired_owned_files(install_root, old_owned=old_owned, next_owned=set(next_owned))
 
@@ -266,6 +402,8 @@ def install_vibe_skill(
         receipt["source_git_commit"] = source_git_commit
         receipt["source_git_dirty"] = bool(source_git_dirty)
     _write_json(receipt_path, receipt)
+    if uninstall_state_path.is_file():
+        uninstall_state_path.unlink()
     return receipt
 
 
@@ -295,7 +433,9 @@ def check_vibe_skill(*, skills_dir: Path) -> dict[str, object]:
     actual_files = {
         path.relative_to(install_root).as_posix()
         for path in install_root.rglob("*")
-        if path.is_file() and path.relative_to(install_root).as_posix() != RECEIPT_RELPATH
+        if path.is_file()
+        and path.relative_to(install_root).as_posix()
+        not in {RECEIPT_RELPATH, UNINSTALL_STATE_RELPATH}
     }
     extra_files = sorted(actual_files - receipt_files)
 
@@ -339,35 +479,178 @@ def update_vibe_skill(
     )
 
 
+def _build_uninstall_state(
+    *,
+    receipt: dict[str, object],
+    skills_dir: Path,
+    install_root: Path,
+    preserved_files: list[str],
+) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "state_kind": UNINSTALL_STATE_KIND,
+        "skill_id": "vibe",
+        "skills_dir": str(skills_dir.resolve()),
+        "install_root": str(install_root.resolve()),
+        "status": "managed_files_removed",
+        "previous_package_digest_sha256": str(receipt.get("package_digest_sha256") or ""),
+        "preserved_files": sorted(set(preserved_files)),
+    }
+
+
+def _finalize_uninstall_state(
+    *,
+    install_root: Path,
+    state_path: Path,
+    state: dict[str, object],
+    removed_files: list[str],
+) -> dict[str, object]:
+    failed_directories = _prune_empty_directories(install_root)
+    preserved_files = _preserved_file_relpaths(install_root, owned_files=set())
+    if failed_directories:
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_directories=failed_directories,
+            preserved_files=preserved_files,
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
+    if preserved_files:
+        return _uninstall_result(
+            ok=True,
+            status="uninstalled_with_preserved_files",
+            removed_files=removed_files,
+            preserved_files=preserved_files,
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
+
+    try:
+        state_path.unlink()
+    except OSError:
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_files=[UNINSTALL_STATE_RELPATH],
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
+
+    metadata_dir = state_path.parent
+    try:
+        metadata_dir.rmdir()
+    except OSError:
+        _write_json(state_path, state)
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_directories=[metadata_dir.relative_to(install_root).as_posix()],
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
+
+    try:
+        install_root.rmdir()
+    except OSError:
+        _write_json(state_path, state)
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_directories=["."],
+            preserved_files=_preserved_file_relpaths(install_root, owned_files=set()),
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
+
+    return _uninstall_result(
+        ok=True,
+        status="uninstalled",
+        removed_files=removed_files,
+    )
+
+
 def uninstall_vibe_skill(*, skills_dir: Path) -> dict[str, object]:
     receipt_path = _receipt_path(skills_dir)
+    state_path = _uninstall_state_path(skills_dir)
     if not receipt_path.is_file():
+        if state_path.is_file():
+            install_root = skills_dir.resolve() / "vibe"
+            state = _read_uninstall_state(
+                state_path,
+                skills_dir=skills_dir,
+                install_root=install_root,
+            )
+            return _finalize_uninstall_state(
+                install_root=install_root,
+                state_path=state_path,
+                state=state,
+                removed_files=[],
+            )
         raise RuntimeError(f"Vibe install receipt is missing: {receipt_path}")
 
     receipt = _read_json(receipt_path)
     install_root = Path(str(receipt["install_root"]))
+    owned_files = _receipt_file_paths(receipt)
     removed_files: list[str] = []
+    failed_files: list[str] = []
     for entry in receipt.get("files") or []:
         if not isinstance(entry, dict):
             continue
         relpath = str(entry["path"])
         file_path = install_root / relpath
         if file_path.is_file():
-            file_path.unlink()
-            removed_files.append(relpath)
+            try:
+                file_path.unlink()
+            except OSError:
+                failed_files.append(relpath)
+            else:
+                removed_files.append(relpath)
 
-    receipt_path.unlink()
-    for directory in sorted((path for path in install_root.rglob("*") if path.is_dir()), reverse=True):
-        try:
-            directory.rmdir()
-        except OSError:
-            pass
+    preserved_files = _preserved_file_relpaths(install_root, owned_files=owned_files)
+    if failed_files:
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_files=failed_files,
+            preserved_files=preserved_files,
+        )
+
+    failed_directories = _prune_empty_directories(install_root)
+    if failed_directories:
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_directories=failed_directories,
+            preserved_files=preserved_files,
+        )
+
+    state = _build_uninstall_state(
+        receipt=receipt,
+        skills_dir=skills_dir,
+        install_root=install_root,
+        preserved_files=preserved_files,
+    )
+    _write_json(state_path, state)
     try:
-        install_root.rmdir()
+        receipt_path.unlink()
     except OSError:
-        pass
+        return _uninstall_result(
+            ok=False,
+            status="partial_failure",
+            removed_files=removed_files,
+            failed_files=[RECEIPT_RELPATH],
+            preserved_files=preserved_files,
+            recovery_state=UNINSTALL_STATE_RELPATH,
+        )
 
-    return {"removed_files": sorted(removed_files)}
+    return _finalize_uninstall_state(
+        install_root=install_root,
+        state_path=state_path,
+        state=state,
+        removed_files=removed_files,
+    )
 
 
 __all__ = [

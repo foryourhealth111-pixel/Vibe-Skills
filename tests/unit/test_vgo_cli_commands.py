@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -15,7 +16,16 @@ if str(CLI_SRC) not in sys.path:
     sys.path.insert(0, str(CLI_SRC))
 
 from vgo_cli.commands import canonical_entry_command, check_command, compatibility_exit_command, index_command, inspect_run_command, install_command, locate_entry_command, route_command, run_command, runtime_command, uninstall_command, update_command, upgrade_command, verify_command
-from vgo_cli.errors import CliError
+from vgo_cli.errors import (
+    CliError,
+    CliExitCode,
+    CliIoError,
+    CliMissingResourceError,
+    CliPermissionError,
+    CliStateError,
+    CliUnavailableError,
+)
+import vgo_cli.main as cli_main
 from vgo_cli.main import build_parser
 from vgo_cli.output import parse_json_output, print_json_payload
 
@@ -31,6 +41,122 @@ def test_parse_json_output_rejects_invalid_json() -> None:
 
     with pytest.raises(CliError, match='Invalid JSON output from core command'):
         parse_json_output(result)
+
+
+def test_main_returns_the_specific_cli_error_exit_code(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class CannotCreateError(CliError):
+        exit_code = 73
+
+    class FailingParser:
+        @staticmethod
+        def parse_args(argv: list[str] | None) -> argparse.Namespace:
+            def fail(args: argparse.Namespace) -> int:
+                raise CannotCreateError("target cannot be created")
+
+            return argparse.Namespace(handler=fail)
+
+    monkeypatch.setattr(cli_main, "build_parser", FailingParser)
+
+    assert cli_main.main([]) == 73
+    assert capsys.readouterr().err == "[FAIL] target cannot be created\n"
+
+
+def test_cli_exit_code_values_are_stable() -> None:
+    assert {member.name: int(member) for member in CliExitCode} == {
+        "FAILURE": 1,
+        "USAGE": 2,
+        "INVALID_STATE": 3,
+        "MISSING_RESOURCE": 4,
+        "PERMISSION_DENIED": 5,
+        "UNAVAILABLE": 6,
+        "IO_ERROR": 7,
+    }
+
+
+@pytest.mark.parametrize(
+    ("error_type", "expected_exit_code"),
+    [
+        (CliError, 1),
+        (CliStateError, 3),
+        (CliMissingResourceError, 4),
+        (CliPermissionError, 5),
+        (CliUnavailableError, 6),
+        (CliIoError, 7),
+    ],
+)
+def test_cli_error_types_have_stable_exit_codes(
+    error_type: type[CliError],
+    expected_exit_code: int,
+) -> None:
+    assert int(error_type.exit_code) == expected_exit_code
+
+
+def test_uninstall_missing_receipt_uses_state_exit_code_without_traceback(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = os.pathsep.join(
+        value for value in (str(CLI_SRC), existing_pythonpath) if value
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vgo_cli.main",
+            "uninstall",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--skills-dir",
+            str(tmp_path / "missing-skills"),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 3
+    assert "[FAIL] Vibe install receipt is missing" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_partial_uninstall_returns_io_exit_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    skills_dir = tmp_path / "skills"
+    args = argparse.Namespace(repo_root=str(REPO_ROOT), skills_dir=str(skills_dir))
+    assert install_command(args) == 0
+    capsys.readouterr()
+
+    locked_directory = skills_dir / "vibe" / "config"
+    original_rmdir = Path.rmdir
+
+    def fail_locked_directory(path: Path, *args, **kwargs) -> None:
+        if path == locked_directory:
+            raise PermissionError(f"locked: {path}")
+        original_rmdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "rmdir", fail_locked_directory)
+
+    exit_code = cli_main.main(
+        [
+            "uninstall",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--skills-dir",
+            str(skills_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == CliExitCode.IO_ERROR
+    assert json.loads(captured.out)["failed_directories"] == ["config"]
+    assert "retry after resolving the reported failures" in captured.err
 
 
 def test_route_command_delegates_to_runtime_core_bridge(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
