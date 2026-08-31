@@ -94,6 +94,25 @@ def test_cli_error_types_have_stable_exit_codes(
     assert int(error_type.exit_code) == expected_exit_code
 
 
+@pytest.mark.parametrize(
+    ("error", "expected_type"),
+    [
+        (PermissionError("denied"), CliPermissionError),
+        (FileNotFoundError("missing"), CliMissingResourceError),
+        (TimeoutError("busy"), CliUnavailableError),
+        (OSError("failed"), CliIoError),
+        (RuntimeError("invalid"), CliStateError),
+    ],
+)
+def test_installer_errors_map_to_specific_cli_error_types(
+    error: RuntimeError | OSError,
+    expected_type: type[CliError],
+) -> None:
+    import vgo_cli.commands as cli_commands
+
+    assert isinstance(cli_commands._installer_cli_error(error), expected_type)
+
+
 def test_uninstall_missing_receipt_uses_state_exit_code_without_traceback(tmp_path: Path) -> None:
     env = os.environ.copy()
     existing_pythonpath = env.get("PYTHONPATH", "")
@@ -123,10 +142,60 @@ def test_uninstall_missing_receipt_uses_state_exit_code_without_traceback(tmp_pa
     assert "Traceback" not in result.stderr
 
 
-def test_partial_uninstall_returns_io_exit_code(
+def test_uninstall_malformed_recovery_state_uses_state_exit_code_without_traceback(tmp_path: Path) -> None:
+    skills_dir = tmp_path / "skills"
+    recovery_path = skills_dir / ".vibeskills" / "vibe-uninstall-state.json"
+    recovery_path.parent.mkdir(parents=True)
+    recovery_path.write_text("{\n", encoding="utf-8")
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = os.pathsep.join(
+        value for value in (str(CLI_SRC), existing_pythonpath) if value
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "vgo_cli.main",
+            "uninstall",
+            "--repo-root",
+            str(REPO_ROOT),
+            "--skills-dir",
+            str(skills_dir),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 3
+    assert "[FAIL] Unreadable Vibe uninstall state" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    (
+        "failure_type",
+        "expected_exit_code",
+        "permission_denied",
+        "unavailable",
+    ),
+    [
+        (PermissionError, CliExitCode.PERMISSION_DENIED, True, False),
+        (TimeoutError, CliExitCode.UNAVAILABLE, False, True),
+        (OSError, CliExitCode.IO_ERROR, False, False),
+    ],
+)
+def test_partial_uninstall_uses_specific_exit_code(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    failure_type: type[OSError],
+    expected_exit_code: CliExitCode,
+    permission_denied: bool,
+    unavailable: bool,
 ) -> None:
     skills_dir = tmp_path / "skills"
     args = argparse.Namespace(repo_root=str(REPO_ROOT), skills_dir=str(skills_dir))
@@ -136,10 +205,10 @@ def test_partial_uninstall_returns_io_exit_code(
     locked_directory = skills_dir / "vibe" / "config"
     original_rmdir = Path.rmdir
 
-    def fail_locked_directory(path: Path, *args, **kwargs) -> None:
+    def fail_locked_directory(path: Path) -> None:
         if path == locked_directory:
-            raise PermissionError(f"locked: {path}")
-        original_rmdir(path, *args, **kwargs)
+            raise failure_type(f"locked: {path}")
+        original_rmdir(path)
 
     monkeypatch.setattr(Path, "rmdir", fail_locked_directory)
 
@@ -154,8 +223,11 @@ def test_partial_uninstall_returns_io_exit_code(
     )
 
     captured = capsys.readouterr()
-    assert exit_code == CliExitCode.IO_ERROR
-    assert json.loads(captured.out)["failed_directories"] == ["config"]
+    assert exit_code == expected_exit_code
+    payload = json.loads(captured.out)
+    assert payload["failed_directories"] == ["config"]
+    assert bool(payload["permission_denied_directories"]) is permission_denied
+    assert bool(payload["unavailable_directories"]) is unavailable
     assert "retry after resolving the reported failures" in captured.err
 
 
@@ -727,6 +799,57 @@ def test_install_command_uses_public_release_bundle_metadata_when_present(
     assert '"source_git_dirty"' not in output
 
 
+def test_install_malformed_public_release_bundle_uses_state_exit_code(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    release_root = tmp_path / 'release-root'
+    _write_minimal_install_source(release_root)
+    (release_root / 'release-bundle.json').write_text('{\n', encoding='utf-8')
+
+    exit_code = cli_main.main(
+        [
+            'install',
+            '--repo-root',
+            str(release_root),
+            '--skills-dir',
+            str(tmp_path / 'skills'),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == CliExitCode.INVALID_STATE
+    assert '[FAIL] Unreadable public release bundle' in captured.err
+    assert 'Traceback' not in captured.err
+
+
+def test_install_malformed_public_release_bundle_shape_uses_state_exit_code(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    release_root = tmp_path / 'release-root'
+    _write_minimal_install_source(release_root)
+    (release_root / 'release-bundle.json').write_text(
+        json.dumps({'public_install': []}),
+        encoding='utf-8',
+    )
+
+    exit_code = cli_main.main(
+        [
+            'install',
+            '--repo-root',
+            str(release_root),
+            '--skills-dir',
+            str(tmp_path / 'skills'),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == CliExitCode.INVALID_STATE
+    assert "field 'public_install' must be an object" in captured.err
+    assert 'Traceback' not in captured.err
+
+
 def test_uninstall_command_uses_simplified_skills_dir_uninstall(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -753,6 +876,52 @@ def test_update_command_uses_simplified_skills_dir_update(
 
     assert (skills_dir / 'vibe' / '.vibeskills' / 'install-receipt.json').is_file()
     assert '"receipt_kind": "vibe-skill-install"' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("failure_type", "expected_exit_code"),
+    [
+        (PermissionError, CliExitCode.PERMISSION_DENIED),
+        (TimeoutError, CliExitCode.UNAVAILABLE),
+        (OSError, CliExitCode.IO_ERROR),
+    ],
+)
+def test_update_transaction_cleanup_uses_specific_exit_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    failure_type: type[OSError],
+    expected_exit_code: CliExitCode,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    install_root = skills_dir / "vibe"
+    _write_minimal_install_source(repo_root)
+    args = argparse.Namespace(repo_root=str(repo_root), skills_dir=str(skills_dir))
+    assert install_command(args) == 0
+    capsys.readouterr()
+    original_unlink = Path.unlink
+
+    def fail_backup_cleanup(path: Path, *, missing_ok: bool = False) -> None:
+        if path.parent == install_root and path.name.startswith(".SKILL.md."):
+            raise failure_type(f"locked backup: {path}")
+        original_unlink(path, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fail_backup_cleanup)
+    exit_code = cli_main.main(
+        [
+            "update",
+            "--repo-root",
+            str(repo_root),
+            "--skills-dir",
+            str(skills_dir),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == expected_exit_code
+    assert "Vibe install transaction cleanup was incomplete" in captured.err
+    assert "Traceback" not in captured.err
 
 
 def test_check_command_uses_simplified_skills_dir_check(

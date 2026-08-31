@@ -11,7 +11,7 @@ import sys
 from typing import Any, Callable, Sequence
 import warnings
 
-from .errors import CliError
+from .errors import CliUnavailableError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -259,7 +259,7 @@ def run_powershell_file(script_path: Path, *args: str) -> subprocess.CompletedPr
         if checked:
             detail_parts.append(f"candidates checked: {', '.join(checked)}")
         detail = f"; {'; '.join(detail_parts)}" if detail_parts else ""
-        raise CliError(f"PowerShell is required to run: {script_path}{detail}")
+        raise CliUnavailableError(f"PowerShell is required to run: {script_path}{detail}")
     shell_path = str(resolution["host_path"])
     leaf = Path(shell_path).name.lower()
     command = [shell_path, '-NoProfile']
