@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
 
-from .errors import CliError
+from .errors import CliError, CliUnavailableError
 from .workspace import extend_workspace_package_path
 
 
@@ -59,7 +59,9 @@ def _resolve_host_entry(host_id: str | None) -> tuple[str, dict[str, object]]:
         try:
             entry = dict(registry_module.resolve_adapter_entry(registry, normalized))
         except ValueError as exc:
-            raise CliError(f'Unable to resolve host registry entry for: {host_id}') from exc
+            raise CliUnavailableError(
+                f'Unable to resolve host registry entry for: {host_id}'
+            ) from exc
     return normalized, entry
 
 

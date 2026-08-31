@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         if message:
             for line in message.splitlines():
                 print(f'[FAIL] {line}', file=sys.stderr)
-        return 1
+        return int(exc.exit_code)
 
 
 if __name__ == '__main__':

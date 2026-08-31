@@ -12,7 +12,7 @@ CLI_SRC = REPO_ROOT / 'apps' / 'vgo-cli' / 'src'
 if str(CLI_SRC) not in sys.path:
     sys.path.insert(0, str(CLI_SRC))
 
-from vgo_cli.errors import CliError
+from vgo_cli.errors import CliUnavailableError
 import vgo_cli.hosts as cli_hosts
 from vgo_cli.hosts import (
     install_mode_for_host,
@@ -27,6 +27,40 @@ def test_normalize_host_id_supports_aliases_and_defaults_unknown_to_registry_def
     assert normalize_host_id('claude') == 'claude-code'
     assert normalize_host_id('codex') == 'codex'
     assert normalize_host_id('unknown-host') == 'codex'
+
+
+def test_missing_default_host_registry_entry_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class MissingRegistryModule:
+        @staticmethod
+        def normalize_adapter_host_id(
+            requested_host: str,
+            registry: dict[str, object],
+        ) -> str:
+            return requested_host
+
+        @staticmethod
+        def resolve_adapter_entry(
+            registry: dict[str, object],
+            host_id: str,
+        ) -> dict[str, object]:
+            raise ValueError(host_id)
+
+    monkeypatch.setattr(
+        cli_hosts,
+        '_load_registry',
+        lambda: (
+            tmp_path,
+            {'default_adapter_id': 'codex'},
+            MissingRegistryModule,
+            object(),
+        ),
+    )
+
+    with pytest.raises(CliUnavailableError, match='Unable to resolve host registry entry'):
+        cli_hosts._resolve_host_entry('unknown-host')
 
 
 def test_workspace_repo_root_resolution_no_longer_requires_installer_core(
@@ -164,7 +198,7 @@ def test_run_powershell_file_error_includes_script_and_resolution_details(monkey
 
     monkeypatch.setattr(cli_process, 'choose_powershell', fake_choose_powershell)
 
-    with pytest.raises(CliError) as excinfo:
+    with pytest.raises(CliUnavailableError) as excinfo:
         run_powershell_file(script_path, '-TargetRoot', '/tmp/out')
 
     message = str(excinfo.value)

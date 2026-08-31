@@ -8,7 +8,14 @@ import subprocess
 import sys
 
 from .core_bridge import run_canonical_entry_core, run_compatibility_exit_core, run_entry_locator_core, run_inspect_run_core, run_local_kernel_core, run_router_core, run_skill_index_core
-from .errors import CliError
+from .errors import (
+    CliError,
+    CliIoError,
+    CliMissingResourceError,
+    CliPermissionError,
+    CliStateError,
+    CliUnavailableError,
+)
 from .output import print_json_payload
 from .process import print_process_output, run_powershell_file, run_subprocess
 from .repo import get_installed_runtime_config, get_local_release_metadata
@@ -16,6 +23,18 @@ from .workspace import extend_workspace_package_path
 
 
 PROJECT_URL = "https://github.com/foryourhealth111-pixel/Vibe-Skills"
+
+
+def _installer_cli_error(exc: RuntimeError | OSError | ValueError) -> CliError:
+    if isinstance(exc, PermissionError):
+        return CliPermissionError(str(exc))
+    if isinstance(exc, FileNotFoundError):
+        return CliMissingResourceError(str(exc))
+    if isinstance(exc, TimeoutError):
+        return CliUnavailableError(str(exc))
+    if isinstance(exc, OSError):
+        return CliIoError(str(exc))
+    return CliStateError(str(exc))
 
 
 def _resolve_skills_dir(raw_value: str) -> Path:
@@ -50,10 +69,35 @@ def _load_public_release_bundle(source_root: Path) -> dict[str, object] | None:
     bundle_path = source_root / "release-bundle.json"
     if not bundle_path.is_file():
         return None
-    payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(bundle_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise CliStateError(f"Unreadable public release bundle: {bundle_path}") from exc
     if not isinstance(payload, dict):
-        raise CliError(f"Expected JSON object: {bundle_path}")
+        raise CliStateError(f"Expected JSON object: {bundle_path}")
     return payload
+
+
+def _bundle_mapping(
+    bundle: dict[str, object],
+    field_name: str,
+    bundle_path: Path,
+) -> dict[str, object]:
+    value = bundle.get(field_name)
+    if not isinstance(value, dict):
+        raise CliStateError(f"Public release bundle field '{field_name}' must be an object: {bundle_path}")
+    return value
+
+
+def _bundle_required_text(
+    mapping: dict[str, object],
+    field_name: str,
+    bundle_path: Path,
+) -> str:
+    value = mapping.get(field_name)
+    if not isinstance(value, str) or not value.strip():
+        raise CliStateError(f"Public release bundle field '{field_name}' must be non-empty text: {bundle_path}")
+    return value.strip()
 
 
 def _local_release_version(source_root: Path) -> str:
@@ -66,15 +110,34 @@ def _local_release_version(source_root: Path) -> str:
 def _install_source_kwargs(source_root: Path) -> dict[str, object]:
     bundle = _load_public_release_bundle(source_root)
     if bundle is not None:
-        public_install = bundle.get("public_install") or {}
-        if str(public_install.get("source_kind") or "").strip() == "public_release":
-            release = bundle.get("release") or {}
-            asset = bundle.get("asset") or {}
-            version = str(release.get("version") or "").strip()
-            asset_name = str(asset.get("file_name") or "").strip()
-            if not version or not asset_name:
-                raise CliError("Public release bundle is missing release version or asset name.")
-            digest = str(asset.get("payload_digest_sha256") or "").strip()
+        public_install_value = bundle.get("public_install")
+        if public_install_value is None:
+            public_install: dict[str, object] = {}
+        elif isinstance(public_install_value, dict):
+            public_install = public_install_value
+        else:
+            raise CliStateError(
+                f"Public release bundle field 'public_install' must be an object: "
+                f"{source_root / 'release-bundle.json'}"
+            )
+        source_kind = public_install.get("source_kind")
+        if source_kind is not None and not isinstance(source_kind, str):
+            raise CliStateError(
+                f"Public release bundle field 'source_kind' must be text: "
+                f"{source_root / 'release-bundle.json'}"
+            )
+        if str(source_kind or "").strip() == "public_release":
+            bundle_path = source_root / "release-bundle.json"
+            release = _bundle_mapping(bundle, "release", bundle_path)
+            asset = _bundle_mapping(bundle, "asset", bundle_path)
+            version = _bundle_required_text(release, "version", bundle_path)
+            asset_name = _bundle_required_text(asset, "file_name", bundle_path)
+            digest_value = asset.get("payload_digest_sha256")
+            if digest_value is not None and not isinstance(digest_value, str):
+                raise CliStateError(
+                    f"Public release bundle field 'payload_digest_sha256' must be text: {bundle_path}"
+                )
+            digest = str(digest_value or "").strip()
             return {
                 "source_kind": "public_release",
                 "release_version": version,
@@ -101,12 +164,15 @@ def install_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import install_vibe_skill
 
-    receipt = install_vibe_skill(
-        repo_root=repo_root,
-        skills_dir=skills_dir,
-        installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
-        **_install_source_kwargs(repo_root),
-    )
+    try:
+        receipt = install_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
+            **_install_source_kwargs(repo_root),
+        )
+    except (RuntimeError, OSError, ValueError) as exc:
+        raise _installer_cli_error(exc) from exc
     print_json_payload(receipt)
     return 0
 
@@ -117,7 +183,18 @@ def uninstall_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import uninstall_vibe_skill
 
-    print_json_payload(uninstall_vibe_skill(skills_dir=skills_dir))
+    try:
+        result = uninstall_vibe_skill(skills_dir=skills_dir)
+    except (RuntimeError, OSError, ValueError) as exc:
+        raise _installer_cli_error(exc) from exc
+    print_json_payload(result)
+    if not result.get("ok"):
+        message = "Vibe uninstall is incomplete; retry after resolving the reported failures."
+        if result.get("unavailable_files") or result.get("unavailable_directories"):
+            raise CliUnavailableError(message)
+        if result.get("permission_denied_files") or result.get("permission_denied_directories"):
+            raise CliPermissionError(message)
+        raise CliIoError(message)
     return 0
 
 
@@ -127,12 +204,15 @@ def update_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import update_vibe_skill
 
-    receipt = update_vibe_skill(
-        repo_root=repo_root,
-        skills_dir=skills_dir,
-        installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
-        **_install_source_kwargs(repo_root),
-    )
+    try:
+        receipt = update_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
+            **_install_source_kwargs(repo_root),
+        )
+    except (RuntimeError, OSError, ValueError) as exc:
+        raise _installer_cli_error(exc) from exc
     print_json_payload(receipt)
     return 0
 
@@ -143,7 +223,10 @@ def check_command(args: argparse.Namespace) -> int:
     extend_workspace_package_path(repo_root)
     from vgo_installer.simple_skill_installer import check_vibe_skill
 
-    result = check_vibe_skill(skills_dir=skills_dir)
+    try:
+        result = check_vibe_skill(skills_dir=skills_dir)
+    except (RuntimeError, OSError, ValueError) as exc:
+        raise _installer_cli_error(exc) from exc
     result["current_state"] = {
         "local_runtime": {
             "result": "PASS" if result.get("ok") else "FAIL",
