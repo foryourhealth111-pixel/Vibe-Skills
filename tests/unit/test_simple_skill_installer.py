@@ -4,6 +4,7 @@ import errno
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import textwrap
@@ -118,6 +119,7 @@ def _run_install_until_process_exit(
         text=True,
         env=environment,
         check=False,
+        timeout=10,
     )
     assert result.returncode == 91, result.stderr
 
@@ -165,6 +167,7 @@ def _run_install_until_staging_exit(*, repo_root: Path, skills_dir: Path) -> Non
         text=True,
         env=environment,
         check=False,
+        timeout=10,
     )
     assert result.returncode == 92, result.stderr
 
@@ -207,6 +210,7 @@ def _run_uninstall_until_state_delete_exit(*, skills_dir: Path) -> None:
         text=True,
         env=environment,
         check=False,
+        timeout=10,
     )
     assert result.returncode == 93, result.stderr
 
@@ -462,7 +466,11 @@ def test_install_rejects_packaging_source_that_escapes_repo_root(tmp_path: Path)
         config_files=("config/../../escaped.txt",),
     )
 
-    with pytest.raises(RuntimeError, match="Unsafe package path|Package path escapes the source root"):
+    expected_error = (
+        f"Unsafe package path in {repo_root / 'config' / 'version-governance.json'}: "
+        "config/../../escaped.txt"
+    )
+    with pytest.raises(RuntimeError, match=re.escape(expected_error)):
         install_vibe_skill(
             repo_root=repo_root,
             skills_dir=skills_dir,
@@ -698,7 +706,8 @@ def test_transaction_hash_rejects_file_replaced_by_symlink_after_precheck(
         swap_after_link_check,
     )
 
-    with pytest.raises(RuntimeError, match="link|identity|type"):
+    expected_error = f"File changed to a symbolic link before hashing: {destination}"
+    with pytest.raises(RuntimeError, match=re.escape(expected_error)):
         simple_skill_installer._current_install_file_sha256(
             destination,
             relpath="installed.txt",
@@ -744,7 +753,10 @@ def test_transaction_hash_rejects_junction_replacement_after_precheck(
 
     monkeypatch.setattr(Path, "is_file", report_raced_path_as_file)
 
-    with pytest.raises(RuntimeError, match="link|junction|non-file|identity|type"):
+    expected_error = (
+        f"File changed to a link, junction, or non-file before hashing: {destination}"
+    )
+    with pytest.raises(RuntimeError, match=re.escape(expected_error)):
         simple_skill_installer._current_install_file_sha256(
             destination,
             relpath="installed.txt",
@@ -929,7 +941,8 @@ def test_uninstall_rejects_owned_path_through_parent_symlink(tmp_path: Path) -> 
     installed_file.parent.rmdir()
     _symlink_or_skip(installed_file.parent, external_root)
 
-    with pytest.raises(RuntimeError, match="escapes|traverses a link or junction"):
+    expected_error = f"Install path escapes the Vibe install root: {installed_file}"
+    with pytest.raises(RuntimeError, match=re.escape(expected_error)):
         uninstall_vibe_skill(skills_dir=skills_dir)
 
     assert external_file.read_text(encoding="utf-8") == "keep me\n"
