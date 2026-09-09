@@ -615,6 +615,24 @@ def test_check_reports_drift_when_receipt_owned_file_changes(tmp_path: Path) -> 
     assert result["drifted_files"] == ["SKILL.md"]
 
 
+def test_check_accepts_utf8_bom_install_receipt(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _seed_runtime_contract(repo_root)
+
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-07-02T08:00:00Z",
+    )
+
+    receipt_path = skills_dir / "vibe" / ".vibeskills" / "install-receipt.json"
+    receipt_path.write_bytes(b"\xef\xbb\xbf" + receipt_path.read_bytes())
+
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+
+
 def test_check_reports_owned_leaf_symlink_as_drift(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     skills_dir = tmp_path / "skills"

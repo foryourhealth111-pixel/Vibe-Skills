@@ -17,6 +17,7 @@ import time
 from typing import Callable, Iterator, NoReturn, ParamSpec, TypeVar, cast
 
 from ._bootstrap import ensure_contracts_src_on_path
+from ._io import load_json
 
 ensure_contracts_src_on_path()
 
@@ -331,7 +332,7 @@ def _sha256_text(value: str) -> str:
 
 
 def _read_json(path: Path) -> dict[str, object]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = load_json(path)
     if not isinstance(payload, dict):
         raise RuntimeError(f"Expected JSON object: {path}")
     return payload

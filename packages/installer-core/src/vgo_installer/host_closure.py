@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ._bootstrap import ensure_contracts_src_on_path
+from ._io import load_json
 
 ensure_contracts_src_on_path()
 
@@ -33,7 +34,7 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = load_json(path)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"Failed to parse JSON settings file: {path} ({exc})") from exc
     if not isinstance(payload, dict):
@@ -117,7 +118,7 @@ def sanitize_legacy_opencode_config(target_root: Path) -> dict[str, object]:
         return receipt
 
     try:
-        payload = json.loads(settings_path.read_text(encoding="utf-8"))
+        payload = load_json(settings_path)
     except json.JSONDecodeError:
         receipt["status"] = "parse-failed"
         return receipt
