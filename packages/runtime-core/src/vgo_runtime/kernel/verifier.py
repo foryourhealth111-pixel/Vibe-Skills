@@ -34,6 +34,23 @@ def verify_run(task_card: TaskCard, plan: WorkPlan, work_results: tuple[Any, ...
             evidence=(),
         )
 
+    plan_ids = tuple(unit.id for unit in plan.work_units)
+    result_ids = tuple(_result_attr(result, "work_unit_id", None) for result in work_results)
+    if (
+        any(not isinstance(unit_id, str) or not unit_id.strip() for unit_id in result_ids)
+        or len(set(result_ids)) != len(result_ids)
+        or len(set(plan_ids)) != len(plan_ids)
+        or set(result_ids) != set(plan_ids)
+    ):
+        return VerificationResult(
+            result="revise_execution",
+            notes=("work result IDs must uniquely match the approved work unit IDs",),
+            failed_criteria=task_card.completion_criteria or ("work result identity is invalid",),
+            evidence=(),
+        )
+    results_by_id = dict(zip(result_ids, work_results))
+    work_results = tuple(results_by_id[unit_id] for unit_id in plan_ids)
+
     needs_execution_results = [
         result for result in work_results if _result_attr(result, "status", "") == "needs_execution"
     ]

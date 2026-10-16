@@ -3,9 +3,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
+from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 from .executor import (
     WorkUnitResult,
@@ -34,7 +37,18 @@ from vgo_runtime.artifact_contract import (
 
 def _write_json(path: Path, payload: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="\n", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            stream.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+        temporary_path.replace(path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
     return path
 
 
@@ -541,6 +555,58 @@ def _task_input_sha256(task_card: TaskCard) -> str:
     })
 
 
+def _execution_checkpoint_payload(
+    task_card: TaskCard, plan: WorkPlan, work_results: list[WorkUnitResult],
+) -> dict[str, object]:
+    # Keep execution identity with its evidence when preview files move ahead.
+    return {
+        "schema_version": "runtime_work_results_v1",
+        "task_input_sha256": _task_input_sha256(task_card),
+        "work_plan": plan.model_dump(),
+        "work_results": [result.model_dump() for result in work_results],
+    }
+
+
+def _checkpoint_work_plan(payload: dict[str, object]) -> WorkPlan | None:
+    rows = payload.get("work_results")
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError("execution checkpoint work_results must be a list of objects")
+    if not {"schema_version", "work_plan", "task_input_sha256"}.intersection(payload):
+        # The pre-versioned work-results format binds to the adjacent plan.
+        return None
+    recorded_plan = payload.get("work_plan")
+    task_digest = payload.get("task_input_sha256")
+    if (
+        payload.get("schema_version") != "runtime_work_results_v1"
+        or not isinstance(recorded_plan, dict)
+        or not isinstance(task_digest, str)
+        or len(task_digest) != 64
+        or any(character not in "0123456789abcdef" for character in task_digest)
+    ):
+        raise ValueError("execution checkpoint requires a supported schema, work plan and task input SHA-256")
+    return _coerce_work_plan(recorded_plan)
+
+
+def _plan_execution_identity(plan: WorkPlan) -> str:
+    return _fingerprint({
+        "task_id": plan.task_id,
+        "work_units": [
+            replace(unit, lifecycle_state="active", reused_from_work_unit_id=None).model_dump()
+            for unit in plan.work_units
+        ],
+    })
+
+
+def _checkpoint_matches_current(
+    payload: dict[str, object], task_card: TaskCard, plan: WorkPlan,
+) -> bool:
+    checkpoint_plan = _checkpoint_work_plan(payload)
+    return checkpoint_plan is None or (
+        payload["task_input_sha256"] == _task_input_sha256(task_card)
+        and _plan_execution_identity(checkpoint_plan) == _plan_execution_identity(plan)
+    )
+
+
 def _dependency_output_sha256(
     work_unit: WorkUnit,
     results_by_id: dict[str, WorkUnitResult],
@@ -571,6 +637,8 @@ def _reusable_completed_result(
     dependency_sha256 = _dependency_output_sha256(current_work_unit, reused_results_by_id)
     if (
         previous_result is None
+        or previous_work_unit is None
+        or previous_result.work_unit_id != previous_work_unit.id
         or dependency_sha256 is None
         or previous_result.task_input_sha256 != task_input_sha256
         or previous_result.dependency_output_sha256 != dependency_sha256
@@ -1140,7 +1208,7 @@ def run_local_kernel(
     resolved_agent_root = agent_root.resolve()
     resolved_workspace_root = workspace_root.resolve() if workspace_root is not None else None
     resolved_repo_root = repo_root.resolve() if repo_root is not None else _repo_root()
-    resolved_run_id = str(run_id or "run-default").strip() or "run-default"
+    resolved_run_id = str(run_id or "").strip() or f"run-{uuid4().hex}"
     artifact_projection = resolve_runtime_artifact_projection(
         agent_root=resolved_agent_root,
         workspace_root=resolved_workspace_root,
@@ -1206,18 +1274,33 @@ def run_local_kernel(
         plan = _unbound_plan_for_agent(plan)
 
     previous_results_by_artifacts: dict[tuple[str, ...], WorkUnitResult] = {}
-    previous_work_units_by_artifacts: dict[tuple[str, ...], WorkUnit] = {
-        work_unit.expected_artifacts: work_unit for work_unit in previous_plan.work_units
-    }
+    checkpoint_plan = previous_plan
     if resume_mode and work_results_path.is_file():
         previous_payload = _load_required_json(work_results_path)
-        for item in previous_payload.get("work_results", []):
+        recorded_plan = _checkpoint_work_plan(previous_payload)
+        if recorded_plan is not None:
+            checkpoint_plan = recorded_plan
+        else:
+            # Snapshot legacy identity before the active plan can be revised.
+            previous_payload = _execution_checkpoint_payload(
+                existing_task_card, previous_plan,
+                [_coerce_work_result(item) for item in previous_payload.get("work_results", [])],
+            )
+            _write_json(work_results_path, previous_payload)
+        previous_rows = previous_payload.get("work_results", [])
+        result_id_counts = Counter(
+            str(item.get("work_unit_id") or "") for item in previous_rows if isinstance(item, dict)
+        )
+        for item in previous_rows:
             if not isinstance(item, dict):
                 continue
             result = _coerce_work_result(item)
-            if result.status == "completed":
+            if result.status == "completed" and result_id_counts[result.work_unit_id] == 1:
                 previous_results_by_artifacts[result.artifacts] = result
 
+    previous_work_units_by_artifacts: dict[tuple[str, ...], WorkUnit] = {
+        work_unit.expected_artifacts: work_unit for work_unit in checkpoint_plan.work_units
+    }
     task_input_sha256 = _task_input_sha256(task_card)
     planned_reused_results: dict[str, WorkUnitResult] = {}
     reused_work_unit_ids: list[str] = []
@@ -1295,6 +1378,10 @@ def run_local_kernel(
     should_execute = bool(execute and agent_skill_organization is not None)
     if should_execute:
         reused_work_unit_ids = []
+    checkpoint_results_by_id = {
+        unit_id: replace(result, work_unit_id=unit_id)
+        for unit_id, result in planned_reused_results.items()
+    }
     for work_unit in (plan.work_units if should_execute else ()):
         reused_result = _reusable_completed_result(
             previous_work_unit=previous_work_units_by_artifacts.get(work_unit.expected_artifacts),
@@ -1346,14 +1433,31 @@ def run_local_kernel(
                     failure_reason=reason,
                 )
             else:
-                result = capture_completed_artifact_sha256(
-                    execute_work_unit(
-                        resolved_agent_root,
-                        task_card,
-                        work_unit,
-                        work_root=run_root / "work-units" / work_unit.id,
-                    )
+                result = execute_work_unit(
+                    resolved_agent_root,
+                    task_card,
+                    work_unit,
+                    work_root=run_root / "work-units" / work_unit.id,
                 )
+                if result.work_unit_id != work_unit.id:
+                    reason = (
+                        f"executor result ID mismatch: expected {work_unit.id}, received {result.work_unit_id}"
+                    )
+                    result = WorkUnitResult(
+                        work_unit_id=work_unit.id,
+                        status="failed",
+                        lifecycle_state="failed",
+                        used_skill=None,
+                        artifacts=work_unit.expected_artifacts,
+                        artifact_paths=(),
+                        proof_artifact_paths=(),
+                        checked_targets=(),
+                        notes=(reason,),
+                        proof=(),
+                        execution_receipt_path=None,
+                        failure_reason=reason,
+                    )
+                result = capture_completed_artifact_sha256(result)
                 if is_final_completed_result(result):
                     result = replace(
                         result,
@@ -1361,6 +1465,12 @@ def run_local_kernel(
                         dependency_output_sha256=dependency_sha256,
                     )
         work_results.append(result)
+        checkpoint_results_by_id[work_unit.id] = result
+        # Publish evidence before advancing the recoverable completion state.
+        _write_json(work_results_path, _execution_checkpoint_payload(
+            task_card, plan,
+            [checkpoint_results_by_id[unit.id] for unit in plan.work_units if unit.id in checkpoint_results_by_id],
+        ))
         results_by_id[work_unit.id] = result
         if is_final_completed_result(result):
             completed_work_units.append(work_unit.id)
@@ -1381,8 +1491,9 @@ def run_local_kernel(
         ))
         work_plan_payload = plan.model_dump()
         _write_json(plan_path, work_plan_payload)
-    work_results_payload = {"work_results": [result.model_dump() for result in work_results]}
-    _write_json(work_results_path, work_results_payload)
+    work_results_payload = _execution_checkpoint_payload(task_card, plan, work_results)
+    if should_execute or not work_results_path.is_file():
+        _write_json(work_results_path, work_results_payload)
 
     verification = verify_run(task_card, plan, tuple(work_results))
     verification_payload = verification.model_dump()
@@ -1620,11 +1731,13 @@ def inspect_local_run(
 
     goal = str(task_card.get("goal") or "")
     verification_result = str(verification.get("result") or "")
-    current_verification = verify_run(
-        _coerce_task_card(task_card),
-        _coerce_work_plan(plan),
-        tuple(_coerce_work_result(item) for item in work_results.get("work_results", [])),
-    ).model_dump()
+    current_task_card = _coerce_task_card(task_card)
+    current_plan = _coerce_work_plan(plan)
+    current_results = (
+        tuple(_coerce_work_result(item) for item in work_results.get("work_results", []))
+        if _checkpoint_matches_current(work_results, current_task_card, current_plan) else ()
+    )
+    current_verification = verify_run(current_task_card, current_plan, current_results).model_dump()
     verification_checked_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     host_context = _inspect_host_context(
         agent_root=resolved_agent_root,

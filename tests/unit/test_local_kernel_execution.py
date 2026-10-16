@@ -1856,3 +1856,34 @@ enabled: true
     assert inspected["work_plan"]["superseded_work_units"][0]["lifecycle_state"] == "superseded"
     assert inspected["work_dossier"]["revision_lineage"]["superseded_work_units"][0]["artifacts"] == ["review notes"]
     assert inspected["work_dossier"]["closure"]["outputs"]["artifacts"] == []
+
+
+def test_cli_omitted_run_id_keeps_unrelated_tasks_separate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    from vgo_cli.main import main as cli_main
+
+    agent = tmp_path / "agent"
+    workspace = tmp_path / "workspace"
+    agent.mkdir()
+    workspace.mkdir()
+    arguments = [
+        "run", "--repo-root", str(REPO_ROOT), "--agent-root", str(agent),
+        "--workspace-root", str(workspace), "--json",
+    ]
+    first_prompt = "Produce a report about benchmark results."
+    second_prompt = "Review the deployment risk."
+    assert cli_main([*arguments, "--prompt", first_prompt]) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert cli_main([*arguments, "--prompt", second_prompt]) == 0
+    second = json.loads(capsys.readouterr().out)
+
+    assert first["run_id"] != second["run_id"]
+    assert first["artifacts"]["work_results"] != second["artifacts"]["work_results"]
+    assert second["task_card"]["goal"] == second_prompt
+    assert second["work_summary"]["continuation_mode"] == "fresh"
+    assert cli_main([*arguments, "--prompt", first_prompt, "--run-id", first["run_id"]]) == 0
+    resumed = json.loads(capsys.readouterr().out)
+    assert resumed["run_id"] == first["run_id"]
+    assert resumed["work_summary"]["continuation_mode"] == "resumed"
+    assert resumed["task_card"]["goal"] == first_prompt
