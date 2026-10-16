@@ -86,7 +86,7 @@ def _load_extra_roots(config_path: Path) -> list[str]:
 
 def _append_roots(
     roots: list[HostSkillRoot],
-    seen: set[str],
+    seen: set[Path],
     *,
     host_id: str,
     root_key: str,
@@ -97,10 +97,9 @@ def _append_roots(
 ) -> None:
     for raw_root in raw_roots:
         path = _expand_root_path(raw_root, base_root=base_root, home_root=home_root)
-        key = str(path).casefold()
-        if key in seen:
+        if path in seen:
             continue
-        seen.add(key)
+        seen.add(path)
         roots.append(HostSkillRoot(host_id=host_id, root_key=root_key, path=path, source=source))
 
 
@@ -117,7 +116,7 @@ def resolve_host_skill_roots(
 
     home_root = _home_from_agent_root(agent_root)
     roots: list[HostSkillRoot] = []
-    seen: set[str] = set()
+    seen: set[Path] = set()
 
     if workspace_root is not None:
         workspace_config = workspace_root.resolve() / ".vibeskills" / "skill-roots.json"
@@ -145,9 +144,8 @@ def resolve_host_skill_roots(
     )
 
     skills_dir = _skills_dir_from_agent_root(agent_root)
-    skills_dir_key = str(skills_dir).casefold()
-    if skills_dir_key not in seen:
-        seen.add(skills_dir_key)
+    if skills_dir not in seen:
+        seen.add(skills_dir)
         roots.append(
             HostSkillRoot(
                 host_id=normalized_host_id,
@@ -159,9 +157,8 @@ def resolve_host_skill_roots(
 
     if normalized_host_id == "codex":
         plugin_cache = (home_root / ".codex" / "plugins" / "cache").resolve()
-        plugin_cache_key = str(plugin_cache).casefold()
-        if plugin_cache.is_dir() and plugin_cache_key not in seen:
-            seen.add(plugin_cache_key)
+        if plugin_cache.is_dir() and plugin_cache not in seen:
+            seen.add(plugin_cache)
             roots.append(
                 HostSkillRoot(
                     host_id=normalized_host_id,

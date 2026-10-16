@@ -38,6 +38,15 @@ class WorkUnitResult:
         return tuple(path for path in (*self.artifact_paths, *self.proof_artifact_paths) if str(path).strip())
 
 
+def is_final_completed_result(result: object) -> bool:
+    read = result.get if isinstance(result, dict) else lambda name: getattr(result, name, None)
+    return (
+        read("status") == "completed"
+        and read("artifact_kind") == "final"
+        and read("proof_ready") is True
+    )
+
+
 def artifact_sha256_for_paths(artifact_paths: tuple[str, ...]) -> tuple[str, ...]:
     digests: list[str] = []
     for raw_path in artifact_paths:

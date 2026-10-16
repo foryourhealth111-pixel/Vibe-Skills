@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from .executor import artifact_sha256_for_paths
+from .executor import artifact_sha256_for_paths, is_final_completed_result
 from .task_card import TaskCard
 from .work_plan import WorkPlan
 
@@ -78,6 +78,8 @@ def verify_run(task_card: TaskCard, plan: WorkPlan, work_results: tuple[Any, ...
     weak_proof = []
     collected_evidence: list[str] = []
     for work_unit, work_result in zip(plan.work_units, work_results):
+        if not is_final_completed_result(work_result):
+            weak_proof.append(f"{work_unit.id}: completed result requires final, proof-ready artifacts")
         proof = tuple(str(value) for value in _result_attr(work_result, "proof", ()))
         if not proof:
             missing_proof.append(work_unit.id)

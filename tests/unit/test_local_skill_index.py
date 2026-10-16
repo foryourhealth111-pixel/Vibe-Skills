@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import sys
+
+import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -428,3 +431,60 @@ def test_local_skill_index_and_router_share_the_same_capability_bridge() -> None
         (capability, tuple(spec["skill_inference_hints"]))
         for capability, spec in CAPABILITY_BRIDGE
     )
+
+
+@pytest.mark.parametrize("damaged_content", [b"", b'{"schema_version":', b"\xff\xfe"])
+def test_skill_index_rebuilds_corrupt_derived_cards(tmp_path: Path, damaged_content: bytes) -> None:
+    agent_root = tmp_path / "agent-root"
+    _write_skill(
+        agent_root / "vibe/skills/local/write-report",
+        "---\nname: Write Report\ndescription: Produce a report from results.\n---",
+    )
+    first = build_skill_index(agent_root)
+    card_path = Path(first["skill_cache"]["cards"][0]["card_path"])
+    card_path.write_bytes(damaged_content)
+
+    refreshed = build_skill_index(agent_root)
+
+    assert [entry["skill_id"] for entry in refreshed["skills"]] == ["write-report"]
+    assert json.loads(card_path.read_text(encoding="utf-8"))["skill_id"] == "write-report"
+    assert refreshed["skill_cache"]["refreshed_count"] == 1
+    assert refreshed["skill_cache"]["cards"][0]["refresh_reason"] == "invalid_cache"
+    previous_mtime = card_path.stat().st_mtime_ns
+    reused = build_skill_index(agent_root)
+    assert reused["skill_cache"]["reused_count"] == 1
+    assert card_path.stat().st_mtime_ns == previous_mtime
+
+
+def test_skill_card_interrupted_refresh_preserves_previous_card(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent_root = tmp_path / "agent-root"
+    skill_file = _write_skill(
+        agent_root / "vibe/skills/local/write-report",
+        "---\nname: Write Report\ndescription: Produce a report from results.\n---",
+    )
+    first = build_skill_index(agent_root)
+    card_path = Path(first["skill_cache"]["cards"][0]["card_path"])
+    previous_content = card_path.read_bytes()
+    previous_mtime = card_path.stat().st_mtime_ns
+    skill_file.write_text(skill_file.read_text(encoding="utf-8") + "\nUpdated guidance.\n", encoding="utf-8")
+
+    def fail_replace(source: object, destination: object) -> None:
+        assert Path(destination) == card_path
+        assert card_path.read_bytes() == previous_content
+        raise OSError("simulated replacement failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(skill_index.os, "replace", fail_replace)
+        with pytest.raises(OSError, match="simulated replacement failure"):
+            build_skill_index(agent_root)
+
+    assert card_path.read_bytes() == previous_content
+    assert card_path.stat().st_mtime_ns == previous_mtime
+    assert set(card_path.parent.iterdir()) == {card_path}
+    refreshed = build_skill_index(agent_root)
+    assert refreshed["skill_cache"]["refreshed_count"] == 1
+    assert card_path.read_bytes() != previous_content
+    assert card_path.stat().st_mtime_ns > previous_mtime
+    assert json.loads(card_path.read_text(encoding="utf-8"))["content_sha256"] == refreshed["skills"][0]["content_sha256"]

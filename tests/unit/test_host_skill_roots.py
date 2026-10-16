@@ -173,3 +173,31 @@ def test_bom_config_preserves_strict_validation(tmp_path: Path, content: str, me
             agent_root=tmp_path / "home" / ".agents" / "skills",
             workspace_root=workspace,
         )
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Requires case-sensitive path identity")
+def test_case_distinct_configured_skill_roots_remain_discoverable(tmp_path: Path) -> None:
+    from vgo_runtime.kernel.skill_index import build_skill_index
+
+    agent_root = tmp_path / "home/.agents/skills"
+    workspace_root = tmp_path / "workspace"
+    for root_name, skill_id in [("TeamSkills", "upper-report"), ("teamskills", "lower-report")]:
+        skill_file = workspace_root / root_name / skill_id / "SKILL.md"
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text(
+            f"---\nname: {skill_id}\ndescription: Produce a report.\n---\n", encoding="utf-8",
+        )
+    assert not (workspace_root / "TeamSkills").samefile(workspace_root / "teamskills")
+    _write_skill_roots_config(
+        workspace_root / ".vibeskills/skill-roots.json", ["TeamSkills", "teamskills"],
+    )
+
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT, host_id="codex", agent_root=agent_root, workspace_root=workspace_root,
+    )
+    index = build_skill_index(agent_root, host_roots=tuple(root.path for root in roots))
+
+    assert {entry["skill_id"] for entry in index["skills"]} == {"upper-report", "lower-report"}
+    assert [root.path for root in roots[:2]] == [
+        (workspace_root / "TeamSkills").resolve(), (workspace_root / "teamskills").resolve(),
+    ]

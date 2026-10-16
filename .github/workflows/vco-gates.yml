@@ -234,10 +234,11 @@ jobs:
       - name: Install pytest
         run: python -m pip install --upgrade pip pytest
 
-      - name: Verify resume inputs, dependencies, and entry contracts
+      - name: Verify readiness, resume, skill discovery, and entry contracts
         run: >-
           python -B -m pytest -q -ra
           tests/unit/test_local_kernel_resume.py
+          tests/unit/test_local_skill_index.py
           tests/unit/test_local_kernel_execution.py
           tests/unit/test_host_skill_roots.py
           tests/unit/test_vibe_skill_entry_contract.py

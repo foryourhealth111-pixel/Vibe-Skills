@@ -343,7 +343,7 @@ enabled: true
     assert result["work_dossier"]["closure"]["task"] == result["task_card"]["goal"]
     assert result["work_dossier"]["closure"]["skills"]["bound_skill_ids"] == ["code-review"]
     assert set(result["work_dossier"]["closure"]["skills"]) == {"bound_skill_ids"}
-    assert result["work_dossier"]["closure"]["outputs"]["artifacts"] == ["review notes"]
+    assert result["work_dossier"]["closure"]["outputs"]["artifacts"] == []
     assert result["work_dossier"]["reading_order"] == [
         "task_card",
         "work_plan",
@@ -480,6 +480,9 @@ def test_work_dossier_delivery_summary_reports_only_verified_results(
     assert delivery["locations"] == list(result["work_results"]["work_results"][0]["artifact_paths"])
     assert delivery["checks"] == ["review notes exists"]
     assert delivery["blockers"] == []
+    assert result["work_dossier"]["closure"]["outputs"] == {
+        "artifacts": delivery["results"], "artifact_paths": delivery["locations"],
+    }
 
 
 def test_run_local_kernel_infers_deliverables_without_explicit_context(tmp_path: Path) -> None:
@@ -1852,4 +1855,4 @@ enabled: true
     assert inspected["work_plan"]["superseded_work_units"][0]["expected_artifacts"] == ["review notes"]
     assert inspected["work_plan"]["superseded_work_units"][0]["lifecycle_state"] == "superseded"
     assert inspected["work_dossier"]["revision_lineage"]["superseded_work_units"][0]["artifacts"] == ["review notes"]
-    assert inspected["work_dossier"]["closure"]["outputs"]["artifacts"] == ["report"]
+    assert inspected["work_dossier"]["closure"]["outputs"]["artifacts"] == []

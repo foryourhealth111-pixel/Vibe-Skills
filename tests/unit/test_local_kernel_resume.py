@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import pytest
 
 from tests.unit.test_local_kernel_execution import run_local_kernel_with_agent_choice
 from vgo_runtime.kernel.executor import WorkUnitResult
-from vgo_runtime.kernel.loop import run_local_kernel
+from vgo_runtime.kernel.loop import inspect_local_run, run_local_kernel
 from vgo_runtime.kernel.task_card import TaskCard
 from vgo_runtime.kernel.work_plan import WorkUnit
 
@@ -233,3 +234,106 @@ def test_resume_preserves_independent_work_and_blocks_failed_dependents(
     assert by_id["wu-2"]["artifact_paths"] == ()
     assert by_id["wu-2"]["proof_ready"] is False
     assert resumed["verification"]["result"] != "done"
+
+
+@pytest.mark.parametrize(
+    ("artifact_kind", "proof_ready"),
+    [("scaffold", False), ("scaffold", True), ("final", False)],
+)
+def test_completed_readiness_controls_verification_and_reuse(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, artifact_kind: str, proof_ready: bool,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return replace(
+            _completed_result(unit, work_root, "result awaiting final proof"),
+            artifact_kind=artifact_kind, proof_ready=proof_ready,
+        )
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, run_id="unready-completion", prompt="Produce a report.",
+        context={"deliverables": ["report"]},
+    )
+    first = run_local_kernel_with_agent_choice(**arguments)
+    assert first["verification"]["result"] == "revise_execution"
+    assert first["work_summary"]["proof_ready"] is False
+    assert first["work_summary"]["completed_work_unit_count"] == 0
+    assert first["work_dossier"]["delivery_summary"]["results"] == []
+    assert first["work_dossier"]["closure"]["outputs"] == {"artifacts": [], "artifact_paths": []}
+    dossier_text = Path(first["artifacts"]["work_dossier_markdown"]).read_text(encoding="utf-8")
+    proof_section = dossier_text.split("## Proof", 1)[1].split("## Task Evolution", 1)[0]
+    assert "- artifact:" not in proof_section
+    assert "- artifact path:" not in proof_section
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["verification"]["result"] == "revise_execution"
+    assert resumed["reused_work_units"] == []
+    assert calls == ["wu-1", "wu-1"]
+
+
+@pytest.mark.parametrize(
+    ("artifact_kind", "proof_ready"),
+    [("scaffold", False), ("scaffold", True), ("final", False)],
+)
+def test_unready_completed_dependency_blocks_dependent_execution(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, artifact_kind: str, proof_ready: bool,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        result = _completed_result(unit, work_root, "upstream proof pending")
+        return replace(result, artifact_kind=artifact_kind, proof_ready=proof_ready) if unit.id == "wu-1" else result
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent_root, run_id="unready-dependency", prompt="Produce a summary and report.",
+        context={"deliverables": ["summary", "report"]},
+    )
+    assert tuple(result["plan"]["work_units"][1]["depends_on"]) == ("wu-1",)
+    assert calls == ["wu-1"]
+    assert result["work_results"]["work_results"][1]["status"] == "blocked"
+    assert result["verification"]["result"] != "done"
+
+
+@pytest.mark.parametrize("mutation", ["none", "modify", "delete"])
+def test_inspect_checks_current_deliveries_and_preserves_verification_snapshot(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, mutation: str,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, "# Verified report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    first = run_local_kernel_with_agent_choice(
+        agent_root=agent_root, run_id="inspect-integrity", prompt="Produce a report.",
+        context={"deliverables": ["report"]},
+    )
+    assert first["verification"]["result"] == "done"
+    artifact = Path(first["work_results"]["work_results"][0]["artifact_paths"][0])
+    if mutation == "modify":
+        artifact.write_text("# Changed after completion\n", encoding="utf-8")
+    elif mutation == "delete":
+        artifact.unlink()
+    run_root = Path(first["artifacts"]["work_results"]).parent
+    before = {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in run_root.rglob("*") if path.is_file()
+    }
+
+    inspected = inspect_local_run(agent_root=agent_root, run_id="inspect-integrity")
+
+    expected = "done" if mutation == "none" else "revise_execution"
+    assert inspected["verification"] == json.loads(json.dumps(first["verification"]))
+    assert inspected["current_verification"]["result"] == expected
+    assert inspected["summary"]["verification_result"] == expected
+    assert inspected["summary"]["recorded_verification_result"] == "done"
+    assert inspected["summary"]["proof_ready"] is (mutation == "none")
+    assert inspected["summary"]["verification_checked_at"] == inspected["verification_checked_at"]
+    checked_at = datetime.fromisoformat(inspected["verification_checked_at"].replace("Z", "+00:00"))
+    assert checked_at.utcoffset() == timezone.utc.utcoffset(None)
+    assert before == {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in run_root.rglob("*") if path.is_file()
+    }
