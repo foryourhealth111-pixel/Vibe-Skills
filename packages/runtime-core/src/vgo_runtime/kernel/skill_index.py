@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -572,7 +573,8 @@ def _extract_routing_boundary_not_for(skill_file: Path) -> list[str]:
 
 def _card_file_name(skill_id: str) -> str:
     safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", skill_id.strip())
-    return f"{safe or 'skill'}.json"
+    digest = hashlib.sha256(skill_id.encode("utf-8")).hexdigest()
+    return f"{safe[:48] or 'skill'}-{digest}.json"
 
 
 def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:

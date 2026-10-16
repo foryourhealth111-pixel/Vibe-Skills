@@ -8,9 +8,11 @@ from pathlib import Path
 import pytest
 
 from tests.unit.test_local_kernel_execution import run_local_kernel_with_agent_choice
-from vgo_runtime.kernel.executor import WorkUnitResult
+from vgo_runtime.kernel.executor import WorkUnitResult, capture_completed_artifact_sha256
 from vgo_runtime.kernel.loop import inspect_local_run, run_local_kernel
-from vgo_runtime.kernel.task_card import TaskCard
+from vgo_runtime.kernel.planner import build_work_plan
+from vgo_runtime.kernel.task_card import TaskCard, build_task_card
+from vgo_runtime.kernel.verifier import verify_run
 from vgo_runtime.kernel.work_plan import WorkUnit
 
 
@@ -337,3 +339,277 @@ def test_inspect_checks_current_deliveries_and_preserves_verification_snapshot(
         path: (path.read_bytes(), path.stat().st_mtime_ns)
         for path in run_root.rglob("*") if path.is_file()
     }
+
+
+@pytest.mark.parametrize("preview_kind", ["same", "input", "acceptance_criteria", "unbound"])
+def test_plan_only_preserves_identity_bound_completed_execution(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, preview_kind: str,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, "# Finished report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="preview-completed", prompt="Produce a report.")
+    context: dict[str, object] = {"deliverables": ["report"], "constraints": ["Version A"]}
+    first = run_local_kernel_with_agent_choice(**arguments, context=context)
+    assert first["verification"]["result"] == "done"
+    ledger = Path(first["artifacts"]["work_results"])
+    before = json.loads(ledger.read_text(encoding="utf-8"))
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    if preview_kind == "input":
+        context = {**context, "constraints": ["Version B"], "revision_mode": "replace"}
+    if preview_kind == "acceptance_criteria":
+        organization["modules"][0]["acceptance_criteria"][0]["description"] = "Include an audited appendix."
+    preview = run_local_kernel(
+        **arguments, context=context, execute=False,
+        agent_skill_organization=None if preview_kind == "unbound" else organization,
+    )
+    assert json.loads(ledger.read_text(encoding="utf-8")) == before
+    if preview_kind in {"input", "acceptance_criteria", "unbound"}:
+        assert preview["verification"]["result"] != "done"
+        inspected = inspect_local_run(agent_root=agent_root, run_id="preview-completed")
+        assert inspected["current_verification"]["result"] != "done"
+    resumed = run_local_kernel(**arguments, context=context, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    changed = preview_kind in {"input", "acceptance_criteria"}
+    assert calls == (["wu-1", "wu-1"] if changed else ["wu-1"])
+    assert resumed["reused_work_units"] == ([] if changed else ["wu-1"])
+
+
+@pytest.mark.parametrize("failure_boundary", ["executor", "checkpoint_replace"])
+def test_completed_checkpoint_survives_a_later_unit_failure(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, failure_boundary: str,
+) -> None:
+    calls: list[str] = []
+    interrupted = False
+    ledger: Path | None = None
+    original_replace = Path.replace
+
+    def replace_checkpoint(source: Path, target: Path) -> Path:
+        nonlocal interrupted
+        if failure_boundary == "checkpoint_replace" and Path(target).name == "work-results.json":
+            payload = json.loads(source.read_text(encoding="utf-8"))
+            if len(payload["work_results"]) == 2 and not interrupted:
+                interrupted = True
+                raise OSError("simulated checkpoint replacement failure")
+        return original_replace(source, target)
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        nonlocal interrupted, ledger
+        ledger = work_root.parent.parent / "work-results.json"
+        calls.append(unit.id)
+        if failure_boundary == "executor" and unit.id == "wu-2" and not interrupted:
+            interrupted = True
+            raise RuntimeError("simulated second-unit executor interruption")
+        return _completed_result(unit, work_root, f"completed {unit.id}")
+
+    monkeypatch.setattr(Path, "replace", replace_checkpoint)
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, run_id="interrupted-chain", prompt="Produce a summary and report.",
+        context={"deliverables": ["summary", "report"]},
+    )
+    error = RuntimeError if failure_boundary == "executor" else OSError
+    with pytest.raises(error, match="simulated"):
+        run_local_kernel_with_agent_choice(**arguments)
+    assert ledger is not None and ledger.is_file()
+    persisted = json.loads(ledger.read_text(encoding="utf-8"))
+    assert [row["work_unit_id"] for row in persisted["work_results"]] == ["wu-1"]
+    state = json.loads((ledger.parent / "run-state.json").read_text(encoding="utf-8"))
+    assert state["completed_work_units"] == ["wu-1"]
+    assert not list(ledger.parent.glob(".work-results.json.*.tmp"))
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["verification"]["result"] == "done"
+    assert calls == ["wu-1", "wu-2", "wu-2"]
+    assert resumed["reused_work_units"] == ["wu-1"]
+
+
+def test_interrupted_plan_revision_keeps_checkpoint_execution_identity(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    interrupt = False
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        nonlocal interrupt
+        calls.append(unit.acceptance_criteria[0].description)
+        if interrupt:
+            interrupt = False
+            raise RuntimeError("simulated revised executor interruption")
+        return _completed_result(unit, work_root, "# Finished report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="revised-interruption", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    ledger = Path(first["artifacts"]["work_results"])
+    before = json.loads(ledger.read_text(encoding="utf-8"))
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    organization["modules"][0]["acceptance_criteria"][0]["description"] = "Include an audited appendix."
+    interrupt = True
+    with pytest.raises(RuntimeError, match="simulated revised"):
+        run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert json.loads(ledger.read_text(encoding="utf-8")) == before
+    resumed = run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    assert resumed["reused_work_units"] == []
+    assert len(calls) == 3
+    assert calls[1:] == ["Include an audited appendix.", "Include an audited appendix."]
+
+
+@pytest.mark.parametrize("identity_case", ["foreign", "duplicate", "missing", "empty", "reordered"])
+def test_verifier_binds_results_to_approved_unit_ids(tmp_path: Path, identity_case: str) -> None:
+    task = build_task_card(prompt="Produce a summary and report.", context={"deliverables": ["summary", "report"]})
+    plan = build_work_plan(task, ())
+    results = tuple(
+        capture_completed_artifact_sha256(_completed_result(unit, tmp_path / unit.id, f"Output for {unit.id}"))
+        for unit in plan.work_units
+    )
+    assert verify_run(task, plan, results).result == "done"
+    if identity_case == "reordered":
+        assert verify_run(task, plan, tuple(reversed(results))).result == "done"
+        return
+    if identity_case == "missing":
+        invalid = results[:1]
+    else:
+        wrong_id = {"foreign": "another-run-unit", "duplicate": "wu-1", "empty": ""}[identity_case]
+        invalid = (results[0], replace(results[1], work_unit_id=wrong_id))
+    assert verify_run(task, plan, invalid).result != "done"
+
+
+@pytest.mark.parametrize("bad_unit, wrong_id", [("wu-1", "another-run-unit"), ("wu-2", "wu-1")])
+def test_executor_result_identity_is_checked_before_dependency_admission(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, bad_unit: str, wrong_id: str,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        result = _completed_result(unit, work_root, f"Output for {unit.id}")
+        return replace(result, work_unit_id=wrong_id) if unit.id == bad_unit else result
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent_root, run_id="wrong-result-binding", prompt="Produce a summary, report and briefing.",
+        context={"deliverables": ["summary", "report", "briefing"]},
+    )
+    assert result["verification"]["result"] != "done"
+    assert result["work_summary"]["proof_ready"] is False
+    assert calls == (["wu-1"] if bad_unit == "wu-1" else ["wu-1", "wu-2"])
+    persisted = json.loads(Path(result["artifacts"]["work_results"]).read_text(encoding="utf-8"))
+    rejected = next(row for row in persisted["work_results"] if row["work_unit_id"] == bad_unit)
+    assert rejected["status"] == "failed"
+    assert rejected["proof_ready"] is False
+    assert "executor result ID mismatch" in rejected["failure_reason"]
+
+
+def test_resume_rejects_checkpoint_result_with_foreign_unit_id(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, "# Report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="foreign-checkpoint-id", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    ledger = Path(first["artifacts"]["work_results"])
+    payload = json.loads(ledger.read_text(encoding="utf-8"))
+    payload["work_results"][0]["work_unit_id"] = "foreign-unit"
+    ledger.write_text(json.dumps(payload), encoding="utf-8")
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["verification"]["result"] == "done"
+    assert resumed["reused_work_units"] == []
+    assert calls == ["wu-1", "wu-1"]
+
+
+@pytest.mark.parametrize("field", ["work_plan", "task_input_sha256", "schema_version"])
+def test_versioned_checkpoint_requires_complete_execution_identity(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, field: str,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, "# Report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="invalid-checkpoint", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    ledger = Path(first["artifacts"]["work_results"])
+    payload = json.loads(ledger.read_text(encoding="utf-8"))
+    payload[field] = None
+    ledger.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="execution checkpoint"):
+        inspect_local_run(agent_root=agent_root, run_id="invalid-checkpoint")
+    with pytest.raises(ValueError, match="execution checkpoint"):
+        run_local_kernel(**arguments, agent_skill_organization=first["agent_skill_organization"])
+
+
+@pytest.mark.parametrize("change_criteria", [False, True])
+def test_legacy_results_capture_their_plan_before_preview(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, change_criteria: bool,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, "# Report\n")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="legacy-preview", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    ledger = Path(first["artifacts"]["work_results"])
+    rows = json.loads(ledger.read_text(encoding="utf-8"))["work_results"]
+    ledger.write_text(json.dumps({"work_results": rows}), encoding="utf-8")
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    if change_criteria:
+        organization["modules"][0]["acceptance_criteria"][0]["description"] = "Include an audited appendix."
+    run_local_kernel(
+        **arguments, execute=False, agent_skill_organization=organization if change_criteria else None,
+    )
+    checkpoint = json.loads(ledger.read_text(encoding="utf-8"))
+    assert checkpoint["work_results"] == rows
+    assert checkpoint["work_plan"] == json.loads(json.dumps(first["plan"]))
+    resumed = run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    assert calls == (["wu-1", "wu-1"] if change_criteria else ["wu-1"])
+
+
+def test_partial_retry_retains_later_independent_completed_checkpoint(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    interrupt = False
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        nonlocal interrupt
+        calls.append(unit.id)
+        if interrupt and unit.id == "wu-2":
+            interrupt = False
+            raise RuntimeError("simulated independent retry interruption")
+        return _completed_result(unit, work_root, f"Output for {unit.id}")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, run_id="independent-checkpoints", prompt="Produce a summary, report and briefing.",
+        context={"deliverables": ["summary", "report", "briefing"]},
+    )
+    first = run_local_kernel_with_agent_choice(**arguments)
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    for module in organization["modules"]:
+        module["depends_on"] = []
+    first = run_local_kernel(**arguments, agent_skill_organization=organization)
+    for row in first["work_results"]["work_results"][:2]:
+        Path(row["artifact_paths"][0]).write_text("Drifted output", encoding="utf-8")
+    calls.clear()
+    interrupt = True
+    with pytest.raises(RuntimeError, match="simulated independent"):
+        run_local_kernel(**arguments, agent_skill_organization=organization)
+    checkpoint = json.loads(Path(first["artifacts"]["work_results"]).read_text(encoding="utf-8"))
+    assert [row["work_unit_id"] for row in checkpoint["work_results"]] == ["wu-1", "wu-3"]
+    resumed = run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    assert calls == ["wu-1", "wu-2", "wu-2"]
+    assert resumed["reused_work_units"] == ["wu-1", "wu-3"]

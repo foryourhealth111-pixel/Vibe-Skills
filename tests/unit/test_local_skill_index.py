@@ -488,3 +488,30 @@ def test_skill_card_interrupted_refresh_preserves_previous_card(
     assert card_path.read_bytes() != previous_content
     assert card_path.stat().st_mtime_ns > previous_mtime
     assert json.loads(card_path.read_text(encoding="utf-8"))["content_sha256"] == refreshed["skills"][0]["content_sha256"]
+
+
+@pytest.mark.parametrize("skill_ids", [("report+writer", "report writer"), ("report_writer", "report+writer")])
+def test_distinct_installed_skill_ids_have_distinct_stable_cache_cards(
+    tmp_path: Path, skill_ids: tuple[str, str],
+) -> None:
+    agent_root = tmp_path / "agent"
+    host_root = tmp_path / "host-skills"
+    for skill_id in skill_ids:
+        _write_skill(
+            host_root / skill_id,
+            f"---\nname: {skill_id}\ndescription: Write a report.\n---",
+        )
+    first = skill_index.build_skill_catalog(agent_root=agent_root, host_roots=(host_root,))
+    entries = [row for row in first["entries"] if row["active"] and row["source_kind"] == "host_installed"]
+    assert {row["skill_id"] for row in entries} == set(skill_ids)
+    paths = {row["skill_id"]: row["capability_card_path"] for row in entries}
+    assert len(set(paths.values())) == len(skill_ids)
+    for skill_id, path in paths.items():
+        card = json.loads(Path(path).read_text(encoding="utf-8"))
+        assert card["skill_id"] == skill_id
+    second = skill_index.build_skill_catalog(agent_root=agent_root, host_roots=(host_root,))
+    assert {
+        row["skill_id"]: row["capability_card_path"]
+        for row in second["entries"] if row["active"] and row["source_kind"] == "host_installed"
+    } == paths
+    assert second["skill_cache"]["refreshed_count"] == 0
