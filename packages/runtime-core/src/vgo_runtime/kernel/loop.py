@@ -770,22 +770,6 @@ def _build_work_dossier(
             if isinstance(unit, dict)
         ]
     )
-    delivered_artifacts = _unique_non_empty(
-        [
-            str(artifact)
-            for row in result_rows
-            if isinstance(row, dict)
-            for artifact in row.get("artifacts", [])
-        ]
-    )
-    delivered_artifact_paths = _unique_non_empty(
-        [
-            str(path)
-            for row in result_rows
-            if isinstance(row, dict)
-            for path in row.get("artifact_paths", [])
-        ]
-    )
     verification_evidence = verification.get("evidence", [])
     evidence_rows = (
         [str(item) for item in verification_evidence]
@@ -930,8 +914,8 @@ def _build_work_dossier(
                 "bound_skill_ids": bound_skill_ids,
             },
             "outputs": {
-                "artifacts": delivered_artifacts,
-                "artifact_paths": delivered_artifact_paths,
+                "artifacts": delivery_results,
+                "artifact_paths": delivery_locations,
             },
             "proof": {
                 "result": str(verification.get("result") or ""),

@@ -262,6 +262,11 @@ def test_completed_readiness_controls_verification_and_reuse(
     assert first["work_summary"]["proof_ready"] is False
     assert first["work_summary"]["completed_work_unit_count"] == 0
     assert first["work_dossier"]["delivery_summary"]["results"] == []
+    assert first["work_dossier"]["closure"]["outputs"] == {"artifacts": [], "artifact_paths": []}
+    dossier_text = Path(first["artifacts"]["work_dossier_markdown"]).read_text(encoding="utf-8")
+    proof_section = dossier_text.split("## Proof", 1)[1].split("## Task Evolution", 1)[0]
+    assert "- artifact:" not in proof_section
+    assert "- artifact path:" not in proof_section
     resumed = run_local_kernel_with_agent_choice(**arguments)
     assert resumed["verification"]["result"] == "revise_execution"
     assert resumed["reused_work_units"] == []
