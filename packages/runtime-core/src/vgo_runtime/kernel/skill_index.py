@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import tempfile
 from typing import Any
 
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
@@ -602,15 +603,29 @@ def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:
 def _load_card(path: Path) -> dict[str, object] | None:
     if not path.is_file():
         return None
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
+        return None
     return payload if isinstance(payload, dict) else None
 
 
 def _write_card(path: Path, payload: dict[str, object]) -> None:
     previous_mtime = path.stat().st_mtime_ns if path.exists() else None
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    if previous_mtime is not None and path.stat().st_mtime_ns <= previous_mtime:
-        os.utime(path, ns=(previous_mtime + 1, previous_mtime + 1))
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="\n", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            stream.write(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        if previous_mtime is not None and temporary_path.stat().st_mtime_ns <= previous_mtime:
+            os.utime(temporary_path, ns=(previous_mtime + 1, previous_mtime + 1))
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dict[str, object]:
@@ -626,6 +641,7 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
         skill_id = str(entry["skill_id"])
         card_path = cards_dir / _card_file_name(skill_id)
         payload = _skill_card_payload(entry)
+        cache_exists = card_path.is_file()
         existing = _load_card(card_path)
         reused = existing == payload
         if reused:
@@ -640,6 +656,12 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
                 "card_path": str(card_path.resolve()),
                 "content_sha256": payload["content_sha256"],
                 "reused": reused,
+                "refresh_reason": (
+                    None if reused else
+                    "missing_cache" if not cache_exists else
+                    "invalid_cache" if existing is None else
+                    "content_changed"
+                ),
             }
         )
 

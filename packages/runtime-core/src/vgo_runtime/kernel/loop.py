@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .executor import (
@@ -11,6 +12,7 @@ from .executor import (
     artifact_sha256_for_paths,
     capture_completed_artifact_sha256,
     execute_work_unit,
+    is_final_completed_result,
 )
 from .finder import find_skill_candidates
 from .host_skill_roots import resolve_host_skill_roots
@@ -510,7 +512,7 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
 
 
 def _completed_result_artifacts_are_current(result: WorkUnitResult) -> bool:
-    if result.status != "completed" or not result.artifact_paths:
+    if not is_final_completed_result(result) or not result.artifact_paths:
         return False
     if len(result.artifact_paths) != len(result.artifacts):
         return False
@@ -572,8 +574,6 @@ def _reusable_completed_result(
         or dependency_sha256 is None
         or previous_result.task_input_sha256 != task_input_sha256
         or previous_result.dependency_output_sha256 != dependency_sha256
-        or previous_result.artifact_kind != "final"
-        or not previous_result.proof_ready
         or not _can_reuse_previous_work(
             previous_work_unit=previous_work_unit,
             current_work_unit=current_work_unit,
@@ -795,7 +795,7 @@ def _build_work_dossier(
     completed_result_rows = [
         row
         for row in result_rows
-        if isinstance(row, dict) and str(row.get("status") or "") == "completed"
+        if isinstance(row, dict) and is_final_completed_result(row)
     ]
     delivery_results = _unique_non_empty(
         [
@@ -820,7 +820,10 @@ def _build_work_dossier(
     )
     delivery_blockers: list[str] = []
     for row in result_rows:
-        if not isinstance(row, dict) or str(row.get("status") or "") == "completed":
+        if not isinstance(row, dict) or is_final_completed_result(row):
+            continue
+        if str(row.get("status") or "") == "completed":
+            delivery_blockers.append(f"{row.get('work_unit_id')}: completed result requires final, proof-ready artifacts")
             continue
         reason = str(row.get("failure_reason") or "").strip()
         if not reason:
@@ -837,7 +840,7 @@ def _build_work_dossier(
     completed_work_unit_count = sum(
         1
         for row in result_rows
-        if isinstance(row, dict) and str(row.get("status") or "") == "completed"
+        if isinstance(row, dict) and is_final_completed_result(row)
     )
     reused_rows = [
         row
@@ -847,7 +850,7 @@ def _build_work_dossier(
     failed_work_unit_count = sum(
         1
         for row in result_rows
-        if isinstance(row, dict) and str(row.get("status") or "") != "completed"
+        if isinstance(row, dict) and not is_final_completed_result(row)
     )
     accepted_revisions = task_card.get("accepted_revisions", [])
     revision_rows = (
@@ -1367,7 +1370,7 @@ def run_local_kernel(
                         work_root=run_root / "work-units" / work_unit.id,
                     )
                 )
-                if result.status == "completed":
+                if is_final_completed_result(result):
                     result = replace(
                         result,
                         task_input_sha256=task_input_sha256,
@@ -1375,7 +1378,7 @@ def run_local_kernel(
                     )
         work_results.append(result)
         results_by_id[work_unit.id] = result
-        if result.status == "completed":
+        if is_final_completed_result(result):
             completed_work_units.append(work_unit.id)
         else:
             failed_work_units.append(work_unit.id)
@@ -1633,6 +1636,12 @@ def inspect_local_run(
 
     goal = str(task_card.get("goal") or "")
     verification_result = str(verification.get("result") or "")
+    current_verification = verify_run(
+        _coerce_task_card(task_card),
+        _coerce_work_plan(plan),
+        tuple(_coerce_work_result(item) for item in work_results.get("work_results", [])),
+    ).model_dump()
+    verification_checked_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     host_context = _inspect_host_context(
         agent_root=resolved_agent_root,
         skills_catalog=skills_catalog,
@@ -1675,7 +1684,9 @@ def inspect_local_run(
         "task_id": run_state.task_id,
         "goal": goal,
         "state": run_state.state,
-        "verification_result": verification_result,
+        "verification_result": current_verification["result"],
+        "recorded_verification_result": verification_result,
+        "verification_checked_at": verification_checked_at,
         "work_unit_count": len(work_units),
         "completed_work_unit_count": len(run_state.completed_work_units),
         "failed_work_unit_count": len(run_state.failed_work_units),
@@ -1683,7 +1694,7 @@ def inspect_local_run(
         "accepted_revision_count": run_state.accepted_revision_count,
         "reused_work_unit_count": len(run_state.reused_work_units),
         "superseded_work_unit_count": len(run_state.superseded_work_units),
-        "proof_ready": verification_result == "done",
+        "proof_ready": verification_result == "done" and current_verification["result"] == "done",
         "primary_artifact": "work_dossier",
         "primary_artifact_path": str(work_dossier_path),
         "artifact_resolution": artifact_resolution,
@@ -1721,6 +1732,8 @@ def inspect_local_run(
         "work_results": work_results,
         "run_state": run_state.model_dump(),
         "verification": verification,
+        "current_verification": current_verification,
+        "verification_checked_at": verification_checked_at,
         "host_context": host_context,
         "artifact_manifest": manifest_payload,
     }
