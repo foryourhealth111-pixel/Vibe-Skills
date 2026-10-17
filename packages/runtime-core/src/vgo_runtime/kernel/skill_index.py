@@ -188,14 +188,16 @@ def _invalid_entry(skill_id: str, source_spec: dict[str, object], reason: str, *
 
 
 def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object]) -> dict[str, object]:
-    manifest = parse_installed_skill_manifest(skill_file, skill_id=skill_dir.name)
+    source_bytes = skill_file.read_bytes()
+    source_lines = tuple(source_bytes.decode("utf-8-sig").splitlines())
+    manifest = parse_installed_skill_manifest(skill_file, skill_id=skill_dir.name, source_bytes=source_bytes)
     root_dir = _relative_to_source(Path(manifest.root_dir), source_spec)
     skill_file_value = _relative_to_source(Path(manifest.skill_file), source_spec)
-    route_evidence_chunks = _build_route_evidence_chunks(manifest, Path(manifest.skill_file))
-    explicit_only = _manifest_is_explicit_only(manifest, Path(manifest.skill_file))
-    capability_evidence = _build_capability_evidence(manifest, Path(manifest.skill_file), route_evidence_chunks)
+    route_evidence_chunks = _build_route_evidence_chunks(manifest, source_lines)
+    explicit_only = _manifest_is_explicit_only(manifest, source_lines)
+    capability_evidence = _build_capability_evidence(manifest, source_lines, route_evidence_chunks)
     capabilities = _route_active_capabilities(capability_evidence)
-    not_for = _unique_ordered([*manifest.not_for, *_extract_routing_boundary_not_for(Path(manifest.skill_file))])
+    not_for = _unique_ordered([*manifest.not_for, *_extract_routing_boundary_not_for(source_lines)])
     return {
         "skill_id": manifest.skill_id,
         "id": manifest.skill_id,
@@ -234,8 +236,8 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
     }
 
 
-def _frontmatter_field_line_number(skill_file: Path, field_name: str) -> int | None:
-    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
+def _frontmatter_field_line_number(source_lines: tuple[str, ...], field_name: str) -> int | None:
+    lines = source_lines
     if not lines or lines[0].strip() != "---":
         return None
     for index, line in enumerate(lines[1:], start=2):
@@ -246,8 +248,8 @@ def _frontmatter_field_line_number(skill_file: Path, field_name: str) -> int | N
     return None
 
 
-def _skill_body_line_rows(skill_file: Path) -> list[tuple[int, str]]:
-    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
+def _skill_body_line_rows(source_lines: tuple[str, ...]) -> list[tuple[int, str]]:
+    lines = source_lines
     if lines and lines[0].strip() == "---":
         for index, line in enumerate(lines[1:], start=1):
             if line.strip() == "---":
@@ -301,11 +303,11 @@ def _route_evidence_source(*, section_kind: str, role: str) -> str:
     return f"body.{section_kind}"
 
 
-def _build_route_evidence_chunks(manifest: object, skill_file: Path) -> list[dict[str, object]]:
+def _build_route_evidence_chunks(manifest: object, source_lines: tuple[str, ...]) -> list[dict[str, object]]:
     chunks: list[dict[str, object]] = []
     description = str(getattr(manifest, "description") or "").strip()
     if description:
-        description_line = _frontmatter_field_line_number(skill_file, "description")
+        description_line = _frontmatter_field_line_number(source_lines, "description")
         chunks.append(
             {
                 "text": description,
@@ -318,7 +320,7 @@ def _build_route_evidence_chunks(manifest: object, skill_file: Path) -> list[dic
 
     section_kind = "background"
     in_code_fence = False
-    for line_number, line in _skill_body_line_rows(skill_file):
+    for line_number, line in _skill_body_line_rows(source_lines):
         stripped = line.strip()
         if stripped.startswith("```"):
             in_code_fence = not in_code_fence
@@ -343,12 +345,12 @@ def _build_route_evidence_chunks(manifest: object, skill_file: Path) -> list[dic
 
 def _build_capability_evidence(
     manifest: object,
-    skill_file: Path,
+    source_lines: tuple[str, ...],
     route_evidence_chunks: list[dict[str, object]],
 ) -> list[dict[str, object]]:
     evidence: list[dict[str, object]] = []
     declared = set(getattr(manifest, "capabilities"))
-    explicit_only = _manifest_is_explicit_only(manifest, skill_file)
+    explicit_only = _manifest_is_explicit_only(manifest, source_lines)
     identity_text = " ".join(
         [
             str(getattr(manifest, "skill_id")),
@@ -442,7 +444,7 @@ def _build_capability_evidence(
     return evidence
 
 
-def _manifest_is_explicit_only(manifest: object, skill_file: Path) -> bool:
+def _manifest_is_explicit_only(manifest: object, source_lines: tuple[str, ...]) -> bool:
     text_parts: list[str] = []
     description = str(getattr(manifest, "description") or "").strip()
     if description:
@@ -451,7 +453,7 @@ def _manifest_is_explicit_only(manifest: object, skill_file: Path) -> bool:
         text = str(line).strip()
         if text:
             text_parts.append(text)
-    text_parts.extend(line.strip() for line in _skill_body_lines(skill_file)[:80] if line.strip())
+    text_parts.extend(line.strip() for line in _skill_body_lines(source_lines)[:80] if line.strip())
     lowered = "\n".join(text_parts).casefold()
     return any(marker in lowered for marker in EXPLICIT_ONLY_MARKERS)
 
@@ -470,11 +472,11 @@ def _route_active_capabilities(capability_evidence: list[dict[str, object]]) -> 
     return _unique_ordered(active)
 
 
-def _body_intent_lines(skill_file: Path) -> list[str]:
+def _body_intent_lines(source_lines: tuple[str, ...]) -> list[str]:
     lines: list[str] = []
     in_code_fence = False
     in_when_to_use_section = False
-    for line in _skill_body_lines(skill_file):
+    for line in _skill_body_lines(source_lines):
         stripped = line.strip()
         if stripped.startswith("```"):
             in_code_fence = not in_code_fence
@@ -544,12 +546,12 @@ def _is_explicit_body_intent_line(line: str) -> bool:
     ) or bool(re.match(r"^use the .+ skill (when|for)\b", lowered))
 
 
-def _skill_body_lines(skill_file: Path) -> list[str]:
-    return [line for _, line in _skill_body_line_rows(skill_file)]
+def _skill_body_lines(source_lines: tuple[str, ...]) -> list[str]:
+    return [line for _, line in _skill_body_line_rows(source_lines)]
 
 
-def _extract_routing_boundary_not_for(skill_file: Path) -> list[str]:
-    body_lines = _skill_body_lines(skill_file)
+def _extract_routing_boundary_not_for(source_lines: tuple[str, ...]) -> list[str]:
+    body_lines = _skill_body_lines(source_lines)
     in_routing_boundary = False
     phrases: list[str] = []
     for line in body_lines:

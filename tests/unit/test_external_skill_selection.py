@@ -64,7 +64,7 @@ def _skill(
     }
 
 
-def test_external_skill_beats_starter_when_both_match() -> None:
+def test_source_priority_breaks_equal_relevance_ties() -> None:
     task_card = build_task_card(
         prompt="Review the chart annotations and produce a review report.",
         context={"deliverables": ["review report"]},
@@ -74,30 +74,30 @@ def test_external_skill_beats_starter_when_both_match() -> None:
             _skill(
                 skill_id="starter-review-helper",
                 name="Starter Review Helper",
-                description="Generic review help for many tasks.",
-                when_to_use=["The task needs a review report or review notes."],
+                description="Review chart annotations and produce a review report.",
+                when_to_use=["Review chart annotations and produce a review report."],
                 outputs=["review report"],
-                priority=95,
+                priority=50,
                 source_kind="starter",
                 source_root="skills/starter",
                 resolved_source_root="C:/agent/vibe/skills/starter",
                 source_priority=2,
-                source_order=2,
+                source_order=0,
                 root_dir="skills/starter/starter-review-helper",
                 resolved_root_dir="C:/agent/vibe/skills/starter/starter-review-helper",
                 skill_file="skills/starter/starter-review-helper/SKILL.md",
                 resolved_skill_file="C:/agent/vibe/skills/starter/starter-review-helper/SKILL.md",
                 path_contract="vibe_relative",
                 path_base="C:/agent/vibe",
-                tags=["review", "report", "generic", "chart", "annotations"],
+                tags=["review", "report", "chart", "annotations"],
             ),
             _skill(
                 skill_id="diagram-review",
                 name="Diagram Review",
-                description="Review chart annotations and visual labels.",
-                when_to_use=["The task is about diagrams, charts, or annotations."],
+                description="Review chart annotations and produce a review report.",
+                when_to_use=["Review chart annotations and produce a review report."],
                 outputs=["review report"],
-                priority=10,
+                priority=50,
                 source_kind="host_external",
                 source_root="C:/external-skills",
                 resolved_source_root="C:/external-skills",
@@ -109,7 +109,7 @@ def test_external_skill_beats_starter_when_both_match() -> None:
                 resolved_skill_file="C:/external-skills/diagram-review/SKILL.md",
                 path_contract="source_root_relative",
                 path_base="C:/external-skills",
-                tags=["diagram", "review", "chart", "annotations"],
+                tags=["review", "report", "chart", "annotations"],
             ),
         ]
     }
@@ -118,6 +118,7 @@ def test_external_skill_beats_starter_when_both_match() -> None:
     plan = build_work_plan(task_card, candidates)
     binding = build_module_assignments(plan).model_dump()
 
+    assert candidates[0].score == candidates[1].score
     assert [candidate.skill_id for candidate in candidates] == [
         "diagram-review",
         "starter-review-helper",
@@ -136,7 +137,7 @@ def test_external_skill_beats_starter_when_both_match() -> None:
     }
 
 
-def test_local_skill_still_beats_external_when_both_match() -> None:
+def test_task_shortlist_and_deliverable_owner_use_their_own_relevance() -> None:
     task_card = build_task_card(
         prompt="Review the chart annotations and produce a review report.",
         context={"deliverables": ["review report"]},
@@ -190,13 +191,15 @@ def test_local_skill_still_beats_external_when_both_match() -> None:
     plan = build_work_plan(task_card, candidates)
 
     assert [candidate.skill_id for candidate in candidates] == [
-        "local-review-override",
         "diagram-review",
+        "local-review-override",
     ]
     assert plan.work_units[0].preferred_skill == "local-review-override"
 
+    assert plan.work_units[0].binding_profile == "declared_output_owner"
 
-def test_local_skill_still_beats_external_output_owner() -> None:
+
+def test_declared_external_output_owner_beats_generic_local_helper() -> None:
     task_card = build_task_card(
         prompt="Review the chart annotations and produce a review report.",
         context={"deliverables": ["review report"]},
@@ -250,10 +253,10 @@ def test_local_skill_still_beats_external_output_owner() -> None:
     plan = build_work_plan(task_card, candidates)
 
     assert [candidate.skill_id for candidate in candidates] == [
-        "local-review-override",
         "external-review-owner",
+        "local-review-override",
     ]
-    assert plan.work_units[0].preferred_skill == "local-review-override"
+    assert plan.work_units[0].preferred_skill == "external-review-owner"
 
 
 def test_module_assignments_carries_selected_skill_provenance() -> None:

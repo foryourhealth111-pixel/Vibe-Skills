@@ -167,8 +167,8 @@ def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object],
     ranked = sorted(
         candidates,
         key=lambda candidate: (
-            candidate.source_priority,
             -candidate.score,
+            candidate.source_priority,
             candidate.source_order,
             candidate.skill_id,
         ),
