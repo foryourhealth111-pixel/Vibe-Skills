@@ -751,8 +751,10 @@ def _build_task_revision(
     removed_constraints = _ordered_difference(previous.constraints, current.constraints)
     added_completion_criteria = _ordered_difference(current.completion_criteria, previous.completion_criteria)
     removed_completion_criteria = _ordered_difference(previous.completion_criteria, current.completion_criteria)
-    added_input_artifacts = _ordered_difference(current.input_artifacts, previous.input_artifacts)
-    removed_input_artifacts = _ordered_difference(previous.input_artifacts, current.input_artifacts)
+    previous_input_paths = set(previous.input_artifacts)
+    current_input_paths = set(current.input_artifacts)
+    added_input_artifacts = tuple(path for path in current.input_artifacts if path not in previous_input_paths)
+    removed_input_artifacts = tuple(path for path in previous.input_artifacts if path not in current_input_paths)
     if not any(
         (
             added_deliverables,
@@ -812,10 +814,10 @@ def _merge_task_cards(existing: TaskCard, followup: TaskCard, *, revision_prompt
             followup.completion_criteria,
             replace=revision_mode == "replace" and "completion_criteria" in context_payload,
         ),
-        input_artifacts=_merge_or_replace(
-            existing.input_artifacts,
-            followup.input_artifacts,
-            replace=revision_mode == "replace" and "input_artifacts" in context_payload,
+        input_artifacts=(
+            followup.input_artifacts
+            if revision_mode == "replace" and "input_artifacts" in context_payload
+            else tuple(dict.fromkeys((*existing.input_artifacts, *followup.input_artifacts)))
         ),
         mode=existing.mode,
         initial_goal=existing.initial_goal,

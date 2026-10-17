@@ -123,10 +123,20 @@ def _stop_process_tree(process: subprocess.Popen[bytes], job: _WindowsJob | None
         if job is not None:
             job.terminate_and_wait()
         else:
+            deadline = time.monotonic() + _CLEANUP_TIMEOUT_SECONDS
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+            while True:
+                try:
+                    os.killpg(process.pid, 0)
+                except ProcessLookupError:
+                    break
+                if time.monotonic() >= deadline:
+                    raise OSError("runtime bridge process group did not exit within the cleanup deadline")
+                time.sleep(0.01)
     finally:
         if process.poll() is None:
             process.kill()

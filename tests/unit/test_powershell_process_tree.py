@@ -138,3 +138,56 @@ def test_bridge_still_rejects_non_object_json(tmp_path: Path) -> None:
             [sys.executable, "-c", "print('[]')"], cwd=tmp_path,
             bridge_label="native invalid-JSON bridge", timeout=10,
         )
+
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX process-group cancellation")
+def test_posix_cleanup_waits_for_descendant_exit_confirmation(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vgo_runtime.process_tree import _stop_process_tree
+
+    observed: list[int] = []
+
+    class Process:
+        pid = 12345
+
+        def wait(self, *, timeout: float) -> int:
+            assert timeout > 0
+            observed.append(-1)
+            return 0
+
+        def poll(self) -> int:
+            return 0
+
+    def killpg(pid: int, signum: int) -> None:
+        assert pid == Process.pid
+        observed.append(signum)
+        if signum == 0:
+            assert -1 in observed, "the direct child must be reaped before confirming group exit"
+            if observed.count(0) == 3:
+                raise ProcessLookupError
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    _stop_process_tree(Process(), None)
+    assert observed == [signal.SIGKILL, -1, 0, 0, 0], "cleanup must await group disappearance"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX process-group cancellation")
+def test_posix_cleanup_fails_closed_at_its_deadline(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vgo_runtime.process_tree import _stop_process_tree
+
+    class Process:
+        pid = 12345
+
+        def wait(self, *, timeout: float) -> int:
+            return 0
+
+        def poll(self) -> int:
+            return 0
+
+    monkeypatch.setattr(os, "killpg", lambda *_: None)
+    monkeypatch.setattr(time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(time, "sleep", lambda _: None)
+    ticks = iter((0.0, 0.0, 6.0))
+    with pytest.raises(OSError, match="process group.*cleanup deadline"):
+        _stop_process_tree(Process(), None)

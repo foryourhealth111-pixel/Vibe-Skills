@@ -804,3 +804,59 @@ def test_input_declaration_revisions_follow_extend_and_replace(
     )
     assert replaced["task_card"]["input_artifacts"] == ()
     assert len(replaced["task_card"]["accepted_revisions"][-1]["removed_input_artifacts"]) == 2
+
+
+
+def test_resume_preserves_case_distinct_declared_inputs(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    upper = tmp_path / "Data.csv"
+    lower = tmp_path / "data.csv"
+    upper.write_text("upper version A", encoding="utf-8")
+    lower.write_text("lower version A", encoding="utf-8")
+    if upper.samefile(lower):
+        pytest.skip("Requires case-sensitive path identity")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        content = " | ".join(Path(path).read_text(encoding="utf-8") for path in task.input_artifacts)
+        return _completed_result(unit, work_root, content)
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="case-distinct-inputs",
+        prompt="Produce a report.",
+    )
+    first = run_local_kernel_with_agent_choice(
+        **arguments, context={"input_artifacts": [str(upper), str(lower)]},
+    )
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["task_card"]["input_artifacts"] == first["task_card"]["input_artifacts"]
+    assert resumed["reused_work_units"] == ["wu-1"]
+    lower.write_text("lower version B", encoding="utf-8")
+    changed = run_local_kernel_with_agent_choice(**arguments)
+    assert changed["reused_work_units"] == []
+    assert changed["verification"]["result"] == "done"
+    report = Path(changed["work_results"]["work_results"][0]["artifact_paths"][0])
+    assert report.read_text(encoding="utf-8") == "upper version A | lower version B"
+
+
+def test_input_replacement_records_case_distinct_path_revision(
+    agent_root: Path, tmp_path: Path,
+) -> None:
+    upper = tmp_path / "Data.csv"
+    lower = tmp_path / "data.csv"
+    upper.write_text("upper data", encoding="utf-8")
+    lower.write_text("lower data", encoding="utf-8")
+    if upper.samefile(lower):
+        pytest.skip("Requires case-sensitive path identity")
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="case-distinct-replacement",
+        prompt="Produce a report.", execute=False,
+    )
+    run_local_kernel(**arguments, context={"input_artifacts": [str(upper)]})
+    replaced = run_local_kernel(
+        **arguments, context={"input_artifacts": [str(lower)], "revision_mode": "replace"},
+    )
+    revision = replaced["task_card"]["accepted_revisions"][-1]
+    assert revision["added_input_artifacts"] == (str(lower.resolve()),)
+    assert revision["removed_input_artifacts"] == (str(upper.resolve()),)

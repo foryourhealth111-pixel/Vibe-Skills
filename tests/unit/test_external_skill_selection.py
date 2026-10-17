@@ -82,7 +82,7 @@ def test_source_priority_breaks_equal_relevance_ties() -> None:
                 source_root="skills/starter",
                 resolved_source_root="C:/agent/vibe/skills/starter",
                 source_priority=2,
-                source_order=2,
+                source_order=0,
                 root_dir="skills/starter/starter-review-helper",
                 resolved_root_dir="C:/agent/vibe/skills/starter/starter-review-helper",
                 skill_file="skills/starter/starter-review-helper/SKILL.md",
