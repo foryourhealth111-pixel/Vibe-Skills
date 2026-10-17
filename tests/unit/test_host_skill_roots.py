@@ -201,3 +201,53 @@ def test_case_distinct_configured_skill_roots_remain_discoverable(tmp_path: Path
     assert [root.path for root in roots[:2]] == [
         (workspace_root / "TeamSkills").resolve(), (workspace_root / "teamskills").resolve(),
     ]
+
+
+@pytest.mark.parametrize("install_location", ["standard", "custom"])
+@pytest.mark.parametrize("configuration_scope", ["user", "workspace"])
+def test_custom_skills_dir_keeps_user_home_configuration_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    install_location: str, configuration_scope: str,
+) -> None:
+    home = tmp_path / "user-home"
+    workspace = tmp_path / "workspace"
+    home.mkdir()
+    workspace.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    assert Path.home() == home
+    skills_dir = (
+        home / ".agents/skills"
+        if install_location == "standard"
+        else tmp_path / "external-storage/team-skills"
+    )
+    skills_dir.mkdir(parents=True)
+    config_root = home if configuration_scope == "user" else workspace
+    _write_skill_roots_config(config_root / ".vibeskills/skill-roots.json", ["~/research-skills"])
+
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT, host_id="codex", agent_root=skills_dir, workspace_root=workspace,
+    )
+
+    assert roots[0].path == (home / "research-skills").resolve()
+    assert roots[0].root_key == configuration_scope + "_extra"
+    assert roots[-1].path == skills_dir.resolve()
+
+
+def test_custom_skills_dir_discovers_plugin_cache_under_actual_user_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    home = tmp_path / "user-home"
+    cache = home / ".codex/plugins/cache"
+    cache.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    skills_dir = tmp_path / "external-storage/team-skills"
+
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT, host_id="codex", agent_root=skills_dir, workspace_root=None,
+    )
+
+    assert [root.root_key for root in roots] == ["skills_dir", "codex_plugin_cache"]
+    assert roots[0].path == skills_dir.resolve()
+    assert roots[1].path == cache.resolve()

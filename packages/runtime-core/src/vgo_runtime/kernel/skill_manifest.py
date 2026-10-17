@@ -75,6 +75,7 @@ class InstalledSkillManifest:
     outputs: tuple[str, ...] = ()
     plan_hints: tuple[str, ...] = ()
     verify_hints: tuple[str, ...] = ()
+    enabled: bool = True
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -86,8 +87,85 @@ def _strip_quotes(value: str) -> str:
     return value
 
 
+def _quoted_scalar_end(value: str, start: int) -> int:
+    quote = value[start]
+    index = start + 1
+    while index < len(value):
+        if quote == '"' and value[index] == "\\":
+            index += 2
+            continue
+        if value[index] == quote:
+            if quote == "'" and index + 1 < len(value) and value[index + 1] == "'":
+                index += 2
+                continue
+            return index + 1
+        index += 1
+    raise ValueError("unterminated quoted frontmatter scalar")
+
+
+def _strip_frontmatter_comment(value: str) -> str:
+    flow = value.lstrip().startswith("[")
+    node_start = True
+    index = 0
+    while index < len(value):
+        character = value[index]
+        if node_start and character in {"'", '"'}:
+            index = _quoted_scalar_end(value, index)
+            node_start = False
+            continue
+        if character == "#" and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+        if flow and character in {"[", ","}:
+            node_start = True
+        elif not character.isspace():
+            node_start = False
+        index += 1
+    return value.rstrip()
+
+
+def _parse_flow_string_list(value: str) -> list[str]:
+    if not value.endswith("]"):
+        raise ValueError("unterminated frontmatter flow sequence")
+    body = value[1:-1]
+    if not body.strip():
+        return []
+    items: list[str] = []
+    start = 0
+    index = 0
+    while index < len(body):
+        character = body[index]
+        if character in {"'", '"'} and not body[start:index].strip():
+            index = _quoted_scalar_end(body, index)
+            continue
+        if character in "[]{}":
+            raise ValueError("frontmatter flow sequences require scalar string items")
+        if character == ",":
+            item = body[start:index].strip()
+            if not item:
+                raise ValueError("empty frontmatter flow sequence item")
+            items.append(item)
+            start = index + 1
+        index += 1
+    tail = body[start:].strip()
+    if tail:
+        items.append(tail)
+    for item in items:
+        if item[0] in {"'", '"'}:
+            if _quoted_scalar_end(item, 0) != len(item):
+                raise ValueError("unexpected text after quoted frontmatter scalar")
+        elif re.search(r":(?:\s|$)", item):
+            raise ValueError("frontmatter flow sequences require scalar string items")
+    return [_strip_quotes(item) for item in items]
+
+
 def _parse_scalar(value: str) -> object:
     normalized = value.strip()
+    if normalized.startswith("["):
+        return _parse_flow_string_list(normalized)
+    if normalized and normalized[0] in {"'", '"'}:
+        if _quoted_scalar_end(normalized, 0) != len(normalized):
+            raise ValueError("unexpected text after quoted frontmatter scalar")
+        return _strip_quotes(normalized)
     lowered = normalized.lower()
     if lowered == "true":
         return True
@@ -114,7 +192,7 @@ def _parse_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) -> dic
     while index < len(frontmatter_lines):
         raw_line = frontmatter_lines[index]
         stripped = raw_line.strip()
-        if not stripped:
+        if not stripped or stripped.startswith("#"):
             index += 1
             continue
         if raw_line[:1].isspace():
@@ -127,7 +205,7 @@ def _parse_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) -> dic
             raise ValueError(f"empty frontmatter key in {skill_file}")
         if key not in ALLOWED_FIELDS:
             raise ValueError(f"unsupported frontmatter field {key!r} in {skill_file}")
-        value_text = remainder.strip()
+        value_text = _strip_frontmatter_comment(remainder.strip())
         if value_text:
             payload[key] = _parse_scalar(value_text)
             index += 1
@@ -136,7 +214,7 @@ def _parse_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) -> dic
         index += 1
         while index < len(frontmatter_lines):
             candidate = frontmatter_lines[index]
-            if not candidate.strip():
+            if not candidate.strip() or candidate.lstrip().startswith("#"):
                 index += 1
                 continue
             if not candidate[:1].isspace():
@@ -144,7 +222,7 @@ def _parse_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) -> dic
             stripped_candidate = candidate.lstrip()
             if not stripped_candidate.startswith("- "):
                 raise ValueError(f"invalid list item in {skill_file}: {candidate}")
-            item_value = stripped_candidate[2:].strip()
+            item_value = _strip_frontmatter_comment(stripped_candidate[2:].strip())
             if not item_value:
                 raise ValueError(f"empty list item in {skill_file}: {candidate}")
             items.append(_strip_quotes(item_value))
@@ -169,7 +247,7 @@ def _parse_loose_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) 
     while index < len(frontmatter_lines):
         raw_line = frontmatter_lines[index]
         stripped = raw_line.strip()
-        if not stripped:
+        if not stripped or stripped.startswith("#"):
             index += 1
             continue
         if raw_line[:1].isspace():
@@ -180,7 +258,7 @@ def _parse_loose_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) 
         key = key.strip()
         if not key:
             raise ValueError(f"empty frontmatter key in {skill_file}")
-        value_text = remainder.strip()
+        value_text = _strip_frontmatter_comment(remainder.strip())
         if value_text in {">", "|", ">-", "|-"}:
             parts: list[str] = []
             index += 1
@@ -200,14 +278,14 @@ def _parse_loose_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) 
         index += 1
         while index < len(frontmatter_lines):
             candidate = frontmatter_lines[index]
-            if not candidate.strip():
+            if not candidate.strip() or candidate.lstrip().startswith("#"):
                 index += 1
                 continue
             if not candidate[:1].isspace():
                 break
             stripped_candidate = candidate.lstrip()
             if stripped_candidate.startswith("- "):
-                item_value = stripped_candidate[2:].strip()
+                item_value = _strip_frontmatter_comment(stripped_candidate[2:].strip())
                 if not item_value:
                     raise ValueError(f"empty list item in {skill_file}: {candidate}")
                 items.append(_strip_quotes(item_value))
@@ -392,6 +470,9 @@ def parse_installed_skill_manifest(skill_file: Path, *, skill_id: str | None = N
     resolved_file = skill_file.resolve()
     frontmatter_lines, body_lines = _extract_frontmatter_and_body(resolved_file)
     frontmatter = _parse_loose_frontmatter(frontmatter_lines, skill_file=resolved_file)
+    enabled = frontmatter.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise ValueError(f"enabled must be a boolean in {resolved_file}")
     resolved_skill_id = str(skill_id or resolved_file.parent.name).strip()
     if not resolved_skill_id:
         raise ValueError(f"skill id cannot be empty for {resolved_file}")
@@ -420,4 +501,5 @@ def parse_installed_skill_manifest(skill_file: Path, *, skill_id: str | None = N
         root_dir=str(resolved_file.parent),
         skill_file=str(resolved_file),
         content_sha256=hashlib.sha256(resolved_file.read_bytes()).hexdigest(),
+        enabled=enabled,
     )

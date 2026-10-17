@@ -37,9 +37,12 @@ def _normalize_host_id(host_id: str) -> str:
 
 def _home_from_agent_root(agent_root: Path) -> Path:
     resolved = agent_root.resolve()
-    if resolved.name.casefold() == "skills" and resolved.parent.name.casefold() in {".agents", ".codex", ".claude"}:
+    host_dirs = {".agents", ".codex", ".claude"}
+    if resolved.name.casefold() == "skills" and resolved.parent.name.casefold() in host_dirs:
         return resolved.parent.parent
-    return resolved.parent
+    if resolved.name.casefold() in host_dirs:
+        return resolved.parent
+    return Path.home().resolve()
 
 
 def _skills_dir_from_agent_root(agent_root: Path) -> Path:

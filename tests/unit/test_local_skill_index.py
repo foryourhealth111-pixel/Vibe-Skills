@@ -15,8 +15,10 @@ if str(RUNTIME_SRC) not in sys.path:
 from vgo_runtime import router_contract_runtime
 from vgo_runtime.kernel import skill_index
 from vgo_runtime.kernel.capability_bridge import CAPABILITY_BRIDGE
+from vgo_runtime.kernel.finder import find_skill_candidates
+from vgo_runtime.kernel.task_card import build_task_card
 from vgo_runtime.kernel.skill_index import build_skill_index, write_skill_index
-from vgo_runtime.kernel.skill_manifest import parse_skill_manifest
+from vgo_runtime.kernel.skill_manifest import parse_installed_skill_manifest, parse_skill_manifest
 
 
 def _write_skill(skill_dir: Path, frontmatter: str, body: str = "# Skill\n") -> Path:
@@ -515,3 +517,98 @@ def test_distinct_installed_skill_ids_have_distinct_stable_cache_cards(
         for row in second["entries"] if row["active"] and row["source_kind"] == "host_installed"
     } == paths
     assert second["skill_cache"]["refreshed_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "请整理实验资料，撰写实验报告并核对数据一致性。",
+        "整理实验资料，生成中文实验报告。",
+        "Produce an experimental report and verify data consistency.",
+    ],
+)
+def test_installed_catalog_recalls_chinese_skill_for_matching_task(tmp_path: Path, prompt: str) -> None:
+    agent_root = tmp_path / "agent"
+    skills_root = agent_root / "vibe/skills/local"
+    _write_skill(
+        skills_root / "cn-report",
+        "---\nname: 中文报告整理\ndescription: 整理实验资料，撰写实验报告并核对数据一致性。\n---",
+    )
+    _write_skill(
+        skills_root / "poster-design",
+        "---\nname: 海报设计\ndescription: 制作营销海报，选择配色和字体。\n---",
+    )
+    index = build_skill_index(agent_root)
+    task = build_task_card(prompt=prompt)
+
+    candidates = find_skill_candidates(task, index)
+
+    assert [candidate.skill_id for candidate in candidates] == ["cn-report"]
+
+
+@pytest.mark.parametrize("format_variant", ["block", "comment", "flow", "quoted_flow"])
+def test_installed_manifest_preserves_comment_and_flow_list_metadata(tmp_path: Path, format_variant: str) -> None:
+    header = 'name: yaml-report\ndescription: "Preserve the user\'s C# report, summary."\n'
+    expected_outputs = ("report", "summary")
+    if format_variant == "comment":
+        header = "# Maintained by the team\n" + header
+        outputs = "outputs:\n  # Required deliveries\n  - report # primary output\n  - summary\n"
+    elif format_variant == "flow":
+        outputs = "outputs: [report, summary] # Required deliveries\n"
+    elif format_variant == "quoted_flow":
+        outputs = 'outputs: ["report, detail", \'C# outline\'] # Required deliveries\n'
+        expected_outputs = ("report, detail", "C# outline")
+    else:
+        outputs = "outputs:\n  - report\n  - summary\n"
+    skill_file = _write_skill(tmp_path / "yaml-report", f"---\n{header}{outputs}---")
+
+    manifest = parse_installed_skill_manifest(skill_file)
+
+    assert manifest.name == "yaml-report"
+    assert manifest.description == "Preserve the user's C# report, summary."
+    assert manifest.outputs == expected_outputs
+
+
+@pytest.mark.parametrize(
+    "outputs",
+    ["[report, summary", "['unterminated, report]", "[report,, summary]", "[[report]]", "[report: summary]", '["report" trailing]'],
+)
+def test_installed_manifest_rejects_malformed_or_structured_flow_items(tmp_path: Path, outputs: str) -> None:
+    skill_file = _write_skill(
+        tmp_path / "yaml-report",
+        f"---\nname: yaml-report\ndescription: Write a report.\noutputs: {outputs}\n---",
+    )
+
+    with pytest.raises(ValueError):
+        parse_installed_skill_manifest(skill_file)
+
+
+@pytest.mark.parametrize("marker", [">", ">-", "|", "|-"])
+def test_installed_manifest_keeps_hash_content_in_multiline_scalar(tmp_path: Path, marker: str) -> None:
+    skill_file = _write_skill(
+        tmp_path / "yaml-report",
+        "---\n# Team metadata\nname: yaml-report\n"
+        f"description: {marker} # Description follows\n"
+        "  Preserve the user's C# report.\n  # Keep this scalar content.\n"
+        "outputs: [] # No declared output names\n---",
+    )
+
+    manifest = parse_installed_skill_manifest(skill_file)
+
+    assert manifest.description == "Preserve the user's C# report. # Keep this scalar content."
+    assert manifest.outputs == ()
+
+
+@pytest.mark.parametrize("enabled", ['"false"', "1", "[true]"])
+def test_installed_catalog_rejects_non_boolean_enabled_metadata(tmp_path: Path, enabled: str) -> None:
+    agent_root = tmp_path / "agent"
+    _write_skill(
+        agent_root / "vibe/skills/local/report",
+        f"---\nname: report\ndescription: Write a report.\nenabled: {enabled}\n---",
+    )
+
+    catalog = skill_index.build_skill_catalog(agent_root=agent_root)
+
+    assert catalog["entries"] == []
+    assert len(catalog["discovery_diagnostics"]["invalid_entries"]) == 1
+    assert "enabled must be a boolean" in catalog["discovery_diagnostics"]["invalid_entries"][0]["message"]

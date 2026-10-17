@@ -213,7 +213,7 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
         "plan_hints": list(manifest.plan_hints),
         "verify_hints": list(manifest.verify_hints),
         "tags": list(manifest.tags),
-        "enabled": True,
+        "enabled": manifest.enabled,
         "priority": 50,
         "root_dir": root_dir,
         "skill_file": skill_file_value,

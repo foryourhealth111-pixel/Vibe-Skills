@@ -26,6 +26,14 @@ from vgo_runtime.kernel.task_card import build_task_card
 from vgo_runtime.kernel.verifier import verify_run
 
 
+@pytest.fixture(autouse=True)
+def _isolated_user_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    home = tmp_path / "runtime-user-home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+
 def _create_symlink_or_skip(link: Path, target: Path) -> None:
     try:
         link.symlink_to(target, target_is_directory=target.is_dir())
@@ -1887,3 +1895,188 @@ def test_cli_omitted_run_id_keeps_unrelated_tasks_separate(
     assert resumed["run_id"] == first["run_id"]
     assert resumed["work_summary"]["continuation_mode"] == "resumed"
     assert resumed["task_card"]["goal"] == first_prompt
+
+
+def _organization_selecting_skill(plan: dict[str, object], skill_id: str) -> dict[str, object]:
+    units = plan["work_units"]
+    return {
+        "schema_version": "agent_skill_organization_v1",
+        "derived_by": "agent",
+        "workflow_level": "L",
+        "modules": [
+            {
+                "module_id": unit["id"],
+                "goal": unit["goal"],
+                "candidate_skill_ids": [skill_id],
+                "execution_mode": "skill_assigned",
+                "acceptance_criteria": [{
+                    "criterion_id": f"{unit['id']}-acceptance",
+                    "description": "The requested review is complete.",
+                    "verification_mode": "automated",
+                }],
+            }
+            for unit in units
+        ],
+        "selected_skills": [{
+            "skill_id": skill_id,
+            "module_ids": [unit["id"] for unit in units],
+            "responsibility": "Own the approved module.",
+            "reason": "The Agent selected this installed skill after reading its contract.",
+        }],
+        "uncovered_modules": [],
+    }
+
+
+@pytest.mark.parametrize(
+    ("decoy_count", "description"),
+    [
+        (7, "Apply specialized review procedure."),
+        (8, "Apply specialized review procedure."),
+        (194, "Apply specialized review procedure."),
+        (8, "Translate classical poetry."),
+    ],
+)
+def test_agent_selection_resolves_full_catalog_independently_of_suggestions(
+    tmp_path: Path, decoy_count: int, description: str,
+) -> None:
+    agent = tmp_path / "agent"
+    skills_root = agent / "vibe/skills/local"
+    for number in range(decoy_count):
+        skill = skills_root / f"decoy-{number:03d}" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text(
+            f"---\nname: decoy-{number:03d}\n"
+            "description: Review runtime change implementation risk test coverage evidence summary architecture scripts proof.\n---\n",
+            encoding="utf-8",
+        )
+    skill_file = skills_root / "requested-owner/SKILL.md"
+    skill_file.parent.mkdir(parents=True)
+    skill_file.write_text(
+        f"---\nname: requested-owner\ndescription: {description}\n"
+        "plan_hints:\n  - Read the approved module scope.\n"
+        "verify_hints:\n  - Verify the requested outcome.\n---\n",
+        encoding="utf-8",
+    )
+    kwargs = {
+        "agent_root": agent,
+        "workspace_root": tmp_path / "workspace",
+        "repo_root": REPO_ROOT,
+        "prompt": "Review runtime change implementation risk test coverage evidence summary architecture scripts proof.",
+        "context": {"deliverables": ["review notes"]},
+        "execute": False,
+    }
+    preview = run_local_kernel(**kwargs, run_id="suggestions")
+    assert len(preview["candidates"]) == 8
+    if decoy_count >= 8:
+        assert "requested-owner" not in [row["skill_id"] for row in preview["candidates"]]
+
+    result = run_local_kernel(
+        **kwargs, run_id="selected",
+        agent_skill_organization=_organization_selecting_skill(preview["plan"], "requested-owner"),
+    )
+
+    unit = result["plan"]["work_units"][0]
+    assert unit["preferred_skill"] == "requested-owner"
+    assert unit["plan_hints"] == ("Read the approved module scope.",)
+    assert "Verify the requested outcome." in unit["verification"]
+    assert unit["selected_skill_provenance"]["resolved_skill_file"] == str(skill_file.resolve())
+    assert unit["selected_skill_provenance"]["content_sha256"] == hashlib.sha256(skill_file.read_bytes()).hexdigest()
+    assert len(result["candidates"]) == 8
+
+
+@pytest.mark.parametrize("ineligible_kind", ["missing", "invalid_frontmatter", "controller", "disabled", "invalid_source"])
+def test_explicit_agent_selection_rejects_ineligible_catalog_entries(tmp_path: Path, ineligible_kind: str) -> None:
+    agent = tmp_path / "agent"
+    skills_root = agent / "vibe/skills/local"
+    skill_id = "vibe" if ineligible_kind == "controller" else "requested-owner"
+    skill_file = skills_root / skill_id / "SKILL.md"
+    if ineligible_kind != "missing":
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text(
+            f"---\nname: {skill_id}\n"
+            + ("" if ineligible_kind == "invalid_frontmatter" else "description: Review implementation risk.\n")
+            + ("enabled: false\n" if ineligible_kind == "disabled" else "")
+            + "---\n",
+            encoding="utf-8",
+        )
+    if ineligible_kind == "invalid_source":
+        outside = tmp_path / "outside/SKILL.md"
+        outside.parent.mkdir()
+        skill_file.replace(outside)
+        _create_symlink_or_skip(skill_file, outside)
+    kwargs = {
+        "agent_root": agent,
+        "workspace_root": tmp_path / "workspace",
+        "repo_root": REPO_ROOT,
+        "prompt": "Review implementation risk.",
+        "context": {"deliverables": ["review notes"]},
+        "execute": False,
+    }
+    preview = run_local_kernel(**kwargs, run_id="ineligible-preview")
+
+    with pytest.raises(ValueError, match="selected unknown candidate skill"):
+        run_local_kernel(
+            **kwargs, run_id="ineligible-selected",
+            agent_skill_organization=_organization_selecting_skill(preview["plan"], skill_id),
+        )
+
+
+def test_chinese_task_can_bind_discovered_skill_through_agent_organization(tmp_path: Path) -> None:
+    agent = tmp_path / "agent"
+    skill_file = agent / "vibe/skills/local/cn-report/SKILL.md"
+    skill_file.parent.mkdir(parents=True)
+    skill_file.write_text(
+        "---\nname: 中文报告整理\ndescription: 整理实验资料，撰写实验报告并核对数据一致性。\n---\n",
+        encoding="utf-8",
+    )
+
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent, workspace_root=tmp_path / "workspace", repo_root=REPO_ROOT,
+        prompt="整理实验资料，撰写实验报告并核对数据一致性。", execute=False,
+    )
+
+    assert result["state"] == "ready_for_execution"
+    assert result["plan"]["work_units"][0]["preferred_skill"] == "cn-report"
+    assert result["plan"]["work_units"][0]["binding_profile"] == "agent_selected"
+
+
+@pytest.mark.parametrize("winning_enabled", [True, False])
+def test_explicit_selection_preserves_root_precedence_and_winner_enablement(
+    tmp_path: Path, winning_enabled: bool,
+) -> None:
+    home = tmp_path / "home"
+    agent = home / ".agents/skills"
+    workspace = tmp_path / "workspace"
+    first = tmp_path / "first-skills"
+    second = tmp_path / "second-skills"
+    for root, description, enabled in (
+        (first, "Translate classical poetry.", winning_enabled),
+        (second, "Review implementation risk.", True),
+    ):
+        skill_file = root / "requested-owner/SKILL.md"
+        skill_file.parent.mkdir(parents=True)
+        skill_file.write_text(
+            f"---\nname: requested-owner\ndescription: {description}\nenabled: {str(enabled).lower()}\n---\n",
+            encoding="utf-8",
+        )
+    config = workspace / ".vibeskills/skill-roots.json"
+    config.parent.mkdir(parents=True)
+    config.write_text(
+        json.dumps({"schema_version": 1, "extra_skill_roots": [str(first), str(second)]}), encoding="utf-8",
+    )
+    kwargs = {
+        "agent_root": agent, "workspace_root": workspace, "repo_root": REPO_ROOT,
+        "host_id": "codex", "prompt": "Review implementation risk.", "execute": False,
+    }
+    preview = run_local_kernel(**kwargs, run_id="precedence-preview")
+    organization = _organization_selecting_skill(preview["plan"], "requested-owner")
+    if not winning_enabled:
+        with pytest.raises(ValueError, match="selected unknown candidate skill"):
+            run_local_kernel(**kwargs, run_id="precedence-selected", agent_skill_organization=organization)
+        return
+
+    result = run_local_kernel(**kwargs, run_id="precedence-selected", agent_skill_organization=organization)
+
+    provenance = result["plan"]["work_units"][0]["selected_skill_provenance"]
+    assert provenance["resolved_skill_file"] == str((first / "requested-owner/SKILL.md").resolve())
+    assert provenance["source_order"] == 0

@@ -5,6 +5,7 @@ from typing import Any, Iterable
 
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+HAN_RUN_PATTERN = re.compile(r"[\u3400-\u9fff]+")
 DEFAULT_STOPWORDS = frozenset(
     {
         "a",
@@ -42,6 +43,7 @@ def tokens_from_text(
     stopwords: Iterable[str] = DEFAULT_STOPWORDS,
     stem: bool = False,
     min_length: int = 3,
+    include_han: bool = False,
 ) -> set[str]:
     blocked = frozenset(stopwords)
     tokens: set[str] = set()
@@ -52,6 +54,13 @@ def tokens_from_text(
             tokens.update(token_variants(token))
         else:
             tokens.add(token)
+    # Kernel discovery opts in; semantic-router scoring keeps its existing vocabulary.
+    if include_han:
+        for run in HAN_RUN_PATTERN.findall(text):
+            tokens.update(
+                token for index in range(len(run) - 1)
+                if (token := run[index:index + 2]) not in blocked
+            )
     return tokens
 
 
@@ -61,6 +70,7 @@ def tokens_from_values(
     stopwords: Iterable[str] = DEFAULT_STOPWORDS,
     stem: bool = False,
     min_length: int = 3,
+    include_han: bool = False,
 ) -> set[str]:
     if isinstance(values, list):
         return tokens_from_text(
@@ -68,6 +78,7 @@ def tokens_from_values(
             stopwords=stopwords,
             stem=stem,
             min_length=min_length,
+            include_han=include_han,
         )
     return set()
 
