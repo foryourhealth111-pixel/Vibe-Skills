@@ -22,8 +22,8 @@ from .host_skill_roots import resolve_host_skill_roots
 from .planner import build_work_plan
 from .run_state import load_run_state, write_run_state
 from .skill_index import build_skill_catalog, build_skill_index_from_catalog, write_skill_catalog, write_skill_index
-from .task_card import TaskCard, TaskRevision, build_task_card
-from .verifier import verify_run
+from .task_card import TaskCard, TaskRevision, build_task_card, normalize_input_artifacts
+from .verifier import completed_result_readiness_notes, verify_run
 from .module_assignments import ModuleAssignments, build_module_assignments
 from .work_plan import AcceptanceCriterion, SkillProvenance, WorkPlan, WorkUnit
 from vgo_runtime.artifact_contract import (
@@ -357,7 +357,23 @@ def _bound_module_assignments(plan: WorkPlan) -> ModuleAssignments:
     )
 
 
+def _resolve_task_input_paths(task_card: TaskCard, *, base_root: Path) -> TaskCard:
+    paths = []
+    for raw_path in task_card.input_artifacts:
+        path = Path(raw_path).expanduser()
+        paths.append(str((path if path.is_absolute() else base_root / path).resolve()))
+    return replace(task_card, input_artifacts=tuple(dict.fromkeys(paths)))
+
+
 def _coerce_task_card(payload: dict[str, object]) -> TaskCard:
+    input_artifacts = normalize_input_artifacts(payload.get("input_artifacts"))
+    input_sha256 = payload.get("input_artifact_sha256", [])
+    if (
+        not isinstance(input_sha256, (list, tuple))
+        or len(input_sha256) != len(input_artifacts)
+        or any(not isinstance(digest, str) for digest in input_sha256)
+    ):
+        raise ValueError("task input artifact SHA-256 evidence must match declared inputs")
     return TaskCard(
         id=str(payload["id"]),
         goal=str(payload["goal"]),
@@ -368,6 +384,8 @@ def _coerce_task_card(payload: dict[str, object]) -> TaskCard:
         completion_criteria=tuple(str(value) for value in payload.get("completion_criteria", [])),
         mode=str(payload.get("mode") or "general"),
         initial_goal=str(payload.get("initial_goal") or payload["goal"]),
+        input_artifacts=input_artifacts,
+        input_artifact_sha256=tuple(input_sha256),
         accepted_revisions=tuple(
             TaskRevision(
                 sequence=int(item.get("sequence", index)),
@@ -379,6 +397,8 @@ def _coerce_task_card(payload: dict[str, object]) -> TaskCard:
                 removed_constraints=tuple(str(value) for value in item.get("removed_constraints", [])),
                 added_completion_criteria=tuple(str(value) for value in item.get("added_completion_criteria", [])),
                 removed_completion_criteria=tuple(str(value) for value in item.get("removed_completion_criteria", [])),
+                added_input_artifacts=normalize_input_artifacts(item.get("added_input_artifacts")),
+                removed_input_artifacts=normalize_input_artifacts(item.get("removed_input_artifacts")),
             )
             for index, item in enumerate(payload.get("accepted_revisions", []), start=1)
             if isinstance(item, dict)
@@ -526,14 +546,7 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
 
 
 def _completed_result_artifacts_are_current(result: WorkUnitResult) -> bool:
-    if not is_final_completed_result(result) or not result.artifact_paths:
-        return False
-    if len(result.artifact_paths) != len(result.artifacts):
-        return False
-    recorded = result.artifact_sha256
-    if len(recorded) != len(result.artifact_paths) or any(not digest for digest in recorded):
-        return False
-    return recorded == artifact_sha256_for_paths(result.artifact_paths)
+    return bool(result.artifact_paths) and not completed_result_readiness_notes(result)
 
 
 def _fingerprint(payload: object) -> str:
@@ -543,7 +556,7 @@ def _fingerprint(payload: object) -> str:
 
 def _task_input_sha256(task_card: TaskCard) -> str:
     # Revision history describes the conversation; effective fields define the work.
-    return _fingerprint({
+    payload: dict[str, object] = {
         "schema_version": 1,
         "goal": task_card.goal,
         "deliverables": task_card.deliverables,
@@ -552,7 +565,11 @@ def _task_input_sha256(task_card: TaskCard) -> str:
         "unknowns": task_card.unknowns,
         "completion_criteria": task_card.completion_criteria,
         "mode": task_card.mode,
-    })
+    }
+    if task_card.input_artifacts:
+        payload["input_artifacts"] = task_card.input_artifacts
+        payload["input_artifact_sha256"] = task_card.input_artifact_sha256
+    return _fingerprint(payload)
 
 
 def _execution_checkpoint_payload(
@@ -646,7 +663,8 @@ def _reusable_completed_result(
             previous_work_unit=previous_work_unit,
             current_work_unit=current_work_unit,
         )
-        or not _completed_result_artifacts_are_current(previous_result)
+        or not previous_result.artifact_paths
+        or completed_result_readiness_notes(previous_result, work_unit=current_work_unit)
     ):
         return None
     return previous_result
@@ -733,6 +751,8 @@ def _build_task_revision(
     removed_constraints = _ordered_difference(previous.constraints, current.constraints)
     added_completion_criteria = _ordered_difference(current.completion_criteria, previous.completion_criteria)
     removed_completion_criteria = _ordered_difference(previous.completion_criteria, current.completion_criteria)
+    added_input_artifacts = _ordered_difference(current.input_artifacts, previous.input_artifacts)
+    removed_input_artifacts = _ordered_difference(previous.input_artifacts, current.input_artifacts)
     if not any(
         (
             added_deliverables,
@@ -741,6 +761,8 @@ def _build_task_revision(
             removed_constraints,
             added_completion_criteria,
             removed_completion_criteria,
+            added_input_artifacts,
+            removed_input_artifacts,
         )
     ):
         return None
@@ -754,6 +776,8 @@ def _build_task_revision(
         removed_constraints=removed_constraints,
         added_completion_criteria=added_completion_criteria,
         removed_completion_criteria=removed_completion_criteria,
+        added_input_artifacts=added_input_artifacts,
+        removed_input_artifacts=removed_input_artifacts,
     )
 
 
@@ -788,6 +812,11 @@ def _merge_task_cards(existing: TaskCard, followup: TaskCard, *, revision_prompt
             followup.completion_criteria,
             replace=revision_mode == "replace" and "completion_criteria" in context_payload,
         ),
+        input_artifacts=_merge_or_replace(
+            existing.input_artifacts,
+            followup.input_artifacts,
+            replace=revision_mode == "replace" and "input_artifacts" in context_payload,
+        ),
         mode=existing.mode,
         initial_goal=existing.initial_goal,
         accepted_revisions=existing.accepted_revisions,
@@ -811,6 +840,7 @@ def _merge_task_cards(existing: TaskCard, followup: TaskCard, *, revision_prompt
         mode=merged.mode,
         initial_goal=merged.initial_goal,
         accepted_revisions=(*existing.accepted_revisions, accepted_revision),
+        input_artifacts=merged.input_artifacts,
     )
 
 
@@ -1241,7 +1271,10 @@ def run_local_kernel(
     if resume_mode:
         existing_task_card = _coerce_task_card(_load_required_json(task_card_path))
         previous_revision_count = len(existing_task_card.accepted_revisions)
-        followup_task_card = build_task_card(prompt=prompt, context=context)
+        followup_task_card = _resolve_task_input_paths(
+            build_task_card(prompt=prompt, context=context),
+            base_root=resolved_workspace_root or resolved_agent_root,
+        )
         task_card = _merge_task_cards(
             existing_task_card,
             followup_task_card,
@@ -1251,7 +1284,13 @@ def run_local_kernel(
         if plan_path.is_file():
             previous_plan = _coerce_work_plan(_load_required_json(plan_path))
     else:
-        task_card = build_task_card(prompt=prompt, context=context)
+        task_card = _resolve_task_input_paths(
+            build_task_card(prompt=prompt, context=context),
+            base_root=resolved_workspace_root or resolved_agent_root,
+        )
+    task_card = replace(
+        task_card, input_artifact_sha256=artifact_sha256_for_paths(task_card.input_artifacts),
+    )
     continuation_mode = "fresh"
     if resume_mode:
         continuation_mode = "revised" if len(task_card.accepted_revisions) > previous_revision_count else "resumed"
@@ -1308,6 +1347,10 @@ def run_local_kernel(
         work_unit.expected_artifacts: work_unit for work_unit in checkpoint_plan.work_units
     }
     task_input_sha256 = _task_input_sha256(task_card)
+    unavailable_inputs = [
+        path for path, digest in zip(task_card.input_artifacts, task_card.input_artifact_sha256)
+        if not digest
+    ]
     planned_reused_results: dict[str, WorkUnitResult] = {}
     reused_work_unit_ids: list[str] = []
     planned_work_units: list[WorkUnit] = []
@@ -1422,8 +1465,12 @@ def run_local_kernel(
                 superseded_work_units=tuple(unit.id for unit in superseded_work_units),
             )
             dependency_sha256 = _dependency_output_sha256(work_unit, results_by_id)
-            if dependency_sha256 is None:
-                reason = "Required dependency has no current completed output: " + ", ".join(work_unit.depends_on)
+            if dependency_sha256 is None or unavailable_inputs:
+                reason = (
+                    "Declared input artifact is missing or unreadable: " + ", ".join(unavailable_inputs)
+                    if unavailable_inputs else
+                    "Required dependency has no current completed output: " + ", ".join(work_unit.depends_on)
+                )
                 result = WorkUnitResult(
                     work_unit_id=work_unit.id,
                     status="blocked",

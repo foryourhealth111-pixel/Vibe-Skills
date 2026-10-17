@@ -110,6 +110,39 @@ agent_skill_organization
 No separate decision object may choose task skills, bind work, or claim that
 work ran outside this canonical chain.
 
+## Local Kernel Input Identity
+
+Callers of the Python `run_local_kernel` interface may declare required input
+files through `context.input_artifacts`, a list of non-empty path strings.
+Relative paths resolve from `workspace_root`, or `agent_root` when a workspace
+is omitted. The runtime persists absolute paths and their content SHA-256
+snapshots in the TaskCard; callers do not supply hashes. These task-level
+inputs apply to every work unit in that TaskCard. Free-form prompt and context
+text remain descriptive and are not interpreted as file declarations.
+
+Resume inherits the declared paths. The existing `extend` revision mode adds
+paths, and `replace` replaces them when `input_artifacts` is explicitly present.
+A content change invalidates prior task execution identity. Missing or unreadable
+inputs block execution, and a mutation during execution prevents final verified
+completion. Unchanged content remains reusable even when filesystem timestamps
+change. Inspection reports current verification separately from the recorded
+verification snapshot.
+
+Completed-result reuse and final verification share readiness checks for final
+artifacts, current output hashes, required execution receipts, Skill bindings,
+proof references, and declared verification targets. Missing evidence makes a
+result ineligible for reuse and sends the work through normal recovery.
+
+## Native Bridge Lifetime
+
+Native bridge commands run inside a bounded process tree: a Windows Job Object
+or a dedicated POSIX process group. On Windows, a waiting start gate joins the
+job before launching the target command. A timeout cancels the tree and drains
+the captured streams before the bridge reports failure. Normal completion also
+reclaims remaining descendants. The existing JSON output-file contract,
+environment, working directory, exit diagnostics, and partial-output diagnostics
+remain available.
+
 ## Module Execution Truth
 
 Preferred stable work-run surfaces:

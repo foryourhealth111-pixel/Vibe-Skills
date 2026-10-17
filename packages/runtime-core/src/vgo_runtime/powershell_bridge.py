@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .process_tree import run_process_tree
+
 
 LOGGER = logging.getLogger(__name__)
 SENSITIVE_COMMAND_FLAGS = frozenset(
@@ -317,13 +319,8 @@ def run_powershell_json_command(
 ) -> dict[str, Any]:
     resolved_timeout = _resolve_bridge_timeout(timeout)
     try:
-        completed = subprocess.run(
-            list(command),
-            cwd=cwd,
-            capture_output=True,
-            check=False,
-            env=dict(env) if env is not None else None,
-            timeout=resolved_timeout,
+        completed = run_process_tree(
+            command, cwd=cwd, env=env, timeout=resolved_timeout,
         )
     except subprocess.TimeoutExpired as exc:
         _raise_bridge_failure(

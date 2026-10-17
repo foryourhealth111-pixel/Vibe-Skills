@@ -238,8 +238,21 @@ jobs:
         run: >-
           python -B -m pytest -q -ra
           tests/unit/test_local_kernel_resume.py
+          tests/unit/test_local_kernel_planning.py
+          tests/unit/test_external_skill_selection.py
+          tests/unit/test_powershell_process_tree.py
           tests/unit/test_local_skill_index.py
           tests/unit/test_local_kernel_execution.py
           tests/unit/test_host_skill_roots.py
           tests/unit/test_vibe_skill_entry_contract.py
           tests/contract/test_repo_layout_contract.py
+          --junitxml=outputs/proof/runtime-resume-${{ matrix.os }}.xml
+
+      - name: Upload runtime recovery proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-resume-proof-${{ matrix.os }}
+          path: outputs/proof/runtime-resume-${{ matrix.os }}.xml
+          retention-days: 30
+          if-no-files-found: error

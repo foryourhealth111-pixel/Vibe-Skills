@@ -10,6 +10,7 @@ if str(RUNTIME_SRC) not in sys.path:
     sys.path.insert(0, str(RUNTIME_SRC))
 
 from vgo_runtime.kernel.finder import find_skill_candidates
+from vgo_runtime.kernel.skill_index import build_skill_index
 from vgo_runtime.kernel.module_assignments import build_module_assignments
 from vgo_runtime.kernel.planner import build_work_plan
 from vgo_runtime.kernel.task_card import build_task_card
@@ -539,3 +540,33 @@ def test_build_work_plan_does_not_claim_declared_output_owner_without_output_ove
     assert plan.work_units[0].preferred_skill == "runtime-redesign-advisor"
     assert plan.work_units[0].binding_profile == "general_support_owner"
     assert plan.work_units[0].binding_reason == "Selected the only supporting skill."
+
+
+def test_specialist_survives_shortlist_and_owns_deliverable_across_source_roots(tmp_path: Path) -> None:
+    earlier = tmp_path / "earlier-root"
+    later = tmp_path / "later-root"
+    for index in range(8):
+        skill = earlier / f"generic-report-{index}" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text(
+            f"---\nname: General Report {index}\ndescription: General report formatting.\noutputs: [report]\n---\n",
+            encoding="utf-8",
+        )
+    specialist = later / "statistical-report" / "SKILL.md"
+    specialist.parent.mkdir(parents=True)
+    specialist.write_text(
+        "---\nname: Statistical Report\n"
+        "description: Produce a report with statistical regression analysis confidence intervals and heteroscedasticity diagnostics.\n"
+        "outputs: [statistical regression report, confidence intervals]\n---\n",
+        encoding="utf-8",
+    )
+    index = build_skill_index(tmp_path / "agent-root", host_roots=(earlier, later))
+    task = build_task_card(
+        prompt="Produce a statistical regression report with confidence intervals and heteroscedasticity diagnostics.",
+        context={"deliverables": ["statistical regression report"]},
+    )
+    candidates = find_skill_candidates(task, index)
+    assert candidates[0].skill_id == "statistical-report"
+    assert len(candidates) == 8
+    plan = build_work_plan(task, candidates)
+    assert plan.work_units[0].preferred_skill == "statistical-report"

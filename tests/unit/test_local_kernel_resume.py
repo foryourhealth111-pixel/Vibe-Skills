@@ -613,3 +613,194 @@ def test_partial_retry_retains_later_independent_completed_checkpoint(
     assert resumed["verification"]["result"] == "done"
     assert calls == ["wu-1", "wu-2", "wu-2"]
     assert resumed["reused_work_units"] == ["wu-1", "wu-3"]
+
+
+def test_resume_rebuilds_report_when_declared_input_content_changes(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "data.csv"
+    source.write_text("value\n10\n", encoding="utf-8")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, source.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="declared-input-change",
+        prompt="Produce a report from the input CSV.",
+        context={"deliverables": ["report"], "input_artifacts": [str(source)]},
+    )
+    first = run_local_kernel_with_agent_choice(**arguments)
+    assert first["verification"]["result"] == "done"
+    source.write_text("value\n999\n", encoding="utf-8")
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    report = Path(resumed["work_results"]["work_results"][0]["artifact_paths"][0])
+    assert report.read_text(encoding="utf-8") == "value\n999\n"
+    assert resumed["reused_work_units"] == []
+    assert resumed["verification"]["result"] == "done"
+
+
+def test_resume_recovers_result_with_missing_execution_receipt(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, "A completed report with current execution evidence")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="missing-receipt", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    Path(first["work_results"]["work_results"][0]["execution_receipt_path"]).unlink()
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["verification"]["result"] == "done"
+    assert resumed["reused_work_units"] == []
+    assert Path(resumed["work_results"]["work_results"][0]["execution_receipt_path"]).is_file()
+
+
+def test_declared_input_paths_persist_across_resume_and_inspection(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "data.csv"
+    source.write_text("stable input", encoding="utf-8")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, source.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="persisted-input",
+        prompt="Produce a report.",
+    )
+    first = run_local_kernel_with_agent_choice(
+        **arguments, context={"deliverables": ["report"], "input_artifacts": ["data.csv"]},
+    )
+    assert first["task_card"]["input_artifacts"] == (str(source.resolve()),)
+    source.touch()
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["reused_work_units"] == ["wu-1"]
+    assert resumed["verification"]["result"] == "done"
+    source.write_text("changed input", encoding="utf-8")
+    inspected = inspect_local_run(agent_root=agent_root, workspace_root=tmp_path, run_id="persisted-input")
+    assert inspected["current_verification"]["result"] == "revise_execution"
+    assert inspected["summary"]["proof_ready"] is False
+
+
+def test_missing_declared_input_blocks_stale_completion_and_can_recover(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "data.csv"
+    source.write_text("original data", encoding="utf-8")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, source.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="missing-input",
+        prompt="Produce a report.",
+        context={"deliverables": ["report"], "input_artifacts": [str(source)]},
+    )
+    assert run_local_kernel_with_agent_choice(**arguments)["verification"]["result"] == "done"
+    source.unlink()
+    blocked = run_local_kernel_with_agent_choice(**arguments)
+    assert blocked["reused_work_units"] == []
+    assert blocked["work_results"]["work_results"][0]["status"] == "blocked"
+    assert blocked["verification"]["result"] != "done"
+    source.write_text("restored data", encoding="utf-8")
+    recovered = run_local_kernel_with_agent_choice(**arguments)
+    report = Path(recovered["work_results"]["work_results"][0]["artifact_paths"][0])
+    assert report.read_text(encoding="utf-8") == "restored data"
+    assert recovered["verification"]["result"] == "done"
+
+
+def test_input_mutation_during_execution_prevents_verified_completion(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "data.csv"
+    source.write_text("original data", encoding="utf-8")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        result = _completed_result(unit, work_root, source.read_text(encoding="utf-8"))
+        source.write_text("concurrent update", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="changing-input",
+        prompt="Produce a report.", context={"input_artifacts": [str(source)]},
+    )
+    assert result["verification"]["result"] == "revise_execution"
+    assert result["work_dossier"]["proof_ready"] is False
+
+
+@pytest.mark.parametrize("inputs", ["data.csv", {}, 1, [""], [" "], [1], [None]])
+def test_task_card_rejects_malformed_input_artifact_declarations(inputs: object) -> None:
+    with pytest.raises(ValueError, match="input_artifacts"):
+        build_task_card(prompt="Produce a report.", context={"input_artifacts": inputs})
+
+
+@pytest.mark.parametrize("field", ["used_skill", "checked_targets", "proof"])
+def test_resume_recovers_completed_results_that_fail_current_readiness(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, field: str,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, "A report with complete current evidence")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id=f"invalid-evidence-{field}", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    checkpoint = Path(first["artifacts"]["work_results"])
+    payload = json.loads(checkpoint.read_text(encoding="utf-8"))
+    payload["work_results"][0][field] = "unbound-skill" if field == "used_skill" else []
+    checkpoint.write_text(json.dumps(payload), encoding="utf-8")
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["reused_work_units"] == []
+    assert resumed["verification"]["result"] == "done"
+
+
+def test_input_content_changes_invalidate_dependent_work(
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "data.csv"
+    source.write_text("data version A", encoding="utf-8")
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, source.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="input-dependency-chain",
+        prompt="Produce a summary and a report.",
+        context={"deliverables": ["summary", "report"], "input_artifacts": [str(source)]},
+    )
+    first = run_local_kernel_with_agent_choice(**arguments)
+    assert first["plan"]["work_units"][1]["depends_on"] == ("wu-1",)
+    source.write_text("data version B", encoding="utf-8")
+    resumed = run_local_kernel_with_agent_choice(**arguments)
+    assert resumed["reused_work_units"] == []
+    for result in resumed["work_results"]["work_results"]:
+        assert Path(result["artifact_paths"][0]).read_text(encoding="utf-8") == "data version B"
+    assert resumed["verification"]["result"] == "done"
+
+
+def test_input_declaration_revisions_follow_extend_and_replace(
+    agent_root: Path, tmp_path: Path,
+) -> None:
+    for name in ("first.csv", "second.csv"):
+        (tmp_path / name).write_text("input data", encoding="utf-8")
+    arguments = dict(
+        agent_root=agent_root, workspace_root=tmp_path, run_id="input-revisions",
+        prompt="Produce a report.", execute=False,
+    )
+    run_local_kernel(**arguments, context={"input_artifacts": ["first.csv"]})
+    extended = run_local_kernel(**arguments, context={"input_artifacts": ["second.csv"]})
+    assert extended["task_card"]["input_artifacts"] == (
+        str((tmp_path / "first.csv").resolve()), str((tmp_path / "second.csv").resolve()),
+    )
+    assert extended["task_card"]["accepted_revisions"][-1]["added_input_artifacts"] == (
+        str((tmp_path / "second.csv").resolve()),
+    )
+    replaced = run_local_kernel(
+        **arguments, context={"input_artifacts": [], "revision_mode": "replace"},
+    )
+    assert replaced["task_card"]["input_artifacts"] == ()
+    assert len(replaced["task_card"]["accepted_revisions"][-1]["removed_input_artifacts"]) == 2

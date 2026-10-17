@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -639,3 +640,67 @@ def test_installed_catalog_rejects_non_boolean_enabled_metadata(tmp_path: Path, 
     assert catalog["entries"] == []
     assert len(catalog["discovery_diagnostics"]["invalid_entries"]) == 1
     assert "enabled must be a boolean" in catalog["discovery_diagnostics"]["invalid_entries"][0]["message"]
+
+
+def test_skill_catalog_reads_each_source_once_on_cold_and_warm_scan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent = tmp_path / "agent-root"
+    skill = _write_skill(
+        agent / "vibe/skills/local/report-a",
+        "---\nname: Report\ndescription: Write a report from verified data.\noutputs: [report]\n---",
+        "# Workflow\nRead data and write a report.\n# Verification\nCheck report.\n",
+    ).resolve()
+    original_open = Path.open
+    reads: list[Path] = []
+
+    def open_source(path: Path, *args: object, **kwargs: object):
+        mode = args[0] if args else kwargs.get("mode", "r")
+        if path.resolve() == skill and "r" in str(mode):
+            reads.append(path)
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", open_source)
+    first = build_skill_index(agent)
+    assert len(reads) == 1
+    assert first["skill_cache"]["refreshed_count"] == 1
+    reads.clear()
+    second = build_skill_index(agent)
+    assert len(reads) == 1
+    assert second["skill_cache"]["reused_count"] == 1
+    assert second["skill_cache"]["refreshed_count"] == 0
+
+
+def test_catalog_metadata_and_identity_use_the_same_snapshot_during_file_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent = tmp_path / "agent-root"
+    skill = _write_skill(
+        agent / "vibe/skills/local/report-a",
+        "---\nname: Report\ndescription: Write a report from verified data.\n---",
+        "Use verified data to write a report.\n",
+    ).resolve()
+    original_bytes = skill.read_bytes()
+    changed_bytes = (
+        "---\nname: Slides\ndescription: Use only when the user explicitly asks for slides.\n---\n"
+        "Use only when the user explicitly asks for slides.\n"
+    ).encode("utf-8")
+    original_read = Path.read_bytes
+
+    def read_snapshot(path: Path) -> bytes:
+        snapshot = original_read(path)
+        if path.resolve() == skill:
+            skill.write_bytes(changed_bytes)
+        return snapshot
+
+    monkeypatch.setattr(Path, "read_bytes", read_snapshot)
+    first = build_skill_index(agent)
+    entry = first["skills"][0]
+    assert entry["description"] == "Write a report from verified data."
+    assert entry["content_sha256"] == hashlib.sha256(original_bytes).hexdigest()
+    assert entry["explicit_only"] is False
+    assert any(row["text"] == "Use verified data to write a report." for row in entry["route_evidence_chunks"])
+    second = build_skill_index(agent)
+    assert second["skills"][0]["content_sha256"] == hashlib.sha256(changed_bytes).hexdigest()
+    assert second["skills"][0]["explicit_only"] is True
+    assert second["skill_cache"]["cards"][0]["refresh_reason"] == "content_changed"

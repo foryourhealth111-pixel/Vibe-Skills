@@ -189,13 +189,13 @@ def _binding_profile(
     return "declared_output_owner" if owner_overlap_tokens else "general_support_owner"
 
 
-def _ranked_selection_key(candidate: SkillCandidate, deliverable_tokens: set[str]) -> tuple[int, int, int, int, int, float, str]:
+def _ranked_selection_key(candidate: SkillCandidate, deliverable_tokens: set[str]) -> tuple[int, int, int, float, int, int, str]:
     return (
-        candidate.source_priority,
         -len(_owner_overlap_tokens(candidate, deliverable_tokens)),
         -len(deliverable_tokens & tokens_from_text(candidate.skill_id.replace("-", " "), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True)),
         -len(deliverable_tokens & set(candidate.search_tokens)),
         -candidate.score,
+        candidate.source_priority,
         candidate.source_order,
         candidate.skill_id,
     )
