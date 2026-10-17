@@ -73,78 +73,97 @@ def _validated_source_metadata(raw_entry: dict[str, object]) -> dict[str, object
     }
 
 
-def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object], *, limit: int = 8) -> tuple[SkillCandidate, ...]:
-    query_tokens = tokens_from_text(
-        " ".join(
-            (
-                task_card.goal,
-                " ".join(task_card.deliverables),
-                " ".join(task_card.constraints),
-                " ".join(task_card.completion_criteria),
-            )
-        ),
+def _task_query_tokens(task_card: TaskCard) -> set[str]:
+    return tokens_from_text(
+        " ".join((
+            task_card.goal,
+            " ".join(task_card.deliverables),
+            " ".join(task_card.constraints),
+            " ".join(task_card.completion_criteria),
+        )),
         stem=True,
         stopwords=SKILL_MATCH_STOPWORDS,
+        include_han=True,
     )
+
+
+def _candidate_from_entry(raw_entry: dict[str, object], query_tokens: set[str]) -> SkillCandidate | None:
+    if not bool(raw_entry.get("enabled", False)):
+        return None
+    source_metadata = _validated_source_metadata(raw_entry)
+    skill_id = str(raw_entry.get("id") or "").strip()
+    if not skill_id:
+        return None
+    search_tokens: set[str] = set()
+    for field in ("id", "name", "description"):
+        search_tokens.update(tokens_from_text(
+            str(raw_entry.get(field) or ""), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True,
+        ))
+    for field in ("when_to_use", "tags"):
+        search_tokens.update(tokens_from_values(
+            raw_entry.get(field), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True,
+        ))
+    owner_tokens = tokens_from_values(
+        raw_entry.get("outputs"), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True,
+    )
+    blocked_tokens = tokens_from_values(
+        raw_entry.get("not_for"), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True,
+    )
+    matched = sorted(query_tokens & search_tokens)
+    not_for_overlap = sorted(query_tokens & blocked_tokens)
+    priority = int(raw_entry.get("priority", 50))
+    return SkillCandidate(
+        skill_id=skill_id,
+        score=float(len(matched)) + (priority / 1000.0) - (0.25 * len(not_for_overlap)),
+        matched_tokens=tuple(matched),
+        search_tokens=tuple(sorted(search_tokens)),
+        inputs=_optional_strings(raw_entry, "inputs"),
+        outputs=_optional_strings(raw_entry, "outputs"),
+        plan_hints=_optional_strings(raw_entry, "plan_hints"),
+        verify_hints=_optional_strings(raw_entry, "verify_hints"),
+        owner_tokens=tuple(sorted(owner_tokens)),
+        support_tokens=tuple(sorted(search_tokens | owner_tokens)),
+        blocked_tokens=tuple(sorted(blocked_tokens)),
+        reasons=((f"matched tokens: {', '.join(matched)}",) if matched else ("Agent selected an active catalog entry.",)),
+        warnings=((f"not_for overlap: {', '.join(not_for_overlap)}",) if not_for_overlap else ()),
+        source_kind=str(source_metadata["source_kind"]),
+        source_root=str(source_metadata["source_root"]),
+        resolved_source_root=str(source_metadata["resolved_source_root"]),
+        source_priority=int(source_metadata["source_priority"]),
+        source_order=int(source_metadata["source_order"]),
+        resolved_root_dir=str(source_metadata["resolved_root_dir"]),
+        resolved_skill_file=str(source_metadata["resolved_skill_file"]),
+        path_contract=str(source_metadata["path_contract"]),
+        path_base=str(source_metadata["path_base"]),
+        content_sha256=str(raw_entry.get("content_sha256") or "").strip().lower(),
+    )
+
+
+def resolve_skill_candidates(
+    task_card: TaskCard, index_payload: dict[str, object], *, skill_ids: tuple[str, ...],
+) -> tuple[SkillCandidate, ...]:
+    """Resolve explicit choices from eligible catalog entries without a relevance cutoff."""
+    requested = set(skill_ids)
+    query_tokens = _task_query_tokens(task_card)
+    resolved: list[SkillCandidate] = []
+    for entry in index_payload.get("skills", []):
+        if not isinstance(entry, dict) or str(entry.get("id") or "").strip() not in requested:
+            continue
+        candidate = _candidate_from_entry(entry, query_tokens)
+        if candidate is not None:
+            resolved.append(candidate)
+    return tuple(resolved)
+
+
+def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object], *, limit: int = 8) -> tuple[SkillCandidate, ...]:
+    query_tokens = _task_query_tokens(task_card)
     candidates: list[SkillCandidate] = []
-    for raw_entry in index_payload.get("skills", []):
-        if not isinstance(raw_entry, dict):
+    for entry in index_payload.get("skills", []):
+        if not isinstance(entry, dict):
             continue
-        if not bool(raw_entry.get("enabled", False)):
-            continue
-        source_metadata = _validated_source_metadata(raw_entry)
-        skill_id = str(raw_entry.get("id") or "").strip()
-        if not skill_id:
-            continue
-        search_tokens = set()
-        search_tokens.update(tokens_from_text(str(raw_entry.get("id") or ""), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
-        search_tokens.update(tokens_from_text(str(raw_entry.get("name") or ""), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
-        search_tokens.update(tokens_from_text(str(raw_entry.get("description") or ""), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
-        search_tokens.update(tokens_from_values(raw_entry.get("when_to_use"), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
-        search_tokens.update(tokens_from_values(raw_entry.get("tags"), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
-        owner_tokens = tokens_from_values(raw_entry.get("outputs"), stem=True, stopwords=SKILL_MATCH_STOPWORDS)
-        inputs = _optional_strings(raw_entry, "inputs")
-        outputs = _optional_strings(raw_entry, "outputs")
-        plan_hints = _optional_strings(raw_entry, "plan_hints")
-        verify_hints = _optional_strings(raw_entry, "verify_hints")
-        support_tokens = set(search_tokens)
-        support_tokens.update(owner_tokens)
-        blocked_tokens = tokens_from_values(raw_entry.get("not_for"), stem=True, stopwords=SKILL_MATCH_STOPWORDS)
-        matched = sorted(query_tokens & search_tokens)
-        if not matched:
-            continue
-        not_for_overlap = sorted(query_tokens & blocked_tokens)
-        priority = int(raw_entry.get("priority", 50))
-        score = float(len(matched)) + (priority / 1000.0) - (0.25 * len(not_for_overlap))
-        reasons = (f"matched tokens: {', '.join(matched)}",)
-        warnings = (f"not_for overlap: {', '.join(not_for_overlap)}",) if not_for_overlap else ()
-        candidates.append(
-            SkillCandidate(
-                skill_id=skill_id,
-                score=score,
-                matched_tokens=tuple(matched),
-                search_tokens=tuple(sorted(search_tokens)),
-                inputs=inputs,
-                outputs=outputs,
-                plan_hints=plan_hints,
-                verify_hints=verify_hints,
-                owner_tokens=tuple(sorted(owner_tokens)),
-                support_tokens=tuple(sorted(support_tokens)),
-                blocked_tokens=tuple(sorted(blocked_tokens)),
-                reasons=reasons,
-                warnings=warnings,
-                source_kind=str(source_metadata["source_kind"]),
-                source_root=str(source_metadata["source_root"]),
-                resolved_source_root=str(source_metadata["resolved_source_root"]),
-                source_priority=int(source_metadata["source_priority"]),
-                source_order=int(source_metadata["source_order"]),
-                resolved_root_dir=str(source_metadata["resolved_root_dir"]),
-                resolved_skill_file=str(source_metadata["resolved_skill_file"]),
-                path_contract=str(source_metadata["path_contract"]),
-                path_base=str(source_metadata["path_base"]),
-                content_sha256=str(raw_entry.get("content_sha256") or "").strip().lower(),
-            )
-        )
+        candidate = _candidate_from_entry(entry, query_tokens)
+        if candidate is not None and candidate.matched_tokens:
+            candidates.append(candidate)
     ranked = sorted(
         candidates,
         key=lambda candidate: (

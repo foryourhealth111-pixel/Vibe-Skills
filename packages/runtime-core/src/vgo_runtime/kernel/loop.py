@@ -17,7 +17,7 @@ from .executor import (
     execute_work_unit,
     is_final_completed_result,
 )
-from .finder import find_skill_candidates
+from .finder import find_skill_candidates, resolve_skill_candidates
 from .host_skill_roots import resolve_host_skill_roots
 from .planner import build_work_plan
 from .run_state import load_run_state, write_run_state
@@ -1269,7 +1269,13 @@ def run_local_kernel(
     candidates = find_skill_candidates(task_card, index_payload)
     plan = build_work_plan(task_card, candidates)
     if agent_skill_organization is not None:
-        plan = _apply_agent_skill_organization(plan, candidates, agent_skill_organization)
+        selected_rows = agent_skill_organization.get("selected_skills")
+        selected_ids = tuple(
+            str(row.get("skill_id") or "").strip()
+            for row in selected_rows if isinstance(row, dict)
+        ) if isinstance(selected_rows, list) else ()
+        selected_candidates = resolve_skill_candidates(task_card, index_payload, skill_ids=selected_ids)
+        plan = _apply_agent_skill_organization(plan, selected_candidates, agent_skill_organization)
     else:
         plan = _unbound_plan_for_agent(plan)
 

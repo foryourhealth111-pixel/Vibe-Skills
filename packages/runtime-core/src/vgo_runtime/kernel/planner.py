@@ -134,7 +134,7 @@ GRADE_ORDER = {"M": 0, "L": 1, "XL": 2}
 
 
 def _deliverable_support_tokens(deliverable: str) -> set[str]:
-    tokens = tokens_from_text(deliverable, stem=True, stopwords=SKILL_MATCH_STOPWORDS)
+    tokens = tokens_from_text(deliverable, stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True)
     if "code" in tokens and "change" in tokens:
         tokens.update({"fix", "debug", "bug", "implement", "implementation"})
     return tokens
@@ -156,7 +156,7 @@ def _candidate_supports_deliverable(candidate: SkillCandidate, deliverable_token
     if deliverable_tokens & blocked_tokens:
         return False
     candidate_tokens = _expanded_candidate_tokens(candidate.support_tokens)
-    candidate_tokens.update(tokens_from_text(candidate.skill_id.replace("-", " "), stem=True, stopwords=SKILL_MATCH_STOPWORDS))
+    candidate_tokens.update(tokens_from_text(candidate.skill_id.replace("-", " "), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True))
     return bool(deliverable_tokens & candidate_tokens)
 
 
@@ -193,7 +193,7 @@ def _ranked_selection_key(candidate: SkillCandidate, deliverable_tokens: set[str
     return (
         candidate.source_priority,
         -len(_owner_overlap_tokens(candidate, deliverable_tokens)),
-        -len(deliverable_tokens & tokens_from_text(candidate.skill_id.replace("-", " "), stem=True, stopwords=SKILL_MATCH_STOPWORDS)),
+        -len(deliverable_tokens & tokens_from_text(candidate.skill_id.replace("-", " "), stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True)),
         -len(deliverable_tokens & set(candidate.search_tokens)),
         -candidate.score,
         candidate.source_order,
@@ -251,10 +251,10 @@ def _select_preferred_skill(
 
 
 def _verification_for_deliverable(task_card: TaskCard, deliverable: str) -> tuple[str, ...]:
-    deliverable_tokens = tokens_from_text(deliverable, stem=True, stopwords=SKILL_MATCH_STOPWORDS)
+    deliverable_tokens = tokens_from_text(deliverable, stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True)
     selected = [f"{deliverable} exists"]
     for criterion in task_card.completion_criteria:
-        criterion_tokens = tokens_from_text(criterion, stem=True, stopwords=SKILL_MATCH_STOPWORDS)
+        criterion_tokens = tokens_from_text(criterion, stem=True, stopwords=SKILL_MATCH_STOPWORDS, include_han=True)
         if deliverable_tokens & criterion_tokens:
             selected.append(criterion)
     deduped = tuple(dict.fromkeys(selected))
