@@ -75,6 +75,19 @@ eligible for the Agent handoff; the runtime does not execute the Skill.
 | `skill_routing.candidates` | Compatibility audit candidates. They are not selected task skills. |
 | `skill_routing.rejected` | The subset of compatibility candidates not selected by the Agent organization. These rows remain audit-only and carry no dispatch, write, or completion authority. |
 
+## Local Candidate Suggestions
+
+Local kernel suggestions rank distinct Skill identities by task relevance.
+Declared deliverable ownership leads work-plan suggestions; source priority
+breaks relevance ties. Catalog resolution still applies scan-root precedence
+to duplicate identities, including a disabled higher-priority winner. Suggestion
+rankings remain advisory; the Agent owns the approved Skill organization.
+
+Each valid `SKILL.md` is read from one byte snapshot per catalog scan. Manifest
+metadata, route evidence, explicit-use boundaries, and content identity describe
+those same bytes. Capability cards retain their existing reuse, refresh, and
+corruption-recovery diagnostics; source content changes are checked on each scan.
+
 ## Compatibility Fields
 
 Current packets may retain these optional audit mirrors for older readers:

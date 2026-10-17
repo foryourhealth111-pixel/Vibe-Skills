@@ -233,8 +233,8 @@ def _parse_frontmatter(frontmatter_lines: list[str], *, skill_file: Path) -> dic
     return payload
 
 
-def _extract_frontmatter_and_body(skill_file: Path) -> tuple[list[str], list[str]]:
-    lines = skill_file.read_text(encoding="utf-8-sig").splitlines()
+def _extract_frontmatter_and_body(skill_file: Path, *, source_bytes: bytes) -> tuple[list[str], list[str]]:
+    lines = source_bytes.decode("utf-8-sig").splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError(f"skill file missing frontmatter start: {skill_file}")
     for index in range(1, len(lines)):
@@ -468,9 +468,13 @@ def parse_skill_manifest(skill_file: Path) -> SkillManifest:
     return manifest
 
 
-def parse_installed_skill_manifest(skill_file: Path, *, skill_id: str | None = None) -> InstalledSkillManifest:
+def parse_installed_skill_manifest(
+    skill_file: Path, *, skill_id: str | None = None, source_bytes: bytes | None = None,
+) -> InstalledSkillManifest:
     resolved_file = skill_file.resolve()
-    frontmatter_lines, body_lines = _extract_frontmatter_and_body(resolved_file)
+    if source_bytes is None:
+        source_bytes = resolved_file.read_bytes()
+    frontmatter_lines, body_lines = _extract_frontmatter_and_body(resolved_file, source_bytes=source_bytes)
     frontmatter = _parse_loose_frontmatter(frontmatter_lines, skill_file=resolved_file)
     enabled = frontmatter.get("enabled", True)
     if not isinstance(enabled, bool):
@@ -502,6 +506,6 @@ def parse_installed_skill_manifest(skill_file: Path, *, skill_id: str | None = N
         headings=_extract_heading_lines(body_lines),
         root_dir=str(resolved_file.parent),
         skill_file=str(resolved_file),
-        content_sha256=hashlib.sha256(resolved_file.read_bytes()).hexdigest(),
+        content_sha256=hashlib.sha256(source_bytes).hexdigest(),
         enabled=enabled,
     )

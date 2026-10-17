@@ -19,6 +19,8 @@ class TaskRevision:
     removed_constraints: tuple[str, ...]
     added_completion_criteria: tuple[str, ...]
     removed_completion_criteria: tuple[str, ...]
+    added_input_artifacts: tuple[str, ...] = ()
+    removed_input_artifacts: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -36,6 +38,8 @@ class TaskCard:
     mode: str
     initial_goal: str
     accepted_revisions: tuple[TaskRevision, ...]
+    input_artifacts: tuple[str, ...] = ()
+    input_artifact_sha256: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -496,6 +500,16 @@ def _infer_completion_criteria(*, goal: str, deliverables: tuple[str, ...], mode
     return _dedupe_texts(criteria)
 
 
+def normalize_input_artifacts(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)) or any(
+        not isinstance(path, str) or not path.strip() for path in value
+    ):
+        raise ValueError("input_artifacts must be a list of non-empty file paths")
+    return tuple(dict.fromkeys(path.strip() for path in value))
+
+
 def build_task_card(*, prompt: str, context: dict[str, object] | None = None) -> TaskCard:
     goal = str(prompt).strip()
     if not goal:
@@ -520,4 +534,5 @@ def build_task_card(*, prompt: str, context: dict[str, object] | None = None) ->
         mode=mode,
         initial_goal=goal,
         accepted_revisions=(),
+        input_artifacts=normalize_input_artifacts(payload.get("input_artifacts")),
     )
