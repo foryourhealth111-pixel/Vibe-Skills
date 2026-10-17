@@ -569,6 +569,33 @@ def test_installed_manifest_preserves_comment_and_flow_list_metadata(tmp_path: P
     assert manifest.outputs == expected_outputs
 
 
+@pytest.mark.parametrize("manifest_kind", ["contract", "installed"])
+@pytest.mark.parametrize("list_style", ["block", "flow"])
+def test_skill_manifest_decodes_supported_quoted_scalar_escapes(
+    tmp_path: Path, manifest_kind: str, list_style: str,
+) -> None:
+    items = [r"'User''s guide, # notes'", r'"C:\\notes \"guide\", # appendix"']
+    outputs = (
+        "outputs: [" + ", ".join(items) + "] # deliveries\n"
+        if list_style == "flow"
+        else "outputs:\n" + "".join(f"  - {item} # delivery\n" for item in items)
+    )
+    skill_file = _write_skill(
+        tmp_path / "quoted-report",
+        "---\nid: quoted-report\nname: 'User''s guide'\n"
+        r'description: "Review \"guide\" in C:\\notes # archive."'
+        "\nwhen_to_use: []\nnot_for: []\ninputs: []\n"
+        f"{outputs}---",
+    )
+    parser = parse_skill_manifest if manifest_kind == "contract" else parse_installed_skill_manifest
+
+    manifest = parser(skill_file)
+
+    assert manifest.name == "User's guide"
+    assert manifest.description == r'Review "guide" in C:\notes # archive.'
+    assert manifest.outputs == ("User's guide, # notes", r'C:\notes "guide", # appendix')
+
+
 @pytest.mark.parametrize(
     "outputs",
     ["[report, summary", "['unterminated, report]", "[report,, summary]", "[[report]]", "[report: summary]", '["report" trailing]'],
