@@ -4,6 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vgo-installer"
-version = "4.1.0"
+version = "4.1.1"
 description = "Installer core for Vibe-Skills clean architecture"
 requires-python = ">=3.10"

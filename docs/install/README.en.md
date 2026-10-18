@@ -1,6 +1,6 @@
 # Simple Install
 
-The public install path starts from a published release zip, not a repository checkout. Download the current [vibe-skills-4.1.0-public.zip](https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/download/v4.1.0/vibe-skills-4.1.0-public.zip), extract it outside the managed Skills directory, and run the wrappers from the extracted folder.
+The public install path starts from a published release zip, not a repository checkout. Download the current [vibe-skills-4.1.1-public.zip](https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/download/v4.1.1/vibe-skills-4.1.1-public.zip), extract it outside the managed Skills directory, and run the wrappers from the extracted folder.
 
 Verify the downloaded ZIP against the SHA-256 digest shown for the asset on the GitHub Release page.
 

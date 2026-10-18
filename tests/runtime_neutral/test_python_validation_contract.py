@@ -30,6 +30,7 @@ EXPECTED_PYTHON_VALIDATION_TARGETS = [
     "tests/integration/test_shared_run_artifact_contract.py",
     "tests/runtime_neutral/test_test_baseline_audit.py",
     "tests/runtime_neutral/test_python_validation_contract.py",
+    "tests/runtime_neutral/test_release_surface.py",
 ]
 
 

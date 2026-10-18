@@ -59,7 +59,10 @@ jobs:
             --output outputs/release-proof/release-validation.json \
             --artifact config/live-document-contract.json \
             --label release-validation \
-            -- python -B -m pytest -q "${targets[@]}"
+            -- python -B -m pytest -q "${targets[@]}" \
+              tests/runtime_neutral/test_readme_install_cta_assets.py \
+              tests/integration/test_public_install_uninstall_guidance.py \
+              tests/e2e/test_distribution_build.py
 
       - name: Assemble public distribution
         id: distribution
