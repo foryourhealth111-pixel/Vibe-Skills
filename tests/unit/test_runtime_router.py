@@ -24,9 +24,12 @@ COMPOSITE_DATA_DELIVERY_TASK = (
 )
 
 
+@pytest.mark.parametrize("with_workspace", [False, True])
 def test_runtime_bridge_prefers_python_owner_before_powershell_bridge(
     monkeypatch,
     capsys,
+    tmp_path: Path,
+    with_workspace: bool,
 ) -> None:
     recorded: dict[str, object] = {}
 
@@ -42,7 +45,10 @@ def test_runtime_bridge_prefers_python_owner_before_powershell_bridge(
     monkeypatch.setattr(runtime_bridge, "route_prompt", fake_route_prompt)
     monkeypatch.setattr(runtime_bridge, "invoke_canonical_router", fail_invoke)
 
-    exit_code = runtime_bridge.main(["--prompt", "plan this task"])
+    arguments = ["--prompt", "plan this task"]
+    if with_workspace:
+        arguments.extend(["--workspace-root", str(tmp_path)])
+    exit_code = runtime_bridge.main(arguments)
 
     assert exit_code == 0
     assert recorded["route_prompt"] == {
@@ -55,6 +61,7 @@ def test_runtime_bridge_prefers_python_owner_before_powershell_bridge(
         "target_root": None,
         "host_id": None,
         "repo_root": ROOT,
+        "workspace_root": tmp_path.resolve() if with_workspace else None,
     }
     assert json.loads(capsys.readouterr().out) == {"driver": "python-owner"}
 

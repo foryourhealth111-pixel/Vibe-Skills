@@ -244,6 +244,12 @@ jobs:
           tests/unit/test_local_skill_index.py
           tests/unit/test_local_kernel_execution.py
           tests/unit/test_host_skill_roots.py
+          tests/unit/test_skill_authority.py
+          tests/unit/test_local_installed_skill_routing.py
+          tests/unit/test_vgo_cli_commands.py
+          tests/unit/test_runtime_router.py
+          tests/runtime_neutral/test_skill_authority_parity.py
+          tests/integration/test_vibe_skill_bootstrap_contract.py
           tests/unit/test_vibe_skill_entry_contract.py
           tests/contract/test_repo_layout_contract.py
           --junitxml=outputs/proof/runtime-resume-${{ matrix.os }}.xml

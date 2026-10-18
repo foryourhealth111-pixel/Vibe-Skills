@@ -1,5 +1,41 @@
 Set-StrictMode -Version Latest
 
+function Get-VibeSkillAuthorityProjection {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$TargetRoot,
+        [Parameter(Mandatory)] [string]$HostId,
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
+        [AllowEmptyString()] [string]$SkillId = '',
+        [AllowEmptyString()] [string]$SkillEntrypoint = '',
+        [switch]$RequireProvidedEntrypoint
+    )
+
+    $commandSpec = Get-VgoPythonCommand
+    $arguments = @($commandSpec.prefix_arguments)
+    $arguments += @(
+        (Join-Path $RepoRoot 'scripts/runtime/skill_authority_driver.py'),
+        '--repo-root', $RepoRoot,
+        '--agent-root', $TargetRoot,
+        '--host-id', $HostId
+    )
+    if (-not [string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
+        $arguments += @('--workspace-root', $WorkspaceRoot)
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SkillId)) {
+        $arguments += @("--skill-id=$SkillId")
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SkillEntrypoint)) {
+        $arguments += @('--skill-entrypoint', $SkillEntrypoint)
+    }
+    if ($RequireProvidedEntrypoint) { $arguments += '--require-provided-entrypoint' }
+    $output = @(& $commandSpec.host_path @arguments 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw ('Local Skill authority failed: {0}' -f ($output -join "`n"))
+    }
+    return (($output -join "`n") | ConvertFrom-Json)
+}
+
 function Resolve-VibeLocalSkillAuthority {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
@@ -7,106 +43,19 @@ function Resolve-VibeLocalSkillAuthority {
         [AllowEmptyString()] [string]$SkillEntrypoint = '',
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [switch]$RequireProvidedEntrypoint
     )
 
-    $skillIdText = ([string]$SkillId).Trim()
-    if ([string]::IsNullOrWhiteSpace($skillIdText)) {
-        return [pscustomobject]@{ valid = $false; reason = 'missing_skill_id'; skill_id = $skillIdText; canonical_entrypoint = $null }
+    if ([string]::IsNullOrWhiteSpace($SkillId)) {
+        return [pscustomobject]@{ valid = $false; reason = 'missing_skill_id'; skill_id = ''; canonical_entrypoint = $null }
     }
-    if ($skillIdText -eq 'vibe') {
-        return [pscustomobject]@{ valid = $false; reason = 'controller_entry_excluded'; skill_id = $skillIdText; canonical_entrypoint = $null }
-    }
-
-    $resolvedHostId = if (Get-Command -Name Resolve-VgoHostId -ErrorAction SilentlyContinue) {
-        Resolve-VgoHostId -HostId $HostId
-    } elseif ([string]::IsNullOrWhiteSpace($HostId)) {
-        'codex'
-    } else {
-        $HostId.Trim().ToLowerInvariant()
-    }
-    $resolvedTargetRoot = if (Get-Command -Name Resolve-VgoTargetRoot -ErrorAction SilentlyContinue) {
-        Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $resolvedHostId
-    } elseif ([string]::IsNullOrWhiteSpace($TargetRoot)) {
-        [System.IO.Path]::GetFullPath('.')
-    } else {
-        [System.IO.Path]::GetFullPath($TargetRoot)
-    }
-    $rootCandidates = New-Object System.Collections.Generic.List[string]
-    $seenRoots = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-    $explicitRoot = [System.IO.Path]::GetFullPath((Join-Path $resolvedTargetRoot 'skills'))
-    if ($seenRoots.Add($explicitRoot)) { $rootCandidates.Add($explicitRoot) | Out-Null }
-    $defaultRoots = if ($resolvedHostId -eq 'claude-code') { @('~/.claude/skills') } else { @('~/.agents/skills', '~/.codex/skills', '~/.codex/plugins/cache') }
-    foreach ($rawRoot in $defaultRoots) {
-        $rootText = ([string]$rawRoot).Trim()
-        $homeRoot = Split-Path -Parent $resolvedTargetRoot
-        $suffix = $rootText.Substring(1).TrimStart('/', '\')
-        $resolvedRoot = if ($rootText.StartsWith('~/') -or $rootText.StartsWith('~\')) {
-            [System.IO.Path]::GetFullPath((Join-Path $homeRoot $suffix))
-        } else {
-            [System.IO.Path]::GetFullPath($rootText)
-        }
-        if ($seenRoots.Add($resolvedRoot)) { $rootCandidates.Add($resolvedRoot) | Out-Null }
-    }
-
-    $activePath = $null
-    $activeSourceRoot = $null
-    $activePriority = 0
-    for ($rootIndex = 0; $rootIndex -lt $rootCandidates.Count; $rootIndex++) {
-        foreach ($candidatePath in @(
-            (Join-Path $rootCandidates[$rootIndex] (Join-Path $skillIdText 'SKILL.md')),
-            (Join-Path $rootCandidates[$rootIndex] (Join-Path 'custom' (Join-Path $skillIdText 'SKILL.md')))
-        )) {
-            if (Test-Path -LiteralPath $candidatePath -PathType Leaf) {
-                $activePath = [System.IO.Path]::GetFullPath($candidatePath)
-                $activeSourceRoot = [System.IO.Path]::GetFullPath($rootCandidates[$rootIndex])
-                $activePriority = $rootIndex
-                break
-            }
-        }
-        if (-not [string]::IsNullOrWhiteSpace([string]$activePath)) { break }
-
-        $nestedMatches = @(Get-ChildItem -LiteralPath $rootCandidates[$rootIndex] -Filter 'SKILL.md' -File -Recurse -ErrorAction SilentlyContinue | Where-Object {
-                [string]::Equals([string]$_.Directory.Name, $skillIdText, [System.StringComparison]::OrdinalIgnoreCase)
-            })
-        if ($nestedMatches.Count -eq 1) {
-            $activePath = [System.IO.Path]::GetFullPath($nestedMatches[0].FullName)
-            $activeSourceRoot = [System.IO.Path]::GetFullPath($rootCandidates[$rootIndex])
-            $activePriority = $rootIndex
-            break
-        }
-        if ($nestedMatches.Count -gt 1) {
-            return [pscustomobject]@{
-                valid = $false
-                reason = 'ambiguous_nested_skill_id'
-                skill_id = $skillIdText
-                canonical_entrypoint = $null
-                candidate_entrypoints = [object[]]@($nestedMatches | ForEach-Object { [System.IO.Path]::GetFullPath($_.FullName) })
-            }
-        }
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$activePath)) {
-        return [pscustomobject]@{ valid = $false; reason = 'not_in_local_skill_index'; skill_id = $skillIdText; canonical_entrypoint = $null }
-    }
-
-    $providedPath = if ([string]::IsNullOrWhiteSpace($SkillEntrypoint)) { '' } else { [System.IO.Path]::GetFullPath($SkillEntrypoint) }
-    if ([string]::IsNullOrWhiteSpace($providedPath) -and $RequireProvidedEntrypoint) {
-        return [pscustomobject]@{
-            valid = $false; reason = 'missing_skill_entrypoint'; skill_id = $skillIdText; canonical_entrypoint = $activePath
-            source_root = $activeSourceRoot; source_kind = 'host_installed'; source_priority = $activePriority; active = $true; duplicate_state = 'active'
-        }
-    }
-    if (-not [string]::IsNullOrWhiteSpace($providedPath) -and -not [string]::Equals($providedPath, $activePath, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return [pscustomobject]@{
-            valid = $false; reason = 'entrypoint_mismatch'; skill_id = $skillIdText; canonical_entrypoint = $activePath; provided_entrypoint = $providedPath
-            source_root = $activeSourceRoot; source_kind = 'host_installed'; source_priority = $activePriority; active = $true; duplicate_state = 'active'
-        }
-    }
-    return [pscustomobject]@{
-        valid = $true; reason = 'ok'; skill_id = $skillIdText; canonical_entrypoint = $activePath; skill_entrypoint = $activePath
-        skill_root = [System.IO.Path]::GetFullPath((Split-Path -Parent $activePath)); source_root = $activeSourceRoot; source_kind = 'host_installed'
-        source_priority = $activePriority; active = $true; duplicate_state = 'active'
-    }
+    $resolvedHostId = Resolve-VgoHostId -HostId $HostId
+    $resolvedTargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $resolvedHostId
+    return Get-VibeSkillAuthorityProjection `
+        -RepoRoot $RepoRoot -TargetRoot $resolvedTargetRoot -HostId $resolvedHostId `
+        -WorkspaceRoot $WorkspaceRoot -SkillId $SkillId -SkillEntrypoint $SkillEntrypoint `
+        -RequireProvidedEntrypoint:$RequireProvidedEntrypoint
 }
 
 function Get-VibeSkillRoutingProperty {
@@ -313,7 +262,8 @@ function Convert-VibeModuleWorkPlanToDispatch {
         [Parameter(Mandatory)] [object]$ModuleWorkPlan,
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$TargetRoot,
-        [Parameter(Mandatory)] [string]$HostId
+        [Parameter(Mandatory)] [string]$HostId,
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
     return [object[]]@(@($ModuleWorkPlan.work_units) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.skill_id) } | ForEach-Object {
@@ -323,7 +273,8 @@ function Convert-VibeModuleWorkPlanToDispatch {
             -RepoRoot $RepoRoot `
             -SkillId $skillId `
             -TargetRoot $TargetRoot `
-            -HostId $HostId
+            -HostId $HostId `
+            -WorkspaceRoot $WorkspaceRoot
         if (-not [bool]$authority.valid) {
             throw ('module work unit `{0}` cannot load skill `{1}`: {2}' -f [string]$unit.unit_id, $skillId, [string]$authority.reason)
         }

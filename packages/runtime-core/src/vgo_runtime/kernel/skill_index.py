@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import tempfile
 from typing import Any
@@ -77,6 +77,14 @@ def _ensure_runtime_dirs(agent_root: Path) -> Path:
 
 def _normalize_skill_id(value: object) -> str:
     return str(value or "").strip().casefold()
+
+
+def is_local_skill_identifier(value: str) -> bool:
+    return (
+        bool(value) and value == value.strip() and value not in {".", ".."}
+        and not any(character in value for character in "/\\\0")
+        and not PureWindowsPath(value).drive
+    )
 
 
 def _source_priority(source_order: int) -> int:
@@ -705,14 +713,22 @@ def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str,
                 )
             )
             continue
-        if normalized_skill_id in CONTROLLER_SKILL_IDS:
+        if not is_local_skill_identifier(skill_id):
+            diagnostics.append(_invalid_entry(skill_id, source_spec, "invalid_skill_id", path=skill_file))
+            continue
+        if normalized_skill_id in CONTROLLER_SKILL_IDS or _normalize_skill_id(skill_dir.resolve().name) in CONTROLLER_SKILL_IDS:
             diagnostics.append(_invalid_entry(skill_id, source_spec, "controller_entry_excluded", path=skill_file))
             continue
         if not skill_file.is_file():
             diagnostics.append(_invalid_entry(skill_id, source_spec, "missing_skill_md", path=skill_file))
             continue
+        if not skill_file.resolve().is_relative_to(Path(str(source_spec["resolved_source_root"])).resolve()):
+            diagnostics.append(_invalid_entry(skill_id, source_spec, "skill_outside_declared_root", path=skill_file))
+            continue
         try:
             entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec))
+        except OSError as exc:
+            diagnostics.append(_invalid_entry(skill_id, source_spec, "unreadable_skill_md", path=skill_file, message=str(exc)))
         except ValueError as exc:
             reason = "missing_required_frontmatter" if "missing required frontmatter field" in str(exc) else "invalid_frontmatter"
             diagnostics.append(_invalid_entry(skill_id, source_spec, reason, path=skill_file, message=str(exc)))
@@ -768,8 +784,9 @@ def _unique_ordered(values: list[str]) -> list[str]:
     return ordered
 
 
-def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
-    vibe_root = _ensure_runtime_dirs(agent_root)
+def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
+    """Read source facts without creating runtime directories or capability cards."""
+    vibe_root = _vibe_root(agent_root)
     source_specs = _build_source_specs(vibe_root, host_roots)
     entries: list[dict[str, object]] = []
     invalid_entries: list[dict[str, object]] = []
@@ -788,7 +805,6 @@ def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) 
         )
     )
     _apply_duplicate_resolution(entries)
-    skill_cache = _build_skill_cache(vibe_root, entries)
     duplicate_rows = _duplicate_diagnostics(entries)
     active_source_roots = [
         _public_source_root(source_spec)
@@ -819,9 +835,15 @@ def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) 
             "invalid_entries": invalid_entries,
             "duplicates": duplicate_rows,
         },
-        "skill_cache": skill_cache,
         "entries": entries,
     }
+
+
+def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
+    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots)
+    vibe_root = _ensure_runtime_dirs(agent_root)
+    catalog["skill_cache"] = _build_skill_cache(vibe_root, catalog["entries"])
+    return catalog
 
 
 def _build_skill_index_payload(catalog: dict[str, object]) -> dict[str, object]:

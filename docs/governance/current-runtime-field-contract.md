@@ -110,6 +110,33 @@ agent_skill_organization
 No separate decision object may choose task skills, bind work, or claim that
 work ran outside this canonical chain.
 
+## Shared Local Skill Authority
+
+Python discovery, canonical admission, candidate audit, and the search guide use
+one host-root resolver and read-only source scanner. Source precedence is:
+workspace configuration, user configuration, the explicit host skills directory,
+then existing host defaults and plugin caches. Root paths are deduplicated in
+that order. The `route --workspace-root` input carries the same workspace into
+the candidate audit as the canonical runtime packet.
+
+Admission requires a safe leaf Skill ID, valid metadata, an enabled active
+source, and a resolved descriptor contained in its declared root. Controller
+entries and aliases are excluded. A disabled higher-priority duplicate remains
+the winner and blocks admission; a lower-priority enabled source cannot replace
+it. Host roots scan direct Skill directories and their supported `custom`
+subdirectory. A nested vendor layout must declare its containing Skill root in
+configuration; arbitrary recursive host-directory lookup is outside admission.
+Codex plugin caches support recursive discovery, with ambiguous versions failing
+closed. Supplied entrypoints must
+match the admitted descriptor. Authority lookup writes no generated cards or
+catalog caches. The Agent owns task Skill selection; source authority reports
+facts and eligibility only.
+
+Planning and execution dispatch resolve configured roots against the frozen
+packet's `storage.workspace_root`, including installed-copy execution and direct
+plan replay. The packaged runtime includes the authority driver and its Python
+implementation.
+
 ## Local Kernel Input Identity
 
 Callers of the Python `run_local_kernel` interface may declare required input
@@ -134,6 +161,22 @@ Completed-result reuse and final verification share readiness checks for final
 artifacts, current output hashes, required execution receipts, Skill bindings,
 proof references, and declared verification targets. Missing evidence makes a
 result ineligible for reuse and sends the work through normal recovery.
+
+Dependency readiness binds predecessor evidence to the approved WorkUnit: unit
+identity, expected artifacts, Skill, verification targets, proofs, output bytes,
+and required receipt. A dependent cannot run from an unrelated result or a
+self-consistent result whose declared outputs differ from the approved plan.
+
+Organization and plan preflight complete before accepted task, run-state, or
+catalog-snapshot files are committed. Rejected candidates, dependencies, or
+schemas preserve the accepted run, including partial legacy checkpoints.
+Discovery may refresh its advisory card cache independently of that state.
+
+Effective `known_context` and `unknowns` changes are recorded in TaskRevision as
+`added_known_context`, `removed_known_context`, `added_unknowns`, and
+`removed_unknowns`, and appear in the Markdown dossier. Older revision records
+without these fields load with empty lists. Both `extend` and `replace` modes
+record their actual changes.
 
 ## Native Bridge Lifetime
 

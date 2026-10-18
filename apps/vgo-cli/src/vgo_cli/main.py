@@ -80,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     route_parser.add_argument('--requested-skill')
     route_parser.add_argument('--host-id')
     route_parser.add_argument('--target-root')
+    route_parser.add_argument('--workspace-root')
     route_parser.add_argument('--output-json-path')
     route_parser.add_argument('--force-runtime-neutral', action='store_true')
     route_parser.set_defaults(handler=route_command)

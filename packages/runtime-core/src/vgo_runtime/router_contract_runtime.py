@@ -135,7 +135,9 @@ def _augment_prompt_for_local_routing(prompt: str, task_type: str) -> str:
     return " ".join(augmented)
 
 
-def _resolve_local_host_roots(*, repo_root: Path, host_id: str | None, target_root: Path) -> tuple[Path, ...]:
+def _resolve_local_host_roots(
+    *, repo_root: Path, host_id: str | None, target_root: Path, workspace_root: Path | None,
+) -> tuple[Path, ...]:
     normalized_host_id = resolve_host_id(host_id)
     return tuple(
         root.path
@@ -143,7 +145,7 @@ def _resolve_local_host_roots(*, repo_root: Path, host_id: str | None, target_ro
             repo_root=repo_root,
             host_id=normalized_host_id,
             agent_root=target_root,
-            workspace_root=None,
+            workspace_root=workspace_root,
         )
     )
 
@@ -1847,6 +1849,7 @@ def route_prompt(
     target_root: str | None = None,
     host_id: str | None = None,
     repo_root: Path | None = None,
+    workspace_root: Path | None = None,
 ) -> dict[str, object]:
     repo_path = repo_root or Path(__file__).resolve().parents[4]
     normalized_host_id = resolve_host_id(host_id)
@@ -1856,6 +1859,7 @@ def route_prompt(
         repo_root=repo_path,
         host_id=normalized_host_id,
         target_root=resolved_target_root,
+        workspace_root=workspace_root,
     )
     catalog = build_skill_catalog(agent_root=resolved_target_root, host_roots=host_roots)
     index = build_skill_index_from_catalog(catalog)

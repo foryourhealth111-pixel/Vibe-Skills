@@ -53,6 +53,8 @@ def invoke_canonical_router(args: argparse.Namespace, shell: str) -> dict:
         command.extend(['-HostId', args.host_id])
     if args.target_root:
         command.extend(['-TargetRoot', args.target_root])
+    if args.workspace_root:
+        command.extend(['-WorkspaceRoot', args.workspace_root])
     return run_powershell_json_command(command, cwd=repo_root, bridge_label="compatibility candidate-audit bridge")
 
 
@@ -66,6 +68,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument('--requested-grade-floor', choices=['L', 'XL'])
     parser.add_argument('--host-id')
     parser.add_argument('--target-root')
+    parser.add_argument('--workspace-root')
     parser.add_argument('--force-runtime-neutral', action='store_true')
     return parser.parse_args(argv)
 
@@ -84,6 +87,7 @@ def main(argv: list[str] | None = None) -> int:
             target_root=args.target_root,
             host_id=args.host_id,
             repo_root=repo_root,
+            workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
         )
     except Exception:
         if args.force_runtime_neutral:

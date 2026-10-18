@@ -68,6 +68,7 @@
     "scripts/runtime/Write-XlPlan.ps1",
     "scripts/runtime/invoke-vibe-runtime.ps1",
     "scripts/runtime/memory_backend_driver.py",
+    "scripts/runtime/skill_authority_driver.py",
     "scripts/runtime/workspace_memory_driver.py",
     "scripts/install/Install-VgoAdapter.ps1",
     "scripts/uninstall/Uninstall-VgoAdapter.ps1",
@@ -192,6 +193,7 @@
         "scripts/runtime/Write-XlPlan.ps1",
         "scripts/runtime/invoke-vibe-runtime.ps1",
         "scripts/runtime/memory_backend_driver.py",
+        "scripts/runtime/skill_authority_driver.py",
         "scripts/runtime/workspace_memory_driver.py"
       ]
     },
