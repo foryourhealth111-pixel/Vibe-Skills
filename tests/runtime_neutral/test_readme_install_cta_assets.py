@@ -36,14 +36,14 @@ def test_readmes_use_themed_install_cta_assets() -> None:
 
 def test_readmes_use_native_latest_release_links() -> None:
     labels = {
-        "en": "Latest release · v4.1.1",
-        "cn": "最新版本 · v4.1.1",
+        "en": "Latest stable release",
+        "cn": "最新稳定版",
     }
 
     for language, contract in CTA_CONTRACTS.items():
         readme = contract["readme"].read_text(encoding="utf-8")
 
-        assert labels[language] in readme
+        assert f"<strong>{labels[language]}</strong>" in readme
         assert "https://github.com/foryourhealth111-pixel/Vibe-Skills/releases/latest" in readme
         assert "img.shields.io/github/v/release" not in readme
 
