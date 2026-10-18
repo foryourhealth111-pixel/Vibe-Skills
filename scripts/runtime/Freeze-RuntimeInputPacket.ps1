@@ -111,14 +111,16 @@ function Get-VibeSkillMetadata {
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$SkillId,
         [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
+        [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
     $authority = Resolve-VibeLocalSkillAuthority `
         -RepoRoot $RepoRoot `
         -SkillId $SkillId `
         -TargetRoot $TargetRoot `
-        -HostId $HostId
+        -HostId $HostId `
+        -WorkspaceRoot $WorkspaceRoot
     if (-not [bool]$authority.valid) {
         return [pscustomobject]@{
             skill_id = $SkillId
@@ -131,13 +133,7 @@ function Get-VibeSkillMetadata {
     }
     $skillPath = [string]$authority.canonical_entrypoint
 
-    $description = $null
-    foreach ($line in @(Get-Content -LiteralPath $skillPath -Encoding UTF8 -TotalCount 20)) {
-        if ([string]$line -match '^\s*description:\s*(.+?)\s*$') {
-            $description = $Matches[1].Trim()
-            break
-        }
-    }
+    $description = [string]$authority.description
 
     return [pscustomobject]@{
         skill_id = $SkillId
@@ -235,10 +231,14 @@ function New-VibeSpecialistRecommendation {
         [AllowNull()] [object]$ExecutionSafetyPolicy = $null,
         [AllowNull()] [object]$CustomMetadata = $null,
         [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
+        [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
+        [AllowNull()] [object]$SkillMetadata = $null
     )
 
-    $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $SkillId -TargetRoot $TargetRoot -HostId $HostId
+    $metadata = if ($null -ne $SkillMetadata) { $SkillMetadata } else {
+        Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $SkillId -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot
+    }
     $bindingProfile = Get-VibeSpecialistBindingProfile -SkillId $SkillId -Policy $DispatchContract.policy -DispatchContract $DispatchContract
     $customSkillEntrypoint = if ($null -ne $CustomMetadata -and $CustomMetadata.PSObject.Properties.Name -contains 'skill_entrypoint' -and -not [string]::IsNullOrWhiteSpace([string]$CustomMetadata.skill_entrypoint)) {
         [string]$CustomMetadata.skill_entrypoint
@@ -426,7 +426,8 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
         [Parameter(Mandatory)] [object]$Policy,
         [AllowNull()] [object]$ExecutionSafetyPolicy = $null,
         [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
+        [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
     if ($null -eq $AgentSkillOrganization) {
@@ -449,7 +450,7 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
         if ([string]::Equals($skillId, [string]$Policy.explicit_runtime_skill, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw ('agent_skill_organization cannot select the governed runtime controller `{0}` as a task skill' -f $skillId)
         }
-        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -TargetRoot $TargetRoot -HostId $HostId
+        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot
         if (-not [bool]$metadata.authority_valid) {
             throw ('agent_skill_organization selected skill `{0}` is not available from the declared local skill roots: {1}' -f $skillId, [string]$metadata.authority_reason)
         }
@@ -469,7 +470,9 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
             -ExecutionSafetyPolicy $ExecutionSafetyPolicy `
             -CustomMetadata $selectedSkill `
             -TargetRoot $TargetRoot `
-            -HostId $HostId
+            -HostId $HostId `
+            -WorkspaceRoot $WorkspaceRoot `
+            -SkillMetadata $metadata
         $recommendation | Add-Member -NotePropertyName task_slice -NotePropertyValue $responsibility -Force
         $recommendation | Add-Member -NotePropertyName organization_module_ids -NotePropertyValue @($selectedSkill.module_ids) -Force
         $recommendation | Add-Member -NotePropertyName organization_responsibility -NotePropertyValue $responsibility -Force
@@ -582,7 +585,8 @@ $routeArgs = @(
     '-Grade', $grade,
     '-TaskType', $taskType,
     '-HostId', $routerHostId,
-    '-TargetRoot', $routerTargetRoot
+    '-TargetRoot', $routerTargetRoot,
+    '-WorkspaceRoot', $WorkspaceRoot
 )
 if (-not [string]::IsNullOrWhiteSpace([string]$requestedSkill)) {
     $routeArgs += @('-RequestedSkill', [string]$requestedSkill)
@@ -597,7 +601,8 @@ $routeCandidateFocusSkill = if ($routeResult.candidate_focus) { [string]$routeRe
 $skillSearchGuide = New-VibeSkillSearchGuideProjection `
     -RepoRoot $runtime.repo_root `
     -TargetRoot $routerTargetRoot `
-    -HostId $routerHostId
+    -HostId $routerHostId `
+    -WorkspaceRoot $WorkspaceRoot
 $agentRecommendations = @(New-VibeRecommendationsFromAgentSkillOrganization `
     -RepoRoot $runtime.repo_root `
     -Task $Task `
@@ -606,7 +611,8 @@ $agentRecommendations = @(New-VibeRecommendationsFromAgentSkillOrganization `
     -Policy $policy `
     -ExecutionSafetyPolicy $runtime.skill_execution_safety_policy `
     -TargetRoot $routerTargetRoot `
-    -HostId $routerHostId)
+    -HostId $routerHostId `
+    -WorkspaceRoot $WorkspaceRoot)
 $agentRecommendations = @(Add-VibeExecutionPhaseMetadataToRecords `
     -Records @($agentRecommendations) `
     -PhaseDecomposition $executionPhaseDecomposition)

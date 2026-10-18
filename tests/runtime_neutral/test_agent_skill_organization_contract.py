@@ -426,6 +426,7 @@ def run_freeze(
     env: dict[str, str],
     requested_stage_stop: str,
     host_decision: dict[str, object] | None = None,
+    workspace_root: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     command = [
         shell,
@@ -448,6 +449,8 @@ def run_freeze(
     ]
     if host_decision is not None:
         command.extend(["-HostDecisionJson", json.dumps(host_decision, ensure_ascii=False)])
+    if workspace_root is not None:
+        command.extend(["-WorkspaceRoot", str(workspace_root)])
     return subprocess.run(
         command,
         cwd=REPO_ROOT,
@@ -875,7 +878,7 @@ class AgentSkillOrganizationContractTests(unittest.TestCase):
 
         self.assertEqual(0, completed.returncode, completed.stderr)
 
-    def test_xl_plan_accepts_a_nested_skill_entrypoint_from_the_declared_root(self) -> None:
+    def test_xl_plan_accepts_a_nested_skill_from_an_explicitly_configured_root(self) -> None:
         shell = resolve_powershell()
         if shell is None:
             self.skipTest("PowerShell executable not available")
@@ -891,6 +894,11 @@ class AgentSkillOrganizationContractTests(unittest.TestCase):
                 / "docx-toolkit"
                 / "SKILL.md"
             )
+            config = root / "home/.vibeskills/skill-roots.json"
+            config.parent.mkdir(parents=True)
+            config.write_text(json.dumps({
+                "schema_version": 1, "extra_skill_roots": [str(nested_skill.parent.parent)],
+            }), encoding="utf-8")
             nested_skill.parent.mkdir(parents=True)
             nested_skill.write_text(
                 "---\n"
@@ -1662,9 +1670,8 @@ class AgentSkillOrganizationContractTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
-            plan_text = next((artifact_root / "docs" / "plans").glob("*.md")).read_text(
-                encoding="utf-8"
-            )
+            summary = json.loads(next(artifact_root.rglob("runtime-summary.json")).read_text(encoding="utf-8"))
+            plan_text = Path(summary["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
 
         wave_lines = [line for line in plan_text.splitlines() if line.startswith("- Wave ")]
         self.assertEqual(2, len(wave_lines))
@@ -1871,9 +1878,8 @@ class AgentSkillOrganizationContractTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
-            plan_text = next((artifact_root / "docs" / "plans").glob("*.md")).read_text(
-                encoding="utf-8"
-            )
+            summary = json.loads(next(artifact_root.rglob("runtime-summary.json")).read_text(encoding="utf-8"))
+            plan_text = Path(summary["artifacts"]["execution_plan"]).read_text(encoding="utf-8")
 
         self.assertIn(
             "No module is blocked by a Skill gap; `direct_module` is explicitly assigned to the current Agent without a local Skill.",
@@ -2116,8 +2122,9 @@ class AgentSkillOrganizationContractTests(unittest.TestCase):
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             session_root = next(artifact_root.rglob(run_id))
-            requirement_path = next(artifact_root.rglob("*.md"))
-            plan_path = next((artifact_root / "docs" / "plans").glob("*.md"))
+            summary = json.loads(next(artifact_root.rglob("runtime-summary.json")).read_text(encoding="utf-8"))
+            requirement_path = Path(summary["artifacts"]["requirement_doc"])
+            plan_path = Path(summary["artifacts"]["execution_plan"])
             packet_path = session_root / "runtime-input-packet.json"
             requirement_path.write_text(
                 requirement_path.read_text(encoding="utf-8") + "\nChanged after approval.\n",

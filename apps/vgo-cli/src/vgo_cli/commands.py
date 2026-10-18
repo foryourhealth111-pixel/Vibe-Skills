@@ -350,6 +350,8 @@ def route_command(args: argparse.Namespace) -> int:
         command.extend(['--host-id', args.host_id])
     if args.target_root:
         command.extend(['--target-root', args.target_root])
+    if getattr(args, 'workspace_root', None):
+        command.extend(['--workspace-root', args.workspace_root])
     if args.force_runtime_neutral:
         command.append('--force-runtime-neutral')
 

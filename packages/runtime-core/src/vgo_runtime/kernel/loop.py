@@ -399,6 +399,10 @@ def _coerce_task_card(payload: dict[str, object]) -> TaskCard:
                 removed_completion_criteria=tuple(str(value) for value in item.get("removed_completion_criteria", [])),
                 added_input_artifacts=normalize_input_artifacts(item.get("added_input_artifacts")),
                 removed_input_artifacts=normalize_input_artifacts(item.get("removed_input_artifacts")),
+                added_known_context=tuple(str(value) for value in item.get("added_known_context", [])),
+                removed_known_context=tuple(str(value) for value in item.get("removed_known_context", [])),
+                added_unknowns=tuple(str(value) for value in item.get("added_unknowns", [])),
+                removed_unknowns=tuple(str(value) for value in item.get("removed_unknowns", [])),
             )
             for index, item in enumerate(payload.get("accepted_revisions", []), start=1)
             if isinstance(item, dict)
@@ -545,8 +549,12 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
     )
 
 
-def _completed_result_artifacts_are_current(result: WorkUnitResult) -> bool:
-    return bool(result.artifact_paths) and not completed_result_readiness_notes(result)
+def _completed_result_artifacts_are_current(result: WorkUnitResult, work_unit: WorkUnit) -> bool:
+    return (
+        result.work_unit_id == work_unit.id
+        and bool(result.artifact_paths)
+        and not completed_result_readiness_notes(result, work_unit=work_unit)
+    )
 
 
 def _fingerprint(payload: object) -> str:
@@ -627,11 +635,13 @@ def _checkpoint_matches_current(
 def _dependency_output_sha256(
     work_unit: WorkUnit,
     results_by_id: dict[str, WorkUnitResult],
+    approved_work_units: dict[str, WorkUnit],
 ) -> str | None:
     dependencies: list[dict[str, object]] = []
     for dependency_id in work_unit.depends_on:
         result = results_by_id.get(dependency_id)
-        if result is None or not _completed_result_artifacts_are_current(result):
+        approved_unit = approved_work_units.get(dependency_id)
+        if result is None or approved_unit is None or not _completed_result_artifacts_are_current(result, approved_unit):
             return None
         dependencies.append({
             "work_unit_id": dependency_id,
@@ -649,9 +659,10 @@ def _reusable_completed_result(
     previous_result: WorkUnitResult | None,
     task_input_sha256: str,
     reused_results_by_id: dict[str, WorkUnitResult],
+    approved_work_units: dict[str, WorkUnit],
 ) -> WorkUnitResult | None:
     # A rerun prerequisite invalidates its dependents even if it recreates the same bytes.
-    dependency_sha256 = _dependency_output_sha256(current_work_unit, reused_results_by_id)
+    dependency_sha256 = _dependency_output_sha256(current_work_unit, reused_results_by_id, approved_work_units)
     if (
         previous_result is None
         or previous_work_unit is None
@@ -751,6 +762,10 @@ def _build_task_revision(
     removed_constraints = _ordered_difference(previous.constraints, current.constraints)
     added_completion_criteria = _ordered_difference(current.completion_criteria, previous.completion_criteria)
     removed_completion_criteria = _ordered_difference(previous.completion_criteria, current.completion_criteria)
+    added_known_context = _ordered_difference(current.known_context, previous.known_context)
+    removed_known_context = _ordered_difference(previous.known_context, current.known_context)
+    added_unknowns = _ordered_difference(current.unknowns, previous.unknowns)
+    removed_unknowns = _ordered_difference(previous.unknowns, current.unknowns)
     previous_input_paths = set(previous.input_artifacts)
     current_input_paths = set(current.input_artifacts)
     added_input_artifacts = tuple(path for path in current.input_artifacts if path not in previous_input_paths)
@@ -765,6 +780,10 @@ def _build_task_revision(
             removed_completion_criteria,
             added_input_artifacts,
             removed_input_artifacts,
+            added_known_context,
+            removed_known_context,
+            added_unknowns,
+            removed_unknowns,
         )
     ):
         return None
@@ -780,6 +799,10 @@ def _build_task_revision(
         removed_completion_criteria=removed_completion_criteria,
         added_input_artifacts=added_input_artifacts,
         removed_input_artifacts=removed_input_artifacts,
+        added_known_context=added_known_context,
+        removed_known_context=removed_known_context,
+        added_unknowns=added_unknowns,
+        removed_unknowns=removed_unknowns,
     )
 
 
@@ -1210,6 +1233,11 @@ def _render_work_dossier_markdown(work_dossier: dict[str, object]) -> str:
             lines.append(f"  - add deliverables: {', '.join(str(value) for value in added_deliverables)}")
         if removed_deliverables:
             lines.append(f"  - remove deliverables: {', '.join(str(value) for value in removed_deliverables)}")
+        for field in ("known_context", "unknowns"):
+            for action, label in (("added", "add"), ("removed", "remove")):
+                values = revision.get(f"{action}_{field}", [])
+                if values:
+                    lines.append(f"  - {label} {field.replace('_', ' ')}: {', '.join(str(value) for value in values)}")
     if reused_work_units:
         for row in reused_work_units:
             if isinstance(row, dict):
@@ -1263,10 +1291,7 @@ def run_local_kernel(
         agent_root=resolved_agent_root,
         host_roots=host_roots,
     )
-    write_skill_catalog(resolved_agent_root, skills_catalog_payload)
-    skills_catalog_path = _write_json(run_root / "skills-catalog.json", skills_catalog_payload)
     index_payload = build_skill_index_from_catalog(skills_catalog_payload)
-    write_skill_index(resolved_agent_root, index_payload)
 
     previous_revision_count = 0
     previous_plan = WorkPlan(task_id="", work_units=(), superseded_work_units=())
@@ -1296,17 +1321,6 @@ def run_local_kernel(
     continuation_mode = "fresh"
     if resume_mode:
         continuation_mode = "revised" if len(task_card.accepted_revisions) > previous_revision_count else "resumed"
-    task_card_payload = task_card.model_dump()
-    task_card_path = _write_json(task_card_path, task_card_payload)
-    write_run_state(
-        run_root / "run-state.json",
-        run_id=resolved_run_id,
-        task_id=task_card.id,
-        state="find_skills",
-        continuation_mode=continuation_mode,
-        accepted_revision_count=len(task_card.accepted_revisions),
-    )
-
     candidates = find_skill_candidates(task_card, index_payload)
     plan = build_work_plan(task_card, candidates)
     if agent_skill_organization is not None:
@@ -1320,8 +1334,10 @@ def run_local_kernel(
     else:
         plan = _unbound_plan_for_agent(plan)
 
+    current_work_units_by_id = {unit.id: unit for unit in plan.work_units}
     previous_results_by_artifacts: dict[tuple[str, ...], WorkUnitResult] = {}
     checkpoint_plan = previous_plan
+    legacy_checkpoint_payload: dict[str, object] | None = None
     if resume_mode and work_results_path.is_file():
         previous_payload = _load_required_json(work_results_path)
         recorded_plan = _checkpoint_work_plan(previous_payload)
@@ -1333,7 +1349,7 @@ def run_local_kernel(
                 existing_task_card, previous_plan,
                 [_coerce_work_result(item) for item in previous_payload.get("work_results", [])],
             )
-            _write_json(work_results_path, previous_payload)
+            legacy_checkpoint_payload = previous_payload
         previous_rows = previous_payload.get("work_results", [])
         result_id_counts = Counter(
             str(item.get("work_unit_id") or "") for item in previous_rows if isinstance(item, dict)
@@ -1363,11 +1379,12 @@ def run_local_kernel(
             previous_result=previous_results_by_artifacts.get(work_unit.expected_artifacts),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=planned_reused_results,
+            approved_work_units=current_work_units_by_id,
         )
         if reused_result is None:
             planned_work_units.append(work_unit)
             continue
-        planned_reused_results[work_unit.id] = reused_result
+        planned_reused_results[work_unit.id] = replace(reused_result, work_unit_id=work_unit.id)
         planned_work_units.append(replace(
             work_unit,
             lifecycle_state="reused",
@@ -1404,6 +1421,23 @@ def run_local_kernel(
         superseded_work_units=superseded_work_units,
     )
     module_assignments = _bound_module_assignments(plan)
+
+    # Publish active state only after the complete request has passed preflight.
+    if legacy_checkpoint_payload is not None:
+        _write_json(work_results_path, legacy_checkpoint_payload)
+    write_skill_catalog(resolved_agent_root, skills_catalog_payload)
+    skills_catalog_path = _write_json(run_root / "skills-catalog.json", skills_catalog_payload)
+    write_skill_index(resolved_agent_root, index_payload)
+    task_card_payload = task_card.model_dump()
+    task_card_path = _write_json(task_card_path, task_card_payload)
+    write_run_state(
+        run_root / "run-state.json",
+        run_id=resolved_run_id,
+        task_id=task_card.id,
+        state="find_skills",
+        continuation_mode=continuation_mode,
+        accepted_revision_count=len(task_card.accepted_revisions),
+    )
     work_plan_payload = plan.model_dump()
     plan_path = _write_json(run_root / "plan.json", work_plan_payload)
     module_assignments_payload = module_assignments.model_dump()
@@ -1440,6 +1474,7 @@ def run_local_kernel(
             previous_result=previous_results_by_artifacts.get(work_unit.expected_artifacts),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=reused_results_by_id,
+            approved_work_units=current_work_units_by_id,
         )
         if reused_result is not None:
             result = replace(
@@ -1466,7 +1501,7 @@ def run_local_kernel(
                 reused_work_units=tuple(reused_work_unit_ids),
                 superseded_work_units=tuple(unit.id for unit in superseded_work_units),
             )
-            dependency_sha256 = _dependency_output_sha256(work_unit, results_by_id)
+            dependency_sha256 = _dependency_output_sha256(work_unit, results_by_id, current_work_units_by_id)
             if dependency_sha256 is None or unavailable_inputs:
                 reason = (
                     "Declared input artifact is missing or unreadable: " + ", ".join(unavailable_inputs)
@@ -1527,7 +1562,7 @@ def run_local_kernel(
             [checkpoint_results_by_id[unit.id] for unit in plan.work_units if unit.id in checkpoint_results_by_id],
         ))
         results_by_id[work_unit.id] = result
-        if is_final_completed_result(result):
+        if _completed_result_artifacts_are_current(result, work_unit):
             completed_work_units.append(work_unit.id)
         else:
             failed_work_units.append(work_unit.id)

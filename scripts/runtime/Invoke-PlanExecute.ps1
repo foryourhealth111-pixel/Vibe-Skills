@@ -138,7 +138,8 @@ $modulePlanDispatch = @(Convert-VibeModuleWorkPlanToDispatch `
     -ModuleWorkPlan $moduleWorkPlan `
     -RepoRoot ([System.IO.Path]::GetFullPath($runtime.repo_root)) `
     -TargetRoot $executionTargetRoot `
-    -HostId $effectiveHostId)
+    -HostId $effectiveHostId `
+    -WorkspaceRoot $workspaceRoot)
 $modulePlanSkillIds = @($modulePlanDispatch | ForEach-Object { [string]$_.skill_id } | Sort-Object -Unique)
 if (($agentSelectedSkillIds -join "`n") -cne ($modulePlanSkillIds -join "`n")) {
     throw 'module work plan selected skills must match agent_skill_organization'

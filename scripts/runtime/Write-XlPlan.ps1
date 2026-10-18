@@ -278,11 +278,17 @@ if ([string]::IsNullOrWhiteSpace($executionTargetRoot)) {
 }
 $executionTargetRoot = [System.IO.Path]::GetFullPath($executionTargetRoot)
 $effectiveHostId = [string](Get-VibeNestedPropertySafe -InputObject $runtimeInputPacket -PropertyPath @('host_adapter', 'effective_host_id') -DefaultValue 'codex')
+$executionWorkspaceRoot = [string](Get-VibeNestedPropertySafe -InputObject $runtimeInputPacket -PropertyPath @('storage', 'workspace_root') -DefaultValue '')
+if ([string]::IsNullOrWhiteSpace($executionWorkspaceRoot)) {
+    throw 'xl_plan requires storage.workspace_root'
+}
+$executionWorkspaceRoot = [System.IO.Path]::GetFullPath($executionWorkspaceRoot)
 $approvedDispatch = @(Convert-VibeModuleWorkPlanToDispatch `
     -ModuleWorkPlan $moduleWorkPlan `
     -RepoRoot ([System.IO.Path]::GetFullPath($runtime.repo_root)) `
     -TargetRoot $executionTargetRoot `
-    -HostId $effectiveHostId)
+    -HostId $effectiveHostId `
+    -WorkspaceRoot $executionWorkspaceRoot)
 $executionPhaseDecomposition = if (
     $runtimeInputPacket -and
     $runtimeInputPacket.PSObject.Properties.Name -contains 'host_decision' -and

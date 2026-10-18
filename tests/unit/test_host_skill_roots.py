@@ -15,6 +15,14 @@ if str(RUNTIME_SRC) not in sys.path:
 from vgo_runtime.kernel import HostSkillRoot, resolve_host_skill_roots
 
 
+@pytest.fixture(autouse=True)
+def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    home = tmp_path / "runtime-user-home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+
 def _write_skill_roots_config(path: Path, roots: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"schema_version": 1, "extra_skill_roots": roots}), encoding="utf-8")
@@ -251,3 +259,19 @@ def test_custom_skills_dir_discovers_plugin_cache_under_actual_user_home(
     assert [root.root_key for root in roots] == ["skills_dir", "codex_plugin_cache"]
     assert roots[0].path == skills_dir.resolve()
     assert roots[1].path == cache.resolve()
+
+
+@pytest.mark.parametrize("host_id, default_root", [("codex", ".codex/skills"), ("claude-code", ".claude/skills")])
+def test_existing_host_default_roots_follow_the_explicit_skills_directory(
+    tmp_path: Path, host_id: str, default_root: str,
+) -> None:
+    home = tmp_path / "home"
+    explicit = home / ".agents/skills"
+    secondary = home / default_root
+    explicit.mkdir(parents=True)
+    secondary.mkdir(parents=True)
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT, host_id=host_id, agent_root=explicit, workspace_root=None,
+    )
+    assert [root.path for root in roots] == [explicit.resolve(), secondary.resolve()]
+    assert roots[1].root_key == "host_default"

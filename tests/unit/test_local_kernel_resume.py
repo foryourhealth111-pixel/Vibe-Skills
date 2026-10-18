@@ -860,3 +860,162 @@ def test_input_replacement_records_case_distinct_path_revision(
     revision = replaced["task_card"]["accepted_revisions"][-1]
     assert revision["added_input_artifacts"] == (str(lower.resolve()),)
     assert revision["removed_input_artifacts"] == (str(upper.resolve()),)
+
+
+@pytest.mark.parametrize("mismatch", ["artifacts", "used_skill"])
+def test_dependency_waits_for_result_bound_to_approved_predecessor(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, mismatch: str,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        if unit.id == "wu-1":
+            unapproved = (
+                replace(unit, expected_artifacts=("unapproved-output",))
+                if mismatch == "artifacts" else replace(unit, preferred_skill="unapproved-skill")
+            )
+            return _completed_result(unapproved, work_root, "Internally consistent evidence with the wrong plan binding")
+        return _completed_result(unit, work_root, "Dependent output")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    result = run_local_kernel_with_agent_choice(
+        agent_root=agent_root, run_id=f"unapproved-predecessor-{mismatch}",
+        prompt="Produce a summary and report.", context={"deliverables": ["summary", "report"]},
+    )
+    assert calls == ["wu-1"]
+    assert result["work_results"]["work_results"][1]["status"] == "blocked"
+    assert result["completed_work_units"] == []
+    assert result["verification"]["result"] == "revise_execution"
+
+
+@pytest.mark.parametrize("rejection", ["schema", "candidate", "dependency"])
+@pytest.mark.parametrize("execute", [True, False])
+def test_rejected_organization_preserves_accepted_run_state(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, rejection: str, execute: bool,
+) -> None:
+    calls: list[str] = []
+
+    def executor(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, "Approved report")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", executor)
+    arguments = dict(agent_root=agent_root, run_id=f"preflight-{rejection}-{execute}", prompt="Produce a report.")
+    context = {"deliverables": ["report"], "constraints": ["Approved condition A"]}
+    first = run_local_kernel_with_agent_choice(**arguments, context=context, execute=execute)
+    root = Path(first["artifacts"]["task_card"]).parent
+    before = {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    if rejection == "schema":
+        organization["schema_version"] = "invalid"
+    elif rejection == "candidate":
+        organization["selected_skills"][0]["skill_id"] = "unknown-skill"
+    else:
+        organization["modules"][0]["depends_on"] = ["wu-1"]
+    with pytest.raises(ValueError):
+        run_local_kernel(
+            **arguments, context={**context, "constraints": ["Rejected condition B"], "revision_mode": "replace"},
+            agent_skill_organization=organization,
+        )
+    after = {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    assert after == before
+    retried = run_local_kernel(**arguments, context=context, agent_skill_organization=first["agent_skill_organization"])
+    assert retried["task_card"]["constraints"] == ("Approved condition A",)
+    assert retried["verification"]["result"] == "done"
+    assert calls == ["wu-1"]
+
+
+def test_rejected_first_organization_leaves_a_fresh_task_identity(agent_root: Path) -> None:
+    arguments = dict(agent_root=agent_root, run_id="first-rejected", prompt="Produce a report.", execute=False)
+    with pytest.raises(ValueError, match="schema_version"):
+        run_local_kernel(
+            **arguments, context={"constraints": ["Rejected condition"]},
+            agent_skill_organization={"schema_version": "invalid"},
+        )
+    accepted = run_local_kernel_with_agent_choice(**arguments, context={"constraints": ["Approved condition"]})
+    assert accepted["work_summary"]["continuation_mode"] == "fresh"
+    assert accepted["task_card"]["constraints"] == ("Approved condition",)
+    assert accepted["task_card"]["accepted_revisions"] == ()
+
+
+@pytest.mark.parametrize("field", ["known_context", "unknowns"])
+@pytest.mark.parametrize("revision_mode", ["extend", "replace"])
+def test_effective_context_revision_is_recorded_and_survives_inspection(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, field: str, revision_mode: str,
+) -> None:
+    calls: list[str] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, json.dumps(list(getattr(task, field))))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id=f"context-revision-{field}-{revision_mode}", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments, context={field: ["Dataset A"]})
+    revised = run_local_kernel_with_agent_choice(
+        **arguments, context={field: ["Dataset B"], "revision_mode": revision_mode},
+    )
+    assert first["verification"]["result"] == revised["verification"]["result"] == "done"
+    assert calls == ["wu-1", "wu-1"]
+    assert revised["work_summary"]["continuation_mode"] == "revised"
+    assert revised["work_summary"]["accepted_revision_count"] == 1
+    revision = revised["task_card"]["accepted_revisions"][0]
+    assert revision[f"added_{field}"] == ("Dataset B",)
+    assert revision[f"removed_{field}"] == (("Dataset A",) if revision_mode == "replace" else ())
+    inspected = inspect_local_run(agent_root=agent_root, run_id=arguments["run_id"])
+    assert inspected["task_card"]["accepted_revisions"][0][f"added_{field}"] == ["Dataset B"]
+    resumed = run_local_kernel_with_agent_choice(
+        **arguments, context={field: ["Dataset B"], "revision_mode": revision_mode},
+    )
+    assert resumed["work_summary"]["continuation_mode"] == "resumed"
+    assert resumed["work_summary"]["accepted_revision_count"] == 1
+    assert resumed["reused_work_units"] == ["wu-1"]
+    assert resumed["task_card"]["accepted_revisions"][0][f"added_{field}"] == ("Dataset B",)
+
+
+def test_rejected_organization_preserves_a_partially_completed_checkpoint(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    arguments = dict(agent_root=agent_root, run_id="partial-preflight", prompt="Produce a summary and report.")
+    context = {"deliverables": ["summary", "report"], "constraints": ["Approved condition"]}
+    planned = run_local_kernel_with_agent_choice(**arguments, context=context, execute=False)
+    organization = planned["agent_skill_organization"]
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        calls.append(unit.id)
+        if calls == ["wu-1", "wu-2"]:
+            raise RuntimeError("simulated interruption")
+        return _completed_result(unit, work_root, "Approved output")
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    with pytest.raises(RuntimeError, match="simulated interruption"):
+        run_local_kernel(**arguments, context=context, agent_skill_organization=organization)
+    root = Path(planned["artifacts"]["task_card"]).parent
+    before = {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    with pytest.raises(ValueError, match="schema_version"):
+        run_local_kernel(
+            **arguments, context={"constraints": ["Rejected condition"], "revision_mode": "replace"},
+            agent_skill_organization={"schema_version": "invalid"},
+        )
+    assert before == {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    resumed = run_local_kernel(**arguments, context=context, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    assert resumed["reused_work_units"] == ["wu-1"]
+    assert calls == ["wu-1", "wu-2", "wu-2"]
+
+
+def test_legacy_task_revisions_without_context_deltas_remain_readable(agent_root: Path) -> None:
+    arguments = dict(agent_root=agent_root, run_id="legacy-context-deltas", prompt="Produce a report.", execute=False)
+    run_local_kernel_with_agent_choice(**arguments, context={"constraints": ["Initial condition"]})
+    revised = run_local_kernel_with_agent_choice(**arguments, context={"constraints": ["Additional condition"]})
+    task_path = Path(revised["artifacts"]["task_card"])
+    payload = json.loads(task_path.read_text(encoding="utf-8"))
+    for revision in payload["accepted_revisions"]:
+        for field in ("added_known_context", "removed_known_context", "added_unknowns", "removed_unknowns"):
+            revision.pop(field)
+    task_path.write_text(json.dumps(payload), encoding="utf-8")
+    resumed = run_local_kernel_with_agent_choice(**arguments, context={"constraints": ["Additional condition"]})
+    assert resumed["work_summary"]["accepted_revision_count"] == 1
+    assert resumed["task_card"]["accepted_revisions"][0]["added_known_context"] == ()

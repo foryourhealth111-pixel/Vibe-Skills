@@ -21,6 +21,10 @@ class TaskRevision:
     removed_completion_criteria: tuple[str, ...]
     added_input_artifacts: tuple[str, ...] = ()
     removed_input_artifacts: tuple[str, ...] = ()
+    added_known_context: tuple[str, ...] = ()
+    removed_known_context: tuple[str, ...] = ()
+    added_unknowns: tuple[str, ...] = ()
+    removed_unknowns: tuple[str, ...] = ()
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)

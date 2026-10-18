@@ -8,6 +8,7 @@ param(
     [string]$RequestedSkill,
     [string]$HostId,
     [string]$TargetRoot,
+    [string]$WorkspaceRoot,
     [AllowEmptyString()]
     [string]$HostDecisionJson = "",
     [switch]$Probe,
@@ -78,6 +79,9 @@ if (-not [string]::IsNullOrWhiteSpace([string]$HostId)) {
 }
 if (-not [string]::IsNullOrWhiteSpace([string]$TargetRoot)) {
     $routeArgs += @('--target-root', [string]$TargetRoot)
+}
+if (-not [string]::IsNullOrWhiteSpace([string]$WorkspaceRoot)) {
+    $routeArgs += @('--workspace-root', [string]$WorkspaceRoot)
 }
 
 try {

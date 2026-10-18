@@ -320,25 +320,17 @@ function New-VibeSkillSearchGuideProjection {
     param(
         [AllowEmptyString()] [string]$RepoRoot = '',
         [AllowEmptyString()] [string]$TargetRoot = '',
-        [AllowEmptyString()] [string]$HostId = ''
+        [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
     $skillRoots = [System.Collections.Generic.List[object]]::new()
-    $resolvedHostId = if ([string]::IsNullOrWhiteSpace($HostId)) { 'codex' } else { $HostId.Trim().ToLowerInvariant() }
     if (-not [string]::IsNullOrWhiteSpace($TargetRoot)) {
-        $skillRoots.Add([pscustomobject]@{
-                kind = 'host_local'
-                path = [System.IO.Path]::GetFullPath((Join-Path $TargetRoot 'skills'))
-            }) | Out-Null
-        if ($resolvedHostId -eq 'codex') {
-            $pluginCacheRoot = [System.IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $TargetRoot) '.codex\plugins\cache'))
-            if (Test-Path -LiteralPath $pluginCacheRoot -PathType Container) {
-                $skillRoots.Add([pscustomobject]@{
-                        kind = 'host_plugin_cache'
-                        path = $pluginCacheRoot
-                    }) | Out-Null
-            }
-        }
+        $projection = Get-VibeSkillAuthorityProjection `
+            -RepoRoot $RepoRoot -TargetRoot $TargetRoot `
+            -HostId $(if ([string]::IsNullOrWhiteSpace($HostId)) { 'codex' } else { $HostId }) `
+            -WorkspaceRoot $WorkspaceRoot
+        foreach ($root in @($projection.skill_roots)) { $skillRoots.Add($root) | Out-Null }
     }
     if (-not [string]::IsNullOrWhiteSpace($RepoRoot)) {
         $skillRoots.Add([pscustomobject]@{

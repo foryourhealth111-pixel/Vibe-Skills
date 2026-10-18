@@ -158,17 +158,14 @@ def resolve_host_skill_roots(
             )
         )
 
-    if normalized_host_id == "codex":
-        plugin_cache = (home_root / ".codex" / "plugins" / "cache").resolve()
-        if plugin_cache.is_dir() and plugin_cache not in seen:
-            seen.add(plugin_cache)
-            roots.append(
-                HostSkillRoot(
-                    host_id=normalized_host_id,
-                    root_key="codex_plugin_cache",
-                    path=plugin_cache,
-                    source=f"codex_plugin_cache:{plugin_cache}",
-                )
-            )
+    for raw_root in DEFAULT_SKILL_ROOTS_BY_HOST.get(normalized_host_id, ()):
+        path = _expand_root_path(raw_root, base_root=home_root, home_root=home_root)
+        if not path.is_dir() or path in seen:
+            continue
+        seen.add(path)
+        root_key = "codex_plugin_cache" if raw_root == "~/.codex/plugins/cache" else "host_default"
+        roots.append(HostSkillRoot(
+            host_id=normalized_host_id, root_key=root_key, path=path, source=f"{root_key}:{path}",
+        ))
 
     return tuple(roots)
