@@ -41,13 +41,16 @@ def _stop_test_descendant(ready: Path) -> None:
 def test_bridge_timeout_prevents_descendant_writes_after_return(
     tmp_path: Path, inherit_output: bool, shell: str,
 ) -> None:
+    # Startup and descendant creation share the bridge deadline. Keep the
+    # cleanup allowance independent of the extra cold PowerShell startup budget.
+    timeout = 10 if shell == "powershell" else 2
     ready = tmp_path / "child-started"
     release = tmp_path / "release-child"
     marker = tmp_path / "late-evidence.json"
     child = (
         "import os, time; from pathlib import Path\n"
         f"Path({str(ready)!r}).write_text(str(os.getpid()), encoding='utf-8')\n"
-        "deadline = time.monotonic() + 8\n"
+        f"deadline = time.monotonic() + {timeout + 8}\n"
         "while time.monotonic() < deadline:\n"
         f"    if Path({str(release)!r}).exists():\n"
         f"        Path({str(marker)!r}).write_text('late evidence', encoding='utf-8')\n"
@@ -68,15 +71,16 @@ def test_bridge_timeout_prevents_descendant_writes_after_return(
             pytest.skip("PowerShell is unavailable")
         executable = sys.executable.replace("'", "''")
         script = parent.replace("'", "''")
-        command = [powershell, "-NoProfile", "-Command", f"& '{executable}' -c '{script}'"]
+        # Exercise cold-start latency explicitly, including on warm CI runners.
+        command = [powershell, "-NoProfile", "-Command", f"Start-Sleep -Seconds 3; & '{executable}' -c '{script}'"]
     started = time.monotonic()
     try:
         with pytest.raises(RuntimeError, match="timed out"):
             run_powershell_json_command(
                 command, cwd=tmp_path,
-                bridge_label="test native runtime bridge", timeout=2,
+                bridge_label="test native runtime bridge", timeout=timeout,
             )
-        assert time.monotonic() - started < 6, "inherited pipes must not delay timeout cleanup"
+        assert time.monotonic() - started < timeout + 4, "inherited pipes must not delay timeout cleanup"
         assert ready.is_file(), "the descendant must start before the timeout"
         release.write_text("write evidence", encoding="utf-8")
         deadline = time.monotonic() + 0.75
