@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "4.1.0",
-    "updated": "2026-08-29",
+    "version": "4.1.1",
+    "updated": "2026-10-18",
     "channel": "stable",
-    "notes": "Skill-guided work planning, explicit dependency organization, revision-safe execution guidance, verified delivery summaries, and release/install guidance for the v4.1 runtime"
+    "notes": "Runtime recovery and Skill authority correctness, identity-bound checkpoints and dependencies, bounded cancellation, installer path safety, and self-contained release installation for v4.1.1"
   },
   "source_of_truth": {
     "canonical_root": ".",

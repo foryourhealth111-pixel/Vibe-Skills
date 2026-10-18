@@ -19,3 +19,6 @@ tests/integration/test_shared_run_artifact_contract.py
 # Validation contract coverage.
 tests/runtime_neutral/test_test_baseline_audit.py
 tests/runtime_neutral/test_python_validation_contract.py
+
+# Current release metadata and generated distribution agreement.
+tests/runtime_neutral/test_release_surface.py
