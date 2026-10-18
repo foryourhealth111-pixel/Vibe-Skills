@@ -62,7 +62,8 @@ jobs:
             -- python -B -m pytest -q "${targets[@]}" \
               tests/runtime_neutral/test_readme_install_cta_assets.py \
               tests/integration/test_public_install_uninstall_guidance.py \
-              tests/e2e/test_distribution_build.py
+              tests/e2e/test_distribution_build.py \
+              tests/unit/test_powershell_process_tree.py
 
       - name: Assemble public distribution
         id: distribution
