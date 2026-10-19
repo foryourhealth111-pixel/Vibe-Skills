@@ -1239,7 +1239,14 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
 
     def test_matching_tdd_state_fields_and_legacy_status_preserve_valid_evidence(self) -> None:
         requirements = ["Record the failing-first run and the passing rerun."]
-        for state, status in (("passing", "PASSING"), (None, "passed"), ("passing", [])):
+        for state, status in (
+            ("passing", "PASSING"),
+            (None, "passed"),
+            ("passing", "passed"),
+            ("passing", " pass "),
+            ("passing", "OK"),
+            ("passing", []),
+        ):
             with self.subTest(state=state, status=status):
                 session = self._build_session(code_task_tdd_evidence_requirements=requirements)
                 red, green = session / "red.log", session / "green.log"
@@ -1260,6 +1267,23 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 write_json(result_path, payload)
                 report = evaluate(REPO_ROOT, session)
                 self.assertEqual(isinstance(status, str), report["summary"]["completion_language_allowed"])
+
+
+    def test_invalid_optional_tdd_state_fields_fail_acceptance(self) -> None:
+        for state, status in (("passing", "not_applicable"), ("passing", []), ([], None)):
+            with self.subTest(state=state, status=status):
+                session = self._build_session()
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["tdd_evidence"] = {"state": state, "status": status}
+                write_json(result_path, payload)
+
+                report = evaluate(REPO_ROOT, session)
+
+                truth = report["truth_results"]["code_task_tdd_evidence_truth"]
+                self.assertEqual("failing", truth["state"])
+                self.assertFalse(report["summary"]["completion_language_allowed"])
 
 
 if __name__ == "__main__":

@@ -99,9 +99,11 @@ session. Resolution never depends on the process working directory or a search
 for whichever matching file happens to exist. Required TDD red/green evidence
 must identify readable files; their presence does not establish test semantics.
 Canonical results use `tdd_evidence.state`. Acceptance also reads legacy `status`;
-when both fields are present, their nonempty values must agree after whitespace
-and case normalization. A submitted `not_applicable` state cannot cancel frozen
-TDD evidence requirements or exceptions.
+when both fields are present, their nonempty values must agree after whitespace,
+case, and existing legacy alias normalization (for example, `passed` resolves to
+`passing`). Conflicting or non-text state fields fail acceptance even when the
+requirement document freezes no TDD items. A submitted `not_applicable` state
+cannot cancel frozen TDD evidence requirements or exceptions.
 
 External module results are read and validated before publication. The direct
 PowerShell entry validates stage, source run, plan digest, work-unit bindings,

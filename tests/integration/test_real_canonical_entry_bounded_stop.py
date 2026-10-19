@@ -479,6 +479,7 @@ def test_code_task_tdd_evidence_is_validated_before_cleanup_and_resubmitted_in_s
     tdd_contract = handoff["result_contract"]["tdd_evidence"]
     module_execution["tdd_evidence"] = {
         "state": "passing",
+        "status": "passed",
         "evidence_paths": [str(red_path), str(green_path)],
         "red_phase_evidence_paths": [str(red_path)],
         "green_phase_evidence_paths": [str(green_path)],
@@ -1214,6 +1215,7 @@ def test_direct_powershell_reentry_rejects_incomplete_code_task_tdd_evidence(
     tdd_contract = handoff["result_contract"]["tdd_evidence"]
     module_execution["tdd_evidence"] = {
         "state": "passing",
+        "status": "passed",
         "evidence_paths": [str(red_path), str(green_path)],
         "red_phase_evidence_paths": [str(red_path)],
         "green_phase_evidence_paths": [str(green_path)],

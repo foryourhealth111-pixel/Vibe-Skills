@@ -36,6 +36,9 @@ bash ./check.sh --skills-dir "$HOME/.agents/skills"
 收据登记的文件保持完整且内容未改变时，可以再次运行 `install`。
 若登记文件已被修改或缺失，`install` 和 `update` 都会拒绝替换已有安装。
 请先检查并保留本地修改，再重试安装或更新。
+安装会在事务准备阶段，以及每次替换或删除文件前复核收据哈希。
+请先停止其他程序对受管目录的写入；最终哈希检查与文件替换之间仍存在并发窗口。
+若冲突阻止回滚，恢复日志和备份会保留，供后续检查。
 
 `check` 只检查收据登记的文件是否仍然完整。
 `check` 证明的是 `installed locally`。它不证明 `runtime coherent`，也不证明 `delivery accepted`。

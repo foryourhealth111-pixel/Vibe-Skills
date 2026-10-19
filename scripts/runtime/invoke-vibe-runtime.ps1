@@ -520,6 +520,17 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             }
         }
         $tddState = [string]$tddEvidence.state
+        $tddStateAliases = @{
+            pass = 'passing'
+            passed = 'passing'
+            ok = 'passing'
+            manual = 'manual_review_required'
+            manual_required = 'manual_review_required'
+            manual_review = 'manual_review_required'
+            fail = 'failing'
+            failed = 'failing'
+        }
+        $resolvedTddState = ''
         foreach ($stateField in @('state', 'status')) {
             if (Test-VibeObjectHasProperty -InputObject $tddEvidence -PropertyName $stateField) {
                 $stateValue = $tddEvidence.$stateField
@@ -527,8 +538,14 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
                     throw ("Agent module execution TDD evidence {0} must be text." -f $stateField)
                 }
                 $normalizedState = ([string]$stateValue).Trim().ToLowerInvariant()
-                if ($normalizedState -and $normalizedState -cne $tddState.Trim().ToLowerInvariant()) {
-                    throw 'Agent module execution TDD evidence state and status fields conflict.'
+                if ($tddStateAliases.ContainsKey($normalizedState)) {
+                    $normalizedState = $tddStateAliases[$normalizedState]
+                }
+                if ($normalizedState) {
+                    if ($resolvedTddState -and $normalizedState -cne $resolvedTddState) {
+                        throw 'Agent module execution TDD evidence state and status fields conflict.'
+                    }
+                    $resolvedTddState = $normalizedState
                 }
             }
         }

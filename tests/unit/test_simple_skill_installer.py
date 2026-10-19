@@ -2360,3 +2360,90 @@ def test_install_rerun_refuses_drift_without_replacing_payload_or_receipt(tmp_pa
         install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T01:00:00Z")
     assert _file_snapshot(install_root) == before
     assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+
+
+@pytest.mark.parametrize("phase", ["after_check", "before_backup", "after_backup", "before_apply", "during_apply"])
+@pytest.mark.parametrize("change", ["modified", "missing", "retired_modified"])
+def test_reinstall_preserves_edits_made_during_transaction(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, phase: str, change: str,
+) -> None:
+    source = tmp_path / "source"
+    skills_dir = tmp_path / "skills"
+    _write(source / "SKILL.md", "original release\n")
+    _write(source / "protocols/entry.md", "original protocol\n")
+    _seed_runtime_contract(source)
+    install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T00:00:00Z")
+    install_root = skills_dir / "vibe"
+    receipt_path = install_root / simple_skill_installer.RECEIPT_RELPATH
+    receipt_before = receipt_path.read_bytes()
+    target = install_root / "protocols/entry.md"
+    _write(source / "SKILL.md", "updated release\n")
+    if change == "retired_modified":
+        (source / "protocols/entry.md").unlink()
+    else:
+        _write(source / "protocols/entry.md", "updated protocol\n")
+    edited = False
+
+    def edit_target() -> None:
+        nonlocal edited
+        if edited:
+            return
+        edited = True
+        if change == "missing":
+            target.unlink()
+        else:
+            target.write_text("user local changes\n", encoding="utf-8")
+
+    if phase == "after_check":
+        original_check = simple_skill_installer.check_vibe_skill
+
+        def check_then_edit(*args, **kwargs):
+            result = original_check(*args, **kwargs)
+            assert result["ok"] is True
+            edit_target()
+            return result
+
+        monkeypatch.setattr(simple_skill_installer, "check_vibe_skill", check_then_edit)
+    elif phase in {"before_backup", "after_backup"}:
+        original_copy = simple_skill_installer._stage_file_copy
+
+        def copy_and_edit(copy_source, destination, **kwargs):
+            if copy_source == target and phase == "before_backup":
+                edit_target()
+            staged = original_copy(copy_source, destination, **kwargs)
+            if copy_source == target and phase == "after_backup":
+                edit_target()
+            return staged
+
+        monkeypatch.setattr(simple_skill_installer, "_stage_file_copy", copy_and_edit)
+    elif phase == "before_apply":
+        original_apply = simple_skill_installer._apply_install_file_changes
+
+        def edit_then_apply(changes):
+            edit_target()
+            return original_apply(changes)
+
+        monkeypatch.setattr(simple_skill_installer, "_apply_install_file_changes", edit_then_apply)
+    else:
+        original_replace = simple_skill_installer.os.replace
+
+        def replace_then_edit(staged, destination):
+            original_replace(staged, destination)
+            if Path(destination) == install_root / "SKILL.md":
+                edit_target()
+
+        monkeypatch.setattr(simple_skill_installer.os, "replace", replace_then_edit)
+
+    with pytest.raises((OSError, RuntimeError)):
+        install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T01:00:00Z")
+
+    assert edited
+    if change == "missing":
+        assert not target.exists()
+    else:
+        assert target.read_text(encoding="utf-8") == "user local changes\n"
+    assert receipt_path.read_bytes() == receipt_before
+    if phase in {"after_check", "before_backup", "after_backup"}:
+        assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+    if phase == "during_apply":
+        assert (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()

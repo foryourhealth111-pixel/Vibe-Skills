@@ -151,6 +151,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         raw_tdd_evidence_state = resolve_tdd_evidence_state(tdd_evidence_payload)
     except ValueError as exc:
         raw_tdd_evidence_state = "failing"
+        code_task_tdd_evidence_state = "failing"
         code_task_tdd_evidence_notes.append(str(exc))
     if code_task_tdd_evidence_requirements or code_task_tdd_exceptions:
         if not tdd_evidence_payload:

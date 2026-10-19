@@ -555,12 +555,20 @@ def _package_file_relpaths(source_root: Path) -> list[str]:
     return sorted(set(relpaths))
 
 
+def _assert_install_file_matches(
+    destination: Path, *, relpath: str, expected_sha256: str | None,
+) -> None:
+    if _current_install_file_sha256(destination, relpath=relpath) != expected_sha256:
+        raise RuntimeError(f"Vibe install destination drifted during transaction: {relpath}")
+
+
 def _prepare_install_file_changes(
     source_root: Path,
     install_root: Path,
     relpaths: list[str],
     *,
     retired_relpaths: set[str],
+    expected_old_hashes: dict[str, str],
     transaction_id: str,
 ) -> list[_InstallFileChange]:
     changes: list[_InstallFileChange] = []
@@ -571,10 +579,10 @@ def _prepare_install_file_changes(
             if not source.is_file():
                 raise RuntimeError(f"Package source file is missing: {source}")
             destination = _owned_file_path(install_root, relpath)
-            destination_is_link = _path_is_link_or_reparse_point(destination)
-            destination_existed = destination.is_file() and not destination_is_link
-            if destination_is_link or (destination.exists() and not destination_existed):
-                raise RuntimeError(f"Install path is not a regular file: {destination}")
+            expected_old_sha256 = expected_old_hashes.get(_destination_key(destination))
+            _assert_install_file_matches(
+                destination, relpath=relpath, expected_sha256=expected_old_sha256,
+            )
             change = _InstallFileChange(
                 relpath=relpath,
                 destination=destination,
@@ -583,25 +591,29 @@ def _prepare_install_file_changes(
                     destination,
                     transaction_id=transaction_id,
                 ),
-                destination_existed=destination_existed,
+                destination_existed=expected_old_sha256 is not None,
             )
             changes.append(change)
             change.new_sha256 = _sha256_file(cast(Path, change.staged_path))
-            if destination_existed:
+            if change.destination_existed:
                 change.backup_path = _stage_file_copy(
                     destination,
                     destination,
                     transaction_id=transaction_id,
                 )
                 change.old_sha256 = _sha256_file(change.backup_path)
+                if change.old_sha256 != expected_old_sha256:
+                    raise RuntimeError(f"Vibe install backup drifted during transaction: {relpath}")
+            _assert_install_file_matches(
+                destination, relpath=relpath, expected_sha256=expected_old_sha256,
+            )
 
         for relpath in sorted(retired_relpaths, reverse=True):
             destination = _owned_file_path(install_root, relpath)
-            destination_is_link = _path_is_link_or_reparse_point(destination)
-            if not destination.exists() and not destination_is_link:
-                continue
-            if destination_is_link or not destination.is_file():
-                raise RuntimeError(f"Retired install path is not a regular file: {destination}")
+            expected_old_sha256 = expected_old_hashes[_destination_key(destination)]
+            _assert_install_file_matches(
+                destination, relpath=relpath, expected_sha256=expected_old_sha256,
+            )
             change = _InstallFileChange(
                 relpath=relpath,
                 destination=destination,
@@ -615,6 +627,11 @@ def _prepare_install_file_changes(
                 transaction_id=transaction_id,
             )
             change.old_sha256 = _sha256_file(change.backup_path)
+            if change.old_sha256 != expected_old_sha256:
+                raise RuntimeError(f"Vibe install backup drifted during transaction: {relpath}")
+            _assert_install_file_matches(
+                destination, relpath=relpath, expected_sha256=expected_old_sha256,
+            )
     except BaseException:
         cleanup_failures = _discard_install_file_changes(
             changes,
@@ -630,6 +647,17 @@ def _prepare_install_file_changes(
 
 def _apply_install_file_changes(changes: list[_InstallFileChange]) -> None:
     for change in changes:
+        _assert_install_file_matches(
+            change.destination,
+            relpath=change.relpath,
+            expected_sha256=change.old_sha256 if change.destination_existed else None,
+        )
+    for change in changes:
+        _assert_install_file_matches(
+            change.destination,
+            relpath=change.relpath,
+            expected_sha256=change.old_sha256 if change.destination_existed else None,
+        )
         if change.staged_path is None:
             change.destination.unlink()
         else:
@@ -2046,12 +2074,19 @@ def install_vibe_skill(
     )
     old_owned: set[str] = set()
     old_owned_by_destination: dict[str, str] = {}
+    old_file_hashes: dict[str, str] = {}
+    old_receipt_sha256 = ""
     if has_receipt:
         receipt = _read_install_receipt(
             receipt_path,
             skills_dir=resolved_skills_dir,
             install_root=install_root,
         )
+        old_receipt_sha256 = _sha256_file(receipt_path)
+        old_file_hashes = {
+            _destination_key(install_root / entry["path"]): entry["sha256"]
+            for entry in cast(list[dict[str, str]], receipt["files"])
+        }
         check_result = check_vibe_skill(skills_dir=resolved_skills_dir)
         if not check_result.get("ok"):
             raise RuntimeError(f"Refusing to reinstall drifted Vibe install: {check_result}")
@@ -2090,6 +2125,7 @@ def install_vibe_skill(
                 for destination_key, relpath in old_owned_by_destination.items()
                 if destination_key not in next_owned_by_destination
             },
+            expected_old_hashes=old_file_hashes,
             transaction_id=transaction_id,
         )
     except BaseException:
@@ -2142,6 +2178,11 @@ def install_vibe_skill(
         new_sha256=_sha256_text(receipt_content),
     )
     try:
+        _assert_install_file_matches(
+            receipt_path,
+            relpath=RECEIPT_RELPATH,
+            expected_sha256=old_receipt_sha256 if has_receipt else None,
+        )
         if has_receipt:
             receipt_change.backup_path = _stage_file_copy(
                 receipt_path,
@@ -2149,6 +2190,8 @@ def install_vibe_skill(
                 transaction_id=transaction_id,
             )
             receipt_change.old_sha256 = _sha256_file(receipt_change.backup_path)
+            if receipt_change.old_sha256 != old_receipt_sha256:
+                raise RuntimeError("Vibe install receipt backup drifted during transaction")
         receipt_change.staged_path = _stage_text_file(
             receipt_content,
             receipt_path,
