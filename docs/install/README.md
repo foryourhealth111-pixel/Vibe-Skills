@@ -33,6 +33,10 @@ bash ./check.sh --skills-dir "$HOME/.agents/skills"
 
 安装后，受管目录是 `<SkillsDir>/vibe`。安装收据位于 `<SkillsDir>/vibe/.vibeskills/install-receipt.json`。
 
+安装包必须包含根目录的 `SKILL.md`，打包清单也必须选择该入口文件。
+缺少入口的安装或更新会在创建安装目录和准备文件事务前被拒绝，已有安装和用户文件保持原样。
+修复源包后可以直接重试。安装收据必须登记 `SKILL.md`；缺少该记录时，检查、安装、更新和卸载都会拒绝处理。
+
 收据登记的文件保持完整且内容未改变时，可以再次运行 `install`。
 若登记文件已被修改或缺失，`install` 和 `update` 都会拒绝替换已有安装。
 请先检查并保留本地修改，再重试安装或更新。

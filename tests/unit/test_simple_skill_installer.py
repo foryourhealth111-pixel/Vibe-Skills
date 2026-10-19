@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -2461,3 +2462,181 @@ def test_reinstall_preserves_edits_made_during_transaction(
             with pytest.raises(RuntimeError, match="conflict"):
                 operation()
             assert _file_snapshot(skills_dir) == before_retry
+
+
+def test_update_rejects_missing_source_entrypoint_and_preserves_install(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# working release\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-10-19T00:00:00Z",
+    )
+    install_root = skills_dir / "vibe"
+    _write(install_root / "notes.md", "keep my notes\n")
+    before = _file_snapshot(install_root)
+    (repo_root / "SKILL.md").unlink()
+
+    with pytest.raises(RuntimeError, match="SKILL[.]md"):
+        update_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc="2026-10-19T01:00:00Z",
+        )
+
+    assert _file_snapshot(install_root) == before
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+    assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+
+    _write(repo_root / "SKILL.md", "# repaired release\n")
+    update_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-10-19T02:00:00Z",
+    )
+    assert (install_root / "SKILL.md").read_text(encoding="utf-8") == "# repaired release\n"
+    assert (install_root / "notes.md").read_text(encoding="utf-8") == "keep my notes\n"
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+
+
+@pytest.mark.parametrize("operation", ["check", "install", "update", "uninstall"])
+@pytest.mark.parametrize("entrypoint_present", [True, False])
+def test_lifecycle_rejects_receipt_without_owned_entrypoint(
+    tmp_path: Path, operation: str, entrypoint_present: bool,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# working release\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-10-19T00:00:00Z",
+    )
+    install_root = skills_dir / "vibe"
+    _write(install_root / "notes.md", "keep my notes\n")
+    receipt_path = install_root / simple_skill_installer.RECEIPT_RELPATH
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    receipt["files"] = [entry for entry in receipt["files"] if entry["path"] != "SKILL.md"]
+    _write(receipt_path, json.dumps(receipt, indent=2) + "\n")
+    if not entrypoint_present:
+        (install_root / "SKILL.md").unlink()
+    before = _file_snapshot(install_root)
+
+    with pytest.raises(RuntimeError, match="receipt.*SKILL[.]md"):
+        if operation == "check":
+            check_vibe_skill(skills_dir=skills_dir)
+        elif operation == "uninstall":
+            uninstall_vibe_skill(skills_dir=skills_dir)
+        else:
+            action = install_vibe_skill if operation == "install" else update_vibe_skill
+            action(
+                repo_root=repo_root,
+                skills_dir=skills_dir,
+                installed_at_utc="2026-10-19T01:00:00Z",
+            )
+
+    assert _file_snapshot(install_root) == before
+    assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+    assert not (skills_dir / simple_skill_installer.UNINSTALL_STATE_RELPATH).exists()
+
+
+@pytest.mark.parametrize("invalid_entrypoint", ["missing", "directory", "unselected"])
+def test_install_rejects_incomplete_package_before_creating_install_root(
+    tmp_path: Path, invalid_entrypoint: str,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _seed_runtime_contract(repo_root)
+    if invalid_entrypoint == "directory":
+        (repo_root / "SKILL.md").mkdir()
+    elif invalid_entrypoint == "unselected":
+        _write(repo_root / "SKILL.md", "# unselected entrypoint\n")
+        governance_path = repo_root / "config/version-governance.json"
+        governance = json.loads(governance_path.read_text(encoding="utf-8"))
+        governance["packaging"]["runtime_payload"]["files"].remove("SKILL.md")
+        _write(governance_path, json.dumps(governance, indent=2) + "\n")
+    _write(skills_dir / "other-skill/SKILL.md", "# unrelated skill\n")
+
+    with pytest.raises(RuntimeError, match="SKILL[.]md"):
+        install_vibe_skill(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc="2026-10-19T00:00:00Z",
+        )
+
+    assert not (skills_dir / "vibe").exists()
+    assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+    assert (skills_dir / "other-skill/SKILL.md").read_text(encoding="utf-8") == "# unrelated skill\n"
+
+
+@pytest.mark.parametrize("operation", ["install", "update"])
+def test_reinstall_rejects_package_that_retires_entrypoint(tmp_path: Path, operation: str) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    _write(repo_root / "SKILL.md", "# working release\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-10-19T00:00:00Z",
+    )
+    install_root = skills_dir / "vibe"
+    before = _file_snapshot(install_root)
+    governance_path = repo_root / "config/version-governance.json"
+    governance = json.loads(governance_path.read_text(encoding="utf-8"))
+    governance["packaging"]["runtime_payload"]["files"].remove("SKILL.md")
+    _write(governance_path, json.dumps(governance, indent=2) + "\n")
+
+    action = install_vibe_skill if operation == "install" else update_vibe_skill
+    with pytest.raises(RuntimeError, match="SKILL[.]md"):
+        action(
+            repo_root=repo_root,
+            skills_dir=skills_dir,
+            installed_at_utc="2026-10-19T01:00:00Z",
+        )
+
+    assert _file_snapshot(install_root) == before
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+    assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+
+
+@pytest.mark.parametrize("operation", ["check", "install", "update", "uninstall"])
+def test_lifecycle_rejects_copied_install_without_changing_either_location(
+    tmp_path: Path, operation: str,
+) -> None:
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    copied_skills_dir = tmp_path / "copied-skills"
+    _write(repo_root / "SKILL.md", "# working release\n")
+    _seed_runtime_contract(repo_root)
+    install_vibe_skill(
+        repo_root=repo_root,
+        skills_dir=skills_dir,
+        installed_at_utc="2026-10-19T00:00:00Z",
+    )
+    original_root = skills_dir / "vibe"
+    copied_root = copied_skills_dir / "vibe"
+    shutil.copytree(original_root, copied_root)
+    _write(copied_root / "SKILL.md", "# copied local changes\n")
+    original_before = _file_snapshot(original_root)
+    copied_before = _file_snapshot(copied_root)
+
+    with pytest.raises(RuntimeError, match="directory mismatch"):
+        if operation == "check":
+            check_vibe_skill(skills_dir=copied_skills_dir)
+        elif operation == "uninstall":
+            uninstall_vibe_skill(skills_dir=copied_skills_dir)
+        else:
+            action = install_vibe_skill if operation == "install" else update_vibe_skill
+            action(
+                repo_root=repo_root,
+                skills_dir=copied_skills_dir,
+                installed_at_utc="2026-10-19T01:00:00Z",
+            )
+
+    assert _file_snapshot(original_root) == original_before
+    assert _file_snapshot(copied_root) == copied_before
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
