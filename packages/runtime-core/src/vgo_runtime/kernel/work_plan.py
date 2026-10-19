@@ -13,6 +13,7 @@ class SkillProvenance:
     path_contract: str
     path_base: str
     content_sha256: str = ""
+    resource_sha256: str = ""
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)

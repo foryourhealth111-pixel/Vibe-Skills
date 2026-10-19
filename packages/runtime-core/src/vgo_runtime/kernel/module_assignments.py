@@ -31,6 +31,7 @@ class ModuleAssignmentsUnit:
             payload["skill_path_contract"] = provenance["path_contract"]
             payload["skill_path_base"] = provenance["path_base"]
             payload["skill_content_sha256"] = provenance["content_sha256"]
+            payload["skill_resource_sha256"] = provenance["resource_sha256"]
         return payload
 
 

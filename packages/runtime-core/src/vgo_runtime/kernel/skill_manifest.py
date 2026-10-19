@@ -5,6 +5,8 @@ import hashlib
 from pathlib import Path
 import re
 
+from .skill_resources import skill_resource_sha256
+
 
 REQUIRED_LIST_FIELDS = ("when_to_use", "not_for", "inputs", "outputs")
 REQUIRED_STRING_FIELDS = ("id", "name", "description")
@@ -71,6 +73,7 @@ class InstalledSkillManifest:
     root_dir: str = ""
     skill_file: str = ""
     content_sha256: str = ""
+    resource_sha256: str = ""
     inputs: tuple[str, ...] = ()
     outputs: tuple[str, ...] = ()
     plan_hints: tuple[str, ...] = ()
@@ -507,5 +510,6 @@ def parse_installed_skill_manifest(
         root_dir=str(resolved_file.parent),
         skill_file=str(resolved_file),
         content_sha256=hashlib.sha256(source_bytes).hexdigest(),
+        resource_sha256=skill_resource_sha256(resolved_file, source_bytes),
         enabled=enabled,
     )

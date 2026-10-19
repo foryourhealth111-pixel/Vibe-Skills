@@ -1158,55 +1158,22 @@ def test_direct_powershell_reentry_rejects_incomplete_code_task_tdd_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    artifact_root = tmp_path / "artifact-root"
-    handoff_stop = _launch_handoff_stop(
-        tmp_path,
-        monkeypatch,
-        code_task_tdd_required=True,
-    )
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch, code_task_tdd_required=True)
     module_execution_path, module_execution = _write_agent_module_execution(
-        handoff_stop,
-        state="completed",
-        result_summary="Produced the approved handoff result with TDD.",
+        handoff_stop, state="completed", result_summary="Produced the approved handoff result with TDD.",
     )
-    bridge = REPO_ROOT / "scripts" / "runtime" / "Invoke-VibeCanonicalEntry.ps1"
-
-    completed = subprocess.run(
-        [
-            _powershell(),
-            "-NoLogo",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            (
-                f"& {_ps_quote(bridge)} "
-                "-Task 'Continue after incomplete code-task TDD evidence.' "
-                "-HostId codex -EntryId vibe -RequestedStageStop phase_cleanup "
-                f"-RunId {_ps_quote(handoff_stop.run_id)} "
-                f"-ArtifactRoot {_ps_quote(artifact_root)} "
-                f"-ModuleExecutionJsonFile {_ps_quote(module_execution_path)}"
-            ),
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env={**os.environ},
-    )
+    original = module_execution_path.read_bytes()
+    completed = _submit_direct_external_result(tmp_path, handoff_stop, module_execution_path)
 
     assert completed.returncode != 0
     assert "TDD evidence state" in (completed.stdout + completed.stderr)
-    lineage = json.loads(
-        (handoff_stop.session_root / "stage-lineage.json").read_text(encoding="utf-8")
-    )
+    assert module_execution_path.read_bytes() == original
+    lineage = json.loads((handoff_stop.session_root / "stage-lineage.json").read_text(encoding="utf-8"))
     assert lineage["last_stage_name"] == "plan_execute"
     assert not (handoff_stop.session_root / "cleanup-receipt.json").exists()
 
     handoff = json.loads(
-        Path(handoff_stop.summary["artifacts"]["agent_execution_handoff"]).read_text(
-            encoding="utf-8"
-        )
+        Path(handoff_stop.summary["artifacts"]["agent_execution_handoff"]).read_text(encoding="utf-8")
     )
     red_path = handoff_stop.session_root / "direct-red.txt"
     green_path = handoff_stop.session_root / "direct-green.txt"
@@ -1214,54 +1181,20 @@ def test_direct_powershell_reentry_rejects_incomplete_code_task_tdd_evidence(
     green_path.write_text("1 passed\n", encoding="utf-8")
     tdd_contract = handoff["result_contract"]["tdd_evidence"]
     module_execution["tdd_evidence"] = {
-        "state": "passing",
-        "status": "passed",
+        "state": "passing", "status": "passed",
         "evidence_paths": [str(red_path), str(green_path)],
-        "red_phase_evidence_paths": [str(red_path)],
-        "green_phase_evidence_paths": [str(green_path)],
+        "red_phase_evidence_paths": [str(red_path)], "green_phase_evidence_paths": [str(green_path)],
         "refactor_phase_evidence_paths": [],
-        "covered_code_task_tdd_evidence_requirements": tdd_contract[
-            "required_code_task_tdd_evidence_requirements"
-        ],
-        "covered_code_task_tdd_exceptions": tdd_contract[
-            "required_code_task_tdd_exceptions"
-        ],
+        "covered_code_task_tdd_evidence_requirements": tdd_contract["required_code_task_tdd_evidence_requirements"],
+        "covered_code_task_tdd_exceptions": tdd_contract["required_code_task_tdd_exceptions"],
         "notes": "The focused test failed before the change and passed afterward.",
     }
     _write_handoff_output_evidence(module_execution_path.parent, module_execution)
-    module_execution_path.write_text(
-        json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-    corrected = subprocess.run(
-        [
-            _powershell(),
-            "-NoLogo",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            (
-                f"& {_ps_quote(bridge)} "
-                "-Task 'Continue after corrected code-task TDD evidence.' "
-                "-HostId codex -EntryId vibe -RequestedStageStop phase_cleanup "
-                f"-RunId {_ps_quote(handoff_stop.run_id)} "
-                f"-ArtifactRoot {_ps_quote(artifact_root)} "
-                f"-ModuleExecutionJsonFile {_ps_quote(module_execution_path)}"
-            ),
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        env={**os.environ},
-    )
+    module_execution_path.write_text(json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    corrected = _submit_direct_external_result(tmp_path, handoff_stop, module_execution_path)
 
     assert corrected.returncode == 0, corrected.stderr or corrected.stdout
-    cleanup = json.loads(
-        (handoff_stop.session_root / "cleanup-receipt.json").read_text(encoding="utf-8")
-    )
+    cleanup = json.loads((handoff_stop.session_root / "cleanup-receipt.json").read_text(encoding="utf-8"))
     assert cleanup["cleanup_admitted"] is True
     assert not (handoff_stop.session_root / "tdd-evidence.json").exists()
 
@@ -1484,10 +1417,18 @@ def test_conflicting_tdd_state_is_rejected_before_publication(tmp_path: Path, mo
 def _submit_direct_external_result(
     tmp_path: Path, handoff_stop: canonical_entry.CanonicalLaunchResult, submitted: Path,
 ) -> subprocess.CompletedProcess[str]:
+    bridge = REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"
+    # Capture the exception message before terminal wrapping and ANSI formatting.
+    command = (
+        "try { "
+        f"& {_ps_quote(bridge)} -Task 'Return module results.' "
+        "-HostId codex -EntryId vibe -RequestedStageStop phase_cleanup "
+        f"-RunId {_ps_quote(handoff_stop.run_id)} -ArtifactRoot {_ps_quote(tmp_path / 'artifact-root')} "
+        f"-ModuleExecutionJsonFile {_ps_quote(submitted)}"
+        " } catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }"
+    )
     return subprocess.run(
-        [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
-         "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
-         "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(submitted)],
+        [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
         cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
     )
 
@@ -1518,3 +1459,78 @@ def test_malformed_external_result_shape_preserves_run_and_allows_corrected_retr
     report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
     assert report["summary"]["completion_language_allowed"] is True
     assert json.loads(result_path.read_text(encoding="utf-8")) == accepted
+
+
+@pytest.mark.parametrize("required", ["false", 1, None])
+def test_direct_powershell_required_boolean_matches_python_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, required: object,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    session = handoff_stop.session_root
+    result_path, result = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the declared output.")
+    original = result_path.read_bytes()
+    result["modules"][0]["required"] = required
+    external = tmp_path / "malformed-boolean.json"
+    external.write_text(json.dumps(result), encoding="utf-8")
+    handoff = json.loads((session / "agent-execution-handoff.json").read_text(encoding="utf-8"))
+    with pytest.raises(RuntimeError, match="required binding"):
+        canonical_entry._validate_agent_module_execution(session_root=session, source_run_id=handoff_stop.run_id, handoff=handoff, submitted=result)
+    completed = _submit_direct_external_result(tmp_path, handoff_stop, external)
+    assert completed.returncode != 0
+    assert result_path.read_bytes() == original
+    assert not (session / "cleanup-receipt.json").exists()
+
+
+@pytest.mark.parametrize("entry", ["python", "powershell", "standalone"])
+def test_valid_external_result_with_legacy_tdd_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entry: str,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch, code_task_tdd_required=True)
+    session = handoff_stop.session_root
+    result_path, result = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the tested result.")
+    handoff = json.loads((session / "agent-execution-handoff.json").read_text(encoding="utf-8"))
+    contract = handoff["result_contract"]["tdd_evidence"]
+    red, green = session / "red.log", session / "green.log"
+    red.write_text("1 failed\n", encoding="utf-8")
+    green.write_text("1 passed\n", encoding="utf-8")
+    result["tdd_evidence"] = {
+        "evidence_paths": [str(red), str(green)],
+        "red_phase_evidence_paths": [str(red)], "green_phase_evidence_paths": [str(green)],
+        "refactor_phase_evidence_paths": [],
+        "covered_code_task_tdd_evidence_requirements": contract["required_code_task_tdd_evidence_requirements"],
+        "covered_code_task_tdd_exceptions": contract["required_code_task_tdd_exceptions"],
+        "notes": "Verified red and green runs.",
+    }
+    if entry == "standalone":
+        result["tdd_evidence"]["state"] = "passing"
+    else:
+        result["tdd_evidence"]["status" if entry == "powershell" else "state"] = "passed"
+    external = tmp_path / "valid-tdd.json"
+    external.write_text(json.dumps(result), encoding="utf-8")
+    if entry == "python":
+        canonical_entry.launch_canonical_vibe(
+            repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return tested results.",
+            artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+            module_execution_json_file=external,
+        )
+    elif entry == "powershell":
+        completed = _submit_direct_external_result(tmp_path, handoff_stop, external)
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+    else:
+        script = REPO_ROOT / "scripts/runtime/invoke-vibe-runtime.ps1"
+        completed = subprocess.run(
+            [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+             "try { "
+             f"& {_ps_quote(script)} -Task 'Return tested results.' -RequestedStageStop phase_cleanup "
+             f"-RunId {_ps_quote(handoff_stop.run_id)} -ArtifactRoot {_ps_quote(tmp_path / 'artifact-root')} "
+             f"-ModuleExecutionJsonFile {_ps_quote(external)}"
+             " } catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }"],
+            cwd=tmp_path, capture_output=True, text=True, encoding="utf-8", timeout=120,
+            env={**os.environ, "VCO_HOST_ID": "codex"},
+        )
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert result_path.read_bytes() == external.read_bytes()
+    report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    cleanup = json.loads((session / "cleanup-receipt.json").read_text(encoding="utf-8"))
+    assert report["summary"]["completion_language_allowed"] is True
+    assert cleanup["cleanup_admitted"] is True

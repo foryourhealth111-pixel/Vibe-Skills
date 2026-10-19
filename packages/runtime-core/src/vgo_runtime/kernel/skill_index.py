@@ -11,8 +11,10 @@ import tempfile
 from typing import Any
 
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
+from .codex_plugins import resolve_codex_plugin_roots
 from .host_skill_roots import resolve_host_skill_roots
 from .skill_manifest import parse_installed_skill_manifest
+from .skill_resources import SkillResourceError
 from ..runtime_support import keyword_hit, normalize_text
 
 
@@ -239,6 +241,7 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
         "source_priority": source_spec["source_priority"],
         "source_order": source_spec["source_order"],
         "content_sha256": manifest.content_sha256,
+        "resource_sha256": manifest.resource_sha256,
         "active": False,
         "duplicate_state": "candidate",
     }
@@ -609,6 +612,7 @@ def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:
         "root_dir": entry["root_dir"],
         "skill_file": entry["skill_file"],
         "content_sha256": entry["content_sha256"],
+        "resource_sha256": entry.get("resource_sha256", ""),
     }
 
 
@@ -692,6 +696,12 @@ def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str,
     skill_dirs = _discover_skill_dirs_for_source(source_spec)
     ambiguous_plugin_ids: set[str] = set()
     if _is_codex_plugin_cache_root(Path(str(source_spec["resolved_source_root"]))):
+        try:
+            active_plugin_roots = resolve_codex_plugin_roots(Path(str(source_spec["resolved_source_root"])))
+        except ValueError as exc:
+            return [], [_invalid_entry("codex-plugin-inventory", source_spec, "host_plugin_inventory_unavailable", message=str(exc))]
+        if active_plugin_roots is not None:
+            skill_dirs = [path for path in skill_dirs if any(path.resolve().is_relative_to(root.resolve()) for root in active_plugin_roots)]
         counts: dict[str, int] = {}
         for skill_dir in skill_dirs:
             skill_id = _normalize_skill_id(skill_dir.name)
@@ -731,6 +741,8 @@ def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str,
             continue
         try:
             entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec))
+        except SkillResourceError as exc:
+            diagnostics.append(_invalid_entry(skill_id, source_spec, "invalid_skill_resources", path=skill_file, message=str(exc)))
         except OSError as exc:
             diagnostics.append(_invalid_entry(skill_id, source_spec, "unreadable_skill_md", path=skill_file, message=str(exc)))
         except ValueError as exc:

@@ -1286,5 +1286,63 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 self.assertFalse(report["summary"]["completion_language_allowed"])
 
 
+    def test_artifact_review_requires_current_evidence_files(self) -> None:
+        for kind in ("empty", "missing", "directory", "malformed", "escape", "valid"):
+            with self.subTest(kind=kind):
+                session = self._build_session(
+                    artifact_review_requirements=["Inspect the final deliverable and record review evidence."],
+                )
+                evidence = session / "review.md"
+                if kind == "valid":
+                    write_text(evidence, "Reviewed the final deliverable against the frozen requirements.\n")
+                elif kind == "directory":
+                    evidence.mkdir()
+                paths = [] if kind == "empty" else ["session:review.md"]
+                if kind == "malformed":
+                    paths = [None]
+                if kind == "escape":
+                    paths = ["session:../review.md"]
+                receipt_path = session / "phase-execute.json"
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                receipt["artifact_review"] = {"status": "passing", "evidence_paths": paths}
+                write_json(receipt_path, receipt)
+                report = evaluate(REPO_ROOT, session)
+                self.assertEqual(kind == "valid", report["summary"]["completion_language_allowed"])
+                if kind != "valid":
+                    self.assertNotEqual("passing", report["truth_results"]["artifact_review_truth"]["state"])
+
+    def test_optional_unperformed_artifact_review_preserves_acceptance(self) -> None:
+        for payload in (
+            {"notes": "Artifact review was not required for this run."},
+            {"status": "not_run"},
+            {"state": "not_run", "evidence_paths": []},
+            {"status": "", "evidence_paths": []},
+        ):
+            with self.subTest(payload=payload):
+                session = self._build_session(phase_execute_artifact_review=payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertEqual("passing", report["truth_results"]["artifact_review_truth"]["state"])
+                self.assertTrue(report["summary"]["completion_language_allowed"])
+
+    def test_optional_passing_artifact_review_still_requires_file_evidence(self) -> None:
+        for paths in ([], ["session:absent.md"], [None]):
+            with self.subTest(paths=paths):
+                session = self._build_session(phase_execute_artifact_review={"status": "passing", "evidence_paths": paths})
+                report = evaluate(REPO_ROOT, session)
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+                self.assertNotEqual("passing", report["truth_results"]["artifact_review_truth"]["state"])
+
+    def test_module_required_binding_requires_a_json_boolean(self) -> None:
+        for required in ("false", "true", 1, 0, None, [], {}):
+            with self.subTest(required=required):
+                session = self._build_session()
+                result_path = session / "module-execution.json"
+                result = json.loads(result_path.read_text(encoding="utf-8"))
+                result["modules"][0]["required"] = required
+                write_json(result_path, result)
+                report = evaluate(REPO_ROOT, session)
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+
+
 if __name__ == "__main__":
     unittest.main()

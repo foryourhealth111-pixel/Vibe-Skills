@@ -127,6 +127,7 @@ def _with_source_metadata(
         "path_contract": "vibe_relative",
         "path_base": base_path,
         "content_sha256": "b" * 64,
+        "resource_sha256": "c" * 64,
     }
 
 
