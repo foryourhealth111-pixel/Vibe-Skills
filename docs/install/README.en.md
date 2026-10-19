@@ -48,6 +48,11 @@ recovery until the conflict is resolved. Earlier files in that transaction may
 already have been replaced; inspect the retained journal before using or
 repairing the installation.
 
+For a `conflicted` transaction, preserve `<SkillsDir>/vibe` and its backups
+alongside the journal at `<SkillsDir>/.vibeskills/vibe-install-state.json`.
+If you need a working installation while inspecting the conflict, install to a
+different `SkillsDir`. Keep the journal in place with the recovery evidence.
+
 `check` verifies the files recorded in the receipt.
 `check` proves `installed locally`. It does not prove `runtime coherent` or `delivery accepted`.
 
@@ -69,11 +74,13 @@ Do not extract the new release inside the managed `<SkillsDir>/vibe` directory. 
 
 ## Remove
 
-To remove VibeSkills, delete `<SkillsDir>/vibe` from the installation location.
+When no `conflicted` transaction exists, remove VibeSkills by deleting
+`<SkillsDir>/vibe` from the installation location.
 
 ## Replace An Older Version
 
-Delete the old `<SkillsDir>/vibe` folder, then install the current release with the commands above.
+When no `conflicted` transaction exists, delete the old `<SkillsDir>/vibe`
+folder, then install the current release with the commands above.
 
 v4 does not automatically install or recommend the `chrome`, `chrome-devtools`, `playwright`, `context7`, or `claude-flow` MCPs. The installer also does not modify their host configuration.
 

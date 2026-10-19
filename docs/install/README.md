@@ -42,6 +42,10 @@ bash ./check.sh --skills-dir "$HOME/.agents/skills"
 冲突解决前，安装、更新和卸载都会停止自动恢复。事务中较早处理的文件可能已被替换，
 请先检查保留的恢复日志，再使用或修复该安装。
 
+事务处于 `conflicted` 状态时，请完整保留 `<SkillsDir>/vibe` 目录及其中的备份，
+以及 `<SkillsDir>/.vibeskills/vibe-install-state.json` 恢复日志。
+检查冲突期间若需要可用的安装，可以选择另一个 `SkillsDir` 安装。恢复日志应与恢复证据一同保留。
+
 `check` 只检查收据登记的文件是否仍然完整。
 `check` 证明的是 `installed locally`。它不证明 `runtime coherent`，也不证明 `delivery accepted`。
 
@@ -63,11 +67,13 @@ bash ./check.sh --skills-dir "$HOME/.agents/skills"
 
 ## 移除
 
-要移除 VibeSkills，直接删除安装位置中的 `<SkillsDir>/vibe` 文件夹。
+确认安装事务处于正常状态后，可以删除安装位置中的 `<SkillsDir>/vibe` 文件夹来移除 VibeSkills。
+`conflicted` 事务应按上文保留目录、恢复日志和备份。
 
 ## 替换旧版本
 
-删除原来的 `<SkillsDir>/vibe` 文件夹，再按上面的安装命令安装当前版本。
+确认安装事务处于正常状态后，可以删除原来的 `<SkillsDir>/vibe` 文件夹，再按上面的安装命令安装当前版本。
+`conflicted` 事务应先保留现场并检查冲突。
 
 v4 不会自动安装或推荐 `chrome`、`chrome-devtools`、`playwright`、`context7` 或 `claude-flow` MCP。安装器也不会替用户修改这些 MCP 的主机配置。
 
