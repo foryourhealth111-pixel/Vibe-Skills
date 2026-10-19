@@ -35,6 +35,7 @@ from vgo_contracts.canonical_vibe_contract import resolve_canonical_vibe_contrac
 from vgo_contracts.discoverable_entry_surface import load_discoverable_entry_surface
 from vgo_contracts.entry_root_guard import EntryRootGuardError, resolve_entry_repo_root
 from vgo_contracts.host_launch_receipt import HostLaunchReceipt, read_host_launch_receipt, write_host_launch_receipt
+from vgo_contracts.tdd_evidence_contract import resolve_tdd_evidence_state
 from vgo_runtime.artifact_contract import (  # noqa: E402
     resolve_runtime_artifact_projection,
     resolve_runtime_session_receipts_root,
@@ -2368,6 +2369,10 @@ def _validate_agent_module_execution(
             if field not in tdd_evidence:
                 raise RuntimeError(f"module execution TDD evidence is missing required field: {field}")
 
+        try:
+            resolve_tdd_evidence_state(tdd_evidence)
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
         tdd_state = str(tdd_evidence.get("state") or "")
         allowed_tdd_states = tdd_contract.get("terminal_states")
         if not isinstance(allowed_tdd_states, list) or tdd_state not in allowed_tdd_states:

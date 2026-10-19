@@ -2052,6 +2052,9 @@ def install_vibe_skill(
             skills_dir=resolved_skills_dir,
             install_root=install_root,
         )
+        check_result = check_vibe_skill(skills_dir=resolved_skills_dir)
+        if not check_result.get("ok"):
+            raise RuntimeError(f"Refusing to reinstall drifted Vibe install: {check_result}")
         old_owned = _file_entry_paths(cast(list[dict[str, str]], receipt["files"]))
         old_owned_by_destination = _relpaths_by_destination(
             install_root,

@@ -39,8 +39,10 @@ Runtime session receipts have a separate declared boundary:
 `retention = workspace_local`, and requires `copy_to_artifact_sink = true`.
 The runtime may write receipts in this workspace-local directory; completion
 copies them into the primary run sink so the release artifact remains
-self-contained. Synchronization accepts only the exact contract-declared
-session root for the run. `legacy_projection_root` is a compatibility
+self-contained. Each copied receipt is staged in the destination directory and
+atomically replaces its destination entry. Copy failures preserve the previous
+file, and replacing a destination hardlink preserves its other linked files.
+Synchronization accepts only the exact contract-declared session root for the run. `legacy_projection_root` is a compatibility
 projection under the declared compatibility window and does not change
 primary ownership.
 
@@ -96,10 +98,16 @@ Legacy packets without a workspace root resolve relative paths inside that
 session. Resolution never depends on the process working directory or a search
 for whichever matching file happens to exist. Required TDD red/green evidence
 must identify readable files; their presence does not establish test semantics.
+Canonical results use `tdd_evidence.state`. Acceptance also reads legacy `status`;
+when both fields are present, their nonempty values must agree after whitespace
+and case normalization. A submitted `not_applicable` state cannot cancel frozen
+TDD evidence requirements or exceptions.
 
 External module results are read and validated before publication. The direct
 PowerShell entry validates stage, source run, plan digest, work-unit bindings,
-and criterion results against the submitted snapshot, then atomically replaces
+and criterion results against the submitted snapshot. The root must be a JSON
+object; `units`, `modules`, and each module's `criterion_results` must be arrays
+of objects. It then atomically replaces
 `module-execution.json`. A rejected submission preserves accepted results and
 execution artifacts, including results from a completed run.
 

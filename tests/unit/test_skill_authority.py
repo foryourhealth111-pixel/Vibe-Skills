@@ -241,3 +241,22 @@ def test_explicit_rejected_skill_cannot_fall_through_to_composite_selection(sour
         if requested == "report":
             rows = [row for row in result["candidates"] if row["skill"] == "report"]
             assert rows and all("skill_disabled" in row["authority_rejection_reasons"] for row in rows)
+
+
+@pytest.mark.parametrize("requested", [False, True])
+def test_candidate_audit_rejects_sources_outside_canonical_admission(source_environment, requested: bool) -> None:
+    from vgo_runtime.router_contract_runtime import route_prompt
+
+    home, target, workspace = source_environment
+    _skill(target / "vibe/skills/local")
+    authority = _authority(target, workspace)
+    result = route_prompt(
+        prompt="Write a report.", grade="L", task_type="writing", repo_root=REPO_ROOT,
+        target_root=target, host_id="codex", workspace_root=workspace,
+        requested_skill="report" if requested else None,
+    )
+    assert authority["valid"] is False
+    rows = [row for row in result["candidates"] if row["skill"] == "report"]
+    assert rows and all(row["authority_eligible"] is False for row in rows)
+    assert all(authority["reason"] in row["authority_rejection_reasons"] for row in rows)
+    assert result.get("candidate_focus") is None or result["candidate_focus"]["authority"]["eligible"] is False

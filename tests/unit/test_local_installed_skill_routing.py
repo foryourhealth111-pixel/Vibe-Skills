@@ -359,9 +359,8 @@ def test_local_router_does_not_treat_metadata_only_training_mentions_as_route_ac
 def test_local_router_uses_named_when_to_use_sections_for_sparse_training_prompts(tmp_path: Path) -> None:
     home = tmp_path / "home"
     agent_root = home / ".agents"
-    vibe_root = agent_root / "vibe"
     _write_skill(
-        vibe_root / "skills" / "local",
+        agent_root / "skills",
         "scikit-learn",
         _frontmatter(
             "scikit-learn",

@@ -35,6 +35,10 @@ installed files and runtime remain identical.
 
 After installation, the managed directory is `<SkillsDir>/vibe`. The install receipt lives at `<SkillsDir>/vibe/.vibeskills/install-receipt.json`.
 
+Re-running `install` is allowed when the receipt-owned files are unchanged.
+Both `install` and `update` refuse to replace an existing package when a recorded
+file is modified or missing. Inspect and preserve local changes before retrying.
+
 `check` verifies the files recorded in the receipt.
 `check` proves `installed locally`. It does not prove `runtime coherent` or `delivery accepted`.
 

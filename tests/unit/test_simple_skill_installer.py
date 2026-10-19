@@ -2336,3 +2336,27 @@ def test_reinstall_from_uninstall_state_rejects_new_package_path_collision(tmp_p
         raise AssertionError("reinstall should reject a new user-owned package path")
 
     assert user_collision.read_text(encoding="utf-8") == "# user-owned\n"
+
+
+@pytest.mark.parametrize("change", ["modified", "missing", "retired_modified"])
+def test_install_rerun_refuses_drift_without_replacing_payload_or_receipt(tmp_path: Path, change: str) -> None:
+    source = tmp_path / "source"
+    skills_dir = tmp_path / "skills"
+    _write(source / "SKILL.md", "original release\n")
+    _write(source / "protocols/entry.md", "original protocol\n")
+    _seed_runtime_contract(source)
+    install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T00:00:00Z")
+    install_root = skills_dir / "vibe"
+    target = install_root / ("protocols/entry.md" if change == "retired_modified" else "SKILL.md")
+    if change == "missing":
+        target.unlink()
+    else:
+        target.write_text("user local changes\n", encoding="utf-8")
+    if change == "retired_modified":
+        (source / "protocols/entry.md").unlink()
+    before = _file_snapshot(install_root)
+    assert check_vibe_skill(skills_dir=skills_dir)["ok"] is False
+    with pytest.raises(RuntimeError, match="drift"):
+        install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T01:00:00Z")
+    assert _file_snapshot(install_root) == before
+    assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()

@@ -33,6 +33,10 @@ bash ./check.sh --skills-dir "$HOME/.agents/skills"
 
 安装后，受管目录是 `<SkillsDir>/vibe`。安装收据位于 `<SkillsDir>/vibe/.vibeskills/install-receipt.json`。
 
+收据登记的文件保持完整且内容未改变时，可以再次运行 `install`。
+若登记文件已被修改或缺失，`install` 和 `update` 都会拒绝替换已有安装。
+请先检查并保留本地修改，再重试安装或更新。
+
 `check` 只检查收据登记的文件是否仍然完整。
 `check` 证明的是 `installed locally`。它不证明 `runtime coherent`，也不证明 `delivery accepted`。
 

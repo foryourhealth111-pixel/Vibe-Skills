@@ -28,6 +28,8 @@ def skill_source_rejection_reason(entry: dict[str, Any]) -> str | None:
     """Check one active scanner snapshot without rescanning or changing source precedence."""
     if entry.get("active") is not True:
         return "inactive_skill_source"
+    if entry.get("source_kind") != HOST_INSTALLED_SOURCE_KIND:
+        return "not_in_local_skill_index"
     descriptor = Path(str(entry["resolved_skill_file"])).resolve()
     source_root = Path(str(entry["resolved_source_root"])).resolve()
     if not descriptor.is_relative_to(source_root):
