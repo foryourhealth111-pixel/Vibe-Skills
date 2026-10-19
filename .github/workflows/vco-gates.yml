@@ -253,6 +253,7 @@ jobs:
           tests/unit/test_vgo_cli_commands.py
           tests/unit/test_runtime_router.py
           tests/runtime_neutral/test_skill_authority_parity.py
+          tests/runtime_neutral/test_runtime_entrypoint_helper.py
           tests/integration/test_vibe_skill_bootstrap_contract.py
           tests/unit/test_vibe_skill_entry_contract.py
           tests/contract/test_repo_layout_contract.py
@@ -262,7 +263,7 @@ jobs:
         run: >-
           python -B -m pytest -q -ra
           tests/integration/test_real_canonical_entry_bounded_stop.py
-          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean"
+          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean or invalid_unit_result"
           --junitxml=outputs/proof/runtime-result-admission-${{ matrix.os }}.xml
 
       - name: Upload runtime recovery proof

@@ -239,9 +239,12 @@ def _write_primary_document(
 
 
 def _git_commit_sha(repo_root: Path) -> str:
+    fallback = str(os.environ.get("VGO_COMMIT_SHA") or "unknown").strip() or "unknown"
     try:
+        if not (repo_root / ".git").exists():
+            return fallback
         completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+            ["git", "rev-parse", "--verify", "HEAD^{commit}"],
             cwd=repo_root,
             capture_output=True,
             text=True,
@@ -249,8 +252,8 @@ def _git_commit_sha(repo_root: Path) -> str:
             timeout=10,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return str(os.environ.get("VGO_COMMIT_SHA") or "unknown").strip() or "unknown"
-    return completed.stdout.strip() or "unknown"
+        return fallback
+    return completed.stdout.strip() or fallback
 
 
 def execution_environment(*, repo_root: Path, host_id: str | None = None) -> dict[str, str]:

@@ -3108,8 +3108,14 @@ function Get-VibeArtifactContractDescriptor {
 function Get-VibeArtifactCommitSha {
     param([Parameter(Mandatory)] [string]$RepoRoot)
     try {
-        $sha = (& git -C $RepoRoot rev-parse HEAD 2>$null | Select-Object -First 1)
-        if (-not [string]::IsNullOrWhiteSpace([string]$sha)) { return ([string]$sha).Trim() }
+        if (Test-Path -LiteralPath (Join-Path $RepoRoot '.git')) {
+            $revisionOutput = @(& git -C $RepoRoot rev-parse --verify 'HEAD^{commit}' 2>$null)
+            $revisionExitCode = $LASTEXITCODE
+            $sha = [string]($revisionOutput | Select-Object -First 1)
+            if ($revisionExitCode -eq 0 -and $sha.Trim() -match '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+                return $sha.Trim()
+            }
+        }
     } catch { }
     if (-not [string]::IsNullOrWhiteSpace([string]$env:VGO_COMMIT_SHA)) { return [string]$env:VGO_COMMIT_SHA }
     return 'unknown'

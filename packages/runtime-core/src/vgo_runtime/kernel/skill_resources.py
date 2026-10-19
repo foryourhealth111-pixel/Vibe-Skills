@@ -31,13 +31,15 @@ def skill_resource_sha256(skill_file: Path, source_bytes: bytes) -> str:
                 if path.name in RESOURCE_CACHE_DIRS or path.suffix in {".pyc", ".pyo"}:
                     continue
                 relative = path.relative_to(root).as_posix()
+                mode = path.stat().st_mode
+                if stat.S_ISDIR(mode) and (
+                    path.name in RESOURCE_VIRTUALENV_DIRS or (path / "pyvenv.cfg").is_file()
+                ):
+                    continue
                 resolved = path.resolve(strict=True)
                 if not resolved.is_relative_to(root):
                     raise SkillResourceError(f"Skill resource escapes its root: {relative}")
-                mode = path.stat().st_mode
                 if stat.S_ISDIR(mode):
-                    if path.name in RESOURCE_VIRTUALENV_DIRS or (path / "pyvenv.cfg").is_file():
-                        continue
                     pending.append((path, lineage))
                     continue
                 if not stat.S_ISREG(mode):

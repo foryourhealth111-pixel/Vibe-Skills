@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import shutil
+import subprocess
 import sys
 
 import pytest
@@ -96,3 +99,60 @@ def test_virtualenv_interpreter_link_preserves_skill_catalog_admission(tmp_path:
     catalog = scan_skill_catalog(agent_root=root, host_roots=(host_root,))
     assert catalog["entries"] == original["entries"]
     assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+def _directory_link(link: Path, target: Path) -> None:
+    if os.name != "nt":
+        _link(link, target)
+        return
+    powershell = shutil.which("pwsh") or shutil.which("powershell")
+    if powershell is None:
+        pytest.skip("PowerShell is required to create a Windows directory junction")
+    def quote(value: Path) -> str:
+        return "'" + str(value).replace("'", "''") + "'"
+    command = (
+        "$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction "
+        f"-Path {quote(link)} -Value {quote(target)} | Out-Null"
+    )
+    subprocess.run([powershell, "-NoProfile", "-Command", command], capture_output=True, check=True, timeout=30)
+
+
+@pytest.mark.parametrize("environment_name", [".venv", "venv", ".env", "env", "shared-environment"])
+def test_shared_virtualenv_directory_link_preserves_skill_catalog_admission(tmp_path: Path, environment_name: str) -> None:
+    from vgo_runtime.kernel.skill_index import scan_skill_catalog
+
+    agent = tmp_path / "agent"
+    host = tmp_path / "host-skills"
+    skill = host / "documents/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("---\nname: documents\ndescription: Render formal documents.\n---\n", encoding="utf-8")
+    original = scan_skill_catalog(agent_root=agent, host_roots=(host,))
+    assert [entry["skill_id"] for entry in original["entries"]] == ["documents"]
+    environment = tmp_path / "shared-python"
+    environment.mkdir()
+    if environment_name == "shared-environment":
+        (environment / "pyvenv.cfg").write_text("home = /system/python\n", encoding="utf-8")
+    (environment / "generated.py").write_text("generated dependency", encoding="utf-8")
+    link = skill.parent / "scripts" / environment_name
+    link.parent.mkdir()
+    _directory_link(link, environment)
+    catalog = scan_skill_catalog(agent_root=agent, host_roots=(host,))
+    assert catalog["entries"] == original["entries"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+@pytest.mark.parametrize("kind", ["external", "cycle"])
+def test_actual_resource_directory_links_remain_ineligible(tmp_path: Path, kind: str) -> None:
+    from vgo_runtime.kernel.skill_index import scan_skill_catalog
+
+    host = tmp_path / "host-skills"
+    skill = host / "documents/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("---\nname: documents\ndescription: Render formal documents.\n---\n", encoding="utf-8")
+    external = tmp_path / "external-resources"
+    external.mkdir()
+    (external / "rule.txt").write_text("external rule", encoding="utf-8")
+    _directory_link(skill.parent / "references", external if kind == "external" else skill.parent)
+    catalog = scan_skill_catalog(agent_root=tmp_path / "agent", host_roots=(host,))
+    assert catalog["entries"] == []
+    assert catalog["discovery_diagnostics"]["invalid_entries"][0]["reason"] == "invalid_skill_resources"

@@ -16,6 +16,48 @@ def _load_json_dict(path: Path, *, label: str) -> dict[str, Any]:
     return payload
 
 
+def module_unit_result_notes(unit: dict[str, Any], module: dict[str, Any]) -> tuple[str, ...]:
+    """Validate result fields and observations against the module's criterion outcomes."""
+    unit_id = str(unit.get("unit_id") or "")
+    prefix = f"module execution unit {unit_id}"
+    notes: list[str] = []
+    summary = unit.get("result_summary")
+    if not isinstance(summary, str):
+        notes.append(f"{prefix} result_summary must be a string")
+    evidence_paths = unit.get("evidence_paths")
+    if not isinstance(evidence_paths, list) or any(
+        not isinstance(value, str) or not value.strip() for value in evidence_paths
+    ):
+        notes.append(f"{prefix} evidence_paths must be a JSON array of non-empty strings")
+    verification_results = unit.get("verification_results")
+    if not isinstance(verification_results, list) or any(
+        not isinstance(result, dict) for result in verification_results
+    ):
+        notes.append(f"{prefix} verification_results must be a JSON array of objects")
+        return tuple(notes)
+    raw_criteria = module.get("criterion_results")
+    criterion_states = {
+        str(result.get("criterion_id") or ""): result.get("state")
+        for result in (raw_criteria if isinstance(raw_criteria, list) else [])
+        if isinstance(result, dict)
+    }
+    seen_criteria: set[str] = set()
+    for result in verification_results:
+        criterion_id = result.get("criterion_id")
+        if not isinstance(criterion_id, str) or not criterion_id.strip() or criterion_id not in criterion_states:
+            notes.append(f"{prefix} verification_results must reference a module criterion_id")
+            continue
+        if criterion_id in seen_criteria:
+            notes.append(f"{prefix} verification_results repeats criterion {criterion_id}")
+        seen_criteria.add(criterion_id)
+        state = result.get("state")
+        if not isinstance(state, str) or state not in {"passing", "failing", "blocked"}:
+            notes.append(f"{prefix} verification result {criterion_id} has an unsupported state")
+        elif state != "passing" and criterion_states[criterion_id] == "passing":
+            notes.append(f"{prefix} verification result {criterion_id} conflicts with passing module criterion")
+    return tuple(notes)
+
+
 def module_required_binding_notes(planned: list[Any], submitted: list[Any]) -> tuple[str, ...]:
     notes: list[str] = []
     planned_by_id = {str(row.get("module_id") or ""): row for row in planned if isinstance(row, dict)}
@@ -168,7 +210,8 @@ def validate_agent_module_execution(
         state = str(unit.get("state") or "")
         if state not in {"completed", "failed", "blocked"}:
             raise RuntimeError(f"module execution unit {unit_id} is not terminal")
-        if state == "completed" and not str(unit.get("result_summary") or "").strip():
+        summary = unit.get("result_summary")
+        if state == "completed" and isinstance(summary, str) and not summary.strip():
             raise RuntimeError(f"completed module execution unit {unit_id} requires a result summary")
 
     raw_submitted_modules = submitted.get("modules")
@@ -248,6 +291,12 @@ def validate_agent_module_execution(
                 raise RuntimeError(
                     f"module execution criterion {module_id}:{criterion_id} has unsupported state: {criterion_state}"
                 )
+
+    for unit in raw_submitted_units:
+        module = submitted_modules[str(unit["module_id"])]
+        result_notes = module_unit_result_notes(unit, module)
+        if result_notes:
+            raise RuntimeError(result_notes[0])
 
 
 def main() -> int:

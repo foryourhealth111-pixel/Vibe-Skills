@@ -1527,3 +1527,45 @@ def test_python_and_powershell_reject_unsupported_artifact_kinds(
     )
     assert completed.returncode != 0
     assert "unsupported" in completed.stderr
+
+
+@pytest.mark.parametrize("has_commit", [False, True])
+@pytest.mark.parametrize("nested_install", [False, True])
+def test_commit_sha_uses_only_a_successful_git_revision(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, has_commit: bool, nested_install: bool,
+) -> None:
+    repository = tmp_path / "provenance-repository"
+    subprocess.run(["git", "init", "--quiet", str(repository)], check=True)
+    fallback = "source-commit-fallback"
+    monkeypatch.setenv("VGO_COMMIT_SHA", fallback)
+    expected = fallback
+    if has_commit:
+        subprocess.run(["git", "-C", str(repository), "-c", "user.email=test@example.com",
+                        "-c", "user.name=Vibe Tests", "-c", "commit.gpgsign=false", "commit",
+                        "--allow-empty", "--quiet", "-m", "test provenance"], check=True)
+        expected = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
+    runtime_root = repository / "installed-vibe" if nested_install else repository
+    if nested_install:
+        expected = fallback
+    _write_contract_repository(runtime_root, legacy_write_mode="disabled")
+    python_workspace = tmp_path / "python-workspace"
+    python_workspace.mkdir()
+    projection = resolve_runtime_artifact_projection(
+        agent_root=python_workspace, workspace_root=python_workspace,
+        run_id="commit-provenance", repo_root=runtime_root,
+    )
+    python_manifest = write_runtime_artifact_bundle(
+        projection, repo_root=runtime_root,
+        requirement={}, plan={}, status={}, proof={},
+    ).model_dump()
+    powershell_result = _run_powershell_json(
+        _dot_source_common()
+        + "$result = Write-VibeRunArtifactBundle "
+        + f"-RepoRoot {_ps_quote(runtime_root)} -RunId 'commit-provenance' "
+        + f"-ArtifactRoot {_ps_quote(tmp_path / 'powershell-workspace')} "
+        + "-Requirement ([pscustomobject]@{}) -Plan ([pscustomobject]@{}) "
+        + "-Status ([pscustomobject]@{}) -Proof ([pscustomobject]@{}); "
+        + "$result | ConvertTo-Json -Depth 20"
+    )
+    assert python_manifest["commit_sha"] == expected
+    assert powershell_result["manifest"]["commit_sha"] == expected
