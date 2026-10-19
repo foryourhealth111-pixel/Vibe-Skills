@@ -24,6 +24,21 @@ def skill_root_projection(
     return [{"kind": kinds.get(root.root_key, root.root_key), "path": str(root.path)} for root in roots]
 
 
+def skill_source_rejection_reason(entry: dict[str, Any]) -> str | None:
+    """Check one active scanner snapshot without rescanning or changing source precedence."""
+    if entry.get("active") is not True:
+        return "inactive_skill_source"
+    descriptor = Path(str(entry["resolved_skill_file"])).resolve()
+    source_root = Path(str(entry["resolved_source_root"])).resolve()
+    if not descriptor.is_relative_to(source_root):
+        return "skill_outside_declared_root"
+    if descriptor.parent.name.casefold() in CONTROLLER_SKILL_IDS:
+        return "controller_entry_excluded"
+    if entry.get("enabled") is not True:
+        return "skill_disabled"
+    return None
+
+
 def resolve_skill_authority(
     *,
     repo_root: Path,
@@ -69,12 +84,9 @@ def resolve_skill_authority(
 
     descriptor = Path(str(active["resolved_skill_file"])).resolve()
     source_root = Path(str(active["resolved_source_root"])).resolve()
-    if not descriptor.is_relative_to(source_root):
-        return {**rejected, "reason": "skill_outside_declared_root"}
-    if descriptor.parent.name.casefold() in CONTROLLER_SKILL_IDS:
-        return {**rejected, "reason": "controller_entry_excluded"}
-    if active["enabled"] is not True:
-        return {**rejected, "reason": "skill_disabled"}
+    source_rejection = skill_source_rejection_reason(active)
+    if source_rejection is not None:
+        return {**rejected, "reason": source_rejection}
     result = {
         "valid": True, "reason": "ok", "skill_id": identity,
         "canonical_entrypoint": str(descriptor), "skill_entrypoint": str(descriptor),

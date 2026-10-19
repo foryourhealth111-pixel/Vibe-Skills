@@ -8,6 +8,7 @@ from .kernel.capability_bridge import CAPABILITY_BRIDGE, ROUTER_CAPABILITY_HINTS
 from .kernel.host_skill_roots import resolve_host_skill_roots
 from .kernel.skill_index import build_skill_catalog, build_skill_index_from_catalog
 from .kernel.text_tokens import SKILL_MATCH_STOPWORDS, tokens_from_text, tokens_from_values
+from .skill_authority import skill_source_rejection_reason
 from .runtime_support import (
     RepoContext,
     keyword_hit,
@@ -865,6 +866,7 @@ def _score_entry(prompt: str, prompt_lower: str, entry: dict[str, Any], task_car
 
 def _candidate_row(entry: dict[str, Any], score: dict[str, Any], *, selected: bool) -> dict[str, Any]:
     skill_id = str(entry.get("skill_id") or entry.get("id") or "").strip()
+    source_rejection = skill_source_rejection_reason(entry)
     return {
         "pack_id": LOCAL_PACK_ID,
         "candidate_source": LOCAL_CANDIDATE_SOURCE,
@@ -906,8 +908,9 @@ def _candidate_row(entry: dict[str, Any], score: dict[str, Any], *, selected: bo
         "domain_anchor_score": score["domain_anchor_score"],
         "role": "primary_owner" if selected else "candidate",
         "authority_tier": "local_installed",
-        "authority_eligible": bool(selected) and not score["rejected_capabilities"],
-        "authority_rejection_reasons": [] if selected else ["rejected_by_task_card"] if score["rejected_capabilities"] else ["candidate_signal_below_local_threshold"],
+        "source_rejection_reason": source_rejection,
+        "authority_eligible": source_rejection is None and bool(selected) and not score["rejected_capabilities"],
+        "authority_rejection_reasons": [source_rejection] if source_rejection else [] if selected else ["rejected_by_task_card"] if score["rejected_capabilities"] else ["candidate_signal_below_local_threshold"],
     }
 
 
@@ -1888,11 +1891,12 @@ def route_prompt(
             str(row["skill"]),
         )
     )
-    top1_top2_gap = _top1_top2_gap(scored_rows)
-    if scored_rows:
-        scored_rows[0]["candidate_top1_top2_gap"] = top1_top2_gap
-    preferred_primary_row = _preferred_primary_row(scored_rows, task_card)
-    module_candidates = _build_module_candidates(scored_rows, task_card, prompt_lower)
+    eligible_rows = [row for row in scored_rows if row["source_rejection_reason"] is None]
+    top1_top2_gap = _top1_top2_gap(eligible_rows)
+    if eligible_rows:
+        eligible_rows[0]["candidate_top1_top2_gap"] = top1_top2_gap
+    preferred_primary_row = _preferred_primary_row(eligible_rows, task_card)
+    module_candidates = _build_module_candidates(eligible_rows, task_card, prompt_lower)
 
     selected_row: dict[str, Any] | None = None
     route_reason = "no_local_candidate_above_threshold"
@@ -1901,7 +1905,11 @@ def route_prompt(
 
     if requested_canonical and not requested_controller:
         requested_entry = by_skill_id.get(requested_canonical)
-        if requested_entry is not None:
+        if requested_entry is not None and skill_source_rejection_reason(requested_entry) is not None:
+            route_reason = "requested_local_skill_ineligible"
+            selection_reason = "requested_skill_ineligible"
+            rejected_reasons.append(str(skill_source_rejection_reason(requested_entry)))
+        elif requested_entry is not None:
             selected_row = _candidate_row(
                 requested_entry,
                 {
@@ -1986,7 +1994,7 @@ def route_prompt(
             selection_reason = "composite_module_seed"
 
     selected_rows = _selected_rows_for_route(
-        scored_rows,
+        eligible_rows,
         selected_row,
         grade=grade,
         task_card=task_card,

@@ -144,6 +144,28 @@ def _handoff_organization_with_optional_module() -> dict[str, object]:
     return organization
 
 
+
+def _write_handoff_output_evidence(session_root: Path, execution: dict[str, object]) -> None:
+    handoff = json.loads((session_root / "agent-execution-handoff.json").read_text(encoding="utf-8"))
+    units = {unit["unit_id"]: unit for unit in handoff["units"]}
+    packet = json.loads((session_root / "runtime-input-packet.json").read_text(encoding="utf-8"))
+    workspace = Path(packet["storage"]["workspace_root"])
+    for unit in execution["units"]:
+        if unit["state"] != "completed":
+            continue
+        paths = []
+        for value in units[unit["unit_id"]]["expected_outputs"]:
+            path = Path(value)
+            if not ("/" in value or "\\" in value or path.suffix):
+                continue
+            if not path.is_absolute():
+                path = workspace / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("Verified handoff output.\n", encoding="utf-8")
+            paths.append(str(path))
+        unit["evidence_paths"] = paths
+
+
 def _write_agent_module_execution(
     handoff_stop: canonical_entry.CanonicalLaunchResult,
     *,
@@ -182,6 +204,7 @@ def _write_agent_module_execution(
         module["state"] = state
         for criterion in module["criterion_results"]:
             criterion["state"] = criterion_state
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -330,6 +353,7 @@ def test_optional_module_failure_does_not_block_canonical_agent_execution_reentr
         for criterion in module["criterion_results"]:
             criterion["state"] = "passing" if is_required else "failing"
     module_execution_path = Path(handoff["module_execution_path"])
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -466,6 +490,7 @@ def test_code_task_tdd_evidence_is_validated_before_cleanup_and_resubmitted_in_s
         ],
         "notes": "The focused test failed before the change and passed afterward.",
     }
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -769,6 +794,7 @@ def test_malformed_criterion_result_is_rejected_before_cleanup_and_same_run_can_
         for criterion in module["criterion_results"]:
             criterion["state"] = "passed"
             criterion["details"] = "The result satisfies the frozen criterion."
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -795,6 +821,7 @@ def test_malformed_criterion_result_is_rejected_before_cleanup_and_same_run_can_
     for module in module_execution["modules"]:
         for criterion in module["criterion_results"]:
             criterion["state"] = "passing"
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1039,6 +1066,7 @@ def test_direct_powershell_reentry_rejects_malformed_criterion_results_before_cl
         module["state"] = "completed"
         for criterion in module["criterion_results"]:
             criterion["state"] = "passed"
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1081,6 +1109,7 @@ def test_direct_powershell_reentry_rejects_malformed_criterion_results_before_cl
     for module in module_execution["modules"]:
         for criterion in module["criterion_results"]:
             criterion["state"] = "passing"
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1196,6 +1225,7 @@ def test_direct_powershell_reentry_rejects_incomplete_code_task_tdd_evidence(
         ],
         "notes": "The focused test failed before the change and passed afterward.",
     }
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1305,6 +1335,7 @@ def test_agent_module_execution_must_match_the_approved_plan(
         module_execution["modules"][0]["execution_mode"] = "agent_direct"
     else:
         module_execution["modules"][0]["gap_reason"] = "fabricated gap"
+    _write_handoff_output_evidence(module_execution_path.parent, module_execution)
     module_execution_path.write_text(
         json.dumps(module_execution, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1322,3 +1353,90 @@ def test_agent_module_execution_must_match_the_approved_plan(
         )
 
     assert not (handoff_stop.session_root / "cleanup-receipt.json").exists()
+
+
+@pytest.mark.parametrize("source_stage", ["plan_execute", "phase_cleanup"])
+def test_rejected_external_result_preserves_published_run_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, source_stage: str,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    result_path, accepted = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the result.")
+    lineage_path = handoff_stop.session_root / "stage-lineage.json"
+    lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
+    if source_stage == "phase_cleanup":
+        canonical_entry.launch_canonical_vibe(
+            repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return the completed module result.",
+            artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+            module_execution_json_file=result_path,
+        )
+        lineage = json.loads(lineage_path.read_text(encoding="utf-8"))
+        assert lineage["last_stage_name"] == "phase_cleanup"
+    preserved = {
+        name: (handoff_stop.session_root / name).read_bytes()
+        for name in ("module-execution.json", "stage-lineage.json", "execution-manifest.json", "agent-execution-handoff.json")
+    }
+    rejected = dict(accepted, source_run_id="different-source-run")
+    submitted = tmp_path / "rejected-external.json"
+    submitted.write_text(json.dumps(rejected), encoding="utf-8")
+    completed = subprocess.run(
+        [_powershell(), "-NoLogo", "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
+         "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
+         "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(submitted)],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
+    )
+    assert completed.returncode != 0
+    assert "source_run_id" in completed.stdout + completed.stderr or "stopped at plan_execute" in completed.stdout + completed.stderr
+    assert preserved == {name: (handoff_stop.session_root / name).read_bytes() for name in preserved}
+
+
+@pytest.mark.parametrize("evidence_kind", ["missing", "directory"])
+def test_canonical_cleanup_requires_the_declared_file_delivery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, evidence_kind: str,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    result_path, payload = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the result.")
+    evidence = Path(payload["units"][0]["evidence_paths"][0])
+    evidence.unlink()
+    if evidence_kind == "directory":
+        evidence.mkdir()
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return the module result.",
+        artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+        module_execution_json_file=result_path,
+    )
+    delivery = json.loads((result.session_root / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    cleanup = json.loads((result.session_root / "cleanup-receipt.json").read_text(encoding="utf-8"))
+    assert delivery["summary"]["gate_result"] == "FAIL"
+    assert delivery["summary"]["completion_language_allowed"] is False
+    assert cleanup["cleanup_admitted"] is False
+    assert not (result.session_root / "process-health-audits").exists()
+
+
+@pytest.mark.parametrize("prior_result", [False, True])
+@pytest.mark.parametrize("source_name", ["external", "case_variant"])
+def test_valid_external_result_is_published_without_replanning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, prior_result: bool, source_name: str,
+) -> None:
+    if source_name == "case_variant" and sys.platform == "win32":
+        pytest.skip("Distinct paths differing only by case require a case-sensitive filesystem")
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    session = handoff_stop.session_root
+    result_path, payload = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the result.")
+    before_plan = (session / "module-work-plan.json").read_bytes()
+    if not prior_result:
+        result_path.unlink()
+    payload["units"][0]["result_summary"] = "Published the validated external result."
+    external = result_path.with_name("MODULE-EXECUTION.json") if source_name == "case_variant" else tmp_path / "valid-external-result.json"
+    external.write_text(json.dumps(payload), encoding="utf-8")
+    completed = subprocess.run(
+        [_powershell(), "-NoLogo", "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
+         "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
+         "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(external)],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
+    )
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert json.loads(result_path.read_text(encoding="utf-8")) == payload
+    assert (session / "module-work-plan.json").read_bytes() == before_plan
+    assert not list(session.glob(".module-execution.*.tmp"))
+    report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["completion_language_allowed"] is True

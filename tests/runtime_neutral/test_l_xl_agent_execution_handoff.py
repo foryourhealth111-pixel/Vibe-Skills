@@ -1043,6 +1043,7 @@ class GovernedPlanAndHandoffTests(unittest.TestCase):
                 json.dumps(
                     {
                         "governance_scope": "root",
+                        "storage": {"workspace_root": str(artifact_root)},
                         "module_assignments": {
                             "unit_count": 0,
                             "status": "no_bound_skills",

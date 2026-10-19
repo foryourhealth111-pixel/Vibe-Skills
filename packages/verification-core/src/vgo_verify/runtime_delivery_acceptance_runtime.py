@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from .runtime_delivery_acceptance_support import (
+    _check_evidence_files,
+    _expected_output_evidence_notes,
     _derive_readiness_state,
     _extract_bullets,
     _manual_spot_checks_from_requirement,
@@ -40,6 +42,10 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     execution_plan_text = _read_text_if_exists(execution_plan_path)
     execution_manifest = load_json(execution_manifest_path)
     runtime_input_packet = load_json(runtime_input_packet_path) if runtime_input_packet_path.exists() else {}
+    frozen_workspace = str((runtime_input_packet.get("storage") or {}).get("workspace_root") or "")
+    if frozen_workspace and not Path(frozen_workspace).is_absolute():
+        raise ValueError("storage.workspace_root must be absolute")
+    workspace_root = Path(frozen_workspace).resolve() if frozen_workspace else session_root.resolve()
     module_execution_path = session_root / "module-execution.json"
     module_execution = load_json(module_execution_path) if module_execution_path.exists() else {}
     module_work_plan_path = session_root / "module-work-plan.json"
@@ -154,7 +160,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence was required, but the recorded TDD status did not close the review."
                 )
-            elif code_task_tdd_evidence_state == "passing" and not code_task_tdd_evidence_evidence:
+            elif code_task_tdd_evidence_state == "passing" and not _normalize_string_list(tdd_evidence_payload.get("evidence_paths")):
                 code_task_tdd_evidence_state = "manual_review_required"
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence reported passing, but no evidence paths were recorded."
@@ -181,6 +187,15 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence did not record green-phase verification evidence paths."
                 )
+
+    if code_task_tdd_evidence_state == "passing":
+        for field in ("evidence_paths", "red_phase_evidence_paths", "green_phase_evidence_paths", "refactor_phase_evidence_paths"):
+            _, evidence_notes = _check_evidence_files(
+                tdd_evidence_payload.get(field), workspace_root=workspace_root, session_root=session_root,
+            )
+            if evidence_notes:
+                code_task_tdd_evidence_state = "failing"
+                code_task_tdd_evidence_notes.extend(f"{field}: {note}" for note in evidence_notes)
 
     tdd_evidence_payload_notes = str(tdd_evidence_payload.get("notes") or "").strip()
     if tdd_evidence_payload_notes:
@@ -608,6 +623,22 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
                 + ", ".join(invalid_owner_results)
                 + "."
             )
+        for unit in module_unit_records:
+            if str(unit.get("module_id") or "") not in required_module_ids:
+                continue
+            if str(unit.get("state") or "") != "completed" or not str(unit.get("result_summary") or "").strip():
+                continue
+            unit_id = str(unit.get("unit_id") or "")
+            evidence_files, evidence_notes = _check_evidence_files(
+                unit.get("evidence_paths"), workspace_root=workspace_root, session_root=session_root,
+            )
+            evidence_notes.extend(_expected_output_evidence_notes(
+                planned_work_unit_by_id.get(unit_id, {}), evidence_files,
+                workspace_root=workspace_root, session_root=session_root,
+            ))
+            if evidence_notes:
+                module_acceptance_state = "failing"
+                module_acceptance_notes.extend(f"{unit_id}: {note}" for note in evidence_notes)
         failing_criterion_module_ids = sorted(
             {
                 str(module.get("module_id") or "")

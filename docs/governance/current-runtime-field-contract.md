@@ -77,6 +77,32 @@ Meaning:
 - `module-execution.json` returns the Agent's work-unit results, failures,
   blocking reasons, and module states against that exact approved plan.
 
+## Delivery Evidence and Result Publication
+
+A completed file-producing unit supplies readable file evidence for each concrete
+path or glob in its approved `expected_outputs`. Directory entries and missing
+files cannot serve as file evidence. Descriptive reply outcomes remain supported;
+an explicit `write_scope = "no task-file writes"` carries no file-delivery
+requirement. Declared evidence paths are checked even for read-only work.
+Use `./` or `session:` to identify extensionless file outputs explicitly. Output
+paths or globs containing whitespace require an absolute path or one of these
+prefixes; unprefixed phrases remain descriptive outcomes.
+
+Relative evidence and output paths use the frozen packet's
+`storage.workspace_root`, which must be absolute when present. An absolute path
+identifies its file directly;
+`session:<relative-path>` explicitly identifies a file inside the source session.
+Legacy packets without a workspace root resolve relative paths inside that
+session. Resolution never depends on the process working directory or a search
+for whichever matching file happens to exist. Required TDD red/green evidence
+must identify readable files; their presence does not establish test semantics.
+
+External module results are read and validated before publication. The direct
+PowerShell entry validates stage, source run, plan digest, work-unit bindings,
+and criterion results against the submitted snapshot, then atomically replaces
+`module-execution.json`. A rejected submission preserves accepted results and
+execution artifacts, including results from a completed run.
+
 ## Stage Rules
 
 At `requirement_doc`:
@@ -128,8 +154,11 @@ subdirectory. A nested vendor layout must declare its containing Skill root in
 configuration; arbitrary recursive host-directory lookup is outside admission.
 Codex plugin caches support recursive discovery, with ambiguous versions failing
 closed. Supplied entrypoints must
-match the admitted descriptor. Authority lookup writes no generated cards or
-catalog caches. The Agent owns task Skill selection; source authority reports
+match the admitted descriptor. Frozen task Skill bindings retain the descriptor
+entrypoint and SHA-256 of its bytes; plan replay and dispatch reject a changed
+source or changed descriptor content. Candidate audit preserves the same
+source eligibility and disabled-winner rejection as admission. Authority lookup
+writes no generated cards or catalog caches. The Agent owns task Skill selection; source authority reports
 facts and eligibility only.
 
 Planning and execution dispatch resolve configured roots against the frozen
