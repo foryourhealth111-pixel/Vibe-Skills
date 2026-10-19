@@ -95,6 +95,7 @@ def _skill_provenance(candidate: object) -> SkillProvenance:
         path_contract=str(getattr(candidate, "path_contract")),
         path_base=str(getattr(candidate, "path_base")),
         content_sha256=str(getattr(candidate, "content_sha256", "")),
+        resource_sha256=str(getattr(candidate, "resource_sha256", "")),
     )
 
 
@@ -455,6 +456,7 @@ def _coerce_skill_provenance(payload: object) -> SkillProvenance | None:
         path_contract=str(payload["path_contract"]),
         path_base=str(payload["path_base"]),
         content_sha256=str(payload.get("content_sha256") or ""),
+        resource_sha256=str(payload.get("resource_sha256") or ""),
     )
 
 
@@ -531,8 +533,8 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
         return False
     if current_work_unit.preferred_skill is not None:
         provenance = current_work_unit.selected_skill_provenance
-        content_sha256 = provenance.content_sha256 if provenance is not None else ""
-        if len(content_sha256) != 64 or any(character not in "0123456789abcdef" for character in content_sha256):
+        digests = (provenance.content_sha256, provenance.resource_sha256) if provenance is not None else ("",)
+        if any(len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest) for digest in digests):
             return False
     return (
         previous_work_unit.goal == current_work_unit.goal

@@ -2228,3 +2228,32 @@ def test_local_router_hides_low_signal_root_cause_lexical_tail_in_perf_shortlist
 
     ranked_ids = [row["skill"] for row in result["ranked"]]
     assert ranked_ids == ["diagnose", "diagnosing-bugs"]
+
+
+def test_plugin_inventory_selects_enabled_version_before_skill_id_deduplication(tmp_path: Path, monkeypatch) -> None:
+    from vgo_runtime.kernel import skill_index
+
+    cache = tmp_path / "home/.codex/plugins/cache"
+    old_root = cache / "provider/documents/1.0.0"
+    current_root = cache / "provider/documents/2.0.0"
+    other_root = cache / "disabled-provider/documents/3.0.0"
+    for root in (old_root, current_root, other_root):
+        _write_skill(root / "skills", "documents", _frontmatter("Documents", "Render formal documents."))
+    monkeypatch.setattr(skill_index, "resolve_codex_plugin_roots", lambda _: (current_root.resolve(),), raising=False)
+    catalog = build_skill_catalog(agent_root=tmp_path / "agent", host_roots=(cache,))
+    skills = build_skill_index_from_catalog(catalog)["skills"]
+    assert len(skills) == 1
+    assert skills[0]["resolved_skill_file"] == str((current_root / "skills/documents/SKILL.md").resolve())
+
+
+def test_plugin_inventory_preserves_collisions_between_enabled_plugins(tmp_path: Path, monkeypatch) -> None:
+    from vgo_runtime.kernel import skill_index
+
+    cache = tmp_path / "home/.codex/plugins/cache"
+    roots = tuple(cache / provider / "documents/1" for provider in ("provider-a", "provider-b"))
+    for root in roots:
+        _write_skill(root / "skills", "documents", _frontmatter("Documents", "Render formal documents."))
+    monkeypatch.setattr(skill_index, "resolve_codex_plugin_roots", lambda _: roots, raising=False)
+    catalog = build_skill_catalog(agent_root=tmp_path / "agent", host_roots=(cache,))
+    assert build_skill_index_from_catalog(catalog)["skills"] == []
+    assert {row["reason"] for row in catalog["discovery_diagnostics"]["invalid_entries"]} == {"ambiguous_plugin_skill_id"}

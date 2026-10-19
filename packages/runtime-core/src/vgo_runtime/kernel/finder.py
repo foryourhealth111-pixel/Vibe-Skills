@@ -26,6 +26,7 @@ class SkillCandidate:
     path_contract: str
     path_base: str
     content_sha256: str = ""
+    resource_sha256: str = ""
     warnings: tuple[str, ...] = ()
     inputs: tuple[str, ...] = ()
     outputs: tuple[str, ...] = ()
@@ -136,6 +137,7 @@ def _candidate_from_entry(raw_entry: dict[str, object], query_tokens: set[str]) 
         path_contract=str(source_metadata["path_contract"]),
         path_base=str(source_metadata["path_base"]),
         content_sha256=str(raw_entry.get("content_sha256") or "").strip().lower(),
+        resource_sha256=str(raw_entry.get("resource_sha256") or "").strip().lower(),
     )
 
 

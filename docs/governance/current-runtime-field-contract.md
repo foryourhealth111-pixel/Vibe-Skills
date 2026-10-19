@@ -1,6 +1,6 @@
 # Current Runtime Field Contract
 
-Date: 2026-07-10
+Date: 2026-10-19
 
 ## Purpose
 
@@ -162,8 +162,13 @@ the winner and blocks admission; a lower-priority enabled source cannot replace
 it. Host roots scan direct Skill directories and their supported `custom`
 subdirectory. A nested vendor layout must declare its containing Skill root in
 configuration; arbitrary recursive host-directory lookup is outside admission.
-Codex plugin caches support recursive discovery, with ambiguous versions failing
-closed. Supplied entrypoints must
+Codex plugin caches support recursive discovery. When the host inventory is
+available, `codex plugin list --json` selects the exact installed, enabled
+marketplace/plugin/version roots before Skill-ID deduplication. Historical and
+disabled cache copies remain ineligible. Conflicting enabled Skill IDs remain
+ambiguous. An invalid or unavailable inventory command produces an explicit
+admission diagnostic; without a configured host inventory, unresolved cache
+collisions continue to fail closed. Supplied entrypoints must
 match the admitted descriptor. Frozen task Skill bindings retain the descriptor
 entrypoint and SHA-256 of its bytes; plan replay and dispatch reject a changed
 source or changed descriptor content. Candidate audit preserves the same
@@ -300,3 +305,24 @@ Historical artifacts may still contain them. Current runtime behavior must use
 `agent_skill_organization`, `module-work-plan.json`,
 `agent-execution-handoff.json`, and `module-execution.json` instead. Retired
 fields are not compatibility inputs for current execution.
+
+## Delivery Evidence And Execution Freshness
+
+Python canonical re-entry and direct PowerShell re-entry use the shared
+`vgo_contracts.module_execution_contract` admission validator. The staged JSON
+snapshot is validated before it is published to the session. Module `required` bindings
+must be JSON booleans matching the approved plan; delivery acceptance checks
+this type and binding independently.
+
+A passing artifact-review declaration requires its own current readable evidence
+files. The declaration source is recorded for traceability and does not satisfy
+the evidence requirement. Missing files, directories, malformed path lists and
+escaping `session:` paths prevent acceptance.
+
+Skill provenance records `content_sha256` for the descriptor and
+`resource_sha256` for the Skill directory's file paths and contents. Changes,
+additions and deletions of scripts, templates, rules and references invalidate
+completed-work reuse. Interpreter bytecode and generated tool cache directories
+are excluded. Legacy checkpoints without a resource fingerprint are recomputed
+before reuse. Contained resource links are fingerprinted with their resolved
+targets. External and cyclic resources produce explicit scanner diagnostics.

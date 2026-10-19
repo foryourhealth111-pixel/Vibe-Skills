@@ -1518,3 +1518,23 @@ def test_malformed_external_result_shape_preserves_run_and_allows_corrected_retr
     report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
     assert report["summary"]["completion_language_allowed"] is True
     assert json.loads(result_path.read_text(encoding="utf-8")) == accepted
+
+
+@pytest.mark.parametrize("required", ["false", 1, None])
+def test_direct_powershell_required_boolean_matches_python_admission(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, required: object,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    session = handoff_stop.session_root
+    result_path, result = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the declared output.")
+    original = result_path.read_bytes()
+    result["modules"][0]["required"] = required
+    external = tmp_path / "malformed-boolean.json"
+    external.write_text(json.dumps(result), encoding="utf-8")
+    handoff = json.loads((session / "agent-execution-handoff.json").read_text(encoding="utf-8"))
+    with pytest.raises(RuntimeError, match="required binding"):
+        canonical_entry._validate_agent_module_execution(session_root=session, source_run_id=handoff_stop.run_id, handoff=handoff, submitted=result)
+    completed = _submit_direct_external_result(tmp_path, handoff_stop, external)
+    assert completed.returncode != 0
+    assert result_path.read_bytes() == original
+    assert not (session / "cleanup-receipt.json").exists()

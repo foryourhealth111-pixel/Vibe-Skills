@@ -38,22 +38,6 @@ if ($PSVersionTable.PSEdition -eq 'Desktop' -or $PSVersionTable.Platform -eq 'Wi
 . (Join-Path $PSScriptRoot 'VibeMemoryBackends.Common.ps1')
 . (Join-Path $PSScriptRoot 'VibeMemoryActivation.Common.ps1')
 
-function Assert-VibeResultObjectArray {
-    param(
-        [AllowNull()] [object]$Value,
-        [Parameter(Mandatory)] [string]$Field
-    )
-
-    if ($Value -isnot [System.Array]) {
-        throw ("Agent module execution {0} must be a JSON array of objects." -f $Field)
-    }
-    foreach ($entry in $Value) {
-        if ($null -eq $entry -or -not (Test-VibeStructuredObject -InputObject $entry)) {
-            throw ("Agent module execution {0} must be a JSON array of objects." -f $Field)
-        }
-    }
-}
-
 function Wait-VibeArtifactSet {
     param(
         [Parameter(Mandatory)] [string[]]$Paths,
@@ -489,218 +473,23 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     }
     $moduleWorkPlanPath = Join-Path $sessionRoot 'module-work-plan.json'
     $moduleWorkPlan = Get-Content -LiteralPath $moduleWorkPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $agentExecutionHandoff = Get-Content -LiteralPath (Join-Path $sessionRoot 'agent-execution-handoff.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    $resultContract = Get-VibePropertySafe -InputObject $agentExecutionHandoff -PropertyName 'result_contract' -DefaultValue $null
-    if ($null -eq $resultContract) {
-        throw 'Agent execution handoff is missing result_contract.'
-    }
-    foreach ($requiredField in @($resultContract.required_top_level_fields)) {
-        if (-not (Test-VibeObjectHasProperty -InputObject $moduleExecution -PropertyName $requiredField)) {
-            throw ("Agent module execution is missing required field: {0}" -f $requiredField)
-        }
-    }
-    if ([string]$moduleExecution.schema_version -ne 'module_execution_v1') {
-        throw 'Agent module execution must use module_execution_v1.'
-    }
-    if ([string]$agentExecutionHandoff.source_run_id -ne $RunId -or [string]$moduleExecution.source_run_id -ne $RunId) {
-        throw 'Agent module execution source_run_id must match the handoff run.'
-    }
-    if (Test-VibeObjectHasProperty -InputObject $resultContract -PropertyName 'tdd_evidence') {
-        if (-not (Test-VibeObjectHasProperty -InputObject $moduleExecution -PropertyName 'tdd_evidence')) {
-            throw 'Agent module execution TDD evidence must be a JSON object.'
-        }
-        $tddContract = $resultContract.tdd_evidence
-        $tddEvidence = $moduleExecution.tdd_evidence
-        if ($null -eq $tddEvidence -or -not (Test-VibeStructuredObject -InputObject $tddEvidence)) {
-            throw 'Agent module execution TDD evidence must be a JSON object.'
-        }
-        foreach ($requiredField in @($tddContract.required_result_fields)) {
-            if (-not (Test-VibeObjectHasProperty -InputObject $tddEvidence -PropertyName $requiredField)) {
-                throw ("Agent module execution TDD evidence is missing required field: {0}" -f $requiredField)
-            }
-        }
-        $tddState = [string]$tddEvidence.state
-        $tddStateAliases = @{
-            pass = 'passing'
-            passed = 'passing'
-            ok = 'passing'
-            manual = 'manual_review_required'
-            manual_required = 'manual_review_required'
-            manual_review = 'manual_review_required'
-            fail = 'failing'
-            failed = 'failing'
-        }
-        $resolvedTddState = ''
-        foreach ($stateField in @('state', 'status')) {
-            if (Test-VibeObjectHasProperty -InputObject $tddEvidence -PropertyName $stateField) {
-                $stateValue = $tddEvidence.$stateField
-                if ($null -ne $stateValue -and $stateValue -isnot [string]) {
-                    throw ("Agent module execution TDD evidence {0} must be text." -f $stateField)
-                }
-                $normalizedState = ([string]$stateValue).Trim().ToLowerInvariant()
-                if ($tddStateAliases.ContainsKey($normalizedState)) {
-                    $normalizedState = $tddStateAliases[$normalizedState]
-                }
-                if ($normalizedState) {
-                    if ($resolvedTddState -and $normalizedState -cne $resolvedTddState) {
-                        throw 'Agent module execution TDD evidence state and status fields conflict.'
-                    }
-                    $resolvedTddState = $normalizedState
-                }
-            }
-        }
-        if ($tddState -notin @($tddContract.terminal_states)) {
-            throw 'Agent module execution TDD evidence state must be passing, failing, or blocked.'
-        }
-        foreach ($listField in @(
-            'evidence_paths',
-            'red_phase_evidence_paths',
-            'green_phase_evidence_paths',
-            'refactor_phase_evidence_paths',
-            'covered_code_task_tdd_evidence_requirements',
-            'covered_code_task_tdd_exceptions'
-        )) {
-            $listValue = $tddEvidence.PSObject.Properties[$listField].Value
-            if ($null -eq $listValue -or $listValue -is [string] -or $listValue -isnot [System.Collections.IEnumerable]) {
-                throw ("Agent module execution TDD evidence {0} must be a JSON array of strings." -f $listField)
-            }
-            foreach ($item in @($listValue)) {
-                if ($item -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$item)) {
-                    throw ("Agent module execution TDD evidence {0} must be a JSON array of strings." -f $listField)
-                }
-            }
-        }
-        if ($tddEvidence.notes -isnot [string]) {
-            throw 'Agent module execution TDD evidence notes must be a string.'
-        }
-        if ($tddState -eq 'passing') {
-            $requiredTddRequirements = @($tddContract.required_code_task_tdd_evidence_requirements)
-            $requiredTddExceptions = @($tddContract.required_code_task_tdd_exceptions)
-            if ((@($tddEvidence.covered_code_task_tdd_evidence_requirements) -join "`n") -cne ($requiredTddRequirements -join "`n")) {
-                throw 'Passing Agent module execution TDD evidence must cover the frozen TDD requirements.'
-            }
-            if ((@($tddEvidence.covered_code_task_tdd_exceptions) -join "`n") -cne ($requiredTddExceptions -join "`n")) {
-                throw 'Passing Agent module execution TDD evidence must cover the frozen TDD exceptions.'
-            }
-            if (@($tddEvidence.evidence_paths).Count -eq 0) {
-                throw 'Passing Agent module execution TDD evidence requires evidence paths.'
-            }
-            if ($requiredTddRequirements.Count -gt 0 -and @($tddEvidence.red_phase_evidence_paths).Count -eq 0) {
-                throw 'Passing Agent module execution TDD evidence requires red-phase evidence paths.'
-            }
-            if ($requiredTddRequirements.Count -gt 0 -and @($tddEvidence.green_phase_evidence_paths).Count -eq 0) {
-                throw 'Passing Agent module execution TDD evidence requires green-phase evidence paths.'
-            }
-        }
-    }
-    $expectedPlanDigest = (Get-FileHash -LiteralPath $moduleWorkPlanPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ([string]$moduleExecution.module_work_plan_digest -ne $expectedPlanDigest) {
-        throw 'Agent module execution does not match the approved module work plan digest.'
-    }
-    Assert-VibeResultObjectArray -Value $moduleExecution.units -Field 'units'
-    Assert-VibeResultObjectArray -Value $moduleExecution.modules -Field 'modules'
-    $plannedUnits = @($moduleWorkPlan.work_units)
-    $submittedUnits = @($moduleExecution.units)
-    $plannedUnitIds = @($plannedUnits | ForEach-Object { [string]$_.unit_id } | Sort-Object)
-    $submittedUnitIds = @($submittedUnits | ForEach-Object { [string]$_.unit_id } | Sort-Object)
-    if (($plannedUnitIds -join "`n") -cne ($submittedUnitIds -join "`n")) {
-        throw 'Agent module execution work units must exactly match the approved plan.'
-    }
-    foreach ($plannedUnit in $plannedUnits) {
-        $unitId = [string]$plannedUnit.unit_id
-        $submittedUnit = @($submittedUnits | Where-Object { [string]$_.unit_id -eq $unitId } | Select-Object -First 1)
-        if ($submittedUnit.Count -ne 1) {
-            throw ("Agent module execution work unit is missing or duplicated: {0}" -f $unitId)
-        }
-        foreach ($requiredField in @('unit_id', 'module_id', 'skill_id', 'role', 'state', 'result_summary', 'evidence_paths', 'verification_results')) {
-            if (-not (Test-VibeObjectHasProperty -InputObject $submittedUnit[0] -PropertyName $requiredField)) {
-                throw ("Agent module execution unit {0} is missing required field: {1}" -f $unitId, $requiredField)
-            }
-        }
-        if (
-            [string]$submittedUnit[0].module_id -ne [string]$plannedUnit.module_id -or
-            [string]$submittedUnit[0].skill_id -ne [string]$plannedUnit.skill_id -or
-            [string]$submittedUnit[0].role -ne [string]$plannedUnit.role
-        ) {
-            throw ("Agent module execution work unit changed its approved binding: {0}" -f $unitId)
-        }
-        $unitState = [string]$submittedUnit[0].state
-        if ($unitState -notin @('completed', 'failed', 'blocked')) {
-            throw ("Agent module execution unit {0} is not terminal." -f $unitId)
-        }
-        if ($unitState -eq 'completed' -and [string]::IsNullOrWhiteSpace([string]$submittedUnit[0].result_summary)) {
-            throw ("Completed Agent module execution unit {0} requires a result summary." -f $unitId)
-        }
-    }
-    $plannedModules = @($moduleWorkPlan.modules)
-    $submittedModules = @($moduleExecution.modules)
-    $plannedModuleIds = @($plannedModules | ForEach-Object { [string]$_.module_id } | Sort-Object)
-    $submittedModuleIds = @($submittedModules | ForEach-Object { [string]$_.module_id } | Sort-Object)
-    if (($plannedModuleIds -join "`n") -cne ($submittedModuleIds -join "`n")) {
-        throw 'Agent module execution modules must exactly match the approved plan.'
-    }
-    foreach ($plannedModule in $plannedModules) {
-        $moduleId = [string]$plannedModule.module_id
-        $submittedModule = @($submittedModules | Where-Object { [string]$_.module_id -eq $moduleId } | Select-Object -First 1)
-        if ($submittedModule.Count -ne 1) {
-            throw ("Agent module execution module is missing or duplicated: {0}" -f $moduleId)
-        }
-        foreach ($requiredField in @('module_id', 'required', 'execution_mode', 'gap_reason', 'state', 'criterion_results')) {
-            if (-not (Test-VibeObjectHasProperty -InputObject $submittedModule[0] -PropertyName $requiredField)) {
-                throw ("Agent module execution module {0} is missing required field: {1}" -f $moduleId, $requiredField)
-            }
-        }
-        if (
-            [bool]$submittedModule[0].required -ne [bool]$plannedModule.required
-        ) {
-            throw ("Agent module execution module changed its required binding: {0}" -f $moduleId)
-        }
-        if ([string]$submittedModule[0].execution_mode -cne [string]$plannedModule.execution_mode) {
-            throw ("Agent module execution module changed its execution_mode binding: {0}" -f $moduleId)
-        }
-        $plannedGapReason = if ($null -eq $plannedModule.gap_reason) { $null } else { [string]$plannedModule.gap_reason }
-        $submittedGapReason = if ($null -eq $submittedModule[0].gap_reason) { $null } else { [string]$submittedModule[0].gap_reason }
-        if (
-            (($null -eq $plannedGapReason) -ne ($null -eq $submittedGapReason)) -or
-            ($null -ne $plannedGapReason -and $submittedGapReason -cne $plannedGapReason)
-        ) {
-            throw ("Agent module execution module changed its gap_reason binding: {0}" -f $moduleId)
-        }
-        if ([string]$submittedModule[0].state -notin @('completed', 'failed', 'blocked')) {
-            throw ("Agent module execution module {0} is not terminal." -f $moduleId)
-        }
-
-        Assert-VibeResultObjectArray -Value $submittedModule[0].criterion_results -Field ("module {0} criterion_results" -f $moduleId)
-        $plannedCriteria = @($plannedModule.acceptance_criteria)
-        $submittedCriteria = @($submittedModule[0].criterion_results)
-        $plannedCriterionIds = @($plannedCriteria | ForEach-Object { [string]$_.criterion_id } | Sort-Object)
-        $submittedCriterionIds = @($submittedCriteria | ForEach-Object {
-                if (-not (Test-VibeObjectHasProperty -InputObject $_ -PropertyName 'criterion_id')) {
-                    ''
-                } else {
-                    [string]$_.criterion_id
-                }
-            } | Sort-Object)
-        if (
-            ($plannedCriterionIds -join "`n") -cne ($submittedCriterionIds -join "`n") -or
-            $submittedCriteria.Count -ne $plannedCriteria.Count
-        ) {
-            throw ("Agent module execution module {0} criterion results must exactly match the approved plan." -f $moduleId)
-        }
-        foreach ($criterionResult in $submittedCriteria) {
-            $criterionId = [string]$criterionResult.criterion_id
-            if (-not (Test-VibeObjectHasProperty -InputObject $criterionResult -PropertyName 'state')) {
-                throw ("Agent module execution criterion {0}:{1} is missing required field: state" -f $moduleId, $criterionId)
-            }
-            $criterionState = [string]$criterionResult.state
-            if ($criterionState -notin @('passing', 'failing', 'blocked')) {
-                throw ("Agent module execution criterion {0}:{1} has unsupported state: {2}" -f $moduleId, $criterionId, $criterionState)
-            }
-        }
-    }
     $pendingResultPath = Join-Path $sessionRoot ('.module-execution.{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+    $previousPythonPath = $env:PYTHONPATH
     try {
         [System.IO.File]::WriteAllText($pendingResultPath, $submittedModuleExecutionJson, [System.Text.UTF8Encoding]::new($false))
+        $contractsSrc = Join-Path $repoRoot 'packages/contracts/src'
+        $env:PYTHONPATH = (@($contractsSrc, $previousPythonPath) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [System.IO.Path]::PathSeparator
+        $pythonInvocation = Get-VgoPythonCommand
+        $validationArgs = @($pythonInvocation.prefix_arguments) + @(
+            '-m', 'vgo_contracts.module_execution_contract',
+            '--session-root', $sessionRoot,
+            '--source-run-id', $RunId,
+            '--submitted-file', $pendingResultPath
+        )
+        $validationOutput = & $pythonInvocation.host_path @validationArgs 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Agent module execution validation failed: {0}" -f ((@($validationOutput) | ForEach-Object { [string]$_ }) -join [Environment]::NewLine))
+        }
         if ([System.IO.File]::Exists($moduleExecutionPath)) {
             # Preserve a null backup path through PowerShell's .NET string binding.
             [System.IO.File]::Replace($pendingResultPath, $moduleExecutionPath, [NullString]::Value)
@@ -708,12 +497,17 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             [System.IO.File]::Move($pendingResultPath, $moduleExecutionPath)
         }
     } finally {
+        if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
+            Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+        } else {
+            $env:PYTHONPATH = $previousPythonPath
+        }
         if ([System.IO.File]::Exists($pendingResultPath)) {
             [System.IO.File]::Delete($pendingResultPath)
         }
     }
     $requiredModuleIds = @(
-        $plannedModules |
+        $moduleWorkPlan.modules |
             Where-Object { [bool]$_.required } |
             ForEach-Object { [string]$_.module_id }
     )

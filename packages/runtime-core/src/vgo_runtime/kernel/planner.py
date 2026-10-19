@@ -213,6 +213,7 @@ def _selected_skill_provenance(candidate: SkillCandidate | None) -> SkillProvena
         path_contract=candidate.path_contract,
         path_base=candidate.path_base,
         content_sha256=candidate.content_sha256,
+        resource_sha256=candidate.resource_sha256,
     )
 
 

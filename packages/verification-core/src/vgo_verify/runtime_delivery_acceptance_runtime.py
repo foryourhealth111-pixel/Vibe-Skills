@@ -25,6 +25,8 @@ from .runtime_delivery_acceptance_support import (
     utc_now,
 )
 
+from vgo_contracts.module_execution_contract import module_required_binding_notes
+
 
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
     contract = load_json(repo_root / "config" / "project-delivery-acceptance-contract.json")
@@ -335,8 +337,6 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
     artifact_review_notes: list[str] = []
     artifact_review_evidence = _normalize_string_list(artifact_review_payload.get("evidence_paths"))
     artifact_review_source_path = str(artifact_review_payload.get("source_path") or "").strip()
-    if artifact_review_source_path:
-        artifact_review_evidence = [artifact_review_source_path, *artifact_review_evidence]
     covered_baseline_document_quality_dimensions = _normalize_string_list(
         artifact_review_payload.get("covered_baseline_document_quality_dimensions")
     )
@@ -421,6 +421,21 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "Artifact review did not record consideration of all frozen research augmentation sources."
         )
 
+    if artifact_review_state == "passing" and artifact_review_payload:
+        evidence_files, evidence_notes = _check_evidence_files(
+            artifact_review_payload.get("evidence_paths"),
+            workspace_root=workspace_root, session_root=session_root,
+        )
+        if evidence_notes:
+            artifact_review_state = "failing"
+            artifact_review_notes.extend(evidence_notes)
+        elif not evidence_files:
+            artifact_review_state = "manual_review_required"
+            artifact_review_notes.append("Artifact review requires current readable evidence files.")
+    # The declaration's source helps trace the review; file admission uses its declared evidence.
+    if artifact_review_source_path:
+        artifact_review_evidence = [artifact_review_source_path, *artifact_review_evidence]
+
     artifact_review_payload_notes = str(artifact_review_payload.get("notes") or "").strip()
     if artifact_review_payload_notes:
         artifact_review_notes.append(artifact_review_payload_notes)
@@ -485,12 +500,10 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         }
         missing_module_ids = sorted(set(planned_module_by_id) - set(execution_module_by_id))
         unplanned_module_ids = sorted(set(execution_module_by_id) - set(planned_module_by_id))
-        changed_module_required_ids = sorted(
-            module_id
-            for module_id in set(planned_module_by_id) & set(execution_module_by_id)
-            if bool(planned_module_by_id[module_id].get("required", True))
-            != bool(execution_module_by_id[module_id].get("required", True))
-        )
+        required_binding_notes = module_required_binding_notes(planned_module_records, module_records)
+        if required_binding_notes:
+            module_acceptance_state = "failing"
+            module_acceptance_notes.extend(required_binding_notes)
         recorded_plan_digest = str(module_execution.get("module_work_plan_digest") or "")
         current_plan_digest = (
             hashlib.sha256(module_work_plan_path.read_bytes()).hexdigest()
@@ -505,7 +518,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             module_acceptance_notes.append(
                 "Module execution work-unit bindings do not match the approved module work plan."
             )
-        if missing_module_ids or unplanned_module_ids or changed_module_required_ids:
+        if missing_module_ids or unplanned_module_ids or required_binding_notes:
             module_acceptance_state = "failing"
             module_acceptance_notes.append(
                 "Module execution module records do not match the approved module work plan."
