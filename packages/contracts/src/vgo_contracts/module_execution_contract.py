@@ -73,14 +73,15 @@ def validate_agent_module_execution(
         ):
             raise RuntimeError("Agent execution handoff TDD evidence required fields are invalid")
         for field in required_tdd_fields:
+            if field == "state" and "status" in tdd_evidence:
+                continue
             if field not in tdd_evidence:
                 raise RuntimeError(f"module execution TDD evidence is missing required field: {field}")
 
         try:
-            resolve_tdd_evidence_state(tdd_evidence)
+            tdd_state = resolve_tdd_evidence_state(tdd_evidence)
         except ValueError as exc:
             raise RuntimeError(str(exc)) from exc
-        tdd_state = str(tdd_evidence.get("state") or "")
         allowed_tdd_states = tdd_contract.get("terminal_states")
         if not isinstance(allowed_tdd_states, list) or tdd_state not in allowed_tdd_states:
             raise RuntimeError("module execution TDD evidence state must be passing, failing, or blocked")

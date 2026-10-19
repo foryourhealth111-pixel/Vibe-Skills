@@ -477,7 +477,7 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     $previousPythonPath = $env:PYTHONPATH
     try {
         [System.IO.File]::WriteAllText($pendingResultPath, $submittedModuleExecutionJson, [System.Text.UTF8Encoding]::new($false))
-        $contractsSrc = Join-Path $repoRoot 'packages/contracts/src'
+        $contractsSrc = Join-Path ([string]$runtime.repo_root) 'packages/contracts/src'
         $env:PYTHONPATH = (@($contractsSrc, $previousPythonPath) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [System.IO.Path]::PathSeparator
         $pythonInvocation = Get-VgoPythonCommand
         $validationArgs = @($pythonInvocation.prefix_arguments) + @(

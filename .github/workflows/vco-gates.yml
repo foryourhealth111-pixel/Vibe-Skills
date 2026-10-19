@@ -243,6 +243,7 @@ jobs:
           tests/unit/test_powershell_process_tree.py
           tests/unit/test_local_skill_index.py
           tests/unit/test_codex_plugin_inventory.py
+          tests/unit/test_module_execution_contract.py
           tests/unit/test_skill_resources.py
           tests/unit/test_local_kernel_execution.py
           tests/unit/test_artifact_receipt_sync.py

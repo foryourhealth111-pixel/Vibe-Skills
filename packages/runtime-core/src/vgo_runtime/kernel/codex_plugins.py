@@ -58,11 +58,13 @@ def resolve_codex_plugin_roots(cache_root: Path) -> tuple[Path, ...] | None:
             continue
         name = _cache_component(entry.get("name"))
         marketplace = _cache_component(entry.get("marketplaceName"))
-        version = _cache_component(entry.get("version"))
         identity = f"{name}@{marketplace}"
         if entry.get("pluginId") != identity or identity in identities:
             raise ValueError("Host plugin inventory has conflicting plugin identities")
         identities.add(identity)
+        if entry.get("version") is None:
+            continue
+        version = _cache_component(entry["version"])
         root = (cache_root / marketplace / name / version).resolve()
         if not root.is_relative_to(cache_root.resolve()):
             raise ValueError("Host plugin inventory cache root escapes the declared cache")

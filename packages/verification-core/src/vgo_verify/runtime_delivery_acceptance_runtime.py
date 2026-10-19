@@ -421,7 +421,10 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             "Artifact review did not record consideration of all frozen research augmentation sources."
         )
 
-    if artifact_review_state == "passing" and artifact_review_payload:
+    if artifact_review_state == "passing" and (
+        _normalize_truth_state(raw_artifact_review_state) == "passing"
+        or artifact_review_payload.get("evidence_paths")
+    ):
         evidence_files, evidence_notes = _check_evidence_files(
             artifact_review_payload.get("evidence_paths"),
             workspace_root=workspace_root, session_root=session_root,

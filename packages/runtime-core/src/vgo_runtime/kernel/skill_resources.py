@@ -7,6 +7,7 @@ import stat
 
 
 RESOURCE_CACHE_DIRS = frozenset({".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"})
+RESOURCE_VIRTUALENV_DIRS = frozenset({".venv", "venv", ".env", "env"})
 
 
 class SkillResourceError(ValueError):
@@ -35,6 +36,8 @@ def skill_resource_sha256(skill_file: Path, source_bytes: bytes) -> str:
                     raise SkillResourceError(f"Skill resource escapes its root: {relative}")
                 mode = path.stat().st_mode
                 if stat.S_ISDIR(mode):
+                    if path.name in RESOURCE_VIRTUALENV_DIRS or (path / "pyvenv.cfg").is_file():
+                        continue
                     pending.append((path, lineage))
                     continue
                 if not stat.S_ISREG(mode):

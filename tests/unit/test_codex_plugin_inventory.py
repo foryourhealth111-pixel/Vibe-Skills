@@ -110,3 +110,34 @@ def test_unconfigured_cache_does_not_invoke_a_global_cli(tmp_path: Path, monkeyp
         raise AssertionError("An unconfigured cache has no host inventory integration")
     monkeypatch.setattr(codex_plugins.shutil, "which", which)
     assert codex_plugins.resolve_codex_plugin_roots(codex_home / "plugins/cache") is None
+
+
+@pytest.mark.parametrize("version_present", [True, False])
+def test_inventory_skips_unknown_versions_without_losing_known_skills(host_inventory, version_present) -> None:
+    cache, plugin, response, _ = host_inventory
+    unknown = {**plugin, "pluginId": "local@provider", "name": "local", "version": None}
+    if not version_present:
+        del unknown["version"]
+    response.stdout = json.dumps({"installed": [unknown, plugin]})
+    for name in ("documents", "local"):
+        skill = cache / f"provider/{name}/2.0.0/skills/{name}/SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text(f"---\nname: {name}\ndescription: Render formal documents.\n---\n", encoding="utf-8")
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,))
+    assert [entry["skill_id"] for entry in catalog["entries"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+@pytest.mark.parametrize("field,value", [("name", "../outside"), ("marketplaceName", "D:"), ("pluginId", "other@provider")])
+def test_nullable_version_preserves_identity_validation(host_inventory, field, value) -> None:
+    cache, plugin, response, _ = host_inventory
+    response.stdout = json.dumps({"installed": [{**plugin, "version": None, field: value}]})
+    with pytest.raises(ValueError, match="inventory"):
+        codex_plugins.resolve_codex_plugin_roots(cache)
+
+
+def test_nullable_version_cannot_hide_conflicting_identity(host_inventory) -> None:
+    cache, plugin, response, _ = host_inventory
+    response.stdout = json.dumps({"installed": [{**plugin, "version": None}, plugin]})
+    with pytest.raises(ValueError, match="conflicting"):
+        codex_plugins.resolve_codex_plugin_roots(cache)
