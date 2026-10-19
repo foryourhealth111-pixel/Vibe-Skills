@@ -70,7 +70,7 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
             )
 
             payload = json.loads(completed.stdout)
-            self.assertEqual(str(worktree_root.resolve()), payload["resolved"])
+            self.assertEqual(worktree_root.resolve(), Path(payload["resolved"]).resolve())
 
     def test_installed_runtime_receipt_keeps_ownership_inside_a_governed_git_repository(self) -> None:
         powershell = resolve_powershell()
@@ -105,7 +105,7 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
                     text=True, encoding="utf-8", check=True, timeout=30,
                 )
                 expected = installed if matching_receipt else outer
-                self.assertEqual(str(expected.resolve()), json.loads(completed.stdout)["resolved"])
+                self.assertEqual(expected.resolve(), Path(json.loads(completed.stdout)["resolved"]).resolve())
 
     def test_helper_resolves_contract_default_runtime_entrypoint_when_effective_config_is_absent(self) -> None:
         powershell = resolve_powershell()
@@ -144,8 +144,8 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
 
             payload = json.loads(completed.stdout)
             self.assertEqual(
-                str((root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").resolve()),
-                payload["resolved"],
+                (root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").resolve(),
+                Path(payload["resolved"]).resolve(),
             )
 
     def test_helper_uses_emergency_fallback_when_contract_bridge_is_missing(self) -> None:
@@ -182,8 +182,8 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
             payload = json.loads(completed.stdout)
             self.assertEqual("skills/vibe/.vibeskills/install-receipt.json", payload["receipt_relpath"])
             self.assertEqual(
-                str((root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").resolve()),
-                payload["resolved"],
+                (root / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").resolve(),
+                Path(payload["resolved"]).resolve(),
             )
 
     def test_helper_resolves_runtime_entrypoint_override_from_effective_runtime_config(self) -> None:
@@ -225,7 +225,10 @@ class RuntimeEntrypointHelperTests(unittest.TestCase):
 
             payload = json.loads(completed.stdout)
             self.assertEqual("scripts/runtime/custom-entry.ps1", payload["runtime_entrypoint"])
-            self.assertEqual(str((root / "scripts" / "runtime" / "custom-entry.ps1").resolve()), payload["resolved"])
+            self.assertEqual(
+                (root / "scripts" / "runtime" / "custom-entry.ps1").resolve(),
+                Path(payload["resolved"]).resolve(),
+            )
 
     def test_path_within_root_requires_directory_boundary(self) -> None:
         powershell = resolve_powershell()
