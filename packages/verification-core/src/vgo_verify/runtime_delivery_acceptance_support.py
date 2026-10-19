@@ -7,6 +7,11 @@ from typing import Any
 
 from ._io import load_json, utc_now, write_text
 from ._repo import resolve_repo_root
+from ._bootstrap import ensure_contracts_src_on_path
+
+ensure_contracts_src_on_path()
+
+from vgo_contracts.tdd_evidence_contract import resolve_tdd_evidence_state
 
 
 def _normalize_truth_state(state: str) -> str:

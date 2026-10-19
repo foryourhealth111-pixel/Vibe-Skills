@@ -5,6 +5,7 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 from shutil import copy2
@@ -432,7 +433,19 @@ def _copy_run_tree(
             raise ValueError(
                 f"run artifact trees must not contain symlinks: {destination}"
             )
-        copy2(source, destination)
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=".vibe-receipt-", suffix=".tmp", dir=destination.parent,
+        )
+        os.close(descriptor)
+        temporary_path = Path(temporary_name)
+        try:
+            copy2(source, temporary_path)
+            _assert_no_symlink_components(
+                root=destination_root, path=destination, label="run artifact copy path",
+            )
+            os.replace(temporary_path, destination)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 def sync_session_receipts_to_run_artifact_sink(

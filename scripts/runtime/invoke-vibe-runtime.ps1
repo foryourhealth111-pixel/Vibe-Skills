@@ -38,6 +38,22 @@ if ($PSVersionTable.PSEdition -eq 'Desktop' -or $PSVersionTable.Platform -eq 'Wi
 . (Join-Path $PSScriptRoot 'VibeMemoryBackends.Common.ps1')
 . (Join-Path $PSScriptRoot 'VibeMemoryActivation.Common.ps1')
 
+function Assert-VibeResultObjectArray {
+    param(
+        [AllowNull()] [object]$Value,
+        [Parameter(Mandatory)] [string]$Field
+    )
+
+    if ($Value -isnot [System.Array]) {
+        throw ("Agent module execution {0} must be a JSON array of objects." -f $Field)
+    }
+    foreach ($entry in $Value) {
+        if ($null -eq $entry -or -not (Test-VibeStructuredObject -InputObject $entry)) {
+            throw ("Agent module execution {0} must be a JSON array of objects." -f $Field)
+        }
+    }
+}
+
 function Wait-VibeArtifactSet {
     param(
         [Parameter(Mandatory)] [string[]]$Paths,
@@ -463,7 +479,14 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     }
     $executionManifestDocument = Get-Content -LiteralPath $executionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $submittedModuleExecutionJson = Get-Content -LiteralPath $submittedModuleExecutionPath -Raw -Encoding UTF8
+    # Check the JSON root token before PowerShell can unwrap a singleton array.
+    if (-not $submittedModuleExecutionJson.TrimStart().StartsWith('{')) {
+        throw 'Agent module execution must be a JSON object.'
+    }
     $moduleExecution = $submittedModuleExecutionJson | ConvertFrom-Json
+    if (-not (Test-VibeStructuredObject -InputObject $moduleExecution)) {
+        throw 'Agent module execution must be a JSON object.'
+    }
     $moduleWorkPlanPath = Join-Path $sessionRoot 'module-work-plan.json'
     $moduleWorkPlan = Get-Content -LiteralPath $moduleWorkPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $agentExecutionHandoff = Get-Content -LiteralPath (Join-Path $sessionRoot 'agent-execution-handoff.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -497,6 +520,35 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             }
         }
         $tddState = [string]$tddEvidence.state
+        $tddStateAliases = @{
+            pass = 'passing'
+            passed = 'passing'
+            ok = 'passing'
+            manual = 'manual_review_required'
+            manual_required = 'manual_review_required'
+            manual_review = 'manual_review_required'
+            fail = 'failing'
+            failed = 'failing'
+        }
+        $resolvedTddState = ''
+        foreach ($stateField in @('state', 'status')) {
+            if (Test-VibeObjectHasProperty -InputObject $tddEvidence -PropertyName $stateField) {
+                $stateValue = $tddEvidence.$stateField
+                if ($null -ne $stateValue -and $stateValue -isnot [string]) {
+                    throw ("Agent module execution TDD evidence {0} must be text." -f $stateField)
+                }
+                $normalizedState = ([string]$stateValue).Trim().ToLowerInvariant()
+                if ($tddStateAliases.ContainsKey($normalizedState)) {
+                    $normalizedState = $tddStateAliases[$normalizedState]
+                }
+                if ($normalizedState) {
+                    if ($resolvedTddState -and $normalizedState -cne $resolvedTddState) {
+                        throw 'Agent module execution TDD evidence state and status fields conflict.'
+                    }
+                    $resolvedTddState = $normalizedState
+                }
+            }
+        }
         if ($tddState -notin @($tddContract.terminal_states)) {
             throw 'Agent module execution TDD evidence state must be passing, failing, or blocked.'
         }
@@ -545,6 +597,8 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     if ([string]$moduleExecution.module_work_plan_digest -ne $expectedPlanDigest) {
         throw 'Agent module execution does not match the approved module work plan digest.'
     }
+    Assert-VibeResultObjectArray -Value $moduleExecution.units -Field 'units'
+    Assert-VibeResultObjectArray -Value $moduleExecution.modules -Field 'modules'
     $plannedUnits = @($moduleWorkPlan.work_units)
     $submittedUnits = @($moduleExecution.units)
     $plannedUnitIds = @($plannedUnits | ForEach-Object { [string]$_.unit_id } | Sort-Object)
@@ -616,6 +670,7 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             throw ("Agent module execution module {0} is not terminal." -f $moduleId)
         }
 
+        Assert-VibeResultObjectArray -Value $submittedModule[0].criterion_results -Field ("module {0} criterion_results" -f $moduleId)
         $plannedCriteria = @($plannedModule.acceptance_criteria)
         $submittedCriteria = @($submittedModule[0].criterion_results)
         $plannedCriterionIds = @($plannedCriteria | ForEach-Object { [string]$_.criterion_id } | Sort-Object)

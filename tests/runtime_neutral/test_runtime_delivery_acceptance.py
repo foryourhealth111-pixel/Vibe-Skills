@@ -1212,5 +1212,79 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
 
 
+    def test_required_tdd_cannot_be_disabled_by_submission_state(self) -> None:
+        requirements = ["Record the failing-first run and the passing rerun."]
+        for state, status in (("passing", "not_applicable"), ("not_applicable", None), (None, "not_applicable")):
+            with self.subTest(state=state, status=status):
+                session = self._build_session(code_task_tdd_evidence_requirements=requirements)
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["tdd_evidence"] = {
+                    "evidence_paths": [str(session / "missing-red.log"), str(session / "missing-green.log")],
+                    "red_phase_evidence_paths": [str(session / "missing-red.log")],
+                    "green_phase_evidence_paths": [str(session / "missing-green.log")],
+                    "refactor_phase_evidence_paths": [],
+                    "covered_code_task_tdd_evidence_requirements": requirements,
+                    "covered_code_task_tdd_exceptions": [],
+                }
+                if state is not None:
+                    payload["tdd_evidence"]["state"] = state
+                if status is not None:
+                    payload["tdd_evidence"]["status"] = status
+                write_json(result_path, payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+                self.assertNotEqual("not_applicable", report["truth_results"]["code_task_tdd_evidence_truth"]["state"])
+
+
+    def test_matching_tdd_state_fields_and_legacy_status_preserve_valid_evidence(self) -> None:
+        requirements = ["Record the failing-first run and the passing rerun."]
+        for state, status in (
+            ("passing", "PASSING"),
+            (None, "passed"),
+            ("passing", "passed"),
+            ("passing", " pass "),
+            ("passing", "OK"),
+            ("passing", []),
+        ):
+            with self.subTest(state=state, status=status):
+                session = self._build_session(code_task_tdd_evidence_requirements=requirements)
+                red, green = session / "red.log", session / "green.log"
+                write_text(red, "1 failed\n")
+                write_text(green, "1 passed\n")
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["tdd_evidence"] = {
+                    "status": status,
+                    "evidence_paths": [str(red), str(green)],
+                    "red_phase_evidence_paths": [str(red)], "green_phase_evidence_paths": [str(green)],
+                    "refactor_phase_evidence_paths": [],
+                    "covered_code_task_tdd_evidence_requirements": requirements,
+                    "covered_code_task_tdd_exceptions": [],
+                }
+                if state is not None:
+                    payload["tdd_evidence"]["state"] = state
+                write_json(result_path, payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertEqual(isinstance(status, str), report["summary"]["completion_language_allowed"])
+
+
+    def test_invalid_optional_tdd_state_fields_fail_acceptance(self) -> None:
+        for state, status in (("passing", "not_applicable"), ("passing", []), ([], None)):
+            with self.subTest(state=state, status=status):
+                session = self._build_session()
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["tdd_evidence"] = {"state": state, "status": status}
+                write_json(result_path, payload)
+
+                report = evaluate(REPO_ROOT, session)
+
+                truth = report["truth_results"]["code_task_tdd_evidence_truth"]
+                self.assertEqual("failing", truth["state"])
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+
+
 if __name__ == "__main__":
     unittest.main()

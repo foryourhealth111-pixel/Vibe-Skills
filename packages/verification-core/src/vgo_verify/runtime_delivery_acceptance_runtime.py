@@ -18,6 +18,7 @@ from .runtime_delivery_acceptance_support import (
     _requirement_optional_bullets,
     _resolve_artifact_review_payload,
     _resolve_tdd_evidence_payload,
+    resolve_tdd_evidence_state,
     _truth_completion_allowed,
     _truth_success,
     load_json,
@@ -146,7 +147,12 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         covered_code_task_tdd_exceptions,
     )
 
-    raw_tdd_evidence_state = str(tdd_evidence_payload.get("status") or tdd_evidence_payload.get("state") or "").strip()
+    try:
+        raw_tdd_evidence_state = resolve_tdd_evidence_state(tdd_evidence_payload)
+    except ValueError as exc:
+        raw_tdd_evidence_state = "failing"
+        code_task_tdd_evidence_state = "failing"
+        code_task_tdd_evidence_notes.append(str(exc))
     if code_task_tdd_evidence_requirements or code_task_tdd_exceptions:
         if not tdd_evidence_payload:
             code_task_tdd_evidence_state = "manual_review_required"
@@ -155,7 +161,12 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             )
         else:
             code_task_tdd_evidence_state = _normalize_truth_state(raw_tdd_evidence_state)
-            if code_task_tdd_evidence_state in {"", "not_run"}:
+            if code_task_tdd_evidence_state == "not_applicable":
+                code_task_tdd_evidence_state = "failing"
+                code_task_tdd_evidence_notes.append(
+                    "Frozen TDD requirements cannot be marked not_applicable by submitted evidence."
+                )
+            elif code_task_tdd_evidence_state in {"", "not_run"}:
                 code_task_tdd_evidence_state = "manual_review_required"
                 code_task_tdd_evidence_notes.append(
                     "Code-task TDD evidence was required, but the recorded TDD status did not close the review."

@@ -479,6 +479,7 @@ def test_code_task_tdd_evidence_is_validated_before_cleanup_and_resubmitted_in_s
     tdd_contract = handoff["result_contract"]["tdd_evidence"]
     module_execution["tdd_evidence"] = {
         "state": "passing",
+        "status": "passed",
         "evidence_paths": [str(red_path), str(green_path)],
         "red_phase_evidence_paths": [str(red_path)],
         "green_phase_evidence_paths": [str(green_path)],
@@ -1214,6 +1215,7 @@ def test_direct_powershell_reentry_rejects_incomplete_code_task_tdd_evidence(
     tdd_contract = handoff["result_contract"]["tdd_evidence"]
     module_execution["tdd_evidence"] = {
         "state": "passing",
+        "status": "passed",
         "evidence_paths": [str(red_path), str(green_path)],
         "red_phase_evidence_paths": [str(red_path)],
         "green_phase_evidence_paths": [str(green_path)],
@@ -1442,3 +1444,77 @@ def test_valid_external_result_is_published_without_replanning(
     assert not list(session.glob(".module-execution.*.tmp"))
     report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
     assert report["summary"]["completion_language_allowed"] is True
+
+
+@pytest.mark.parametrize("entry", ["python", "powershell"])
+def test_conflicting_tdd_state_is_rejected_before_publication(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entry: str) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch, code_task_tdd_required=True)
+    session = handoff_stop.session_root
+    result_path, payload = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the result.")
+    handoff = json.loads((session / "agent-execution-handoff.json").read_text(encoding="utf-8"))
+    contract = handoff["result_contract"]["tdd_evidence"]
+    payload["tdd_evidence"] = {
+        "state": "passing", "status": "not_applicable",
+        "evidence_paths": [str(session / "missing-red.log"), str(session / "missing-green.log")],
+        "red_phase_evidence_paths": [str(session / "missing-red.log")],
+        "green_phase_evidence_paths": [str(session / "missing-green.log")],
+        "refactor_phase_evidence_paths": [],
+        "covered_code_task_tdd_evidence_requirements": contract["required_code_task_tdd_evidence_requirements"],
+        "covered_code_task_tdd_exceptions": contract["required_code_task_tdd_exceptions"],
+        "notes": "Conflicting fields must not cancel required TDD evidence.",
+    }
+    external = tmp_path / "conflicting-tdd.json"
+    external.write_text(json.dumps(payload), encoding="utf-8")
+    before = {name: (session / name).read_bytes() for name in ("module-execution.json", "execution-manifest.json", "stage-lineage.json")}
+    if entry == "python":
+        with pytest.raises(RuntimeError, match="TDD.*conflict"):
+            canonical_entry.launch_canonical_vibe(
+                repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return results.",
+                artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+                module_execution_json_file=external,
+            )
+    else:
+        completed = _submit_direct_external_result(tmp_path, handoff_stop, external)
+        assert completed.returncode != 0
+        assert "conflict" in completed.stdout + completed.stderr
+    assert before == {name: (session / name).read_bytes() for name in before}
+    assert not (session / "cleanup-receipt.json").exists()
+
+
+def _submit_direct_external_result(
+    tmp_path: Path, handoff_stop: canonical_entry.CanonicalLaunchResult, submitted: Path,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
+         "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
+         "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(submitted)],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
+    )
+
+
+def test_malformed_external_result_shape_preserves_run_and_allows_corrected_retry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    session = handoff_stop.session_root
+    result_path, accepted = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Produced the result.")
+    before = {name: (session / name).read_bytes() for name in ("module-execution.json", "execution-manifest.json", "stage-lineage.json", "agent-execution-handoff.json")}
+    external = tmp_path / "malformed-external-result.json"
+    malformed_results = [
+        [accepted],
+        dict(accepted, units=accepted["units"][0]),
+        dict(accepted, modules=accepted["modules"][0]),
+        json.loads(json.dumps(accepted)),
+    ]
+    malformed_results[-1]["modules"][0]["criterion_results"] = accepted["modules"][0]["criterion_results"][0]
+    for malformed in malformed_results:
+        external.write_text(json.dumps(malformed), encoding="utf-8")
+        rejected = _submit_direct_external_result(tmp_path, handoff_stop, external)
+        assert rejected.returncode != 0
+        diagnostic = rejected.stdout + rejected.stderr
+        assert "JSON object" in diagnostic or "array" in diagnostic
+        assert before == {name: (session / name).read_bytes() for name in before}
+    external.write_text(json.dumps(accepted), encoding="utf-8")
+    corrected = _submit_direct_external_result(tmp_path, handoff_stop, external)
+    assert corrected.returncode == 0, corrected.stdout + corrected.stderr
+    report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["completion_language_allowed"] is True
+    assert json.loads(result_path.read_text(encoding="utf-8")) == accepted
