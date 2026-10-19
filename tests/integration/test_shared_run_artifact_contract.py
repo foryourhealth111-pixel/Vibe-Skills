@@ -1529,11 +1529,14 @@ def test_python_and_powershell_reject_unsupported_artifact_kinds(
     assert "unsupported" in completed.stderr
 
 
-@pytest.mark.parametrize("has_commit", [False, True])
-@pytest.mark.parametrize("nested_install", [False, True])
+@pytest.mark.parametrize("has_commit,runtime_layout", [
+    (False, "checkout"), (True, "checkout"), (True, "worktree"),
+    (False, "nested-install"), (True, "nested-install"),
+    (False, "invalid-marker"), (True, "invalid-marker"),
+])
 @pytest.mark.parametrize("redirected_git", [False, True])
 def test_commit_sha_uses_only_a_successful_git_revision(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, has_commit: bool, nested_install: bool,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, has_commit: bool, runtime_layout: str,
     redirected_git: bool,
 ) -> None:
     git_env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
@@ -1561,9 +1564,18 @@ def test_commit_sha_uses_only_a_successful_git_revision(
         monkeypatch.setenv("GIT_COMMON_DIR", str(foreign_repository / ".git"))
         monkeypatch.setenv("GIT_WORK_TREE", str(foreign_repository))
     caller_git_environment = {key: value for key, value in os.environ.items() if key.upper().startswith("GIT_")}
-    runtime_root = repository / "installed-vibe" if nested_install else repository
-    if nested_install:
+    runtime_root = repository
+    if runtime_layout == "worktree":
+        runtime_root = tmp_path / "runtime worktree"
+        subprocess.run(
+            ["git", "-C", str(repository), "worktree", "add", "--quiet", "--detach", str(runtime_root), "HEAD"],
+            env=git_env, check=True,
+        )
+    elif runtime_layout in {"nested-install", "invalid-marker"}:
+        runtime_root = repository / "installed-vibe"
         expected = fallback
+        if runtime_layout == "invalid-marker":
+            (runtime_root / ".git").mkdir(parents=True)
     _write_contract_repository(runtime_root, legacy_write_mode="disabled")
     python_workspace = tmp_path / "python-workspace"
     python_workspace.mkdir()

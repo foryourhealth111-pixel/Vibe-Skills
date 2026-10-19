@@ -329,8 +329,9 @@ publication, and delivery acceptance applies the same field and conflict rules
 independently.
 
 Runtime manifests use a Git commit revision only after a successful revision
-lookup in a checkout rooted at the runtime directory. Repository-local Git
-environment variables are excluded from that child process; the caller's
+lookup explicitly bound to the runtime directory's `.git` metadata. Invalid
+metadata cannot redirect discovery to an enclosing repository. Repository-local
+Git environment variables are excluded from that child process; the caller's
 environment stays intact. An installed copy cannot inherit an enclosing
 project's commit. A receipt-owned installed runtime retains
 its root when an enclosing governed Git checkout is also present. An unavailable

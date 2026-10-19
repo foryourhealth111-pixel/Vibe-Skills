@@ -253,7 +253,7 @@ def _git_commit_sha(repo_root: Path) -> str:
         ):
             git_environment.pop(name, None)
         completed = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+            ["git", "--git-dir=.git", "rev-parse", "--verify", "HEAD^{commit}"],
             cwd=repo_root,
             env=git_environment,
             capture_output=True,

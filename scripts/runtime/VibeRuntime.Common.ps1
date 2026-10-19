@@ -3112,7 +3112,7 @@ function Get-VibeArtifactCommitSha {
             $gitStartInfo = New-Object System.Diagnostics.ProcessStartInfo
             $gitStartInfo.FileName = (Get-Command git -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
             $gitStartInfo.WorkingDirectory = $RepoRoot
-            $gitStartInfo.Arguments = 'rev-parse --verify HEAD^{commit}'
+            $gitStartInfo.Arguments = '--git-dir=.git rev-parse --verify HEAD^{commit}'
             $gitStartInfo.UseShellExecute = $false
             $gitStartInfo.CreateNoWindow = $true
             $gitStartInfo.RedirectStandardOutput = $true
