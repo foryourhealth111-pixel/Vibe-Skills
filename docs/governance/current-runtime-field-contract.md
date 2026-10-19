@@ -157,7 +157,9 @@ closed. Supplied entrypoints must
 match the admitted descriptor. Frozen task Skill bindings retain the descriptor
 entrypoint and SHA-256 of its bytes; plan replay and dispatch reject a changed
 source or changed descriptor content. Candidate audit preserves the same
-source eligibility and disabled-winner rejection as admission. Authority lookup
+source eligibility and disabled-winner rejection as admission. An explicitly
+requested missing or ineligible Skill retains its rejection; composite candidate
+fallback cannot select a substitute. Authority lookup
 writes no generated cards or catalog caches. The Agent owns task Skill selection; source authority reports
 facts and eligibility only.
 

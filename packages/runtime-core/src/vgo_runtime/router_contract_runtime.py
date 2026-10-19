@@ -1905,10 +1905,11 @@ def route_prompt(
 
     if requested_canonical and not requested_controller:
         requested_entry = by_skill_id.get(requested_canonical)
-        if requested_entry is not None and skill_source_rejection_reason(requested_entry) is not None:
+        requested_source_rejection = skill_source_rejection_reason(requested_entry) if requested_entry is not None else None
+        if requested_source_rejection is not None:
             route_reason = "requested_local_skill_ineligible"
             selection_reason = "requested_skill_ineligible"
-            rejected_reasons.append(str(skill_source_rejection_reason(requested_entry)))
+            rejected_reasons.append(requested_source_rejection)
         elif requested_entry is not None:
             selected_row = _candidate_row(
                 requested_entry,
@@ -1975,7 +1976,7 @@ def route_prompt(
         route_reason = "candidate_signal_confirm_override"
         selection_reason = "near_match_confirm_required"
 
-    if selected_row is None:
+    if selected_row is None and (not requested_canonical or requested_controller):
         module_seed_row, composite_signal = _preferred_module_seed_row(
             module_candidates,
             grade=grade,

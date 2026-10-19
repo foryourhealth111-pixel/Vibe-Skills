@@ -206,3 +206,38 @@ def test_candidate_audit_preserves_disabled_source_rejection(source_environment,
     rows = [row for row in result["candidates"] if row["skill"] == "report"]
     assert rows and all(row["authority_eligible"] is False for row in rows)
     assert all("skill_disabled" in row["authority_rejection_reasons"] for row in rows)
+
+
+@pytest.mark.parametrize("requested", ["report", "missing-skill", None])
+def test_explicit_rejected_skill_cannot_fall_through_to_composite_selection(source_environment, requested: str | None) -> None:
+    from vgo_runtime.router_contract_runtime import route_prompt
+
+    home, target, workspace = source_environment
+    _skill(target / "skills", enabled=False)
+    for identity, capability, description in (
+        ("source-digger", "research.literature_search", "Search primary literature and PubMed evidence."),
+        ("helpful-briefer", "writing.reader_report", "Turn technical material into plain-language summaries for ordinary readers."),
+        ("slide-craft", "presentation.deck", "Prepare presentation slides and deck outputs."),
+    ):
+        descriptor = _skill(target / "skills", identity)
+        descriptor.write_text(
+            f"---\nname: {identity}\ndescription: {description}\ncapabilities:\n  - {capability}\n---\n",
+            encoding="utf-8",
+        )
+    result = route_prompt(
+        prompt="先检索 PubMed 和 primary literature，再写一份给普通读者看的通俗 brief，最后整理成 slides。",
+        grade="XL", task_type="research", repo_root=REPO_ROOT,
+        target_root=target, host_id="codex", workspace_root=workspace, requested_skill=requested,
+    )
+    assert len([row for row in result["skill_routing"]["module_candidates"] if row["candidates"]]) >= 2
+    if requested is None:
+        assert result["candidate_focus"] is not None
+        assert result["skill_routing"]["focused_candidates"]
+    else:
+        assert result["candidate_focus"] is None
+        assert result["skill_routing"]["focused_candidates"] == []
+        expected_reason = "requested_local_skill_ineligible" if requested == "report" else "requested_local_skill_not_found"
+        assert result["route_reason"] == expected_reason
+        if requested == "report":
+            rows = [row for row in result["candidates"] if row["skill"] == "report"]
+            assert rows and all("skill_disabled" in row["authority_rejection_reasons"] for row in rows)

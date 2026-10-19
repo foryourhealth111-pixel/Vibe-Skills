@@ -220,6 +220,7 @@ def _launch_handoff_stop(
     workspace_root: Path | None = None,
     organization: dict[str, object] | None = None,
 ) -> canonical_entry.CanonicalLaunchResult:
+    _require_powershell()
     for key, value in _write_local_skill_root(tmp_path).items():
         monkeypatch.setenv(key, value)
 
@@ -1379,7 +1380,7 @@ def test_rejected_external_result_preserves_published_run_artifacts(
     submitted = tmp_path / "rejected-external.json"
     submitted.write_text(json.dumps(rejected), encoding="utf-8")
     completed = subprocess.run(
-        [_powershell(), "-NoLogo", "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
+        [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
          "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
          "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(submitted)],
         cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
@@ -1430,7 +1431,7 @@ def test_valid_external_result_is_published_without_replanning(
     external = result_path.with_name("MODULE-EXECUTION.json") if source_name == "case_variant" else tmp_path / "valid-external-result.json"
     external.write_text(json.dumps(payload), encoding="utf-8")
     completed = subprocess.run(
-        [_powershell(), "-NoLogo", "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
+        [_powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"),
          "-Task", "Return module results.", "-HostId", "codex", "-EntryId", "vibe", "-RequestedStageStop", "phase_cleanup",
          "-RunId", handoff_stop.run_id, "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(external)],
         cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
