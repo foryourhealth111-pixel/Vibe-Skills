@@ -58,6 +58,7 @@ INSTALL_STATE_RELPATH = ".vibeskills/vibe-install-state.json"
 INSTALL_STATE_KIND = "vibe-skill-install-transaction"
 INSTALL_STATE_PREPARING = "preparing"
 INSTALL_STATE_PREPARED = "prepared"
+INSTALL_STATE_CONFLICTED = "conflicted"
 INSTALL_RECOVERY_COMMITTED = "committed"
 INSTALL_RECOVERY_ROLLED_BACK = "rolled_back"
 UNINSTALL_STATE_RELPATH = ".vibeskills/vibe-uninstall-state.json"
@@ -106,6 +107,12 @@ class _UninstallCompletionCommitFailure:
 
 class _FileChangedDuringReadError(RuntimeError):
     pass
+
+
+class _InstallDestinationDriftError(RuntimeError):
+    def __init__(self, relpath: str) -> None:
+        self.relpath = relpath
+        super().__init__(f"Vibe install destination drifted during transaction: {relpath}")
 
 
 _P = ParamSpec("_P")
@@ -558,8 +565,12 @@ def _package_file_relpaths(source_root: Path) -> list[str]:
 def _assert_install_file_matches(
     destination: Path, *, relpath: str, expected_sha256: str | None,
 ) -> None:
-    if _current_install_file_sha256(destination, relpath=relpath) != expected_sha256:
-        raise RuntimeError(f"Vibe install destination drifted during transaction: {relpath}")
+    try:
+        current_sha256 = _current_install_file_sha256(destination, relpath=relpath)
+    except (OSError, RuntimeError) as exc:
+        raise _InstallDestinationDriftError(relpath) from exc
+    if current_sha256 != expected_sha256:
+        raise _InstallDestinationDriftError(relpath)
 
 
 def _prepare_install_file_changes(
@@ -1100,7 +1111,7 @@ def _validate_install_state_header(
     if state.get("state_kind") != INSTALL_STATE_KIND or state.get("skill_id") != "vibe":
         raise RuntimeError(f"Invalid Vibe install state: {state_path}")
     status = state.get("status")
-    if status not in {INSTALL_STATE_PREPARING, INSTALL_STATE_PREPARED}:
+    if status not in {INSTALL_STATE_PREPARING, INSTALL_STATE_PREPARED, INSTALL_STATE_CONFLICTED}:
         raise RuntimeError(f"Invalid Vibe install state status: {state_path}")
     if not _recorded_path_matches(state.get("skills_dir"), skills_dir):
         raise RuntimeError(f"Vibe install state Skills directory mismatch: {state_path}")
@@ -1572,6 +1583,11 @@ def _recover_install_transaction(
         skills_dir=skills_dir,
         install_root=install_root,
     )
+    if status == INSTALL_STATE_CONFLICTED:
+        raise RuntimeError(
+            "Vibe install transaction has an unresolved destination conflict; "
+            f"recovery journal and backups retained at {state_path}"
+        )
     if status == INSTALL_STATE_PREPARING:
         receipt_existed = state.get("receipt_existed")
         if type(receipt_existed) is not bool:
@@ -2224,6 +2240,14 @@ def install_vibe_skill(
 
     try:
         _apply_install_file_changes(changes)
+    except _InstallDestinationDriftError as exc:
+        install_state["status"] = INSTALL_STATE_CONFLICTED
+        install_state["conflicted_relpath"] = exc.relpath
+        _write_json(install_state_path, install_state)
+        raise RuntimeError(
+            f"{exc}; transaction marked conflicted; "
+            f"recovery journal and backups retained at {install_state_path}"
+        ) from exc
     except BaseException:
         recovery = _recover_install_transaction(
             state_path=install_state_path,

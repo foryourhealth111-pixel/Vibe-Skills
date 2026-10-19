@@ -2363,7 +2363,7 @@ def test_install_rerun_refuses_drift_without_replacing_payload_or_receipt(tmp_pa
 
 
 @pytest.mark.parametrize("phase", ["after_check", "before_backup", "after_backup", "before_apply", "during_apply"])
-@pytest.mark.parametrize("change", ["modified", "missing", "retired_modified"])
+@pytest.mark.parametrize("change", ["modified", "missing", "retired_modified", "retired_missing", "incoming_content"])
 def test_reinstall_preserves_edits_made_during_transaction(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, phase: str, change: str,
 ) -> None:
@@ -2378,10 +2378,11 @@ def test_reinstall_preserves_edits_made_during_transaction(
     receipt_before = receipt_path.read_bytes()
     target = install_root / "protocols/entry.md"
     _write(source / "SKILL.md", "updated release\n")
-    if change == "retired_modified":
+    if change in {"retired_modified", "retired_missing"}:
         (source / "protocols/entry.md").unlink()
     else:
         _write(source / "protocols/entry.md", "updated protocol\n")
+    edited_content = "updated protocol\n" if change == "incoming_content" else "user local changes\n"
     edited = False
 
     def edit_target() -> None:
@@ -2389,10 +2390,10 @@ def test_reinstall_preserves_edits_made_during_transaction(
         if edited:
             return
         edited = True
-        if change == "missing":
+        if change in {"missing", "retired_missing"}:
             target.unlink()
         else:
-            target.write_text("user local changes\n", encoding="utf-8")
+            target.write_text(edited_content, encoding="utf-8")
 
     if phase == "after_check":
         original_check = simple_skill_installer.check_vibe_skill
@@ -2438,12 +2439,25 @@ def test_reinstall_preserves_edits_made_during_transaction(
         install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T01:00:00Z")
 
     assert edited
-    if change == "missing":
+    if change in {"missing", "retired_missing"}:
         assert not target.exists()
     else:
-        assert target.read_text(encoding="utf-8") == "user local changes\n"
+        assert target.read_text(encoding="utf-8") == edited_content
     assert receipt_path.read_bytes() == receipt_before
+    state_path = skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH
     if phase in {"after_check", "before_backup", "after_backup"}:
-        assert not (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
-    if phase == "during_apply":
-        assert (skills_dir / simple_skill_installer.INSTALL_STATE_RELPATH).exists()
+        assert not state_path.exists()
+    else:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert state["status"] == "conflicted"
+        assert state["conflicted_relpath"] == "protocols/entry.md"
+        before_retry = _file_snapshot(skills_dir)
+        monkeypatch.undo()
+        for operation in (
+            lambda: install_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T02:00:00Z"),
+            lambda: update_vibe_skill(repo_root=source, skills_dir=skills_dir, installed_at_utc="2026-10-19T02:00:00Z"),
+            lambda: uninstall_vibe_skill(skills_dir=skills_dir),
+        ):
+            with pytest.raises(RuntimeError, match="conflict"):
+                operation()
+            assert _file_snapshot(skills_dir) == before_retry

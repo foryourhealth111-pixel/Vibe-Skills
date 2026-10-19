@@ -41,8 +41,12 @@ file is modified or missing. Inspect and preserve local changes before retrying.
 The installer rechecks receipt hashes during preparation and immediately before
 replacing or removing each file. Stop other writers to the managed directory
 before installation; a concurrent write can still occur between the final hash
-check and replacement. A conflict that prevents rollback retains the recovery
-journal and backups for inspection.
+check and replacement. A destination conflict during application marks the
+transaction `conflicted`, preserves local edits and deletions, and retains the
+recovery journal and backups. Install, update, and uninstall refuse automatic
+recovery until the conflict is resolved. Earlier files in that transaction may
+already have been replaced; inspect the retained journal before using or
+repairing the installation.
 
 `check` verifies the files recorded in the receipt.
 `check` proves `installed locally`. It does not prove `runtime coherent` or `delivery accepted`.
