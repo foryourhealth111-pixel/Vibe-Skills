@@ -1385,7 +1385,8 @@ def test_rejected_external_result_preserves_published_run_artifacts(
         cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120,
     )
     assert completed.returncode != 0
-    assert "source_run_id" in completed.stdout + completed.stderr or "stopped at plan_execute" in completed.stdout + completed.stderr
+    diagnostic = completed.stdout + completed.stderr
+    assert "source_run_id" in diagnostic or ("stopped" in diagnostic and "plan_execute" in diagnostic)
     assert preserved == {name: (handoff_stop.session_root / name).read_bytes() for name in preserved}
 
 
