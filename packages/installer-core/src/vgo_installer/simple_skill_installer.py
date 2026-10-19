@@ -1067,11 +1067,14 @@ def _read_install_receipt(
     if not _recorded_path_matches(receipt.get("install_root"), install_root):
         raise RuntimeError(f"Vibe install receipt install root mismatch: {receipt_path}")
 
-    receipt["files"] = _validated_file_entries(
+    entries = _validated_file_entries(
         receipt,
         artifact_path=receipt_path,
         install_root=install_root,
     )
+    if "SKILL.md" not in _file_entry_paths(entries):
+        raise RuntimeError(f"Vibe install receipt must own the root SKILL.md entrypoint: {receipt_path}")
+    receipt["files"] = entries
     return receipt
 
 
@@ -2073,7 +2076,6 @@ def install_vibe_skill(
     ):
         raise RuntimeError(f"Install root already exists without a Vibe install receipt: {install_root}")
 
-    install_root.mkdir(parents=True, exist_ok=True)
     governance_path = source_root / "config" / "version-governance.json"
     next_owned: list[str] = []
     for relpath in _package_file_relpaths(source_root):
@@ -2088,6 +2090,8 @@ def install_vibe_skill(
         artifact_path=governance_path,
         label="package",
     )
+    if "SKILL.md" not in next_owned:
+        raise RuntimeError(f"Runtime package must include the root SKILL.md entrypoint: {governance_path}")
     old_owned: set[str] = set()
     old_owned_by_destination: dict[str, str] = {}
     old_file_hashes: dict[str, str] = {}
@@ -2120,6 +2124,7 @@ def install_vibe_skill(
         ) and destination_key not in old_owned_by_destination:
             raise RuntimeError(f"Install path exists but is not owned by the Vibe receipt: {destination}")
 
+    install_root.mkdir(parents=True, exist_ok=True)
     transaction_id = secrets.token_hex(16)
     preparing_state = _build_preparing_install_state(
         skills_dir=resolved_skills_dir,
