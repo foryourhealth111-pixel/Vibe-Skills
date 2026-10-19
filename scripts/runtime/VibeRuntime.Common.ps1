@@ -3109,11 +3109,38 @@ function Get-VibeArtifactCommitSha {
     param([Parameter(Mandatory)] [string]$RepoRoot)
     try {
         if (Test-Path -LiteralPath (Join-Path $RepoRoot '.git')) {
-            $revisionOutput = @(& git -C $RepoRoot rev-parse --verify 'HEAD^{commit}' 2>$null)
-            $revisionExitCode = $LASTEXITCODE
-            $sha = [string]($revisionOutput | Select-Object -First 1)
-            if ($revisionExitCode -eq 0 -and $sha.Trim() -match '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
-                return $sha.Trim()
+            $gitStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+            $gitStartInfo.FileName = (Get-Command git -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+            $gitStartInfo.WorkingDirectory = $RepoRoot
+            $gitStartInfo.Arguments = 'rev-parse --verify HEAD^{commit}'
+            $gitStartInfo.UseShellExecute = $false
+            $gitStartInfo.CreateNoWindow = $true
+            $gitStartInfo.RedirectStandardOutput = $true
+            $gitStartInfo.RedirectStandardError = $true
+            foreach ($name in @(
+                'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS',
+                'GIT_CONFIG_COUNT', 'GIT_OBJECT_DIRECTORY', 'GIT_DIR', 'GIT_WORK_TREE',
+                'GIT_IMPLICIT_WORK_TREE', 'GIT_GRAFT_FILE', 'GIT_INDEX_FILE',
+                'GIT_NO_REPLACE_OBJECTS', 'GIT_REPLACE_REF_BASE', 'GIT_PREFIX',
+                'GIT_SHALLOW_FILE', 'GIT_COMMON_DIR', 'GIT_NAMESPACE'
+            )) {
+                $gitStartInfo.EnvironmentVariables.Remove($name)
+            }
+            $gitProcess = [System.Diagnostics.Process]::Start($gitStartInfo)
+            try {
+                $revisionOutput = $gitProcess.StandardOutput.ReadToEndAsync()
+                $revisionError = $gitProcess.StandardError.ReadToEndAsync()
+                if (-not $gitProcess.WaitForExit(10000)) {
+                    $gitProcess.Kill()
+                    throw 'Git revision lookup timed out'
+                }
+                $sha = [string]$revisionOutput.Result
+                [void]$revisionError.Result
+                if ($gitProcess.ExitCode -eq 0 -and $sha.Trim() -match '^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$') {
+                    return $sha.Trim()
+                }
+            } finally {
+                $gitProcess.Dispose()
             }
         }
     } catch { }

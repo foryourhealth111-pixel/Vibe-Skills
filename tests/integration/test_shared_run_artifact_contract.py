@@ -1531,19 +1531,36 @@ def test_python_and_powershell_reject_unsupported_artifact_kinds(
 
 @pytest.mark.parametrize("has_commit", [False, True])
 @pytest.mark.parametrize("nested_install", [False, True])
+@pytest.mark.parametrize("redirected_git", [False, True])
 def test_commit_sha_uses_only_a_successful_git_revision(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, has_commit: bool, nested_install: bool,
+    redirected_git: bool,
 ) -> None:
+    git_env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
     repository = tmp_path / "provenance-repository"
-    subprocess.run(["git", "init", "--quiet", str(repository)], check=True)
+    subprocess.run(["git", "init", "--quiet", str(repository)], env=git_env, check=True)
     fallback = "source-commit-fallback"
     monkeypatch.setenv("VGO_COMMIT_SHA", fallback)
     expected = fallback
     if has_commit:
         subprocess.run(["git", "-C", str(repository), "-c", "user.email=test@example.com",
                         "-c", "user.name=Vibe Tests", "-c", "commit.gpgsign=false", "commit",
-                        "--allow-empty", "--quiet", "-m", "test provenance"], check=True)
-        expected = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
+                        "--allow-empty", "--quiet", "-m", "test provenance"], env=git_env, check=True)
+        expected = subprocess.check_output(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"], env=git_env, text=True,
+        ).strip()
+    if redirected_git:
+        foreign_repository = tmp_path / "caller-repository"
+        subprocess.run(["git", "init", "--quiet", str(foreign_repository)], env=git_env, check=True)
+        subprocess.run(
+            ["git", "-C", str(foreign_repository), "-c", "user.email=test@example.com",
+             "-c", "user.name=Vibe Tests", "-c", "commit.gpgsign=false", "commit",
+             "--allow-empty", "--quiet", "-m", "caller provenance"], env=git_env, check=True,
+        )
+        monkeypatch.setenv("GIT_DIR", str(foreign_repository / ".git"))
+        monkeypatch.setenv("GIT_COMMON_DIR", str(foreign_repository / ".git"))
+        monkeypatch.setenv("GIT_WORK_TREE", str(foreign_repository))
+    caller_git_environment = {key: value for key, value in os.environ.items() if key.upper().startswith("GIT_")}
     runtime_root = repository / "installed-vibe" if nested_install else repository
     if nested_install:
         expected = fallback
@@ -1560,12 +1577,15 @@ def test_commit_sha_uses_only_a_successful_git_revision(
     ).model_dump()
     powershell_result = _run_powershell_json(
         _dot_source_common()
+        + "$callerGitEnvironment = [Environment]::GetEnvironmentVariable('GIT_DIR', 'Process'); "
         + "$result = Write-VibeRunArtifactBundle "
         + f"-RepoRoot {_ps_quote(runtime_root)} -RunId 'commit-provenance' "
         + f"-ArtifactRoot {_ps_quote(tmp_path / 'powershell-workspace')} "
         + "-Requirement ([pscustomobject]@{}) -Plan ([pscustomobject]@{}) "
         + "-Status ([pscustomobject]@{}) -Proof ([pscustomobject]@{}); "
+        + "if ([Environment]::GetEnvironmentVariable('GIT_DIR', 'Process') -cne $callerGitEnvironment) "
+        + "{ throw 'Caller Git environment changed' }; "
         + "$result | ConvertTo-Json -Depth 20"
     )
-    assert python_manifest["commit_sha"] == expected
-    assert powershell_result["manifest"]["commit_sha"] == expected
+    assert {key: value for key, value in os.environ.items() if key.upper().startswith("GIT_")} == caller_git_environment
+    assert (python_manifest["commit_sha"], powershell_result["manifest"]["commit_sha"]) == (expected, expected)
