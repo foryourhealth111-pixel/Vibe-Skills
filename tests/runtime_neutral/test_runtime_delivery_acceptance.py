@@ -59,11 +59,12 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         module_work_plan: dict[str, object] | None = None,
         skill_routing: dict[str, object] | None = None,
         include_module_truth: bool = True,
+        session_name: str = "pytest-runtime-delivery",
     ) -> Path:
         tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(tempdir.cleanup)
         root = Path(tempdir.name)
-        session_root = root / "outputs" / "runtime" / "vibe-sessions" / "pytest-runtime-delivery"
+        session_root = root / "outputs" / "runtime" / "vibe-sessions" / session_name
         session_root.mkdir(parents=True, exist_ok=True)
 
         requirement_doc_path = root / "docs" / "requirements" / "pytest.md"
@@ -902,6 +903,8 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
             },
         )
 
+        write_text(session_root / "test_pricing.py", "assert True\n")
+        write_text(session_root / "pricing.py", "PRICE = 1\n")
         report = evaluate(REPO_ROOT, session_root)
 
         self.assertEqual("PASS", report["summary"]["gate_result"])
@@ -1029,6 +1032,184 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         self.assertNotIn("Selected Skill Truth", md_text)
         self.assertNotIn("Runtime packet selected skill source", md_text)
         self.assertIn("Covered code-task TDD evidence requirement", md_text)
+
+    def test_file_delivery_requires_current_readable_evidence(self) -> None:
+        for evidence_kind in ("missing", "directory", "directory_child", "empty", "unrelated", "literal_brackets", "valid"):
+            with self.subTest(evidence_kind=evidence_kind):
+                session = self._build_session()
+                expected = session / ("report[1].md" if evidence_kind == "literal_brackets" else "report.md")
+                plan_path = session / "module-work-plan.json"
+                plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                plan["work_units"][0]["expected_outputs"] = [str(expected)]
+                write_json(plan_path, plan)
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+                if evidence_kind in {"valid", "literal_brackets", "empty", "unrelated"}:
+                    write_text(expected, "Verified report.\n")
+                elif evidence_kind in {"directory", "directory_child"}:
+                    expected.mkdir()
+                evidence = expected
+                if evidence_kind == "directory_child":
+                    evidence = expected / "inner.md"
+                    write_text(evidence, "A different file inside a directory.\n")
+                if evidence_kind == "unrelated":
+                    evidence = session / "other.md"
+                    write_text(evidence, "Different output.\n")
+                payload["units"][0]["evidence_paths"] = [] if evidence_kind == "empty" else [str(evidence)]
+                write_json(result_path, payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertEqual(evidence_kind in {"valid", "literal_brackets"}, report["summary"]["completion_language_allowed"])
+
+    def test_evidence_paths_use_frozen_workspace_and_explicit_session_roots(self) -> None:
+        session = self._build_session()
+        workspace = session.parents[3]
+        packet_path = session / "runtime-input-packet.json"
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
+        packet["storage"] = {"workspace_root": str(workspace)}
+        write_json(packet_path, packet)
+        write_text(workspace / "outputs/report.md", "Verified report.\n")
+        write_text(session / "check.log", "1 passed\n")
+        plan_path = session / "module-work-plan.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        plan["work_units"][0]["expected_outputs"] = ["outputs/report.md"]
+        write_json(plan_path, plan)
+        result_path = session / "module-execution.json"
+        payload = json.loads(result_path.read_text(encoding="utf-8"))
+        payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+        payload["units"][0]["evidence_paths"] = ["outputs/report.md", "session:check.log"]
+        write_json(result_path, payload)
+        self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+        (workspace / "outputs/report.md").unlink()
+        write_text(session / "outputs/report.md", "Different root.\n")
+        self.assertFalse(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_tdd_evidence_requires_existing_red_and_green_files(self) -> None:
+        requirements = ["Record the failing-first run and the passing rerun."]
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                session = self._build_session(code_task_tdd_evidence_requirements=requirements)
+                red, green = session / "red.log", session / "green.log"
+                if existing:
+                    write_text(red, "1 failed\n")
+                    write_text(green, "1 passed\n")
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["tdd_evidence"] = {
+                    "state": "passing", "evidence_paths": [str(red), str(green)],
+                    "red_phase_evidence_paths": [str(red)], "green_phase_evidence_paths": [str(green)],
+                    "refactor_phase_evidence_paths": [],
+                    "covered_code_task_tdd_evidence_requirements": requirements,
+                    "covered_code_task_tdd_exceptions": [],
+                }
+                write_json(result_path, payload)
+                self.assertEqual(existing, evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_explicit_session_and_bare_glob_outputs_require_file_evidence(self) -> None:
+        for output in ("session:README", "*", "./README"):
+            for include_evidence in (False, True):
+                with self.subTest(output=output, include_evidence=include_evidence):
+                    session = self._build_session()
+                    expected = session / "README"
+                    write_text(expected, "The approved output.\n")
+                    plan_path = session / "module-work-plan.json"
+                    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                    plan["work_units"][0]["expected_outputs"] = [output]
+                    write_json(plan_path, plan)
+                    result_path = session / "module-execution.json"
+                    payload = json.loads(result_path.read_text(encoding="utf-8"))
+                    payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+                    if output == "*":
+                        files = [str(path) for path in session.iterdir() if path.is_file()]
+                    else:
+                        files = [str(expected)]
+                    payload["units"][0]["evidence_paths"] = files if include_evidence else []
+                    write_json(result_path, payload)
+                    self.assertEqual(include_evidence, evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_explicit_paths_with_spaces_require_their_file_evidence(self) -> None:
+        for scope in ("relative", "session", "absolute"):
+            for include_evidence in (False, True):
+                with self.subTest(scope=scope, include_evidence=include_evidence):
+                    session = self._build_session()
+                    expected = session / "my reports" / "final report.md"
+                    write_text(expected, "The approved report.\n")
+                    output = str(expected) if scope == "absolute" else ("session:" if scope == "session" else "./") + "my reports/final report.md"
+                    plan_path = session / "module-work-plan.json"
+                    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                    plan["work_units"][0]["expected_outputs"] = [output]
+                    write_json(plan_path, plan)
+                    result_path = session / "module-execution.json"
+                    payload = json.loads(result_path.read_text(encoding="utf-8"))
+                    payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+                    payload["units"][0]["evidence_paths"] = [str(expected)] if include_evidence else []
+                    write_json(result_path, payload)
+                    self.assertEqual(include_evidence, evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_descriptive_reply_outputs_with_path_words_remain_supported(self) -> None:
+        for output in (
+            "Compare input/output behavior.", "Explain report.md in the reply", "Describe the findings.",
+            "Explain report.md", "Summarize the changes to src/report.py",
+        ):
+            with self.subTest(output=output):
+                session = self._build_session()
+                plan_path = session / "module-work-plan.json"
+                plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                plan["work_units"][0].update({"write_scope": "module:delivery", "expected_outputs": [output]})
+                write_json(plan_path, plan)
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+                write_json(result_path, payload)
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_relative_frozen_workspace_root_is_rejected(self) -> None:
+        session = self._build_session()
+        packet_path = session / "runtime-input-packet.json"
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
+        packet["storage"] = {"workspace_root": "relative-workspace"}
+        write_json(packet_path, packet)
+        with self.assertRaisesRegex(ValueError, "workspace_root must be absolute"):
+            evaluate(REPO_ROOT, session)
+
+    def test_glob_outputs_preserve_literal_workspace_and_session_roots(self) -> None:
+        for scope in ("workspace", "session", "absolute", "absolute_session"):
+            with self.subTest(scope=scope):
+                session = self._build_session(session_name="session[330]")
+                workspace = session.parents[3] if scope == "absolute_session" else session.parent / "workspace[330]"
+                workspace.mkdir(exist_ok=True)
+                output_root = session if scope in {"session", "absolute_session"} else workspace
+                expected = output_root / "outputs" / "report.md"
+                write_text(expected, "The approved report.\n")
+                packet_path = session / "runtime-input-packet.json"
+                packet = json.loads(packet_path.read_text(encoding="utf-8"))
+                packet["storage"] = {"workspace_root": str(workspace)}
+                write_json(packet_path, packet)
+                output = "session:outputs/*.md" if scope == "session" else "outputs/*.md"
+                if scope in {"absolute", "absolute_session"}:
+                    output = str(output_root / "outputs" / "*.md")
+                plan_path = session / "module-work-plan.json"
+                plan = json.loads(plan_path.read_text(encoding="utf-8"))
+                plan["work_units"][0]["expected_outputs"] = [output]
+                write_json(plan_path, plan)
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+                payload["units"][0]["evidence_paths"] = [str(expected)]
+                write_json(result_path, payload)
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_read_only_conversational_result_needs_no_file_delivery(self) -> None:
+        session = self._build_session()
+        plan_path = session / "module-work-plan.json"
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        plan["work_units"][0].update({"write_scope": "no task-file writes", "expected_outputs": ["Explain the report.md format in the reply."]})
+        write_json(plan_path, plan)
+        result_path = session / "module-execution.json"
+        payload = json.loads(result_path.read_text(encoding="utf-8"))
+        payload["module_work_plan_digest"] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+        write_json(result_path, payload)
+        self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
 
 
 if __name__ == "__main__":

@@ -269,14 +269,21 @@ function Convert-VibeModuleWorkPlanToDispatch {
     return [object[]]@(@($ModuleWorkPlan.work_units) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.skill_id) } | ForEach-Object {
         $unit = $_
         $skillId = [string]$unit.skill_id
+        $frozenEntrypoint = [string](Get-VibeSkillRoutingProperty -InputObject $unit -PropertyName 'skill_entrypoint' -DefaultValue '')
+        $frozenDigest = [string](Get-VibeSkillRoutingProperty -InputObject $unit -PropertyName 'content_sha256' -DefaultValue '')
         $authority = Resolve-VibeLocalSkillAuthority `
             -RepoRoot $RepoRoot `
             -SkillId $skillId `
+            -SkillEntrypoint $frozenEntrypoint `
+            -RequireProvidedEntrypoint `
             -TargetRoot $TargetRoot `
             -HostId $HostId `
             -WorkspaceRoot $WorkspaceRoot
         if (-not [bool]$authority.valid) {
             throw ('module work unit `{0}` cannot load skill `{1}`: {2}' -f [string]$unit.unit_id, $skillId, [string]$authority.reason)
+        }
+        if ($frozenDigest -cnotmatch '^[a-f0-9]{64}$' -or $frozenDigest -cne [string]$authority.content_sha256) {
+            throw ('module work unit `{0}` cannot load skill `{1}`: skill_content_changed' -f [string]$unit.unit_id, $skillId)
         }
 
         [pscustomobject]@{

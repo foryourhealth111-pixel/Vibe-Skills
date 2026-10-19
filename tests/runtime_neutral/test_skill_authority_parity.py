@@ -44,7 +44,10 @@ def _write_skill(root: Path, skill_id: str = "write-report", *, enabled: bool = 
     return path
 
 
-def _freeze_skill(target: Path, artifacts: Path, skill_id: str, *, workspace_root: Path | None = None):
+def _freeze_skill(
+    target: Path, artifacts: Path, skill_id: str, *, workspace_root: Path | None = None,
+    skill_entrypoint: str | None = None,
+):
     shell = resolve_powershell()
     if shell is None:
         pytest.skip("PowerShell executable not available")
@@ -58,6 +61,8 @@ def _freeze_skill(target: Path, artifacts: Path, skill_id: str, *, workspace_roo
         "responsibility": "Write the approved report.",
         "reason": "The local Skill owns report delivery.",
     }]
+    if skill_entrypoint is not None:
+        organization["selected_skills"][0]["skill_entrypoint"] = skill_entrypoint
     return run_freeze(
         shell, artifact_root=artifacts,
         env={**os.environ, "VCO_HOST_ID": "codex", "VIBE_AGENTS_HOME": str(target)},
@@ -69,6 +74,16 @@ def _freeze_skill(target: Path, artifacts: Path, skill_id: str, *, workspace_roo
 def _frozen_packet(artifacts: Path) -> dict[str, object]:
     return json.loads(next(artifacts.rglob("runtime-input-packet.json")).read_text(encoding="utf-8-sig"))
 
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows path identity is case-insensitive")
+def test_canonical_freeze_accepts_equivalent_descriptor_path_casing(skill_environment) -> None:
+    home, target, workspace = skill_environment
+    descriptor = _write_skill(target / "skills")
+    artifacts = workspace / "artifacts"
+    completed = _freeze_skill(target, artifacts, "write-report", skill_entrypoint=str(descriptor).upper())
+    assert completed.returncode == 0, completed.stderr
+    selected = _frozen_packet(artifacts)["agent_skill_organization"]["selected_skills"][0]
+    assert Path(selected["skill_entrypoint"]) == descriptor.resolve()
 
 def test_canonical_freeze_rejects_a_skill_id_outside_declared_roots(skill_environment) -> None:
     home, target, workspace = skill_environment
@@ -185,3 +200,49 @@ def test_installed_runtime_hands_off_a_workspace_skill_and_replays_its_frozen_pl
     assert replay.returncode == 0, replay.stderr
     plan = json.loads(next(artifacts.rglob("module-work-plan.json")).read_text(encoding="utf-8-sig"))
     assert plan["work_units"][0]["skill_id"] == "write-report"
+
+
+@pytest.mark.parametrize("mutation", ["higher_priority_source", "descriptor_content"])
+def test_execution_replay_rejects_frozen_skill_source_drift(skill_environment, mutation: str) -> None:
+    shell = resolve_powershell()
+    if shell is None:
+        pytest.skip("PowerShell executable not available")
+    home, target, workspace = skill_environment
+    descriptor = _write_skill(target / "skills")
+    artifacts = workspace / "artifacts"
+    organization = agent_direct_organization()
+    organization["modules"][0].update({"candidate_skill_ids": ["write-report"], "execution_mode": "skill_assigned"})
+    organization["selected_skills"] = [{
+        "skill_id": "write-report", "module_ids": ["direct_module"],
+        "responsibility": "Write the approved report.", "reason": "The report Skill owns this result.",
+    }]
+    env = {**os.environ, "VIBE_AGENTS_HOME": str(target), "VCO_HOST_ID": "codex"}
+    completed = subprocess.run(
+        [shell, "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/invoke-vibe-runtime.ps1"),
+         "-Task", "Write a report.", "-RunId", "source-drift", "-RequestedStageStop", "plan_execute",
+         "-HostDecisionJson", json.dumps({"agent_skill_organization": organization}),
+         "-ArtifactRoot", str(artifacts), "-WorkspaceRoot", str(workspace)],
+        cwd=workspace, env=env, capture_output=True, text=True, encoding="utf-8", check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    packet_path = next(artifacts.rglob("runtime-input-packet.json"))
+    packet = json.loads(packet_path.read_text(encoding="utf-8-sig"))
+    run_id = packet["run_id"]
+    requirement = next(workspace.rglob("requirement.md"))
+    plan_path = next(artifacts.rglob("module-work-plan.json"))
+    if mutation == "higher_priority_source":
+        new = _write_skill(workspace / "team-skills")
+        config = workspace / ".vibeskills/skill-roots.json"
+        config.write_text(json.dumps({"schema_version": 1, "extra_skill_roots": [str(new.parent.parent)]}), encoding="utf-8")
+    else:
+        descriptor.write_text(descriptor.read_text(encoding="utf-8") + "Changed workflow.\n", encoding="utf-8")
+    executed = subprocess.run(
+        [shell, "-NoProfile", "-File", str(REPO_ROOT / "scripts/runtime/Invoke-PlanExecute.ps1"),
+         "-Task", "Write a report.", "-RunId", run_id, "-RuntimeInputPacketPath", str(packet_path),
+         "-RequirementDocPath", str(requirement), "-ExecutionPlanPath", str(requirement.with_name("plan.md")),
+         "-ModuleWorkPlanPath", str(plan_path), "-ArtifactRoot", str(artifacts), "-WorkspaceRoot", str(workspace)],
+        cwd=workspace, env=env, capture_output=True, text=True, encoding="utf-8", check=False,
+    )
+    assert executed.returncode != 0, executed.stdout
+    expected = "entrypoint_mismatch" if mutation == "higher_priority_source" else "skill_content_changed"
+    assert expected in executed.stdout + executed.stderr

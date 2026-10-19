@@ -17,7 +17,7 @@ This directory is the human navigation layer for the executable contracts.
 
 ## Current Runtime
 
-- Primary skill contract: [`../SKILL.md`](../SKILL.md)
+- Governed entry contract: [`../SKILL.md`](../SKILL.md)
 - Runtime protocol: [`../protocols/runtime.md`](../protocols/runtime.md)
 - Live-document and artifact contract: [`../config/live-document-contract.json`](../config/live-document-contract.json)
 - Runtime field contract: [`governance/current-runtime-field-contract.md`](./governance/current-runtime-field-contract.md)

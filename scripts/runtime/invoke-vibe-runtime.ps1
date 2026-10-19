@@ -432,9 +432,6 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     $sessionRoot = Get-VibeSessionRoot -RepoRoot $runtime.repo_root -RunId $RunId -Runtime $runtime -ArtifactRoot $artifactBaseRoot
     $submittedModuleExecutionPath = [System.IO.Path]::GetFullPath($ModuleExecutionJsonFile)
     $moduleExecutionPath = Get-VibeModuleExecutionPath -SessionRoot $sessionRoot
-    if ($submittedModuleExecutionPath -ne [System.IO.Path]::GetFullPath($moduleExecutionPath)) {
-        Copy-Item -LiteralPath $submittedModuleExecutionPath -Destination $moduleExecutionPath -Force
-    }
 
     $runtimeInputPath = Join-Path $sessionRoot 'runtime-input-packet.json'
     $governanceCapsulePath = Join-Path $sessionRoot 'governance-capsule.json'
@@ -465,7 +462,8 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
         throw 'Agent module execution re-entry requires the frozen task from runtime-input-packet.json.'
     }
     $executionManifestDocument = Get-Content -LiteralPath $executionManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    $moduleExecution = Get-Content -LiteralPath $moduleExecutionPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $submittedModuleExecutionJson = Get-Content -LiteralPath $submittedModuleExecutionPath -Raw -Encoding UTF8
+    $moduleExecution = $submittedModuleExecutionJson | ConvertFrom-Json
     $moduleWorkPlanPath = Join-Path $sessionRoot 'module-work-plan.json'
     $moduleWorkPlan = Get-Content -LiteralPath $moduleWorkPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $agentExecutionHandoff = Get-Content -LiteralPath (Join-Path $sessionRoot 'agent-execution-handoff.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -643,6 +641,20 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             if ($criterionState -notin @('passing', 'failing', 'blocked')) {
                 throw ("Agent module execution criterion {0}:{1} has unsupported state: {2}" -f $moduleId, $criterionId, $criterionState)
             }
+        }
+    }
+    $pendingResultPath = Join-Path $sessionRoot ('.module-execution.{0}.tmp' -f [guid]::NewGuid().ToString('N'))
+    try {
+        [System.IO.File]::WriteAllText($pendingResultPath, $submittedModuleExecutionJson, [System.Text.UTF8Encoding]::new($false))
+        if ([System.IO.File]::Exists($moduleExecutionPath)) {
+            # Preserve a null backup path through PowerShell's .NET string binding.
+            [System.IO.File]::Replace($pendingResultPath, $moduleExecutionPath, [NullString]::Value)
+        } else {
+            [System.IO.File]::Move($pendingResultPath, $moduleExecutionPath)
+        }
+    } finally {
+        if ([System.IO.File]::Exists($pendingResultPath)) {
+            [System.IO.File]::Delete($pendingResultPath)
         }
     }
     $requiredModuleIds = @(

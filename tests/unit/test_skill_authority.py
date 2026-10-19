@@ -146,3 +146,98 @@ def test_unreadable_unrelated_skill_does_not_hide_a_valid_selected_source(source
     result = _authority(target, workspace, "unreadable")
     assert result["valid"] is False
     assert result["reason"] == "unreadable_skill_md"
+
+
+@pytest.mark.parametrize("custom_kind", ["absent", "directory", "file"])
+def test_unrelated_custom_entry_preserves_valid_skills(source_environment, custom_kind: str) -> None:
+    from vgo_runtime.kernel.skill_index import scan_skill_catalog
+
+    home, target, workspace = source_environment
+    descriptor = _skill(target / "skills")
+    custom = target / "skills/custom"
+    if custom_kind == "directory":
+        custom.mkdir()
+    elif custom_kind == "file":
+        custom.write_text("Unrelated local file.\n", encoding="utf-8")
+    catalog = scan_skill_catalog(agent_root=target, host_roots=(target / "skills",))
+    assert [row["skill_id"] for row in catalog["entries"] if row["active"]] == ["report"]
+    assert _authority(target, workspace)["canonical_entrypoint"] == str(descriptor.resolve())
+
+
+def test_controller_descriptor_alias_cannot_shadow_a_valid_skill(source_environment) -> None:
+    from vgo_runtime.kernel.skill_index import scan_skill_catalog
+
+    home, target, workspace = source_environment
+    controller = _skill(target / "skills", "vibe")
+    alias = target / "skills/report/SKILL.md"
+    alias.parent.mkdir()
+    try:
+        alias.symlink_to(controller)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"File symlink creation is unavailable: {exc}")
+    lower_root = workspace / "lower-skills"
+    valid = _skill(lower_root)
+    config = workspace / ".vibeskills/skill-roots.json"
+    config.parent.mkdir()
+    config.write_text(json.dumps({"schema_version": 1, "extra_skill_roots": [str(target / "skills"), str(lower_root)]}), encoding="utf-8")
+    catalog = scan_skill_catalog(agent_root=target, host_roots=(target / "skills", lower_root))
+    assert [row["resolved_skill_file"] for row in catalog["entries"] if row["active"]] == [str(valid.resolve())]
+    assert _authority(target, workspace)["canonical_entrypoint"] == str(valid.resolve())
+
+
+@pytest.mark.parametrize("requested", [False, True])
+def test_candidate_audit_preserves_disabled_source_rejection(source_environment, requested: bool) -> None:
+    from vgo_runtime.router_contract_runtime import route_prompt
+
+    home, target, workspace = source_environment
+    disabled_root = workspace / "disabled-skills"
+    _skill(disabled_root, enabled=False)
+    _skill(target / "skills")
+    config = workspace / ".vibeskills/skill-roots.json"
+    config.parent.mkdir()
+    config.write_text(json.dumps({"schema_version": 1, "extra_skill_roots": [str(disabled_root)]}), encoding="utf-8")
+    result = route_prompt(
+        prompt="Write a report.", grade="L", task_type="writing", repo_root=REPO_ROOT,
+        target_root=target, host_id="codex", workspace_root=workspace,
+        requested_skill="report" if requested else None,
+    )
+    assert _authority(target, workspace)["reason"] == "skill_disabled"
+    assert result.get("candidate_focus") is None or result["candidate_focus"]["authority"]["eligible"] is False
+    rows = [row for row in result["candidates"] if row["skill"] == "report"]
+    assert rows and all(row["authority_eligible"] is False for row in rows)
+    assert all("skill_disabled" in row["authority_rejection_reasons"] for row in rows)
+
+
+@pytest.mark.parametrize("requested", ["report", "missing-skill", None])
+def test_explicit_rejected_skill_cannot_fall_through_to_composite_selection(source_environment, requested: str | None) -> None:
+    from vgo_runtime.router_contract_runtime import route_prompt
+
+    home, target, workspace = source_environment
+    _skill(target / "skills", enabled=False)
+    for identity, capability, description in (
+        ("source-digger", "research.literature_search", "Search primary literature and PubMed evidence."),
+        ("helpful-briefer", "writing.reader_report", "Turn technical material into plain-language summaries for ordinary readers."),
+        ("slide-craft", "presentation.deck", "Prepare presentation slides and deck outputs."),
+    ):
+        descriptor = _skill(target / "skills", identity)
+        descriptor.write_text(
+            f"---\nname: {identity}\ndescription: {description}\ncapabilities:\n  - {capability}\n---\n",
+            encoding="utf-8",
+        )
+    result = route_prompt(
+        prompt="先检索 PubMed 和 primary literature，再写一份给普通读者看的通俗 brief，最后整理成 slides。",
+        grade="XL", task_type="research", repo_root=REPO_ROOT,
+        target_root=target, host_id="codex", workspace_root=workspace, requested_skill=requested,
+    )
+    assert len([row for row in result["skill_routing"]["module_candidates"] if row["candidates"]]) >= 2
+    if requested is None:
+        assert result["candidate_focus"] is not None
+        assert result["skill_routing"]["focused_candidates"]
+    else:
+        assert result["candidate_focus"] is None
+        assert result["skill_routing"]["focused_candidates"] == []
+        expected_reason = "requested_local_skill_ineligible" if requested == "report" else "requested_local_skill_not_found"
+        assert result["route_reason"] == expected_reason
+        if requested == "report":
+            rows = [row for row in result["candidates"] if row["skill"] == "report"]
+            assert rows and all("skill_disabled" in row["authority_rejection_reasons"] for row in rows)

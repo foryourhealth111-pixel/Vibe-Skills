@@ -159,7 +159,7 @@ def _discover_skill_dirs_for_source(source_spec: dict[str, object]) -> list[Path
         return sorted({path.parent.resolve() for path in source_root.rglob("SKILL.md") if path.is_file()})
     for child_dir in DISCOVERY_CHILD_DIRS:
         root = source_root / child_dir if child_dir else source_root
-        if not root.exists():
+        if not root.is_dir():
             continue
         dirs.extend(sorted(path for path in root.iterdir() if path.is_dir()))
     return dirs
@@ -716,7 +716,11 @@ def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str,
         if not is_local_skill_identifier(skill_id):
             diagnostics.append(_invalid_entry(skill_id, source_spec, "invalid_skill_id", path=skill_file))
             continue
-        if normalized_skill_id in CONTROLLER_SKILL_IDS or _normalize_skill_id(skill_dir.resolve().name) in CONTROLLER_SKILL_IDS:
+        if (
+            normalized_skill_id in CONTROLLER_SKILL_IDS
+            or _normalize_skill_id(skill_dir.resolve().name) in CONTROLLER_SKILL_IDS
+            or _normalize_skill_id(skill_file.resolve().parent.name) in CONTROLLER_SKILL_IDS
+        ):
             diagnostics.append(_invalid_entry(skill_id, source_spec, "controller_entry_excluded", path=skill_file))
             continue
         if not skill_file.is_file():

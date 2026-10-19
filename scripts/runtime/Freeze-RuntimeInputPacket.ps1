@@ -110,6 +110,7 @@ function Get-VibeSkillMetadata {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,
         [Parameter(Mandatory)] [string]$SkillId,
+        [AllowEmptyString()] [string]$SkillEntrypoint = '',
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = '',
         [AllowEmptyString()] [string]$WorkspaceRoot = ''
@@ -118,6 +119,7 @@ function Get-VibeSkillMetadata {
     $authority = Resolve-VibeLocalSkillAuthority `
         -RepoRoot $RepoRoot `
         -SkillId $SkillId `
+        -SkillEntrypoint $SkillEntrypoint `
         -TargetRoot $TargetRoot `
         -HostId $HostId `
         -WorkspaceRoot $WorkspaceRoot
@@ -146,6 +148,7 @@ function Get-VibeSkillMetadata {
         source_kind = [string]$authority.source_kind
         source_priority = [int]$authority.source_priority
         duplicate_state = [string]$authority.duplicate_state
+        content_sha256 = [string]$authority.content_sha256
     }
 }
 
@@ -450,10 +453,17 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
         if ([string]::Equals($skillId, [string]$Policy.explicit_runtime_skill, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw ('agent_skill_organization cannot select the governed runtime controller `{0}` as a task skill' -f $skillId)
         }
-        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot
+        $frozenEntrypoint = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_entrypoint' -DefaultValue '')
+        $frozenDigest = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'content_sha256' -DefaultValue '')
+        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -SkillEntrypoint $frozenEntrypoint -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot
         if (-not [bool]$metadata.authority_valid) {
             throw ('agent_skill_organization selected skill `{0}` is not available from the declared local skill roots: {1}' -f $skillId, [string]$metadata.authority_reason)
         }
+        if (-not [string]::IsNullOrWhiteSpace($frozenDigest) -and $frozenDigest -cne [string]$metadata.content_sha256) {
+            throw ('agent_skill_organization selected skill `{0}`: skill_content_changed' -f $skillId)
+        }
+        $selectedSkill | Add-Member -NotePropertyName skill_entrypoint -NotePropertyValue ([string]$metadata.skill_path) -Force
+        $selectedSkill | Add-Member -NotePropertyName content_sha256 -NotePropertyValue ([string]$metadata.content_sha256) -Force
         $responsibility = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'responsibility' -DefaultValue '')
         $reason = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'reason' -DefaultValue '')
         $recommendation = New-VibeSpecialistRecommendation `

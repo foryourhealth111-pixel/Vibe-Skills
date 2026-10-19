@@ -254,11 +254,20 @@ jobs:
           tests/contract/test_repo_layout_contract.py
           --junitxml=outputs/proof/runtime-resume-${{ matrix.os }}.xml
 
+      - name: Verify canonical result publication and delivery evidence
+        run: >-
+          python -B -m pytest -q -ra
+          tests/integration/test_real_canonical_entry_bounded_stop.py
+          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result"
+          --junitxml=outputs/proof/runtime-result-admission-${{ matrix.os }}.xml
+
       - name: Upload runtime recovery proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: runtime-resume-proof-${{ matrix.os }}
-          path: outputs/proof/runtime-resume-${{ matrix.os }}.xml
+          path: |
+            outputs/proof/runtime-resume-${{ matrix.os }}.xml
+            outputs/proof/runtime-result-admission-${{ matrix.os }}.xml
           retention-days: 30
           if-no-files-found: error

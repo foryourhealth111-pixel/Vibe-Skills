@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 import re
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,94 @@ def _normalize_string_list(value: Any) -> list[str]:
     else:
         items = [value]
     return [str(item).strip() for item in items if str(item).strip()]
+
+
+def _resolve_evidence_path(value: str, *, workspace_root: Path, session_root: Path) -> Path:
+    if value.startswith("session:"):
+        relative = Path(value[len("session:"):])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("session evidence must stay inside the session root")
+        resolved = (session_root / relative).resolve()
+        if not resolved.is_relative_to(session_root.resolve()):
+            raise ValueError("session evidence must stay inside the session root")
+        return resolved
+    path = Path(value)
+    return (path if path.is_absolute() else workspace_root / path).resolve()
+
+
+def _check_evidence_files(
+    values: Any, *, workspace_root: Path, session_root: Path,
+) -> tuple[set[Path], list[str]]:
+    if values is None:
+        return set(), []
+    if not isinstance(values, list) or any(not isinstance(value, str) or not value.strip() for value in values):
+        return set(), ["Evidence paths must be a JSON array of non-empty strings."]
+    files: set[Path] = set()
+    notes: list[str] = []
+    for value in values:
+        try:
+            path = _resolve_evidence_path(value, workspace_root=workspace_root, session_root=session_root)
+            if not path.is_file():
+                notes.append(f"Evidence is not a current file: {value}")
+                continue
+            with path.open("rb") as stream:
+                stream.read(1)
+            files.add(path)
+        except (OSError, ValueError, RuntimeError) as exc:
+            notes.append(f"Evidence is unreadable: {value} ({exc})")
+    return files, notes
+
+
+def _glob_output_files(value: str, *, workspace_root: Path, session_root: Path) -> set[Path]:
+    session_relative = value.startswith("session:")
+    pattern = value[len("session:"):] if session_relative else value
+    root = session_root if session_relative else workspace_root
+    path = Path(pattern)
+    if path.is_absolute():
+        matching_roots = [base.resolve() for base in (workspace_root, session_root) if path.is_relative_to(base.resolve())]
+        root = max(matching_roots, key=lambda base: len(base.parts), default=Path(path.anchor))
+        pattern = str(path.relative_to(root))
+    files: set[Path] = set()
+    for match in glob.glob(pattern, root_dir=root, recursive=True):
+        candidate = root / match
+        if not candidate.is_file():
+            continue
+        resolved = candidate.resolve()
+        if session_relative and not resolved.is_relative_to(session_root.resolve()):
+            raise ValueError("session evidence must stay inside the session root")
+        files.add(resolved)
+    return files
+
+
+def _expected_output_evidence_notes(
+    unit: dict[str, Any], evidence_files: set[Path], *, workspace_root: Path, session_root: Path,
+) -> list[str]:
+    if str(unit.get("write_scope") or "").strip().casefold() == "no task-file writes":
+        return []
+    notes: list[str] = []
+    for value in _normalize_string_list(unit.get("expected_outputs")):
+        # Plans also carry descriptive outcomes containing punctuation or path words.
+        explicit_path = value.startswith(("session:", "./", "../", ".\\", "..\\")) or Path(value).is_absolute()
+        if not explicit_path and any(char.isspace() for char in value):
+            continue
+        if not (explicit_path or glob.has_magic(value) or Path(value).suffix or "/" in value or "\\" in value):
+            continue
+        try:
+            expected = _resolve_evidence_path(value, workspace_root=workspace_root, session_root=session_root)
+            if expected in evidence_files:
+                covered = True
+            elif glob.has_magic(value):
+                matches = _glob_output_files(value, workspace_root=workspace_root, session_root=session_root)
+                covered = bool(matches) and matches.issubset(evidence_files)
+            elif not Path(value).suffix and expected.is_dir():
+                covered = any(path.is_relative_to(expected) for path in evidence_files)
+            else:
+                covered = expected in evidence_files
+            if not covered:
+                notes.append(f"Expected file output lacks current evidence: {value}")
+        except (OSError, ValueError, RuntimeError) as exc:
+            notes.append(f"Expected file output cannot be resolved: {value} ({exc})")
+    return notes
 
 
 def _normalize_skill_id_list(value: Any) -> list[str]:

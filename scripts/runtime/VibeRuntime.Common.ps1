@@ -639,6 +639,8 @@ function New-VibeModuleWorkPlan {
                     unit_id = ('{0}--{1}--{2}' -f [string]$moduleId, [string]$selectedSkill.skill_id, $role)
                     module_id = [string]$moduleId
                     skill_id = [string]$selectedSkill.skill_id
+                    skill_entrypoint = Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_entrypoint' -DefaultValue $null
+                    content_sha256 = Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'content_sha256' -DefaultValue $null
                     role = $role
                     responsibility = [string]$moduleAssignment.responsibility
                     write_scope = [string]$moduleAssignment.write_scope
@@ -1465,6 +1467,8 @@ function Resolve-VibeAgentSkillOrganization {
         $selectedSkillIds[$skillId] = $true
         $selectedSkills.Add([pscustomobject]@{
                 skill_id = $skillId
+                skill_entrypoint = Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_entrypoint' -DefaultValue $null
+                content_sha256 = Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'content_sha256' -DefaultValue $null
                 module_ids = @($assignedModuleIds)
                 role = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'role' -DefaultValue 'owner')
                 responsibility = $responsibility
