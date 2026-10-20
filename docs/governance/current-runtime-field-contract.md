@@ -90,6 +90,13 @@ Use `./` or `session:` to identify extensionless file outputs explicitly. Output
 paths or globs containing whitespace require an absolute path or one of these
 prefixes; unprefixed phrases remain descriptive outcomes.
 
+Agent result re-entry inherits the frozen packet's `storage.workspace_root`
+when the workspace argument is omitted. An explicitly supplied workspace must
+resolve to the same directory. Python entry, the PowerShell canonical wrapper,
+and direct runtime re-entry reject a conflicting workspace before writing a
+launch receipt or project artifacts. Packets without a frozen workspace retain
+the existing caller/fallback workspace behavior.
+
 Relative evidence and output paths use the frozen packet's
 `storage.workspace_root`, which must be absolute when present. An absolute path
 identifies its file directly;
@@ -354,3 +361,25 @@ are excluded. Python virtual environment directories (`.venv`, `venv`, `.env`,
 containment checks and traversal, including directory links to shared environments.
 Legacy checkpoints without a resource fingerprint are recomputed before reuse.
 Contained resource links are fingerprinted with their resolved targets. External and cyclic resources produce explicit scanner diagnostics.
+
+
+## Host Skill Metadata And Authority Requests
+
+Installed Claude Code sources may omit frontmatter `name`; the descriptor's
+parent directory supplies that default. Explicit name values still require a
+nonempty string. Other source profiles retain their existing required-name
+contract. Routing, catalog CLI, source authority, and the local kernel use the
+same host profile. Skill IDs continue to identify their source directories.
+
+The optional `disable-model-invocation` field must be a JSON/YAML boolean.
+`true` marks an installed Skill as `explicit_only`, excluding automatic
+selection while allowing an explicit requested Skill. Natural-language
+explicit-only guidance remains supported. Malformed policy values produce a
+scanner diagnostic.
+
+Freeze and dispatch resolve all source-authority requests through one read-only
+catalog snapshot for that request. Batch requests preserve order, entrypoint
+requirements, disabled-source rejection, and source precedence. A subsequent
+request reads a new snapshot; execution dispatch still checks each selected
+Skill's frozen descriptor fingerprint. Catalog or capability-cache writes are
+outside this authority interface.

@@ -35,7 +35,10 @@ from vgo_contracts.canonical_vibe_contract import resolve_canonical_vibe_contrac
 from vgo_contracts.discoverable_entry_surface import load_discoverable_entry_surface
 from vgo_contracts.entry_root_guard import EntryRootGuardError, resolve_entry_repo_root
 from vgo_contracts.host_launch_receipt import HostLaunchReceipt, read_host_launch_receipt, write_host_launch_receipt
-from vgo_contracts.module_execution_contract import validate_agent_module_execution as _validate_agent_module_execution
+from vgo_contracts.module_execution_contract import (
+    resolve_execution_workspace,
+    validate_agent_module_execution as _validate_agent_module_execution,
+)
 from vgo_runtime.artifact_contract import (  # noqa: E402
     resolve_runtime_artifact_projection,
     resolve_runtime_session_receipts_root,
@@ -2123,6 +2126,7 @@ def launch_canonical_vibe(
         return _launch_agent_execution_reentry(
             repo_root=repo_root_path,
             workspace_root=resolved_workspace_root,
+            workspace_root_is_explicit=workspace_root not in (None, ""),
             host_id=resolved_host_id,
             entry_id=runtime_entry_id,
             prompt=prompt,
@@ -2239,6 +2243,7 @@ def _launch_agent_execution_reentry(
     *,
     repo_root: Path,
     workspace_root: Path,
+    workspace_root_is_explicit: bool,
     host_id: str,
     entry_id: str,
     prompt: str,
@@ -2268,6 +2273,11 @@ def _launch_agent_execution_reentry(
         artifact_root=artifact_root,
     )
     runtime_packet = _load_runtime_truth_packet(session_root / "runtime-input-packet.json")
+    workspace_root = resolve_execution_workspace(
+        runtime_packet,
+        requested_workspace_root=workspace_root if workspace_root_is_explicit else None,
+        fallback_workspace_root=workspace_root,
+    )
     frozen_task = str(runtime_packet.get("task") or "").strip()
     if not frozen_task:
         raise RuntimeError("Agent execution re-entry requires the frozen task from runtime-input-packet.json")

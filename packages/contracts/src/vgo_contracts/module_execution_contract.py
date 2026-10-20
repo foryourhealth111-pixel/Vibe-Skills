@@ -16,6 +16,29 @@ def _load_json_dict(path: Path, *, label: str) -> dict[str, Any]:
     return payload
 
 
+def resolve_execution_workspace(
+    runtime_input_packet: dict[str, Any],
+    *,
+    requested_workspace_root: Path | None,
+    fallback_workspace_root: Path,
+) -> Path:
+    """Keep result publication attached to the workspace frozen for this run."""
+    storage = runtime_input_packet.get("storage")
+    if storage is None:
+        return (requested_workspace_root or fallback_workspace_root).resolve()
+    if not isinstance(storage, dict):
+        raise RuntimeError("frozen storage must be a JSON object")
+    if "workspace_root" not in storage:
+        return (requested_workspace_root or fallback_workspace_root).resolve()
+    raw_root = storage["workspace_root"]
+    if not isinstance(raw_root, str) or not raw_root.strip() or not Path(raw_root).is_absolute():
+        raise RuntimeError("frozen storage.workspace_root must be an absolute path")
+    frozen_root = Path(raw_root).resolve()
+    if requested_workspace_root is not None and requested_workspace_root.resolve() != frozen_root:
+        raise RuntimeError("Agent result workspace does not match the frozen storage.workspace_root")
+    return frozen_root
+
+
 def module_unit_result_notes(unit: dict[str, Any], module: dict[str, Any]) -> tuple[str, ...]:
     """Validate result fields and observations against the module's criterion outcomes."""
     unit_id = str(unit.get("unit_id") or "")
@@ -299,13 +322,26 @@ def validate_agent_module_execution(
             raise RuntimeError(result_notes[0])
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate a terminal module execution against its frozen handoff.")
     parser.add_argument("--session-root", type=Path, required=True)
     parser.add_argument("--source-run-id", required=True)
-    parser.add_argument("--submitted-file", type=Path, required=True)
-    args = parser.parse_args()
+    parser.add_argument("--submitted-file", type=Path)
+    parser.add_argument("--resolve-workspace-only", action="store_true")
+    parser.add_argument("--workspace-root", type=Path)
+    parser.add_argument("--fallback-workspace-root", type=Path)
+    args = parser.parse_args(argv)
+    if not args.resolve_workspace_only and args.submitted_file is None:
+        parser.error("--submitted-file is required for result validation")
     try:
+        if args.resolve_workspace_only:
+            packet = _load_json_dict(args.session_root / "runtime-input-packet.json", label="runtime-input-packet")
+            workspace_root = resolve_execution_workspace(
+                packet, requested_workspace_root=args.workspace_root,
+                fallback_workspace_root=args.fallback_workspace_root or args.session_root,
+            )
+            print(json.dumps({"workspace_root": str(workspace_root)}, ensure_ascii=True))
+            return 0
         handoff = _load_json_dict(args.session_root / "agent-execution-handoff.json", label="Agent execution handoff")
         submitted = _load_json_dict(args.submitted_file, label="module execution")
         validate_agent_module_execution(session_root=args.session_root, source_run_id=args.source_run_id, handoff=handoff, submitted=submitted)

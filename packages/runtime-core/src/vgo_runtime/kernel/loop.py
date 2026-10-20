@@ -1292,6 +1292,7 @@ def run_local_kernel(
     skills_catalog_payload = build_skill_catalog(
         agent_root=resolved_agent_root,
         host_roots=host_roots,
+        host_id=host_id,
     )
     index_payload = build_skill_index_from_catalog(skills_catalog_payload)
 

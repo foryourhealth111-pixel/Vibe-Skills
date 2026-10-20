@@ -79,6 +79,7 @@ class InstalledSkillManifest:
     plan_hints: tuple[str, ...] = ()
     verify_hints: tuple[str, ...] = ()
     enabled: bool = True
+    disable_model_invocation: bool = False
 
     def model_dump(self) -> dict[str, object]:
         return asdict(self)
@@ -473,6 +474,7 @@ def parse_skill_manifest(skill_file: Path) -> SkillManifest:
 
 def parse_installed_skill_manifest(
     skill_file: Path, *, skill_id: str | None = None, source_bytes: bytes | None = None,
+    host_id: str | None = None,
 ) -> InstalledSkillManifest:
     resolved_file = skill_file.resolve()
     if source_bytes is None:
@@ -485,8 +487,14 @@ def parse_installed_skill_manifest(
     resolved_skill_id = str(skill_id or resolved_file.parent.name).strip()
     if not resolved_skill_id:
         raise ValueError(f"skill id cannot be empty for {resolved_file}")
-    name = _coerce_string_field(frontmatter, "name", resolved_file)
+    if str(host_id or "").strip().casefold() == "claude-code" and "name" not in frontmatter:
+        name = resolved_file.parent.name
+    else:
+        name = _coerce_string_field(frontmatter, "name", resolved_file)
     description = _coerce_string_field(frontmatter, "description", resolved_file)
+    disable_model_invocation = frontmatter.get("disable-model-invocation", False)
+    if not isinstance(disable_model_invocation, bool):
+        raise ValueError(f"disable-model-invocation must be a boolean in {resolved_file}")
     not_for = _dedupe_non_empty(
         _coerce_string_list(frontmatter.get("not_for")) + _extract_body_not_for_lines(body_lines)
     )
@@ -512,4 +520,5 @@ def parse_installed_skill_manifest(
         content_sha256=hashlib.sha256(source_bytes).hexdigest(),
         resource_sha256=skill_resource_sha256(resolved_file, source_bytes),
         enabled=enabled,
+        disable_model_invocation=disable_model_invocation,
     )

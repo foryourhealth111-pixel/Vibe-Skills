@@ -260,3 +260,143 @@ def test_candidate_audit_rejects_sources_outside_canonical_admission(source_envi
     assert rows and all(row["authority_eligible"] is False for row in rows)
     assert all(authority["reason"] in row["authority_rejection_reasons"] for row in rows)
     assert result.get("candidate_focus") is None or result["candidate_focus"]["authority"]["eligible"] is False
+
+
+@pytest.mark.parametrize("host_id,expected", [("claude-code", True), ("codex", False)])
+def test_directory_name_default_is_scoped_to_claude_sources(source_environment, host_id: str, expected: bool) -> None:
+    home, target, workspace = source_environment
+    skill = _skill(target / "skills")
+    skill.write_text("---\ndescription: Write a report.\n---\n# Report\n", encoding="utf-8")
+    authority = resolve_skill_authority(
+        repo_root=REPO_ROOT, agent_root=target, host_id=host_id,
+        workspace_root=workspace, skill_id="report",
+    )
+    assert authority["valid"] is expected
+    if expected:
+        assert authority["canonical_entrypoint"] == str(skill.resolve())
+    else:
+        assert authority["reason"] == "missing_required_frontmatter"
+
+
+@pytest.mark.parametrize("value", ["''", "42", "true", "[]"])
+def test_claude_name_default_does_not_replace_invalid_explicit_names(source_environment, value: str) -> None:
+    home, target, workspace = source_environment
+    skill = _skill(target / "skills")
+    skill.write_text(f"---\nname: {value}\ndescription: Write a report.\n---\n", encoding="utf-8")
+    authority = resolve_skill_authority(
+        repo_root=REPO_ROOT, agent_root=target, host_id="claude-code",
+        workspace_root=workspace, skill_id="report",
+    )
+    assert authority["valid"] is False
+
+
+def test_authority_batch_shares_one_catalog_without_writing_cache(source_environment, monkeypatch: pytest.MonkeyPatch) -> None:
+    from vgo_runtime import skill_authority
+
+    home, target, workspace = source_environment
+    for skill_id in ("report", "summary", "unused"):
+        descriptor = _skill(target / "skills", skill_id)
+        (descriptor.parent / "resource.bin").write_bytes(b"resource contents")
+    requests = [{"skill_id": "report"}, {"skill_id": "summary"}, {"skill_id": "report"}, {"skill_id": "missing"}]
+    expected = [_authority(target, workspace, row["skill_id"]) for row in requests]
+    before = set(home.rglob("*"))
+    original_open = Path.open
+    reads = []
+
+    def count_resources(path, *args, **kwargs):
+        if path.name == "resource.bin":
+            reads.append(path)
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", count_resources)
+    actual = skill_authority.resolve_skill_authorities(
+        repo_root=REPO_ROOT, agent_root=target, host_id="codex",
+        workspace_root=workspace, requests=requests,
+    )
+    assert actual == expected
+    assert len(reads) == 3
+    assert set(home.rglob("*")) == before
+    assert not (target / "vibe/generated").exists()
+
+
+def test_authority_batch_revalidates_the_next_request(source_environment) -> None:
+    from vgo_runtime import skill_authority
+
+    home, target, workspace = source_environment
+    descriptor = _skill(target / "skills")
+    arguments = dict(repo_root=REPO_ROOT, agent_root=target, host_id="codex", workspace_root=workspace, requests=[{"skill_id": "report"}])
+    first = skill_authority.resolve_skill_authorities(**arguments)
+    descriptor.write_text(descriptor.read_text(encoding="utf-8") + "Updated instructions.\n", encoding="utf-8")
+    second = skill_authority.resolve_skill_authorities(**arguments)
+    assert second[0]["valid"] is True
+    assert second[0]["content_sha256"] != first[0]["content_sha256"]
+
+
+@pytest.mark.parametrize("requests", [{"skill_id": "report"}, ["report"], [{"skill_id": 1}], [{"skill_id": "report", "extra": True}], [{"skill_id": "report", "require_provided_entrypoint": "false"}]])
+def test_authority_batch_rejects_malformed_requests(source_environment, requests: object) -> None:
+    from vgo_runtime import skill_authority
+
+    home, target, workspace = source_environment
+    with pytest.raises(ValueError, match="request"):
+        skill_authority.resolve_skill_authorities(
+            repo_root=REPO_ROOT, agent_root=target, host_id="codex",
+            workspace_root=workspace, requests=requests,
+        )
+
+
+def test_authority_batch_cli_preserves_entrypoint_checks_and_order(source_environment, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from vgo_runtime import skill_authority
+
+    home, target, workspace = source_environment
+    descriptor = _skill(target / "skills")
+    request_file = tmp_path / "requests with spaces.json"
+    request_file.write_text(json.dumps([
+        {"skill_id": "report", "skill_entrypoint": str(descriptor), "require_provided_entrypoint": True},
+        {"skill_id": "report", "skill_entrypoint": str(tmp_path / "other/SKILL.md")},
+        {"skill_id": "report", "require_provided_entrypoint": True},
+        {"skill_id": "missing"},
+    ]), encoding="utf-8")
+    assert skill_authority.main([
+        "--repo-root", str(REPO_ROOT), "--agent-root", str(target), "--host-id", "codex",
+        "--workspace-root", str(workspace), "--requests-json-file", str(request_file),
+    ]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert [row["reason"] for row in payload["authorities"]] == ["ok", "entrypoint_mismatch", "missing_skill_entrypoint", "not_in_local_skill_index"]
+
+
+def test_powershell_dispatch_batches_identity_checks_and_rechecks_changes(source_environment, tmp_path: Path) -> None:
+    import shutil
+    import subprocess
+
+    shell = shutil.which("pwsh") or shutil.which("powershell")
+    if shell is None:
+        pytest.skip("PowerShell executable not available")
+    home, target, workspace = source_environment
+    descriptor = _skill(target / "skills")
+    units = [{
+        "unit_id": f"unit-{index}", "module_id": "reporting", "skill_id": "report",
+        "skill_entrypoint": str(descriptor), "content_sha256": hashlib.sha256(descriptor.read_bytes()).hexdigest(),
+        "depends_on_unit_ids": [], "phase_id": "write", "stage_order": index,
+        "responsibility": "Produce a report.", "role": "owner", "write_scope": "outputs",
+        "expected_outputs": ["report.md"], "verification": ["Check the report."],
+    } for index in range(3)]
+    plan = tmp_path / "dispatch-plan.json"
+    plan.write_text(json.dumps({"workflow_level": "L", "work_units": units}), encoding="utf-8")
+    def quote(value: object) -> str:
+        return "'" + str(value).replace("'", "''") + "'"
+    command = (
+        f". {quote(REPO_ROOT / 'scripts/runtime/VibeRuntime.Common.ps1')}; "
+        "$script:authorityPythonSpec = Get-VgoPythonCommand; $script:authorityCalls = 0; "
+        "function Get-VgoPythonCommand { $script:authorityCalls++; return $script:authorityPythonSpec }; "
+        f"$plan = Get-Content -LiteralPath {quote(plan)} -Raw -Encoding UTF8 | ConvertFrom-Json; "
+        f"$arguments = @{{ModuleWorkPlan=$plan; RepoRoot={quote(REPO_ROOT)}; TargetRoot={quote(target)}; HostId='codex'; WorkspaceRoot={quote(workspace)}}}; "
+        "$rows = @(Convert-VibeModuleWorkPlanToDispatch @arguments); "
+        f"[System.IO.File]::AppendAllText({quote(descriptor)}, 'Changed instructions.'); "
+        "$rejected = $false; try { Convert-VibeModuleWorkPlanToDispatch @arguments | Out-Null } "
+        "catch { if ($_.Exception.Message -notmatch 'skill_content_changed') { throw }; $rejected = $true }; "
+        "[pscustomobject]@{ count=$rows.Count; calls=$script:authorityCalls; rejected=$rejected; units=@($rows.work_unit_id) } | ConvertTo-Json -Compress"
+    )
+    result = subprocess.run([shell, "-NoLogo", "-NoProfile", "-Command", command], cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=30)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload == {"count": 3, "calls": 2, "rejected": True, "units": ["unit-0", "unit-1", "unit-2"]}

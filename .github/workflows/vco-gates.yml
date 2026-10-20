@@ -257,13 +257,14 @@ jobs:
           tests/integration/test_vibe_skill_bootstrap_contract.py
           tests/unit/test_vibe_skill_entry_contract.py
           tests/contract/test_repo_layout_contract.py
+          tests/runtime_neutral/test_readme_benchmark_results.py
           --junitxml=outputs/proof/runtime-resume-${{ matrix.os }}.xml
 
       - name: Verify canonical result publication and delivery evidence
         run: >-
           python -B -m pytest -q -ra
           tests/integration/test_real_canonical_entry_bounded_stop.py
-          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean or invalid_unit_result"
+          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean or invalid_unit_result or result_reentry_preserves_frozen_workspace"
           --junitxml=outputs/proof/runtime-result-admission-${{ matrix.os }}.xml
 
       - name: Upload runtime recovery proof

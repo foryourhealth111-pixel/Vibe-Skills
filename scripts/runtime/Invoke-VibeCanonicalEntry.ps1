@@ -183,6 +183,12 @@ try {
         -WorkspaceRoot $resolvedWorkspaceRoot `
         -ArtifactRoot $resolvedArtifactRoot `
         -RunId $resolvedRunId
+    if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
+        $requestedWorkspace = if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) { '' } else { $resolvedWorkspaceRoot }
+        $resolvedWorkspaceRoot = Resolve-VibeResultWorkspaceRoot `
+            -RepoRoot $repoRoot -SessionRoot $sessionRoot -RunId $resolvedRunId `
+            -FallbackWorkspaceRoot $resolvedWorkspaceRoot -RequestedWorkspaceRoot $requestedWorkspace
+    }
     $summaryPath = Join-Path $sessionRoot 'runtime-summary.json'
     $receiptPath = Join-Path $sessionRoot 'host-launch-receipt.json'
 

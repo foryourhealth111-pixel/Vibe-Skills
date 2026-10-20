@@ -41,17 +41,10 @@ def skill_source_rejection_reason(entry: dict[str, Any]) -> str | None:
     return None
 
 
-def resolve_skill_authority(
-    *,
-    repo_root: Path,
-    agent_root: Path,
-    host_id: str,
-    workspace_root: Path | None,
-    skill_id: str,
-    skill_entrypoint: str | None = None,
-    require_provided_entrypoint: bool = False,
+def _resolve_catalog_authority(
+    catalog: dict[str, Any], *, skill_id: str,
+    skill_entrypoint: str | None = None, require_provided_entrypoint: bool = False,
 ) -> dict[str, Any]:
-    """Resolve an eligible local source; this interface never selects task Skills or writes caches."""
     identity = str(skill_id).strip()
     rejected: dict[str, Any] = {
         "valid": False, "reason": "not_in_local_skill_index", "skill_id": identity,
@@ -65,10 +58,6 @@ def resolve_skill_authority(
     if normalized in CONTROLLER_SKILL_IDS:
         return {**rejected, "reason": "controller_entry_excluded"}
 
-    roots = resolve_host_skill_roots(
-        repo_root=repo_root, agent_root=agent_root, host_id=host_id, workspace_root=workspace_root,
-    )
-    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=tuple(root.path for root in roots))
     active = next((
         row for row in catalog["entries"]
         if row["active"] and row["source_kind"] == HOST_INSTALLED_SOURCE_KIND
@@ -96,6 +85,7 @@ def resolve_skill_authority(
         "source_kind": active["source_kind"], "source_priority": active["source_priority"],
         "active": True, "duplicate_state": "active", "enabled": True,
         "description": active["description"], "content_sha256": active["content_sha256"],
+        "explicit_only": bool(active.get("explicit_only")),
     }
     if not skill_entrypoint and require_provided_entrypoint:
         return {**result, "valid": False, "reason": "missing_skill_entrypoint"}
@@ -104,25 +94,90 @@ def resolve_skill_authority(
     return result
 
 
+def _authority_requests(requests: object) -> list[dict[str, Any]]:
+    if not isinstance(requests, list):
+        raise ValueError("Skill authority requests must be a JSON array of objects")
+    normalized: list[dict[str, Any]] = []
+    allowed = {"skill_id", "skill_entrypoint", "require_provided_entrypoint"}
+    for request in requests:
+        if not isinstance(request, dict) or set(request) - allowed:
+            raise ValueError("Skill authority requests must contain only supported request fields")
+        if not isinstance(request.get("skill_id"), str):
+            raise ValueError("Skill authority request skill_id must be a string")
+        entrypoint = request.get("skill_entrypoint")
+        if entrypoint is not None and not isinstance(entrypoint, str):
+            raise ValueError("Skill authority request skill_entrypoint must be a string")
+        required = request.get("require_provided_entrypoint", False)
+        if not isinstance(required, bool):
+            raise ValueError("Skill authority request require_provided_entrypoint must be a boolean")
+        normalized.append({
+            "skill_id": request["skill_id"], "skill_entrypoint": entrypoint,
+            "require_provided_entrypoint": required,
+        })
+    return normalized
+
+
+def resolve_skill_authorities(
+    *, repo_root: Path, agent_root: Path, host_id: str,
+    workspace_root: Path | None, requests: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Resolve a request batch from one current catalog, without writing caches."""
+    normalized = _authority_requests(requests)
+    needs_catalog = any(
+        is_local_skill_identifier(row["skill_id"].strip())
+        and row["skill_id"].strip().casefold() not in CONTROLLER_SKILL_IDS
+        for row in normalized
+    )
+    catalog: dict[str, Any] = {}
+    if needs_catalog:
+        roots = resolve_host_skill_roots(
+            repo_root=repo_root, agent_root=agent_root, host_id=host_id, workspace_root=workspace_root,
+        )
+        catalog = scan_skill_catalog(
+            agent_root=agent_root, host_roots=tuple(root.path for root in roots), host_id=host_id,
+        )
+    return [_resolve_catalog_authority(catalog, **row) for row in normalized]
+
+
+def resolve_skill_authority(
+    *, repo_root: Path, agent_root: Path, host_id: str,
+    workspace_root: Path | None, skill_id: str,
+    skill_entrypoint: str | None = None, require_provided_entrypoint: bool = False,
+) -> dict[str, Any]:
+    """Resolve one source using the same read-only contract as batch requests."""
+    return resolve_skill_authorities(
+        repo_root=repo_root, agent_root=agent_root, host_id=host_id, workspace_root=workspace_root,
+        requests=[{
+            "skill_id": skill_id, "skill_entrypoint": skill_entrypoint,
+            "require_provided_entrypoint": require_provided_entrypoint,
+        }],
+    )[0]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Read-only local Skill source authority")
     parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--agent-root", type=Path, required=True)
     parser.add_argument("--host-id", required=True)
     parser.add_argument("--workspace-root", type=Path)
-    parser.add_argument("--skill-id")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--skill-id")
+    selection.add_argument("--requests-json-file", type=Path)
     parser.add_argument("--skill-entrypoint")
     parser.add_argument("--require-provided-entrypoint", action="store_true")
     args = parser.parse_args(argv)
     roots = dict(repo_root=args.repo_root, agent_root=args.agent_root, host_id=args.host_id, workspace_root=args.workspace_root)
     try:
-        payload = (
-            {"skill_roots": skill_root_projection(**roots)} if args.skill_id is None else
-            resolve_skill_authority(
+        if args.requests_json_file is not None:
+            requests = json.loads(args.requests_json_file.read_text(encoding="utf-8-sig"))
+            payload = {"authorities": resolve_skill_authorities(**roots, requests=requests)}
+        elif args.skill_id is not None:
+            payload = resolve_skill_authority(
                 **roots, skill_id=args.skill_id, skill_entrypoint=args.skill_entrypoint,
                 require_provided_entrypoint=args.require_provided_entrypoint,
             )
-        )
+        else:
+            payload = {"skill_roots": skill_root_projection(**roots)}
     except (OSError, ValueError) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=True))
         return 1

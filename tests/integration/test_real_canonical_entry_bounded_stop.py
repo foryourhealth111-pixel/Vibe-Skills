@@ -1593,3 +1593,55 @@ def test_invalid_unit_result_is_rejected_before_publication_and_allows_retry(
     assert (session / "module-work-plan.json").read_bytes() == preserved["module-work-plan.json"]
     report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
     assert report["summary"]["completion_language_allowed"] is True
+
+
+@pytest.mark.parametrize("entry", ["python", "powershell", "raw-powershell"])
+@pytest.mark.parametrize("requested_root", ["omitted", "conflicting"])
+def test_result_reentry_preserves_frozen_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entry: str, requested_root: str) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    different = tmp_path / "different-workspace"
+    different.mkdir()
+    stopped = _launch_handoff_stop(tmp_path, monkeypatch, workspace_root=workspace)
+    submitted, _ = _write_agent_module_execution(stopped, state="completed", result_summary="Produced the result in the approved workspace.")
+    session = stopped.session_root
+    before = {path.relative_to(session): path.read_bytes() for path in session.rglob("*") if path.is_file()}
+    if entry == "python":
+        arguments = dict(repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return module results.", artifact_root=tmp_path / "artifact-root", continue_from_run_id=stopped.run_id, module_execution_json_file=submitted)
+        if requested_root == "conflicting":
+            with pytest.raises(RuntimeError, match="workspace.*frozen"):
+                canonical_entry.launch_canonical_vibe(**arguments, workspace_root=different)
+        else:
+            result = canonical_entry.launch_canonical_vibe(**arguments)
+            assert Path(result.summary["storage"]["workspace_root"]).resolve() == workspace.resolve()
+    else:
+        script = REPO_ROOT / (
+            "scripts/runtime/invoke-vibe-runtime.ps1" if entry == "raw-powershell"
+            else "scripts/runtime/Invoke-VibeCanonicalEntry.ps1"
+        )
+        command = [
+            _powershell(), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+            "-Task", "Return module results.",
+            "-RequestedStageStop", "phase_cleanup", "-RunId", stopped.run_id,
+            "-ArtifactRoot", str(tmp_path / "artifact-root"), "-ModuleExecutionJsonFile", str(submitted),
+        ]
+        if entry == "powershell":
+            command.extend(["-HostId", "codex", "-EntryId", "vibe"])
+        if requested_root == "conflicting":
+            command.extend(["-WorkspaceRoot", str(different)])
+        result = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=120)
+        if requested_root == "conflicting":
+            assert result.returncode != 0
+            assert "workspace" in result.stdout + result.stderr
+        else:
+            assert result.returncode == 0, result.stdout + result.stderr
+            summary = json.loads((session / "runtime-summary.json").read_text(encoding="utf-8"))
+            assert Path(summary["storage"]["workspace_root"]).resolve() == workspace.resolve()
+    if requested_root == "conflicting":
+        assert before == {path.relative_to(session): path.read_bytes() for path in session.rglob("*") if path.is_file()}
+        assert not any(different.iterdir())
+    else:
+        packet = json.loads((session / "runtime-input-packet.json").read_text(encoding="utf-8"))
+        assert Path(packet["storage"]["workspace_root"]).resolve() == workspace.resolve()
+        assert (workspace / "outputs/handoff-result.md").is_file()
+        assert not any(different.iterdir())

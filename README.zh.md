@@ -54,7 +54,9 @@
 
 为了评估在生产环境中面对大量已安装Skills的场景下的性能，我们将SkillsBench改造成更接近生产环境的大量Skills共存测试（把SkillsBench 从每题只提供配套的Skill专业，改造成每题都配套全局195个专业Skill环境下测试，其余条件保持不变），用来评估 Agent 能否从众多已安装 Skills 中自主发现、选择并组织相关能力，形成有效工作流完成复杂任务。
 
-vibeskills的4.1.0版本在Skillsbench (https://www.skillsbench.ai/) 上使用DeepSeekV4Flash-VE和Openhands进行基线测试。相比未使用vibeskills组的情况，vibeskills将平均任务得分提升21.12%，同时将Token消耗降低29.6%、工具调用减少33.1%。
+vibeskills的4.1.0版本在Skillsbench (https://www.skillsbench.ai/) 上使用DeepSeekV4Flash-VE和Openhands进行基线测试。相比未使用vibeskills组的情况，vibeskills将平均 Verifier Reward 提升 21.12 个百分点，同时将Token消耗降低29.6%、工具调用减少33.1%。
+
+<p align="center"><sub>分析范围：82 项得分配对任务 · 81 项资源配对任务 · 研究：<code>full-skills-comparison</code> · 公开研究提交：<code>ef907ebf8370</code> · <a href="./config/benchmark-results.json">机器可读结果与来源</a></sub></p>
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">

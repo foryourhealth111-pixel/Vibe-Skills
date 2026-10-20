@@ -53,8 +53,10 @@
 
 To evaluate performance in production-like environments where a large number of Skills are installed simultaneously, we adapted SkillsBench into a more realistic **large-scale multi-Skill setting**. In the original SkillsBench setup, each task is provided only with the specialized Skill associated with that task. In our modified setting, every task is evaluated in a global environment containing all **195 specialized Skills**, while all other experimental conditions remain unchanged. This setting is intended to assess whether an agent can autonomously discover, select, and orchestrate the relevant Skills from a large installed Skill pool, and organize them into an effective workflow for completing complex tasks.
 
-**vibeskills v4.1.0** was benchmarked on **SkillsBench** (https://www.skillsbench.ai/) using **DeepSeekV4Flash-VE** and **OpenHands** as the baseline evaluation setup. Compared with the baseline without vibeskills, vibeskills increased the **average task score by 21.12%**, while reducing **token consumption by 29.6%** and **tool calls by 33.1%**.
+**vibeskills v4.1.0** was benchmarked on **SkillsBench** (https://www.skillsbench.ai/) using **DeepSeekV4Flash-VE** and **OpenHands** as the baseline evaluation setup. Compared with the baseline without vibeskills, vibeskills increased the **mean verifier reward by 21.12 percentage points**, while reducing **token consumption by 29.6%** and **tool calls by 33.1%**.
 
+
+<p align="center"><sub>Analysis: 82 paired reward tasks · 81 paired resource tasks · Study: <code>full-skills-comparison</code> · Publication commit: <code>ef907ebf8370</code> · <a href="./config/benchmark-results.json">Machine-readable results and provenance</a></sub></p>
 
 <p align="center">
   <a href="https://github.com/foryourhealth111-pixel/vibeskills-benchmark/tree/main/studies/full-skills-comparison">

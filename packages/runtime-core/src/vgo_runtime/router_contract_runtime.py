@@ -1864,7 +1864,7 @@ def route_prompt(
         target_root=resolved_target_root,
         workspace_root=workspace_root,
     )
-    catalog = build_skill_catalog(agent_root=resolved_target_root, host_roots=host_roots)
+    catalog = build_skill_catalog(agent_root=resolved_target_root, host_roots=host_roots, host_id=normalized_host_id)
     index = build_skill_index_from_catalog(catalog)
     routing_prompt = _augment_prompt_for_local_routing(prompt, task_type)
     prompt_lower = normalize_text(routing_prompt)

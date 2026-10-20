@@ -155,3 +155,46 @@ def test_module_result_admission_allows_module_failure_after_an_earlier_passing_
     submitted["modules"][0]["state"] = "failed"
     submitted["modules"][0]["criterion_results"][0]["state"] = "failing"
     validate_agent_module_execution(**tdd_submission)
+
+
+@pytest.mark.parametrize("requested", ["omitted", "same"])
+def test_result_workspace_uses_frozen_identity(tmp_path: Path, requested: str) -> None:
+    from vgo_contracts import module_execution_contract as contract
+
+    frozen = tmp_path / "workspace"
+    packet = {"storage": {"workspace_root": str(frozen)}}
+    actual = contract.resolve_execution_workspace(
+        packet, requested_workspace_root=frozen if requested == "same" else None,
+        fallback_workspace_root=tmp_path / "artifact-root",
+    )
+    assert actual == frozen.resolve()
+
+
+def test_result_workspace_rejects_conflicting_identity(tmp_path: Path) -> None:
+    from vgo_contracts import module_execution_contract as contract
+
+    with pytest.raises(RuntimeError, match="workspace.*frozen"):
+        contract.resolve_execution_workspace(
+            {"storage": {"workspace_root": str(tmp_path / "source")}},
+            requested_workspace_root=tmp_path / "different",
+            fallback_workspace_root=tmp_path,
+        )
+
+
+def test_result_workspace_keeps_legacy_fallback(tmp_path: Path) -> None:
+    from vgo_contracts import module_execution_contract as contract
+
+    assert contract.resolve_execution_workspace(
+        {}, requested_workspace_root=None, fallback_workspace_root=tmp_path,
+    ) == tmp_path.resolve()
+
+
+@pytest.mark.parametrize("storage", [[], "invalid", {"workspace_root": "relative"}, {"workspace_root": 1}])
+def test_result_workspace_rejects_malformed_frozen_storage(tmp_path: Path, storage: object) -> None:
+    from vgo_contracts import module_execution_contract as contract
+
+    with pytest.raises((RuntimeError, ValueError), match="storage|workspace"):
+        contract.resolve_execution_workspace(
+            {"storage": storage}, requested_workspace_root=None,
+            fallback_workspace_root=tmp_path,
+        )
