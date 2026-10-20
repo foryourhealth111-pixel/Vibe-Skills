@@ -95,3 +95,63 @@ def test_tdd_admission_rejects_conflicting_aliases(tdd_submission) -> None:
     tdd_submission["submitted"]["tdd_evidence"]["status"] = "failed"
     with pytest.raises(RuntimeError, match="state and status fields conflict"):
         validate_agent_module_execution(**tdd_submission)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("result_summary", 42),
+    ("result_summary", {"error": "No result was produced"}),
+    ("result_summary", None),
+    ("evidence_paths", "result.md"),
+    ("evidence_paths", [None]),
+    ("evidence_paths", [""]),
+    ("verification_results", "checks failed"),
+    ("verification_results", {}),
+    ("verification_results", [None]),
+])
+def test_module_result_admission_rejects_invalid_field_types(tdd_submission, field, value) -> None:
+    tdd_submission["submitted"]["units"][0][field] = value
+    with pytest.raises(RuntimeError, match=field):
+        validate_agent_module_execution(**tdd_submission)
+
+
+@pytest.mark.parametrize("state", ["failing", "blocked"])
+def test_module_result_admission_rejects_checks_conflicting_with_passing_criterion(tdd_submission, state) -> None:
+    tdd_submission["submitted"]["units"][0]["verification_results"] = [
+        {"criterion_id": "tested", "state": state},
+    ]
+    with pytest.raises(RuntimeError, match="conflicts with passing module criterion"):
+        validate_agent_module_execution(**tdd_submission)
+
+
+@pytest.mark.parametrize("checks", [
+    [{"criterion_id": "tested"}],
+    [{"criterion_id": "tested", "state": "passed"}],
+    [{"criterion_id": "unknown", "state": "passing"}],
+    [{"criterion_id": "tested", "state": "passing"}] * 2,
+])
+def test_module_result_admission_rejects_invalid_verification_records(tdd_submission, checks) -> None:
+    tdd_submission["submitted"]["units"][0]["verification_results"] = checks
+    with pytest.raises(RuntimeError, match="verification"):
+        validate_agent_module_execution(**tdd_submission)
+
+
+@pytest.mark.parametrize("state,criterion_state", [
+    ("completed", "passing"), ("failed", "failing"), ("blocked", "blocked"),
+])
+def test_module_result_admission_preserves_consistent_terminal_results(tdd_submission, state, criterion_state) -> None:
+    submitted = tdd_submission["submitted"]
+    submitted["units"][0].update({
+        "state": state,
+        "verification_results": [{"criterion_id": "tested", "state": criterion_state}],
+    })
+    submitted["modules"][0]["state"] = state
+    submitted["modules"][0]["criterion_results"][0]["state"] = criterion_state
+    validate_agent_module_execution(**tdd_submission)
+
+
+def test_module_result_admission_allows_module_failure_after_an_earlier_passing_check(tdd_submission) -> None:
+    submitted = tdd_submission["submitted"]
+    submitted["units"][0]["verification_results"] = [{"criterion_id": "tested", "state": "passing"}]
+    submitted["modules"][0]["state"] = "failed"
+    submitted["modules"][0]["criterion_results"][0]["state"] = "failing"
+    validate_agent_module_execution(**tdd_submission)

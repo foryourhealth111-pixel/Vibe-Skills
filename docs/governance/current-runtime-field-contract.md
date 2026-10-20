@@ -317,6 +317,28 @@ snapshot is validated before it is published to the session. Module `required` b
 must be JSON booleans matching the approved plan; delivery acceptance checks
 this type and binding independently.
 
+Unit `result_summary` values must be strings, and completed units require a
+nonempty summary. `evidence_paths` must be arrays of nonempty strings;
+`verification_results` must be arrays of objects. Each recorded verification
+references a unique criterion in its module and uses `passing`, `failing`, or
+`blocked`. A failing or blocked unit observation prevents that same module
+criterion from passing. A later module failure may retain an earlier passing
+unit observation. Empty verification arrays remain supported when the module
+criterion results carry the checks. Admission rejects invalid records before
+publication, and delivery acceptance applies the same field and conflict rules
+independently.
+
+Runtime manifests use a Git commit revision only after a successful revision
+lookup explicitly bound to the runtime directory's `.git` metadata. Invalid
+metadata cannot redirect discovery to an enclosing repository. Repository-local
+Git environment variables are excluded from that child process; the caller's
+environment stays intact. An installed copy cannot inherit an enclosing
+project's commit. A receipt-owned installed runtime retains
+its root when an enclosing governed Git checkout is also present. An unavailable
+or unborn repository uses the existing `VGO_COMMIT_SHA` fallback, then `unknown`;
+failed Git stdout cannot
+supply a commit identity.
+
 A passing artifact-review declaration requires its own current readable evidence
 files. The declaration source is recorded for traceability and does not satisfy
 the evidence requirement. Missing files, directories, malformed path lists and
@@ -328,6 +350,7 @@ Skill provenance records `content_sha256` for the descriptor and
 additions and deletions of scripts, templates, rules and references invalidate
 completed-work reuse. Interpreter bytecode and generated tool cache directories
 are excluded. Python virtual environment directories (`.venv`, `venv`, `.env`,
-`env`, or any directory containing `pyvenv.cfg`) are pruned before traversal.
+`env`, or any directory containing `pyvenv.cfg`) are pruned before resource
+containment checks and traversal, including directory links to shared environments.
 Legacy checkpoints without a resource fingerprint are recomputed before reuse.
 Contained resource links are fingerprinted with their resolved targets. External and cyclic resources produce explicit scanner diagnostics.

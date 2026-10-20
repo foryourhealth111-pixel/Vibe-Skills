@@ -1534,3 +1534,62 @@ def test_valid_external_result_with_legacy_tdd_state(
     cleanup = json.loads((session / "cleanup-receipt.json").read_text(encoding="utf-8"))
     assert report["summary"]["completion_language_allowed"] is True
     assert cleanup["cleanup_admitted"] is True
+
+
+@pytest.mark.parametrize("entry", ["python", "powershell"])
+@pytest.mark.parametrize("defect", ["summary", "verification_shape", "verification_conflict"])
+def test_invalid_unit_result_is_rejected_before_publication_and_allows_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entry: str, defect: str,
+) -> None:
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch)
+    session = handoff_stop.session_root
+    result_path, accepted = _write_agent_module_execution(
+        handoff_stop, state="completed", result_summary="Produced the approved output.",
+    )
+    malformed = json.loads(json.dumps(accepted))
+    unit = malformed["units"][0]
+    if defect == "summary":
+        unit["result_summary"] = {"error": "Unstructured result"}
+        expected_error = "result_summary"
+    elif defect == "verification_shape":
+        unit["verification_results"] = "checks failed"
+        expected_error = "verification_results"
+    else:
+        unit["verification_results"][0]["state"] = "failing"
+        expected_error = "conflicts with passing module criterion"
+    external = tmp_path / "invalid-unit-result.json"
+    external.write_text(json.dumps(malformed), encoding="utf-8")
+    preserved = {
+        name: (session / name).read_bytes()
+        for name in ("module-execution.json", "module-work-plan.json", "execution-manifest.json",
+                     "stage-lineage.json", "agent-execution-handoff.json")
+    }
+    if entry == "python":
+        with pytest.raises(RuntimeError, match=expected_error):
+            canonical_entry.launch_canonical_vibe(
+                repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return module results.",
+                artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+                module_execution_json_file=external,
+            )
+    else:
+        rejected = _submit_direct_external_result(tmp_path, handoff_stop, external)
+        assert rejected.returncode != 0
+        assert expected_error in rejected.stdout + rejected.stderr
+    assert preserved == {name: (session / name).read_bytes() for name in preserved}
+    assert not (session / "cleanup-receipt.json").exists()
+    assert not list(session.glob(".module-execution.*.tmp"))
+
+    external.write_text(json.dumps(accepted), encoding="utf-8")
+    if entry == "python":
+        canonical_entry.launch_canonical_vibe(
+            repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Return corrected module results.",
+            artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+            module_execution_json_file=external,
+        )
+    else:
+        corrected = _submit_direct_external_result(tmp_path, handoff_stop, external)
+        assert corrected.returncode == 0, corrected.stdout + corrected.stderr
+    assert json.loads(result_path.read_text(encoding="utf-8")) == accepted
+    assert (session / "module-work-plan.json").read_bytes() == preserved["module-work-plan.json"]
+    report = json.loads((session / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["completion_language_allowed"] is True

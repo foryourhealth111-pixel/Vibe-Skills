@@ -239,18 +239,31 @@ def _write_primary_document(
 
 
 def _git_commit_sha(repo_root: Path) -> str:
+    fallback = str(os.environ.get("VGO_COMMIT_SHA") or "unknown").strip() or "unknown"
     try:
+        if not (repo_root / ".git").exists():
+            return fallback
+        git_environment = os.environ.copy()
+        for name in (
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS",
+            "GIT_CONFIG_COUNT", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE",
+            "GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE", "GIT_INDEX_FILE",
+            "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX",
+            "GIT_SHALLOW_FILE", "GIT_COMMON_DIR", "GIT_NAMESPACE",
+        ):
+            git_environment.pop(name, None)
         completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+            ["git", "--git-dir=.git", "rev-parse", "--verify", "HEAD^{commit}"],
             cwd=repo_root,
+            env=git_environment,
             capture_output=True,
             text=True,
             check=True,
             timeout=10,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
-        return str(os.environ.get("VGO_COMMIT_SHA") or "unknown").strip() or "unknown"
-    return completed.stdout.strip() or "unknown"
+        return fallback
+    return completed.stdout.strip() or fallback
 
 
 def execution_environment(*, repo_root: Path, host_id: str | None = None) -> dict[str, str]:

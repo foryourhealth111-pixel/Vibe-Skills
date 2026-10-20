@@ -157,6 +157,10 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 ],
             }
         if module_execution is not None:
+            for unit in module_execution.get("units", []):
+                unit.setdefault("result_summary", "")
+                unit.setdefault("evidence_paths", [])
+                unit.setdefault("verification_results", [])
             if module_execution_tdd_evidence is not None:
                 module_execution["tdd_evidence"] = module_execution_tdd_evidence
             module_work_plan_path = session_root / "module-work-plan.json"
@@ -214,6 +218,35 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
         write_json(session_root / "phase-execute.json", phase_execute_payload)
         write_json(session_root / "cleanup-receipt.json", {"cleanup_mode": "bounded_cleanup_executed"})
         return session_root
+
+    def test_module_unit_result_fields_are_validated_independently(self) -> None:
+        for field, value in (
+            ("result_summary", 42), ("result_summary", {"error": "No result"}),
+            ("verification_results", "checks failed"), ("verification_results", [None]),
+            ("verification_results", [{"criterion_id": "delivery-result", "state": "passed"}]),
+        ):
+            with self.subTest(field=field, value=value):
+                session = self._build_session()
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["units"][0][field] = value
+                write_json(result_path, payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+                self.assertEqual("failing", report["truth_results"]["module_acceptance_truth"]["state"])
+
+    def test_unit_verification_cannot_be_overridden_by_a_passing_module_criterion(self) -> None:
+        for state in ("failing", "blocked"):
+            with self.subTest(state=state):
+                session = self._build_session()
+                result_path = session / "module-execution.json"
+                payload = json.loads(result_path.read_text(encoding="utf-8"))
+                payload["units"][0]["verification_results"] = [{"criterion_id": "delivery-result", "state": state}]
+                write_json(result_path, payload)
+                report = evaluate(REPO_ROOT, session)
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+                self.assertEqual("failing", report["truth_results"]["module_acceptance_truth"]["state"])
+
 
     def test_delivery_acceptance_passes_for_clean_root_run(self) -> None:
         session_root = self._build_session()

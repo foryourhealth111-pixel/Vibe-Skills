@@ -113,11 +113,13 @@ function Resolve-VgoRepoRoot {
         throw "Unable to resolve VCO repo root from: $StartPath"
     }
 
-    $gitCandidates = @($candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ '.git') })
-    if ($gitCandidates.Count -gt 0) {
-        # Prefer the nearest governed git root so runtime entrypoints executed from
-        # worktrees resolve to the active governed tree rather than the outer source repo.
-        return [System.IO.Path]::GetFullPath($gitCandidates[0])
+    $runtimeCandidates = @($candidates | Where-Object {
+        (Test-Path -LiteralPath (Join-Path $_ '.git')) -or
+        (Test-VgoInstalledRuntimeMaterialization -RepoRoot $_)
+    })
+    if ($runtimeCandidates.Count -gt 0) {
+        # The nearest checkout or receipt-owned install keeps its runtime identity.
+        return [System.IO.Path]::GetFullPath($runtimeCandidates[0])
     }
 
     # In installed-host layouts the outer target root may also carry a config directory.

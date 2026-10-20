@@ -25,7 +25,10 @@ from .runtime_delivery_acceptance_support import (
     utc_now,
 )
 
-from vgo_contracts.module_execution_contract import module_required_binding_notes
+from vgo_contracts.module_execution_contract import (
+    module_required_binding_notes,
+    module_unit_result_notes,
+)
 
 
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
@@ -688,6 +691,14 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             module_acceptance_notes.append(
                 "Optional modules did not complete: " + ", ".join(optional_modules_not_completed) + "."
             )
+
+        for unit in module_unit_records:
+            result_notes = module_unit_result_notes(
+                unit, execution_module_by_id.get(str(unit.get("module_id") or ""), {}),
+            )
+            if result_notes:
+                module_acceptance_state = "failing"
+                module_acceptance_notes.extend(result_notes)
 
     completed_module_work: list[dict[str, str]] = []
     for unit_id, planned_unit in planned_work_unit_by_id.items():
