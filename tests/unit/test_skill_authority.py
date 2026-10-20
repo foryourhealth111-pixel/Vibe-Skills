@@ -262,7 +262,7 @@ def test_candidate_audit_rejects_sources_outside_canonical_admission(source_envi
     assert result.get("candidate_focus") is None or result["candidate_focus"]["authority"]["eligible"] is False
 
 
-@pytest.mark.parametrize("host_id,expected", [("claude-code", True), ("codex", False)])
+@pytest.mark.parametrize("host_id,expected", [("claude-code", True), ("claude", True), (" CLAUDE ", True), ("codex", False)])
 def test_directory_name_default_is_scoped_to_claude_sources(source_environment, host_id: str, expected: bool) -> None:
     home, target, workspace = source_environment
     skill = _skill(target / "skills")

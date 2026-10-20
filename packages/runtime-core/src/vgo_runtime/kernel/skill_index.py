@@ -10,6 +10,8 @@ import re
 import tempfile
 from typing import Any
 
+from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
+
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
 from .codex_plugins import resolve_codex_plugin_roots
 from .host_skill_roots import resolve_host_skill_roots
@@ -807,6 +809,8 @@ def _unique_ordered(values: list[str]) -> list[str]:
 
 def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
     """Read source facts without creating runtime directories or capability cards."""
+    if str(host_id or "").strip():
+        host_id = normalize_adapter_host_id(host_id, load_adapter_registry(Path(__file__)))
     vibe_root = _vibe_root(agent_root)
     source_specs = _build_source_specs(vibe_root, host_roots)
     entries: list[dict[str, object]] = []

@@ -365,6 +365,9 @@ Contained resource links are fingerprinted with their resolved targets. External
 
 ## Host Skill Metadata And Authority Requests
 
+Adapter-registry aliases such as `claude` resolve to `claude-code` before
+root discovery and installed manifest profile selection.
+
 Installed Claude Code sources may omit frontmatter `name`; the descriptor's
 parent directory supplies that default. Explicit name values still require a
 nonempty string. Other source profiles retain their existing required-name
