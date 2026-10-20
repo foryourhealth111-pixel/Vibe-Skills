@@ -261,7 +261,7 @@ def test_custom_skills_dir_discovers_plugin_cache_under_actual_user_home(
     assert roots[1].path == cache.resolve()
 
 
-@pytest.mark.parametrize("host_id, default_root", [("codex", ".codex/skills"), ("claude-code", ".claude/skills")])
+@pytest.mark.parametrize("host_id, default_root", [("codex", ".codex/skills"), ("claude-code", ".claude/skills"), ("claude", ".claude/skills"), (" CLAUDE ", ".claude/skills")])
 def test_existing_host_default_roots_follow_the_explicit_skills_directory(
     tmp_path: Path, host_id: str, default_root: str,
 ) -> None:
@@ -275,3 +275,19 @@ def test_existing_host_default_roots_follow_the_explicit_skills_directory(
     )
     assert [root.path for root in roots] == [explicit.resolve(), secondary.resolve()]
     assert roots[1].root_key == "host_default"
+    expected_host_id = "codex" if host_id == "codex" else "claude-code"
+    assert all(root.host_id == expected_host_id for root in roots)
+
+
+@pytest.mark.parametrize("host_id", ["", "   ", "other-host"])
+def test_host_alias_normalization_preserves_required_and_unknown_host_contracts(tmp_path: Path, host_id: str) -> None:
+    explicit = tmp_path / "home/.agents/skills"
+    (tmp_path / "home/.codex/skills").mkdir(parents=True)
+    arguments = dict(repo_root=REPO_ROOT, host_id=host_id, agent_root=explicit, workspace_root=None)
+    if not host_id.strip():
+        with pytest.raises(ValueError, match="Host id is required"):
+            resolve_host_skill_roots(**arguments)
+    else:
+        roots = resolve_host_skill_roots(**arguments)
+        assert [root.path for root in roots] == [explicit.resolve()]
+        assert roots[0].host_id == host_id

@@ -113,16 +113,19 @@ function Get-VibeSkillMetadata {
         [AllowEmptyString()] [string]$SkillEntrypoint = '',
         [AllowEmptyString()] [string]$TargetRoot = '',
         [AllowEmptyString()] [string]$HostId = '',
-        [AllowEmptyString()] [string]$WorkspaceRoot = ''
+        [AllowEmptyString()] [string]$WorkspaceRoot = '',
+        [AllowNull()] [object]$Authority = $null
     )
 
-    $authority = Resolve-VibeLocalSkillAuthority `
-        -RepoRoot $RepoRoot `
-        -SkillId $SkillId `
-        -SkillEntrypoint $SkillEntrypoint `
-        -TargetRoot $TargetRoot `
-        -HostId $HostId `
-        -WorkspaceRoot $WorkspaceRoot
+    if ($null -eq $Authority) {
+        $authority = Resolve-VibeLocalSkillAuthority `
+            -RepoRoot $RepoRoot `
+            -SkillId $SkillId `
+            -SkillEntrypoint $SkillEntrypoint `
+            -TargetRoot $TargetRoot `
+            -HostId $HostId `
+            -WorkspaceRoot $WorkspaceRoot
+    }
     if (-not [bool]$authority.valid) {
         return [pscustomobject]@{
             skill_id = $SkillId
@@ -445,7 +448,21 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
     $dispatchContractForRecommendation | Add-Member -NotePropertyName policy -NotePropertyValue $Policy -Force
 
     $recommendations = New-Object System.Collections.Generic.List[object]
-    foreach ($selectedSkill in @($AgentSkillOrganization.selected_skills)) {
+    $selectedSkills = @(@($AgentSkillOrganization.selected_skills) | Where-Object {
+        -not [string]::IsNullOrWhiteSpace([string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_id' -DefaultValue ''))
+    })
+    if ($selectedSkills.Count -eq 0) { return @() }
+    $requests = @($selectedSkills | ForEach-Object {
+        [pscustomobject]@{
+            skill_id = [string]$_.skill_id
+            skill_entrypoint = [string](Get-VibePropertySafe -InputObject $_ -PropertyName 'skill_entrypoint' -DefaultValue '')
+        }
+    })
+    $authorities = @(Resolve-VibeLocalSkillAuthorities `
+        -RepoRoot $RepoRoot -Requests $requests -TargetRoot $TargetRoot `
+        -HostId $HostId -WorkspaceRoot $WorkspaceRoot)
+    for ($index = 0; $index -lt $selectedSkills.Count; $index++) {
+        $selectedSkill = $selectedSkills[$index]
         $skillId = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_id' -DefaultValue '')
         if ([string]::IsNullOrWhiteSpace($skillId)) {
             continue
@@ -455,7 +472,7 @@ function New-VibeRecommendationsFromAgentSkillOrganization {
         }
         $frozenEntrypoint = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'skill_entrypoint' -DefaultValue '')
         $frozenDigest = [string](Get-VibePropertySafe -InputObject $selectedSkill -PropertyName 'content_sha256' -DefaultValue '')
-        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -SkillEntrypoint $frozenEntrypoint -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot
+        $metadata = Get-VibeSkillMetadata -RepoRoot $RepoRoot -SkillId $skillId -SkillEntrypoint $frozenEntrypoint -TargetRoot $TargetRoot -HostId $HostId -WorkspaceRoot $WorkspaceRoot -Authority $authorities[$index]
         if (-not [bool]$metadata.authority_valid) {
             throw ('agent_skill_organization selected skill `{0}` is not available from the declared local skill roots: {1}' -f $skillId, [string]$metadata.authority_reason)
         }

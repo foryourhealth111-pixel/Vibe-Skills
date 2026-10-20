@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "study_id": "full-skills-comparison",
+  "publication": {
+    "repository": "https://github.com/foryourhealth111-pixel/vibeskills-benchmark",
+    "commit": "ef907ebf8370807794371ba445dd22611a00d92e",
+    "path": "studies/full-skills-comparison/PUBLICATION.json"
+  },
+  "benchmark": {
+    "name": "SkillsBench",
+    "version": "1.1",
+    "catalog_tasks": 87,
+    "source_commit": "b63b7b2850226b6aa4fb5929a8c1ac7bc4d9a6af",
+    "task_skill_instances": 232,
+    "global_skill_names": 195,
+    "global_skill_tree_sha256": "cf36470ac20e0b2ff1cf55e592892a787ce686b0754034da3d949a83be576464"
+  },
+  "analysis": {
+    "paired_reward_tasks": 82,
+    "paired_resource_tasks": 81,
+    "bootstrap_seed": 20260829,
+    "bootstrap_draws": 50000
+  },
+  "headline_results": {
+    "native_mean_reward": 0.5028414634146342,
+    "lean_vibe_mean_reward": 0.7140243902439024,
+    "mean_reward_difference": 0.21118292682926829,
+    "mean_reward_difference_ci_95": [
+      0.10142682926829269,
+      0.3225609756097561
+    ],
+    "native_full_score_tasks": 39,
+    "lean_vibe_full_score_tasks": 57,
+    "native_total_tokens": 491121515,
+    "lean_vibe_total_tokens": 345756095,
+    "token_reduction": 0.29598666635486337,
+    "native_tool_calls": 9954,
+    "lean_vibe_tool_calls": 6664,
+    "tool_call_reduction": 0.3305203938115331
+  }
+}

@@ -414,15 +414,23 @@ $artifactBaseRoot = if (-not $workspaceRootWasProvided -and $artifactRootWasProv
         -ArtifactRoot $ArtifactRoot
 }
 $ArtifactRoot = $artifactBaseRoot
+$Mode = Resolve-VibeRuntimeMode -Mode $Mode -DefaultMode ([string]$runtime.runtime_modes.default_mode)
+if ([string]::IsNullOrWhiteSpace($RunId)) {
+    $RunId = New-VibeRunId
+}
+if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
+    $sourceSessionRoot = Get-VibeSessionRoot -RepoRoot $runtime.repo_root -RunId $RunId -Runtime $runtime -ArtifactRoot $artifactBaseRoot
+    $requestedWorkspace = if ($workspaceRootWasProvided) { $resolvedWorkspaceRoot } else { '' }
+    $resolvedWorkspaceRoot = Resolve-VibeResultWorkspaceRoot `
+        -RepoRoot $runtime.repo_root -SessionRoot $sourceSessionRoot -RunId $RunId `
+        -FallbackWorkspaceRoot $resolvedWorkspaceRoot -RequestedWorkspaceRoot $requestedWorkspace
+    $runtime | Add-Member -NotePropertyName workspace_root -NotePropertyValue $resolvedWorkspaceRoot -Force
+}
 if ($workspaceRootWasProvided -or $artifactRootWasProvided) {
     Initialize-VibeWorkspaceProjectDescriptor `
         -RepoRoot $runtime.repo_root `
         -WorkspaceRoot $resolvedWorkspaceRoot `
         -Runtime $runtime | Out-Null
-}
-$Mode = Resolve-VibeRuntimeMode -Mode $Mode -DefaultMode ([string]$runtime.runtime_modes.default_mode)
-if ([string]::IsNullOrWhiteSpace($RunId)) {
-    $RunId = New-VibeRunId
 }
 if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
     if ($RequestedStageStop -ne 'phase_cleanup') {

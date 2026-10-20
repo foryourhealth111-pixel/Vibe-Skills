@@ -2972,6 +2972,42 @@ function Get-VibeLiveGovernanceContract {
     }
 }
 
+function Resolve-VibeResultWorkspaceRoot {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [string]$SessionRoot,
+        [Parameter(Mandatory)] [string]$RunId,
+        [Parameter(Mandatory)] [string]$FallbackWorkspaceRoot,
+        [AllowEmptyString()] [string]$RequestedWorkspaceRoot = ''
+    )
+
+    $commandSpec = Get-VgoPythonCommand
+    $arguments = @($commandSpec.prefix_arguments) + @(
+        '-m', 'vgo_contracts.module_execution_contract',
+        '--session-root', $SessionRoot, '--source-run-id', $RunId,
+        '--resolve-workspace-only', '--fallback-workspace-root', $FallbackWorkspaceRoot
+    )
+    if (-not [string]::IsNullOrWhiteSpace($RequestedWorkspaceRoot)) {
+        $arguments += @('--workspace-root', $RequestedWorkspaceRoot)
+    }
+    $previousPythonPath = $env:PYTHONPATH
+    try {
+        $contractsSrc = Join-Path $RepoRoot 'packages/contracts/src'
+        $env:PYTHONPATH = (@($contractsSrc, $previousPythonPath) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [System.IO.Path]::PathSeparator
+        $output = @(& $commandSpec.host_path @arguments 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw ('Agent result workspace validation failed: {0}' -f ($output -join [Environment]::NewLine))
+        }
+        return [string](($output -join [Environment]::NewLine) | ConvertFrom-Json).workspace_root
+    } finally {
+        if ([string]::IsNullOrWhiteSpace($previousPythonPath)) {
+            Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+        } else {
+            $env:PYTHONPATH = $previousPythonPath
+        }
+    }
+}
+
 function Resolve-VibeContractWorkspaceRoot {
     param(
         [Parameter(Mandatory)] [string]$RepoRoot,

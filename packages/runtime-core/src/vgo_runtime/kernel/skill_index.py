@@ -10,6 +10,8 @@ import re
 import tempfile
 from typing import Any
 
+from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
+
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
 from .codex_plugins import resolve_codex_plugin_roots
 from .host_skill_roots import resolve_host_skill_roots
@@ -197,10 +199,13 @@ def _invalid_entry(skill_id: str, source_spec: dict[str, object], reason: str, *
     return payload
 
 
-def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object]) -> dict[str, object]:
+def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object], host_id: str | None = None) -> dict[str, object]:
     source_bytes = skill_file.read_bytes()
     source_lines = tuple(source_bytes.decode("utf-8-sig").splitlines())
-    manifest = parse_installed_skill_manifest(skill_file, skill_id=skill_dir.name, source_bytes=source_bytes)
+    manifest = parse_installed_skill_manifest(
+        skill_file, skill_id=skill_dir.name, source_bytes=source_bytes,
+        host_id=host_id if source_spec["source_kind"] == HOST_INSTALLED_SOURCE_KIND else None,
+    )
     root_dir = _relative_to_source(Path(manifest.root_dir), source_spec)
     skill_file_value = _relative_to_source(Path(manifest.skill_file), source_spec)
     route_evidence_chunks = _build_route_evidence_chunks(manifest, source_lines)
@@ -456,6 +461,8 @@ def _build_capability_evidence(
 
 
 def _manifest_is_explicit_only(manifest: object, source_lines: tuple[str, ...]) -> bool:
+    if getattr(manifest, "disable_model_invocation", False):
+        return True
     text_parts: list[str] = []
     description = str(getattr(manifest, "description") or "").strip()
     if description:
@@ -690,7 +697,7 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
     }
 
 
-def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None = None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     entries: list[dict[str, object]] = []
     diagnostics: list[dict[str, object]] = []
     skill_dirs = _discover_skill_dirs_for_source(source_spec)
@@ -740,7 +747,7 @@ def _load_source_entries(source_spec: dict[str, object]) -> tuple[list[dict[str,
             diagnostics.append(_invalid_entry(skill_id, source_spec, "skill_outside_declared_root", path=skill_file))
             continue
         try:
-            entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec))
+            entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec, host_id=host_id))
         except SkillResourceError as exc:
             diagnostics.append(_invalid_entry(skill_id, source_spec, "invalid_skill_resources", path=skill_file, message=str(exc)))
         except OSError as exc:
@@ -800,15 +807,17 @@ def _unique_ordered(values: list[str]) -> list[str]:
     return ordered
 
 
-def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
+def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
     """Read source facts without creating runtime directories or capability cards."""
+    if str(host_id or "").strip():
+        host_id = normalize_adapter_host_id(host_id, load_adapter_registry(Path(__file__)))
     vibe_root = _vibe_root(agent_root)
     source_specs = _build_source_specs(vibe_root, host_roots)
     entries: list[dict[str, object]] = []
     invalid_entries: list[dict[str, object]] = []
 
     for source_spec in source_specs:
-        source_entries, source_invalid = _load_source_entries(source_spec)
+        source_entries, source_invalid = _load_source_entries(source_spec, host_id=host_id)
         entries.extend(source_entries)
         invalid_entries.extend(source_invalid)
 
@@ -855,8 +864,8 @@ def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -
     }
 
 
-def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
-    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots)
+def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
+    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=host_id)
     vibe_root = _ensure_runtime_dirs(agent_root)
     catalog["skill_cache"] = _build_skill_cache(vibe_root, catalog["entries"])
     return catalog
@@ -884,8 +893,8 @@ def build_skill_index_from_catalog(catalog: dict[str, object]) -> dict[str, obje
     return _build_skill_index_payload(catalog)
 
 
-def build_skill_index(agent_root: Path, *, host_roots: tuple[Path, ...] = ()) -> dict[str, object]:
-    catalog = build_skill_catalog(agent_root=agent_root, host_roots=host_roots)
+def build_skill_index(agent_root: Path, *, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
+    catalog = build_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=host_id)
     return build_skill_index_from_catalog(catalog)
 
 
@@ -945,7 +954,7 @@ def main(argv: list[str] | None = None) -> int:
                 workspace_root=workspace_root,
             )
         )
-    catalog = build_skill_catalog(agent_root=agent_root, host_roots=host_roots)
+    catalog = build_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=args.host_id)
     catalog_path = write_skill_catalog(agent_root, catalog)
     payload = build_skill_index_from_catalog(catalog)
     index_path = write_skill_index(agent_root, payload)

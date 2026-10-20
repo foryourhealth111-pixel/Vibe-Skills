@@ -8,7 +8,8 @@ function Get-VibeSkillAuthorityProjection {
         [AllowEmptyString()] [string]$WorkspaceRoot = '',
         [AllowEmptyString()] [string]$SkillId = '',
         [AllowEmptyString()] [string]$SkillEntrypoint = '',
-        [switch]$RequireProvidedEntrypoint
+        [switch]$RequireProvidedEntrypoint,
+        [AllowNull()] [object[]]$Requests = $null
     )
 
     $commandSpec = Get-VgoPythonCommand
@@ -29,11 +30,24 @@ function Get-VibeSkillAuthorityProjection {
         $arguments += @('--skill-entrypoint', $SkillEntrypoint)
     }
     if ($RequireProvidedEntrypoint) { $arguments += '--require-provided-entrypoint' }
-    $output = @(& $commandSpec.host_path @arguments 2>&1)
-    if ($LASTEXITCODE -ne 0) {
-        throw ('Local Skill authority failed: {0}' -f ($output -join "`n"))
+    $requestsPath = $null
+    try {
+        if ($PSBoundParameters.ContainsKey('Requests')) {
+            $requestsPath = Join-Path ([System.IO.Path]::GetTempPath()) ('vibe-skill-authorities-{0}.json' -f [guid]::NewGuid().ToString('N'))
+            $requestsJson = ConvertTo-Json -InputObject @($Requests) -Depth 10 -Compress
+            [System.IO.File]::WriteAllText($requestsPath, $requestsJson, [System.Text.UTF8Encoding]::new($false))
+            $arguments += @('--requests-json-file', $requestsPath)
+        }
+        $output = @(& $commandSpec.host_path @arguments 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw ('Local Skill authority failed: {0}' -f ($output -join "`n"))
+        }
+        return (($output -join "`n") | ConvertFrom-Json)
+    } finally {
+        if ($null -ne $requestsPath -and [System.IO.File]::Exists($requestsPath)) {
+            [System.IO.File]::Delete($requestsPath)
+        }
     }
-    return (($output -join "`n") | ConvertFrom-Json)
 }
 
 function Resolve-VibeLocalSkillAuthority {
@@ -56,6 +70,27 @@ function Resolve-VibeLocalSkillAuthority {
         -RepoRoot $RepoRoot -TargetRoot $resolvedTargetRoot -HostId $resolvedHostId `
         -WorkspaceRoot $WorkspaceRoot -SkillId $SkillId -SkillEntrypoint $SkillEntrypoint `
         -RequireProvidedEntrypoint:$RequireProvidedEntrypoint
+}
+
+function Resolve-VibeLocalSkillAuthorities {
+    param(
+        [Parameter(Mandatory)] [string]$RepoRoot,
+        [Parameter(Mandatory)] [object[]]$Requests,
+        [AllowEmptyString()] [string]$TargetRoot = '',
+        [AllowEmptyString()] [string]$HostId = '',
+        [AllowEmptyString()] [string]$WorkspaceRoot = ''
+    )
+
+    if ($Requests.Count -eq 0) { return @() }
+    $resolvedHostId = Resolve-VgoHostId -HostId $HostId
+    $resolvedTargetRoot = Resolve-VgoTargetRoot -TargetRoot $TargetRoot -HostId $resolvedHostId
+    $projection = Get-VibeSkillAuthorityProjection `
+        -RepoRoot $RepoRoot -TargetRoot $resolvedTargetRoot -HostId $resolvedHostId `
+        -WorkspaceRoot $WorkspaceRoot -Requests $Requests
+    if (@($projection.authorities).Count -ne $Requests.Count) {
+        throw 'Local Skill authority batch did not preserve request count.'
+    }
+    return [object[]]@($projection.authorities)
 }
 
 function Get-VibeSkillRoutingProperty {
@@ -266,19 +301,23 @@ function Convert-VibeModuleWorkPlanToDispatch {
         [AllowEmptyString()] [string]$WorkspaceRoot = ''
     )
 
-    return [object[]]@(@($ModuleWorkPlan.work_units) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.skill_id) } | ForEach-Object {
-        $unit = $_
+    $workUnits = @(@($ModuleWorkPlan.work_units) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.skill_id) })
+    if ($workUnits.Count -eq 0) { return @() }
+    $requests = @($workUnits | ForEach-Object {
+        [pscustomobject]@{
+            skill_id = [string]$_.skill_id
+            skill_entrypoint = [string](Get-VibeSkillRoutingProperty -InputObject $_ -PropertyName 'skill_entrypoint' -DefaultValue '')
+            require_provided_entrypoint = $true
+        }
+    })
+    $authorities = @(Resolve-VibeLocalSkillAuthorities `
+        -RepoRoot $RepoRoot -Requests $requests -TargetRoot $TargetRoot `
+        -HostId $HostId -WorkspaceRoot $WorkspaceRoot)
+    return [object[]]@(for ($index = 0; $index -lt $workUnits.Count; $index++) {
+        $unit = $workUnits[$index]
         $skillId = [string]$unit.skill_id
-        $frozenEntrypoint = [string](Get-VibeSkillRoutingProperty -InputObject $unit -PropertyName 'skill_entrypoint' -DefaultValue '')
         $frozenDigest = [string](Get-VibeSkillRoutingProperty -InputObject $unit -PropertyName 'content_sha256' -DefaultValue '')
-        $authority = Resolve-VibeLocalSkillAuthority `
-            -RepoRoot $RepoRoot `
-            -SkillId $skillId `
-            -SkillEntrypoint $frozenEntrypoint `
-            -RequireProvidedEntrypoint `
-            -TargetRoot $TargetRoot `
-            -HostId $HostId `
-            -WorkspaceRoot $WorkspaceRoot
+        $authority = $authorities[$index]
         if (-not [bool]$authority.valid) {
             throw ('module work unit `{0}` cannot load skill `{1}`: {2}' -f [string]$unit.unit_id, $skillId, [string]$authority.reason)
         }

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
+from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
+
 
 DEFAULT_SKILL_ROOTS = (
     "~/.agents/skills",
@@ -116,6 +118,7 @@ def resolve_host_skill_roots(
     normalized_host_id = _normalize_host_id(host_id)
     if not normalized_host_id:
         raise ValueError("Host id is required for skill root resolution")
+    normalized_host_id = normalize_adapter_host_id(normalized_host_id, load_adapter_registry(repo_root))
 
     home_root = _home_from_agent_root(agent_root)
     roots: list[HostSkillRoot] = []

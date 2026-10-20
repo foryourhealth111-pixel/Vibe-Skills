@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+
+import pytest
 import sys
 
 
@@ -2257,3 +2259,42 @@ def test_plugin_inventory_preserves_collisions_between_enabled_plugins(tmp_path:
     catalog = build_skill_catalog(agent_root=tmp_path / "agent", host_roots=(cache,))
     assert build_skill_index_from_catalog(catalog)["skills"] == []
     assert {row["reason"] for row in catalog["discovery_diagnostics"]["invalid_entries"]} == {"ambiguous_plugin_skill_id"}
+
+
+
+def test_manual_only_frontmatter_excludes_automatic_selection_but_allows_explicit_request(tmp_path: Path) -> None:
+    agent = tmp_path / "home/.claude"
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    _write_skill(agent / "skills", "manual-report", _frontmatter(
+        "manual-report", "Write a concise report from verified results.",
+        "disable-model-invocation: true",
+    ), "Write a concise report from verified results.")
+    arguments = dict(prompt="Write a concise report from verified results.", grade="L", task_type="docs", target_root=agent, host_id="claude-code", repo_root=REPO_ROOT, workspace_root=workspace)
+    automatic = route_prompt(**arguments)
+    assert automatic["route_reason"] != "auto_route"
+    explicit = route_prompt(**arguments, requested_skill="manual-report")
+    assert explicit["route_reason"] == "explicit_local_skill"
+    assert explicit["candidate_focus"]["skill"] == "manual-report"
+    assert explicit["candidates"][0]["explicit_only"] is True
+
+
+def test_claude_routing_accepts_directory_name_default(tmp_path: Path) -> None:
+    agent = tmp_path / "home/.claude"
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    _write_skill(agent / "skills", "report", "---\ndescription: Write a concise report from verified results.", "Write a concise report from verified results.")
+    route = route_prompt(prompt="Write a concise report from verified results.", grade="L", task_type="docs", target_root=agent, host_id="claude-code", repo_root=REPO_ROOT, workspace_root=workspace)
+    assert route["route_reason"] == "auto_route"
+    assert route["candidate_focus"]["skill"] == "report"
+
+
+@pytest.mark.parametrize("value", ['"true"', '"false"', "1", "[]"])
+def test_manual_invocation_policy_requires_a_boolean(tmp_path: Path, value: str) -> None:
+    agent = tmp_path / "home/.claude"
+    _write_skill(agent / "skills", "manual-report", _frontmatter(
+        "manual-report", "Write a report.", f"disable-model-invocation: {value}",
+    ))
+    catalog = build_skill_catalog(agent_root=agent, host_roots=(agent / "skills",), host_id="claude-code")
+    assert not catalog["entries"]
+    assert "must be a boolean" in catalog["discovery_diagnostics"]["invalid_entries"][0]["message"]
