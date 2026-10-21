@@ -319,6 +319,58 @@ class RouterAiConnectivityProbeTests(unittest.TestCase):
             [attempt["endpoint_kind"] for attempt in artifact["advice"]["attempts"]],
         )
 
+    def test_orcarouter_provider_defaults_to_orcarouter_endpoint(self) -> None:
+        policy = self._policy()
+        policy["provider"]["type"] = "orcarouter"
+        policy["provider"]["base_url"] = ""
+        policy["provider"]["base_url_env_candidates"] = []
+        policy["provider"]["api_key_env"] = ""
+        self._write_policy(policy)
+        self._write_settings({"ORCAROUTER_API_KEY": "sk-orca-test"})
+
+        seen_urls: list[str] = []
+
+        def transport(req: dict) -> dict:
+            seen_urls.append(req["url"])
+            return {
+                "ok": True,
+                "status_code": 200,
+                "error_kind": None,
+                "error": None,
+                "body_text": '{"choices":[{"message":{"content":"{\\"ok\\":true}"}}]}',
+                "json": {"choices": [{"message": {"content": '{"ok":true}'}}]},
+                "latency_ms": 6,
+            }
+
+        with mock.patch.dict(os.environ, {"ORCAROUTER_API_KEY": "sk-orca-test"}, clear=True):
+            artifact = self.module.evaluate(
+                self.root,
+                self.target_root,
+                probe_context=self.module.ProbeContext(prefix_detected=True),
+                transport=transport,
+            )
+
+        self.assertEqual("ok", artifact["summary"]["advice_status"])
+        self.assertTrue(any(url.startswith("https://api.orcarouter.ai/v1") for url in seen_urls))
+        self.assertEqual("ORCAROUTER_API_KEY", artifact["advice"].get("credential_env"))
+
+    def test_orcarouter_missing_credentials_abstains_offline(self) -> None:
+        policy = self._policy()
+        policy["provider"]["type"] = "orcarouter"
+        policy["provider"]["api_key_env"] = ""
+        self._write_policy(policy)
+        self._write_settings({})
+
+        with mock.patch.dict(os.environ, {}, clear=True):
+            artifact = self.module.evaluate(
+                self.root,
+                self.target_root,
+                probe_context=self.module.ProbeContext(prefix_detected=True),
+            )
+
+        self.assertEqual("missing_credentials", artifact["summary"]["advice_status"])
+        self.assertEqual("ORCAROUTER_API_KEY", artifact["advice"].get("credential_env"))
+
     def test_parse_error_is_classified(self) -> None:
         self._write_settings({"VCO_INTENT_ADVICE_API_KEY": "sk-test"})
 

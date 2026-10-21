@@ -6,6 +6,8 @@ from .router_ai_probe_support import (
     INTENT_ADVICE_API_KEY_ENV,
     INTENT_ADVICE_BASE_URL_ENV,
     INTENT_ADVICE_MODEL_ENV,
+    ORCAROUTER_API_KEY_ENV,
+    ORCAROUTER_BASE_URL,
     ProbeContext,
     TransportFn,
     anthropic_messages_base_url,
@@ -19,12 +21,17 @@ from .router_ai_probe_support import (
     resolve_first_value,
 )
 
+# OpenAI-compatible provider types the advice probe can drive directly.
+OPENAI_COMPATIBLE_PROVIDER_TYPES = {"openai", "openai-compatible", "orcarouter"}
+
 
 def provider_credential_env(provider_type: str, provider_cfg: dict[str, Any] | None = None) -> str:
     if isinstance(provider_cfg, dict):
         configured = non_empty(provider_cfg.get("api_key_env"))
         if configured:
             return configured
+    if provider_type.strip().lower() == "orcarouter":
+        return ORCAROUTER_API_KEY_ENV
     return INTENT_ADVICE_API_KEY_ENV
 
 
@@ -46,6 +53,8 @@ def resolve_advice_base_url(provider_type: str, provider_cfg: dict[str, Any], se
         INTENT_ADVICE_BASE_URL_ENV
     ]
     normalized = provider_type.strip().lower()
+    if normalized == "orcarouter":
+        return resolve_first_value(base_url_names, settings_values) or ORCAROUTER_BASE_URL
     if normalized in {"openai", "openai-compatible", "mock"}:
         return resolve_first_value(base_url_names, settings_values) or "https://api.openai.com/v1"
     return resolve_first_value(base_url_names, settings_values)
@@ -315,7 +324,7 @@ def probe_advice_connectivity(
             result["endpoint_used"] = endpoint_used
         return result
 
-    if provider_type_normalized not in {"openai", "openai-compatible"}:
+    if provider_type_normalized not in OPENAI_COMPATIBLE_PROVIDER_TYPES:
         return {
             "status": "provider_rejected_request",
             "provider_type": provider_type,

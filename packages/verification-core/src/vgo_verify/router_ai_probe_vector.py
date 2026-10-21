@@ -8,12 +8,17 @@ from .router_ai_probe_support import (
     VECTOR_DIFF_API_KEY_ENV,
     VECTOR_DIFF_BASE_URL_ENV,
     VECTOR_DIFF_MODEL_ENV,
+    ORCAROUTER_API_KEY_ENV,
+    ORCAROUTER_BASE_URL,
     extract_vectors,
     non_empty,
     openai_v1_base_url,
     resolve_env_value,
     resolve_first_value,
 )
+
+# OpenAI-compatible provider types the vector-diff probe can drive directly.
+OPENAI_COMPATIBLE_EMBEDDING_PROVIDER_TYPES = {"openai", "openai-compatible", "orcarouter"}
 
 
 def resolve_vector_base_url(provider_type: str, provider_cfg: dict[str, Any], settings_values: dict[str, str]) -> str | None:
@@ -27,6 +32,8 @@ def resolve_vector_base_url(provider_type: str, provider_cfg: dict[str, Any], se
     normalized = provider_type.strip().lower()
     if normalized in {"openai", "openai-compatible"}:
         return resolve_first_value(base_url_names, settings_values) or "https://api.openai.com/v1"
+    if normalized == "orcarouter":
+        return resolve_first_value(base_url_names, settings_values) or ORCAROUTER_BASE_URL
     return None
 
 
@@ -58,7 +65,10 @@ def probe_vector_diff(
             "attempts": [],
         }
 
-    credential_env = non_empty(provider_cfg.get("api_key_env")) or VECTOR_DIFF_API_KEY_ENV
+    if provider_type.strip().lower() == "orcarouter":
+        credential_env = non_empty(provider_cfg.get("api_key_env")) or ORCAROUTER_API_KEY_ENV
+    else:
+        credential_env = non_empty(provider_cfg.get("api_key_env")) or VECTOR_DIFF_API_KEY_ENV
     api_key = resolve_env_value(credential_env, settings_values)
     if not api_key:
         return {
@@ -83,7 +93,7 @@ def probe_vector_diff(
 
     timeout_ms = int(provider_cfg.get("timeout_ms", 6000) or 6000)
     provider_type_normalized = provider_type.lower()
-    if provider_type_normalized in {"openai", "openai-compatible"}:
+    if provider_type_normalized in OPENAI_COMPATIBLE_EMBEDDING_PROVIDER_TYPES:
         endpoint = f"{openai_v1_base_url(base_url)}/embeddings"
     else:
         return {
