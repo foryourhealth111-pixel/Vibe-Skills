@@ -198,3 +198,39 @@ def test_result_workspace_rejects_malformed_frozen_storage(tmp_path: Path, stora
             {"storage": storage}, requested_workspace_root=None,
             fallback_workspace_root=tmp_path,
         )
+
+@pytest.mark.parametrize("dependencies, expected", [
+    ({"root": [], "independent": []}, {"root"}),
+    ({"root": ["middle"], "middle": ["leaf"], "leaf": [], "independent": []}, {"root", "middle", "leaf"}),
+    ({"root": ["left", "right"], "left": ["leaf"], "right": ["leaf"], "leaf": []}, {"root", "left", "right", "leaf"}),
+])
+def test_required_module_closure_keeps_transitive_prerequisites(dependencies, expected) -> None:
+    from vgo_contracts.module_execution_contract import required_module_closure
+
+    modules = [
+        {"module_id": module_id, "required": module_id == "root", "depends_on": parents}
+        for module_id, parents in dependencies.items()
+    ]
+    original = json.loads(json.dumps(modules))
+    assert required_module_closure(modules) == expected
+    assert modules == original
+
+
+def test_required_module_closure_preserves_legacy_defaults() -> None:
+    from vgo_contracts.module_execution_contract import required_module_closure
+
+    assert required_module_closure([]) == set()
+    assert required_module_closure([{"module_id": "legacy"}]) == {"legacy"}
+    assert required_module_closure([{"module_id": "optional", "required": False}]) == set()
+
+
+@pytest.mark.parametrize("modules", [
+    [{"module_id": "root", "depends_on": ["absent"]}],
+    [{"module_id": "root", "depends_on": ["root"]}],
+    [{"module_id": "root", "depends_on": ["other"]}, {"module_id": "other", "depends_on": ["root"]}],
+])
+def test_required_module_closure_rejects_invalid_dependency_graphs(modules) -> None:
+    from vgo_contracts.module_execution_contract import required_module_closure
+
+    with pytest.raises((ValueError, RuntimeError), match="depend|cycle"):
+        required_module_closure(modules)

@@ -11,22 +11,11 @@ from ._bootstrap import ensure_contracts_src_on_path
 
 ensure_contracts_src_on_path()
 
-from vgo_contracts.tdd_evidence_contract import resolve_tdd_evidence_state
+from vgo_contracts.tdd_evidence_contract import normalize_evidence_state, resolve_tdd_evidence_state
 
 
 def _normalize_truth_state(state: str) -> str:
-    normalized = str(state or "").strip().lower()
-    aliases = {
-        "pass": "passing",
-        "passed": "passing",
-        "ok": "passing",
-        "manual": "manual_review_required",
-        "manual_required": "manual_review_required",
-        "manual_review": "manual_review_required",
-        "fail": "failing",
-        "failed": "failing",
-    }
-    return aliases.get(normalized, normalized)
+    return normalize_evidence_state(str(state or ""))
 
 
 def _truth_success(contract: dict[str, Any], state: str) -> bool:
@@ -219,6 +208,7 @@ def _resolve_artifact_review_payload(session_root: Path, execute_receipt: dict[s
         explicit_path_key="artifact_review_path",
         sidecar_filename="artifact-review.json",
         inline_presence_keys=("status", "state", "evidence_paths", "notes"),
+        report_invalid_payload=True,
     )
 
 
@@ -271,9 +261,11 @@ def _resolve_optional_payload(
     report_invalid_payload: bool = False,
 ) -> dict[str, Any]:
     raw_inline_payload = execute_receipt.get(inline_key)
+    if report_invalid_payload and raw_inline_payload is not None and not isinstance(raw_inline_payload, dict):
+        return _invalid_optional_payload(session_root / "phase-execute.json", f"{inline_key} payload was not a JSON object.")
     inline_payload = raw_inline_payload or {}
     if isinstance(inline_payload, dict):
-        has_inline_content = any(inline_payload.get(key) for key in inline_presence_keys)
+        has_inline_content = any(key in inline_payload and inline_payload[key] is not None for key in inline_presence_keys)
         if has_inline_content:
             payload = dict(inline_payload)
             payload["source_path"] = str(session_root / "phase-execute.json")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import hashlib
 import json
 from pathlib import Path
@@ -37,6 +38,41 @@ def resolve_execution_workspace(
     if requested_workspace_root is not None and requested_workspace_root.resolve() != frozen_root:
         raise RuntimeError("Agent result workspace does not match the frozen storage.workspace_root")
     return frozen_root
+
+
+def required_module_closure(modules: list[dict[str, Any]]) -> set[str]:
+    """Include hard prerequisites without changing the approved required bindings."""
+    by_id = {str(module.get("module_id") or ""): module for module in modules}
+    if "" in by_id or len(by_id) != len(modules):
+        raise ValueError("module dependency graph requires unique nonempty module IDs")
+    parents: dict[str, set[str]] = {}
+    children: dict[str, list[str]] = {module_id: [] for module_id in by_id}
+    for module_id, module in by_id.items():
+        dependencies = module.get("depends_on", [])
+        if not isinstance(dependencies, list) or any(not isinstance(value, str) for value in dependencies):
+            raise ValueError(f"module {module_id} depends_on must be a list of module IDs")
+        parents[module_id] = set(dependencies)
+        if parents[module_id] - by_id.keys():
+            raise ValueError(f"module {module_id} has an unknown dependency")
+        for parent in parents[module_id]:
+            children[parent].append(module_id)
+    pending = {module_id: len(dependencies) for module_id, dependencies in parents.items()}
+    ready = deque(module_id for module_id, count in pending.items() if not count)
+    ordered: list[str] = []
+    while ready:
+        module_id = ready.popleft()
+        ordered.append(module_id)
+        for child in children[module_id]:
+            pending[child] -= 1
+            if pending[child] == 0:
+                ready.append(child)
+    if len(ordered) != len(by_id):
+        raise ValueError("module dependency graph contains a cycle")
+    required = {module_id for module_id, module in by_id.items() if module.get("required", True)}
+    for module_id in reversed(ordered):
+        if module_id in required:
+            required.update(parents[module_id])
+    return required
 
 
 def module_unit_result_notes(unit: dict[str, Any], module: dict[str, Any]) -> tuple[str, ...]:
@@ -327,6 +363,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--session-root", type=Path, required=True)
     parser.add_argument("--source-run-id", required=True)
     parser.add_argument("--submitted-file", type=Path)
+    parser.add_argument("--emit-required-modules", action="store_true")
     parser.add_argument("--resolve-workspace-only", action="store_true")
     parser.add_argument("--workspace-root", type=Path)
     parser.add_argument("--fallback-workspace-root", type=Path)
@@ -345,6 +382,9 @@ def main(argv: list[str] | None = None) -> int:
         handoff = _load_json_dict(args.session_root / "agent-execution-handoff.json", label="Agent execution handoff")
         submitted = _load_json_dict(args.submitted_file, label="module execution")
         validate_agent_module_execution(session_root=args.session_root, source_run_id=args.source_run_id, handoff=handoff, submitted=submitted)
+        if args.emit_required_modules:
+            plan = _load_json_dict(args.session_root / "module-work-plan.json", label="module-work-plan")
+            print(json.dumps({"required_module_ids": sorted(required_module_closure(plan.get("modules", [])))}))
     except (RuntimeError, ValueError, OSError) as exc:
         parser.exit(1, str(exc) + "\n")
     return 0
