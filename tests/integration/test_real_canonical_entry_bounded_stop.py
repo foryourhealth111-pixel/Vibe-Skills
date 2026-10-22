@@ -1645,3 +1645,41 @@ def test_result_reentry_preserves_frozen_workspace(tmp_path: Path, monkeypatch: 
         assert Path(packet["storage"]["workspace_root"]).resolve() == workspace.resolve()
         assert (workspace / "outputs/handoff-result.md").is_file()
         assert not any(different.iterdir())
+
+@pytest.mark.parametrize("depends_on_optional, optional_state", [
+    (False, "failed"), (True, "failed"), (True, "blocked"), (True, "completed"),
+])
+def test_required_module_prerequisites_participate_in_canonical_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, depends_on_optional: bool, optional_state: str,
+) -> None:
+    organization = _handoff_organization_with_optional_module()
+    organization["modules"][1]["depends_on"] = []
+    organization["modules"][0]["depends_on"] = ["optional_followup"] if depends_on_optional else []
+    handoff_stop = _launch_handoff_stop(tmp_path, monkeypatch, organization=organization)
+    execution_path, execution = _write_agent_module_execution(handoff_stop, state="completed", result_summary="Approved result completed.")
+    for unit in execution["units"]:
+        if unit["module_id"] == "optional_followup":
+            unit["state"] = optional_state
+            if optional_state != "completed":
+                unit["verification_results"] = []
+                unit["evidence_paths"] = []
+    for module in execution["modules"]:
+        if module["module_id"] == "optional_followup":
+            assert module["required"] is False
+            module["state"] = optional_state
+            for criterion in module["criterion_results"]:
+                criterion["state"] = {"completed": "passing", "failed": "failing", "blocked": "blocked"}[optional_state]
+    execution_path.write_text(json.dumps(execution), encoding="utf-8")
+    result = canonical_entry.launch_canonical_vibe(
+        repo_root=REPO_ROOT, host_id="codex", entry_id="vibe", prompt="Continue after Agent module execution.",
+        artifact_root=tmp_path / "artifact-root", continue_from_run_id=handoff_stop.run_id,
+        module_execution_json_file=execution_path,
+    )
+    delivery = json.loads((result.session_root / "delivery-acceptance-report.json").read_text(encoding="utf-8"))
+    cleanup = json.loads((result.session_root / "cleanup-receipt.json").read_text(encoding="utf-8"))
+    manifest = json.loads((result.session_root / "execution-manifest.json").read_text(encoding="utf-8"))
+    ready = not depends_on_optional or optional_state == "completed"
+    assert (delivery["summary"]["gate_result"] == "PASS") is ready
+    assert cleanup["cleanup_admitted"] is ready
+    assert manifest["failed_unit_count"] == int(depends_on_optional and optional_state == "failed")
+    assert manifest["blocked_unit_count"] == int(depends_on_optional and optional_state == "blocked")

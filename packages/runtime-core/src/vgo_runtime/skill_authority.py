@@ -36,6 +36,8 @@ def skill_source_rejection_reason(entry: dict[str, Any]) -> str | None:
         return "skill_outside_declared_root"
     if descriptor.parent.name.casefold() in CONTROLLER_SKILL_IDS:
         return "controller_entry_excluded"
+    if entry.get("host_policy_error"):
+        return "invalid_host_skill_policy"
     if entry.get("enabled") is not True:
         return "skill_disabled"
     return None

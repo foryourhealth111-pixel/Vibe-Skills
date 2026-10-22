@@ -264,7 +264,7 @@ jobs:
         run: >-
           python -B -m pytest -q -ra
           tests/integration/test_real_canonical_entry_bounded_stop.py
-          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean or invalid_unit_result or result_reentry_preserves_frozen_workspace"
+          -k "canonical_cleanup_requires or rejected_external_result or valid_external_result or conflicting_tdd_state or malformed_external_result_shape or tdd_evidence_is_validated_before_cleanup or direct_powershell_reentry_rejects_incomplete_code_task or required_boolean or invalid_unit_result or result_reentry_preserves_frozen_workspace or required_module_prerequisites"
           --junitxml=outputs/proof/runtime-result-admission-${{ matrix.os }}.xml
 
       - name: Upload runtime recovery proof

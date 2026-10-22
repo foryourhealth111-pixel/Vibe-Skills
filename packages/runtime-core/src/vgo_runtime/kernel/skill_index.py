@@ -14,6 +14,7 @@ from vgo_contracts.adapter_registry_support import load_adapter_registry, normal
 
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
 from .codex_plugins import resolve_codex_plugin_roots
+from .codex_skill_policy import apply_codex_skill_policy
 from .host_skill_roots import resolve_host_skill_roots
 from .skill_manifest import parse_installed_skill_manifest
 from .skill_resources import SkillResourceError
@@ -830,6 +831,12 @@ def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), h
         )
     )
     _apply_duplicate_resolution(entries)
+    if host_id == "codex":
+        for entry, message in apply_codex_skill_policy(entries, agent_root=agent_root):
+            invalid_entries.append(_invalid_entry(
+                str(entry["skill_id"]), entry, "invalid_host_skill_policy",
+                path=Path(str(entry["resolved_skill_file"])), message=message,
+            ))
     duplicate_rows = _duplicate_diagnostics(entries)
     active_source_roots = [
         _public_source_root(source_spec)

@@ -352,6 +352,19 @@ the evidence requirement. Missing files, directories, malformed path lists and
 escaping `session:` paths prevent acceptance. When artifact review is optional,
 an unperformed review with no evidence leaves acceptance unchanged.
 
+Artifact review uses the same state/status alias normalization as TDD evidence.
+Conflicting, non-text, or unsupported states fail acceptance. Frozen review or
+review-coverage requirements determine applicability; a submitted
+`not_applicable` cannot waive them. Missing mandatory review remains pending;
+valid legacy aliases and optional unperformed reviews retain their behavior.
+
+Module `depends_on` edges are hard prerequisites. Final readiness and execution
+statistics include the transitive prerequisite closure of required modules,
+while the approved `required` bindings stay unchanged. Independent optional
+failures remain nonblocking. The shared contract rejects unknown dependencies
+and cycles before result publication. No additional Agent result fields are
+required.
+
 Skill provenance records `content_sha256` for the descriptor and
 `resource_sha256` for the Skill directory's file paths and contents. Changes,
 additions and deletions of scripts, templates, rules and references invalidate
@@ -379,6 +392,19 @@ The optional `disable-model-invocation` field must be a JSON/YAML boolean.
 selection while allowing an explicit requested Skill. Natural-language
 explicit-only guidance remains supported. Malformed policy values produce a
 scanner diagnostic.
+
+Codex scans also project `agents/openai.yaml` policy
+`allow_implicit_invocation: false` into `explicit_only`. Missing optional metadata
+allows automatic selection. The Codex home's `config.toml` path-specific
+`skills.config` overrides can disable a descriptor or Skill directory; disabled
+sources remain unavailable through explicit requests and source authority.
+`CODEX_HOME` selects the configuration home when set; otherwise the agent-root
+home supplies `.codex`. Overrides are read once per catalog snapshot, with no
+persistent cache or changes to duplicate-source precedence. Mapping-form policy
+metadata and native table/inline configuration forms are accepted. Malformed
+per-Skill policy disables only that source and reports a scanner diagnostic;
+an unreadable or structurally invalid override list fails source admission
+explicitly. Unrelated configuration settings are outside this projection.
 
 Freeze and dispatch resolve all source-authority requests through one read-only
 catalog snapshot for that request. Batch requests preserve order, entrypoint

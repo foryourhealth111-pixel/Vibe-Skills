@@ -480,7 +480,6 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
         throw 'Agent module execution must be a JSON object.'
     }
     $moduleWorkPlanPath = Join-Path $sessionRoot 'module-work-plan.json'
-    $moduleWorkPlan = Get-Content -LiteralPath $moduleWorkPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $pendingResultPath = Join-Path $sessionRoot ('.module-execution.{0}.tmp' -f [guid]::NewGuid().ToString('N'))
     $previousPythonPath = $env:PYTHONPATH
     try {
@@ -492,12 +491,15 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             '-m', 'vgo_contracts.module_execution_contract',
             '--session-root', $sessionRoot,
             '--source-run-id', $RunId,
-            '--submitted-file', $pendingResultPath
+            '--submitted-file', $pendingResultPath,
+            '--emit-required-modules'
         )
         $validationOutput = & $pythonInvocation.host_path @validationArgs 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw ("Agent module execution validation failed: {0}" -f ((@($validationOutput) | ForEach-Object { [string]$_ }) -join [Environment]::NewLine))
         }
+        $validationResult = ((@($validationOutput) | ForEach-Object { [string]$_ }) -join [Environment]::NewLine) | ConvertFrom-Json
+        $requiredModuleIds = @($validationResult.required_module_ids)
         if ([System.IO.File]::Exists($moduleExecutionPath)) {
             # Preserve a null backup path through PowerShell's .NET string binding.
             [System.IO.File]::Replace($pendingResultPath, $moduleExecutionPath, [NullString]::Value)
@@ -514,11 +516,6 @@ if (-not [string]::IsNullOrWhiteSpace($ModuleExecutionJsonFile)) {
             [System.IO.File]::Delete($pendingResultPath)
         }
     }
-    $requiredModuleIds = @(
-        $moduleWorkPlan.modules |
-            Where-Object { [bool]$_.required } |
-            ForEach-Object { [string]$_.module_id }
-    )
     $completedUnitCount = @($moduleExecution.units | Where-Object { [string]$_.module_id -in $requiredModuleIds -and [string]$_.state -eq 'completed' }).Count
     $failedUnitCount = @($moduleExecution.units | Where-Object { [string]$_.module_id -in $requiredModuleIds -and [string]$_.state -eq 'failed' }).Count
     $blockedUnitCount = @($moduleExecution.units | Where-Object { [string]$_.module_id -in $requiredModuleIds -and [string]$_.state -eq 'blocked' }).Count

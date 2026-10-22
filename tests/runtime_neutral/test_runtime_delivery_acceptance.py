@@ -1377,5 +1377,65 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
                 self.assertFalse(report["summary"]["completion_language_allowed"])
 
 
+    def test_frozen_artifact_review_rejects_waivers_and_conflicting_states(self) -> None:
+        for payload in (
+            {"status": "not_applicable", "evidence_paths": []},
+            {"status": "passing", "state": "failing", "evidence_paths": ["session:review.md"]},
+            {"state": 1, "evidence_paths": []},
+            {"state": "unrecognized", "evidence_paths": []},
+            {"state": False},
+            {"state": []},
+        ):
+            with self.subTest(payload=payload):
+                session = self._build_session(
+                    artifact_review_requirements=["Review the final report before completion."],
+                    phase_execute_artifact_review=payload,
+                )
+                write_text(session / "review.md", "Verified the report.\n")
+                report = evaluate(REPO_ROOT, session)
+                self.assertNotEqual("PASS", report["summary"]["gate_result"])
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+
+    def test_artifact_review_preserves_normalized_legacy_aliases(self) -> None:
+        for payload in (
+            {"state": " PASSED ", "status": "ok"},
+            {"state": "", "status": "pass"},
+            {"state": None, "status": "passing"},
+        ):
+            with self.subTest(payload=payload):
+                session = self._build_session(
+                    artifact_review_requirements=["Review the final report before completion."],
+                    phase_execute_artifact_review={**payload, "evidence_paths": ["session:review.md"]},
+                )
+                write_text(session / "review.md", "Verified the report.\n")
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+
+    def test_frozen_review_coverage_also_requires_an_applicable_review(self) -> None:
+        for heading in (
+            "Baseline Document Quality Dimensions", "Baseline UI Quality Dimensions",
+            "Task-Specific Acceptance Extensions", "Research Augmentation Sources",
+        ):
+            with self.subTest(heading=heading):
+                session = self._build_session(phase_execute_artifact_review={"status": "not_applicable"})
+                receipt = json.loads((session / "phase-execute.json").read_text(encoding="utf-8"))
+                requirement = Path(receipt["requirement_doc_path"])
+                with requirement.open("a", encoding="utf-8") as stream:
+                    stream.write("\n## " + heading + "\n- Review obligation frozen for this task.\n")
+                report = evaluate(REPO_ROOT, session)
+                self.assertNotEqual("PASS", report["summary"]["gate_result"])
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+
+    def test_malformed_optional_artifact_review_cannot_silently_disappear(self) -> None:
+        for payload in ([], False, "passing", 0, {"state": False}, {"status": []}, {"state": "unknown"}):
+            with self.subTest(payload=payload):
+                session = self._build_session()
+                receipt_path = session / "phase-execute.json"
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                receipt["artifact_review"] = payload
+                write_json(receipt_path, receipt)
+                report = evaluate(REPO_ROOT, session)
+                self.assertEqual("FAIL", report["summary"]["gate_result"])
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+
 if __name__ == "__main__":
     unittest.main()

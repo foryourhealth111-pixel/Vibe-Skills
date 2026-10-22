@@ -2298,3 +2298,192 @@ def test_manual_invocation_policy_requires_a_boolean(tmp_path: Path, value: str)
     catalog = build_skill_catalog(agent_root=agent, host_roots=(agent / "skills",), host_id="claude-code")
     assert not catalog["entries"]
     assert "must be a boolean" in catalog["discovery_diagnostics"]["invalid_entries"][0]["message"]
+
+@pytest.mark.parametrize("policy", ["ordinary", "manual", "disabled", "both"])
+def test_codex_native_skill_policy_is_shared_by_routing_and_authority(tmp_path: Path, monkeypatch, policy: str) -> None:
+    import json
+    from vgo_runtime.skill_authority import resolve_skill_authority
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    skill_file = _write_skill(agent / "skills", "native-report", _frontmatter(
+        "native-report", "Write a concise report from verified results.",
+    ))
+    if policy in {"manual", "both"}:
+        metadata = skill_file.parent / "agents/openai.yaml"
+        metadata.parent.mkdir()
+        metadata.write_text("interface:\n  display_name: Report\npolicy:\n  allow_implicit_invocation: false\n", encoding="utf-8")
+    if policy in {"disabled", "both"}:
+        (agent / "config.toml").write_text(
+            "model = 'unrelated-model'\n[[skills.config]]\npath = " + json.dumps(skill_file.as_posix()) + "\nenabled = false # User choice\n",
+            encoding="utf-8",
+        )
+    arguments = dict(prompt="Write a concise report from verified results.", grade="L", task_type="docs", target_root=agent, host_id="codex", repo_root=REPO_ROOT, workspace_root=workspace)
+    automatic = route_prompt(**arguments)
+    explicit = route_prompt(**arguments, requested_skill="native-report")
+    authority = resolve_skill_authority(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=workspace, skill_id="native-report")
+    assert (automatic["route_reason"] == "auto_route") is (policy == "ordinary")
+    enabled = policy not in {"disabled", "both"}
+    assert authority["valid"] is enabled
+    assert (explicit["route_reason"] == "explicit_local_skill") is enabled
+    if enabled:
+        assert authority["explicit_only"] is (policy == "manual")
+
+
+def test_codex_native_config_is_fresh_and_path_specific(tmp_path: Path, monkeypatch) -> None:
+    import json
+    from vgo_runtime.skill_authority import resolve_skill_authority
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    first = _write_skill(agent / "skills", "report", _frontmatter("Report", "Write a report."))
+    other = _write_skill(agent / "skills", "other", _frontmatter("Other", "Write a report."))
+    config = agent / "config.toml"
+    args = dict(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None)
+    for disabled in (first, other, None):
+        config.write_text("" if disabled is None else "[[skills.config]]\npath = " + json.dumps(disabled.parent.as_posix()) + "\nenabled = false\n", encoding="utf-8")
+        assert resolve_skill_authority(**args, skill_id="report")["valid"] is (disabled != first)
+        assert resolve_skill_authority(**args, skill_id="other")["valid"] is (disabled != other)
+
+
+@pytest.mark.parametrize("metadata, manual", [
+    ("policy: {allow_implicit_invocation: false}\n", True),
+    ("'policy' :\n  'allow_implicit_invocation' : false\n", True),
+    ("policy:\n  future_options:\n    allow_implicit_invocation: false\n", False),
+    ("{interface: {short_description: Users' C# notes}, policy: {allow_implicit_invocation: false}}", True),
+])
+def test_codex_policy_accepts_mapping_forms_and_respects_scope(tmp_path: Path, monkeypatch, metadata: str, manual: bool) -> None:
+    from vgo_runtime.skill_authority import resolve_skill_authority
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    skill = _write_skill(agent / "skills", "report", _frontmatter("Report", "Write a report."))
+    settings = skill.parent / "agents/openai.yaml"
+    settings.parent.mkdir()
+    settings.write_text(metadata, encoding="utf-8")
+    result = resolve_skill_authority(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, skill_id="report")
+    assert result["valid"] is True
+    assert result["explicit_only"] is manual
+
+
+@pytest.mark.parametrize("syntax", ["quoted_table", "inline_array", "inline_root", "multiline_decoy"])
+def test_codex_config_projects_only_native_skill_overrides(tmp_path: Path, monkeypatch, syntax: str) -> None:
+    import json
+    from vgo_runtime.skill_authority import resolve_skill_authority
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    skill = _write_skill(agent / "skills", "report", _frontmatter("Report", "Write a report."))
+    entry = "{path = " + json.dumps(skill.as_posix()) + ", enabled = false}"
+    configurations = {
+        "quoted_table": "[[ 'skills' . \"config\" ]]\n'path' = '" + skill.as_posix() + "'\n\"enabled\" = false # Disabled\n",
+        "inline_array": "[skills]\nconfig = [\n" + entry + ",\n]\n",
+        "inline_root": "skills = {config = [" + entry + "]}\n",
+        "multiline_decoy": "instructions = '''\n[[skills.config]]\npath = '" + skill.as_posix() + "'\nenabled = false\n'''\n\"example = key\" = 'unrelated'\n",
+    }
+    (agent / "config.toml").write_text(configurations[syntax], encoding="utf-8")
+    result = resolve_skill_authority(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, skill_id="report")
+    assert result["valid"] is (syntax == "multiline_decoy")
+    if syntax != "multiline_decoy":
+        assert result["reason"] == "skill_disabled"
+
+
+@pytest.mark.parametrize("metadata", [
+    'policy:\n  allow_implicit_invocation: "false"\n',
+    "policy: []\n",
+    "policy:\n  allow_implicit_invocation: false\n  allow_implicit_invocation: true\n",
+])
+def test_codex_invalid_skill_policy_is_local_and_diagnostic(tmp_path: Path, monkeypatch, metadata: str) -> None:
+    from vgo_runtime.skill_authority import resolve_skill_authorities
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    for name in ("report", "healthy"):
+        _write_skill(agent / "skills", name, _frontmatter(name, "Write a report."))
+    settings = agent / "skills/report/agents/openai.yaml"
+    settings.parent.mkdir()
+    settings.write_text(metadata, encoding="utf-8")
+    results = resolve_skill_authorities(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, requests=[{"skill_id": name} for name in ("report", "healthy")])
+    assert results[0]["valid"] is False
+    assert results[0]["reason"] == "invalid_host_skill_policy"
+    assert results[1]["valid"] is True
+
+
+def test_codex_config_is_read_once_per_authority_snapshot(tmp_path: Path, monkeypatch) -> None:
+    from vgo_runtime.skill_authority import resolve_skill_authorities
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    for name in ("first", "second", "third"):
+        _write_skill(agent / "skills", name, _frontmatter(name, "Write a report."))
+    config = agent / "config.toml"
+    config.write_text("", encoding="utf-8")
+    original = Path.read_text
+    reads = []
+
+    def read_text(path, *args, **kwargs):
+        if path == config:
+            reads.append(path)
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_text)
+    results = resolve_skill_authorities(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, requests=[{"skill_id": name} for name in ("first", "second", "third")])
+    assert all(row["valid"] for row in results)
+    assert reads == [config]
+
+@pytest.mark.parametrize("policy_update", ["malformed_override", "manual_then_automatic"])
+def test_codex_policy_updates_do_not_disable_unrelated_skills(tmp_path: Path, monkeypatch, policy_update: str) -> None:
+    import json
+    from vgo_runtime.skill_authority import resolve_skill_authorities
+
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    for name in ("report", "healthy"):
+        _write_skill(agent / "skills", name, _frontmatter(name, "Write a report."))
+    args = dict(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, requests=[{"skill_id": name} for name in ("report", "healthy")])
+    report = agent / "skills/report/SKILL.md"
+    if policy_update == "malformed_override":
+        (agent / "config.toml").write_text("[[skills.config]]\npath = " + json.dumps(report.as_posix()) + '\nenabled = "false"\n', encoding="utf-8")
+        results = resolve_skill_authorities(**args)
+        assert results[0]["valid"] is False
+        assert results[0]["reason"] == "invalid_host_skill_policy"
+        assert results[1]["valid"] is True
+    else:
+        metadata = report.parent / "agents/openai.yaml"
+        metadata.parent.mkdir()
+        for allow in (False, True, None):
+            if allow is None:
+                metadata.unlink()
+            else:
+                metadata.write_text("policy:\n  allow_implicit_invocation: " + str(allow).lower() + "\n", encoding="utf-8")
+            results = resolve_skill_authorities(**args)
+            assert all(result["valid"] for result in results)
+            assert results[0]["explicit_only"] is (allow is False)
+            assert results[1]["explicit_only"] is False
+
+
+@pytest.mark.parametrize("manual", [False, True])
+def test_codex_native_policy_preserves_active_duplicate_precedence(tmp_path: Path, monkeypatch, manual: bool) -> None:
+    import json
+    from vgo_runtime.skill_authority import resolve_skill_authority
+
+    home = tmp_path / "home"
+    agent = home / ".codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    first = _write_skill(agent / "skills", "report", _frontmatter("First", "Write a report."))
+    _write_skill(home / ".agents/skills", "report", _frontmatter("Shadowed", "Write a report."))
+    if manual:
+        settings = first.parent / "agents/openai.yaml"
+        settings.parent.mkdir()
+        settings.write_text("policy: {allow_implicit_invocation: false}\n", encoding="utf-8")
+    else:
+        (agent / "config.toml").write_text("[[skills.config]]\npath = " + json.dumps(first.as_posix()) + "\nenabled = false\n", encoding="utf-8")
+    result = resolve_skill_authority(repo_root=REPO_ROOT, agent_root=agent, host_id="codex", workspace_root=None, skill_id="report")
+    assert result["valid"] is manual
+    if manual:
+        assert result["canonical_entrypoint"] == str(first.resolve())
+        assert result["explicit_only"] is True
+    else:
+        assert result["reason"] == "skill_disabled"

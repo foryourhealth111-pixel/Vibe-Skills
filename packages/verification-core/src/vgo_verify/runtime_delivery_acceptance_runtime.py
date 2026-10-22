@@ -27,8 +27,11 @@ from .runtime_delivery_acceptance_support import (
 
 from vgo_contracts.module_execution_contract import (
     module_required_binding_notes,
+    required_module_closure,
     module_unit_result_notes,
 )
+
+from vgo_contracts.tdd_evidence_contract import resolve_evidence_state
 
 
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
@@ -244,11 +247,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             for field in work_unit_binding_fields
         )
     )
-    required_module_ids_for_workflow = {
-        str(module.get("module_id") or "")
-        for module in planned_module_records
-        if bool(module.get("required", True))
-    }
+    required_module_ids_for_workflow = required_module_closure(planned_module_records)
     required_module_units = [
         unit
         for unit in module_unit_records
@@ -369,10 +368,24 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         considered_research_augmentation_sources,
     )
 
-    raw_artifact_review_state = str(
-        artifact_review_payload.get("status") or artifact_review_payload.get("state") or ""
-    ).strip()
-    if artifact_review_requirements:
+    review_required = any((
+        artifact_review_requirements, baseline_document_quality_dimensions, baseline_ui_quality_dimensions,
+        task_specific_acceptance_extensions, research_augmentation_sources,
+    ))
+    review_state_error = ""
+    try:
+        if artifact_review_payload.get("__vgo_payload_state") == "invalid":
+            raise ValueError(str(artifact_review_payload["invalid_reason"]))
+        raw_artifact_review_state = resolve_evidence_state(artifact_review_payload, label="Artifact review")
+        if raw_artifact_review_state and raw_artifact_review_state not in contract["truth_states"]:
+            raise ValueError(f"Unsupported artifact review state: {raw_artifact_review_state}")
+    except ValueError as exc:
+        raw_artifact_review_state = ""
+        review_state_error = str(exc)
+    if review_state_error:
+        artifact_review_state = "failing"
+        artifact_review_notes.append(review_state_error)
+    elif review_required:
         if not artifact_review_payload:
             artifact_review_state = "manual_review_required"
             artifact_review_notes.append(
@@ -380,7 +393,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             )
         else:
             artifact_review_state = _normalize_truth_state(raw_artifact_review_state)
-            if artifact_review_state in {"", "not_run"}:
+            if artifact_review_state in {"", "not_run", "not_applicable"}:
                 artifact_review_state = "manual_review_required"
                 artifact_review_notes.append(
                     "Artifact review was required, but the recorded artifact-review status did not close the review."
@@ -529,11 +542,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             module_acceptance_notes.append(
                 "Module execution module records do not match the approved module work plan."
             )
-        required_module_ids = {
-            str(module.get("module_id") or "")
-            for module in planned_module_records
-            if bool(module.get("required", True))
-        }
+        required_module_ids = required_module_ids_for_workflow
         required_module_records = [
             execution_module_by_id.get(module_id, {"module_id": module_id, "state": "missing"})
             for module_id in required_module_ids
@@ -541,7 +550,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         optional_module_ids = {
             str(module.get("module_id") or "")
             for module in planned_module_records
-            if not bool(module.get("required", True))
+            if str(module.get("module_id") or "") not in required_module_ids
         }
         optional_modules_not_completed = [
             module_id
@@ -584,7 +593,7 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
         modules_without_criteria = [
             str(module.get("module_id") or "")
             for module in planned_module_records
-            if bool(module.get("required", True)) and not (module.get("acceptance_criteria") or [])
+            if str(module.get("module_id") or "") in required_module_ids and not (module.get("acceptance_criteria") or [])
         ]
         if modules_without_criteria and module_acceptance_state != "failing":
             module_acceptance_state = "manual_review_required"
