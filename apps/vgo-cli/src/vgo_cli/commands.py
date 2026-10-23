@@ -43,24 +43,13 @@ def _resolve_skills_dir(raw_value: str) -> Path:
     return (Path.home() / '.agents' / 'skills').resolve()
 
 
-def _git_text(repo_root: Path, *args: str) -> str:
-    result = subprocess.run(
-        ['git', *args],
-        cwd=repo_root,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise CliError(f"Unable to read source git state: {result.stderr.strip()}")
-    return result.stdout.strip()
-
-
 def _source_git_state(repo_root: Path) -> tuple[str, bool]:
+    from vgo_contracts.git_provenance import source_git_text
+
     try:
-        commit = _git_text(repo_root, 'rev-parse', 'HEAD')
-        dirty = bool(_git_text(repo_root, 'status', '--porcelain'))
-    except CliError:
+        commit = source_git_text(repo_root, "rev-parse", "--verify", "HEAD^{commit}")
+        dirty = bool(source_git_text(repo_root, "status", "--porcelain"))
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return "unknown", True
     return commit, dirty
 

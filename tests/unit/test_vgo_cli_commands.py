@@ -1130,3 +1130,55 @@ def test_build_parser_rejects_old_install_external_flag() -> None:
 
     with pytest.raises(SystemExit):
         parser.parse_args(['install', '--repo-root', '/tmp/repo', '--install-external'])
+
+
+def _git_source_command(root: Path, *args: str) -> str:
+    env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    return subprocess.run(
+        ["git", "-c", "commit.gpgsign=false", "-c", f"core.hooksPath={os.devnull}",
+         "-c", "user.name=Vibe Test", "-c", "user.email=test@example.invalid", *args],
+        cwd=root, env=env, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+
+def _init_source_git(root: Path) -> str:
+    _write_minimal_install_source(root)
+    (root / ".gitignore").write_text("extracted/\n", encoding="utf-8")
+    _git_source_command(root, "init", "--quiet")
+    _git_source_command(root, "add", "--all")
+    _git_source_command(root, "commit", "--quiet", "-m", root.name)
+    return _git_source_command(root, "rev-parse", "HEAD")
+
+
+@pytest.mark.parametrize("source_kind", ["checkout", "foreign_environment", "parent_checkout", "worktree"])
+def test_install_command_binds_source_git_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], source_kind: str,
+) -> None:
+    from vgo_cli.workspace import extend_workspace_package_path
+
+    extend_workspace_package_path(REPO_ROOT)
+    for key in tuple(os.environ):
+        if key.upper().startswith("GIT_"):
+            monkeypatch.delenv(key)
+    source = tmp_path / "source"
+    expected_commit = _init_source_git(source)
+    if source_kind == "foreign_environment":
+        foreign = tmp_path / "foreign"
+        _init_source_git(foreign)
+        monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+        monkeypatch.setenv("GIT_WORK_TREE", str(foreign))
+    elif source_kind == "parent_checkout":
+        source = source / "extracted"
+        _write_minimal_install_source(source)
+        expected_commit = "unknown"
+    elif source_kind == "worktree":
+        worktree = tmp_path / "worktree"
+        _git_source_command(source, "worktree", "add", "--detach", str(worktree), "HEAD")
+        source = worktree
+
+    assert install_command(argparse.Namespace(repo_root=str(source), skills_dir=str(tmp_path / "skills"))) == 0
+
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["source_git_commit"] == expected_commit
+    assert receipt["source_git_dirty"] is (source_kind == "parent_checkout")

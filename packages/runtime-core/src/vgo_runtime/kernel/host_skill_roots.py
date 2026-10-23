@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 
 from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
@@ -45,6 +46,14 @@ def _home_from_agent_root(agent_root: Path) -> Path:
     if resolved.name.casefold() in host_dirs:
         return resolved.parent
     return Path.home().resolve()
+
+
+def resolve_codex_home(agent_root: Path | None = None) -> Path:
+    configured = os.environ.get("CODEX_HOME")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    home = _home_from_agent_root(agent_root) if agent_root is not None else Path.home()
+    return (home / ".codex").resolve()
 
 
 def _skills_dir_from_agent_root(agent_root: Path) -> Path:
@@ -162,7 +171,10 @@ def resolve_host_skill_roots(
         )
 
     for raw_root in DEFAULT_SKILL_ROOTS_BY_HOST.get(normalized_host_id, ()):
-        path = _expand_root_path(raw_root, base_root=home_root, home_root=home_root)
+        if normalized_host_id == "codex" and raw_root.startswith("~/.codex/"):
+            path = (resolve_codex_home(agent_root) / raw_root.removeprefix("~/.codex/")).resolve()
+        else:
+            path = _expand_root_path(raw_root, base_root=home_root, home_root=home_root)
         if not path.is_dir() or path in seen:
             continue
         seen.add(path)

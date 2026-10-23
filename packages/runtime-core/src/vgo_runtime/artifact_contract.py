@@ -15,6 +15,7 @@ CONTRACTS_SRC = Path(__file__).resolve().parents[3] / "contracts" / "src"
 if CONTRACTS_SRC.is_dir() and str(CONTRACTS_SRC) not in sys.path:
     sys.path.insert(0, str(CONTRACTS_SRC))
 
+from vgo_contracts.git_provenance import source_git_text  # noqa: E402
 from vgo_contracts.live_governance_contract import (  # noqa: E402
     LIVE_GOVERNANCE_CONTRACT_RELPATH,
     LiveGovernanceContract,
@@ -241,29 +242,10 @@ def _write_primary_document(
 def _git_commit_sha(repo_root: Path) -> str:
     fallback = str(os.environ.get("VGO_COMMIT_SHA") or "unknown").strip() or "unknown"
     try:
-        if not (repo_root / ".git").exists():
-            return fallback
-        git_environment = os.environ.copy()
-        for name in (
-            "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS",
-            "GIT_CONFIG_COUNT", "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE",
-            "GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE", "GIT_INDEX_FILE",
-            "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX",
-            "GIT_SHALLOW_FILE", "GIT_COMMON_DIR", "GIT_NAMESPACE",
-        ):
-            git_environment.pop(name, None)
-        completed = subprocess.run(
-            ["git", "--git-dir=.git", "rev-parse", "--verify", "HEAD^{commit}"],
-            cwd=repo_root,
-            env=git_environment,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10,
-        )
+        commit = source_git_text(repo_root, "rev-parse", "--verify", "HEAD^{commit}")
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return fallback
-    return completed.stdout.strip() or fallback
+    return commit or fallback
 
 
 def execution_environment(*, repo_root: Path, host_id: str | None = None) -> dict[str, str]:

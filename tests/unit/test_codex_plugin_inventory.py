@@ -15,8 +15,8 @@ from vgo_runtime.kernel import codex_plugins, skill_index
 
 
 @pytest.fixture
-def host_inventory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    cache = tmp_path / "home/.codex/plugins/cache"
+def host_inventory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request):
+    cache = tmp_path / "home" / getattr(request, "param", ".codex") / "plugins/cache"
     executable = cache.parent / ".plugin-appserver" / ("codex.exe" if os.name == "nt" else "codex")
     executable.parent.mkdir(parents=True)
     executable.touch()
@@ -141,3 +141,85 @@ def test_nullable_version_cannot_hide_conflicting_identity(host_inventory) -> No
     response.stdout = json.dumps({"installed": [{**plugin, "version": None}, plugin]})
     with pytest.raises(ValueError, match="conflicting"):
         codex_plugins.resolve_codex_plugin_roots(cache)
+
+
+@pytest.mark.parametrize("host_inventory", ["custom-codex-state"], indirect=True)
+def test_catalog_discovers_plugins_in_custom_codex_home(host_inventory) -> None:
+    cache, _, _, _ = host_inventory
+    skill = cache / "provider/documents/2.0.0/skills/documents/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("---\nname: Documents\ndescription: Render formal documents.\n---\n", encoding="utf-8")
+
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+
+    assert [entry["skill_id"] for entry in catalog["entries"] if entry["active"] and entry["enabled"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+def _write_plugin_skill(root: Path, name: str) -> None:
+    path = root / name / "SKILL.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"---\nname: {name}\ndescription: Render formal documents.\n---\n", encoding="utf-8")
+
+
+@pytest.mark.parametrize("manifest_path,export", [
+    (".codex-plugin/plugin.json", "skills"),
+    (".codex-plugin/plugin.json", "published"),
+    (".claude-plugin/plugin.json", "published"),
+    ("plugin.json", "skills"),
+])
+def test_catalog_respects_plugin_skill_exports(host_inventory, manifest_path: str, export: str) -> None:
+    cache, _, _, _ = host_inventory
+    plugin = cache / "provider/documents/2.0.0"
+    manifest = plugin / manifest_path
+    manifest.parent.mkdir(parents=True)
+    payload = {"name": "documents", "skills": f"./{export}/"}
+    if manifest_path == "plugin.json":
+        payload = {"name": "documents", "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"}
+        overlay = plugin / ".codex-plugin/plugin.json"
+        overlay.parent.mkdir()
+        overlay.write_text(json.dumps({"skills": "./examples/"}), encoding="utf-8")
+    manifest.write_text(json.dumps(payload), encoding="utf-8")
+    _write_plugin_skill(plugin / export, "documents")
+    _write_plugin_skill(plugin / export / "documents/examples", "nested-example")
+    _write_plugin_skill(plugin / "examples", "internal-example")
+
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+
+    assert [entry["skill_id"] for entry in catalog["entries"] if entry["active"] and entry["enabled"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+@pytest.mark.parametrize("manifest_text", [
+    '{"skills":"./../outside"}', '{"skills":null}', '[]', '{',
+    json.dumps({"skills": "./skills/.."}), json.dumps({"skills": "./skills\\.."}),
+])
+def test_invalid_plugin_exports_do_not_hide_other_plugins(host_inventory, manifest_text: str) -> None:
+    cache, plugin, response, _ = host_inventory
+    other = {**plugin, "pluginId": "notes@provider", "name": "notes"}
+    response.stdout = json.dumps({"installed": [plugin, other]})
+    for name in ("documents", "notes"):
+        _write_plugin_skill(cache / f"provider/{name}/2.0.0/skills", name)
+    manifest = cache / "provider/documents/2.0.0/.codex-plugin/plugin.json"
+    manifest.parent.mkdir()
+    manifest.write_text(manifest_text, encoding="utf-8")
+
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+
+    assert [entry["skill_id"] for entry in catalog["entries"]] == ["notes"]
+    assert [row["reason"] for row in catalog["discovery_diagnostics"]["invalid_entries"]] == ["invalid_plugin_exports"]
+
+
+def test_plugin_skill_exports_accept_skill_root_without_resource_skills(host_inventory) -> None:
+    cache, _, _, _ = host_inventory
+    plugin = cache / "provider/documents/2.0.0"
+    _write_plugin_skill(plugin, "documents")
+    _write_plugin_skill(plugin / "documents/examples", "nested-example")
+    manifest = plugin / ".codex-plugin/plugin.json"
+    manifest.parent.mkdir()
+    manifest.write_text(json.dumps({"skills": "./documents/"}), encoding="utf-8")
+
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+
+    assert [entry["skill_id"] for entry in catalog["entries"] if entry["active"] and entry["enabled"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []

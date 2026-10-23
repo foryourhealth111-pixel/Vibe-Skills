@@ -6,6 +6,8 @@ from pathlib import Path
 import shutil
 import subprocess
 
+from .host_skill_roots import resolve_codex_home
+
 
 def _cache_component(value: object) -> str:
     if (
@@ -19,7 +21,7 @@ def _cache_component(value: object) -> str:
 def resolve_codex_plugin_roots(cache_root: Path) -> tuple[Path, ...] | None:
     """Use the host's installed plugin inventory to select exact enabled cache versions."""
     codex_home = cache_root.resolve().parent.parent
-    configured_home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex").resolve()
+    configured_home = resolve_codex_home()
     # A discovered Skill root cannot nominate a program to execute during scanning.
     if codex_home != configured_home:
         return None
@@ -70,3 +72,31 @@ def resolve_codex_plugin_roots(cache_root: Path) -> tuple[Path, ...] | None:
             raise ValueError("Host plugin inventory cache root escapes the declared cache")
         roots.append(root)
     return tuple(roots)
+
+
+def resolve_codex_plugin_skill_roots(plugin_root: Path) -> tuple[Path, ...]:
+    """Resolve portable conventions or compatibility-manifest Skill exports."""
+    root = plugin_root.resolve()
+    exports: object = ["./skills/"]
+    for relative in ("plugin.json", ".codex-plugin/plugin.json", ".claude-plugin/plugin.json"):
+        manifest = root / relative
+        if not manifest.is_file():
+            continue
+        payload = json.loads(manifest.read_text(encoding="utf-8-sig"))
+        if not isinstance(payload, dict):
+            raise ValueError("Plugin manifest must be an object")
+        if relative != "plugin.json":
+            exports = payload.get("skills", exports)
+        break
+    if isinstance(exports, str):
+        exports = [exports]
+    if not isinstance(exports, list) or any(
+        not isinstance(value, str) or not value.startswith("./")
+        or ".." in value.replace("\\", "/").split("/")
+        for value in exports
+    ):
+        raise ValueError("Plugin Skill exports must start with ./ and contain no parent components")
+    roots = tuple(dict.fromkeys((root / value).resolve() for value in exports))
+    if any(not path.is_relative_to(root) for path in roots):
+        raise ValueError("Plugin Skill export escapes its installed plugin")
+    return roots

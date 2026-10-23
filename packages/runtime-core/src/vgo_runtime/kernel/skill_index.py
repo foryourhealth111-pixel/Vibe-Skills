@@ -13,9 +13,9 @@ from typing import Any
 from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
 
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
-from .codex_plugins import resolve_codex_plugin_roots
+from .codex_plugins import resolve_codex_plugin_roots, resolve_codex_plugin_skill_roots
 from .codex_skill_policy import apply_codex_skill_policy
-from .host_skill_roots import resolve_host_skill_roots
+from .host_skill_roots import resolve_codex_home, resolve_host_skill_roots
 from .skill_manifest import parse_installed_skill_manifest
 from .skill_resources import SkillResourceError
 from ..runtime_support import keyword_hit, normalize_text
@@ -160,8 +160,6 @@ def _discover_skill_dirs_for_source(source_spec: dict[str, object]) -> list[Path
     dirs: list[Path] = []
     if not source_root.exists():
         return dirs
-    if _is_codex_plugin_cache_root(source_root):
-        return sorted({path.parent.resolve() for path in source_root.rglob("SKILL.md") if path.is_file()})
     for child_dir in DISCOVERY_CHILD_DIRS:
         root = source_root / child_dir if child_dir else source_root
         if not root.is_dir():
@@ -175,7 +173,10 @@ def _is_codex_plugin_cache_root(path: Path) -> bool:
     return (
         resolved.name.casefold() == "cache"
         and resolved.parent.name.casefold() == "plugins"
-        and resolved.parent.parent.name.casefold() == ".codex"
+        and (
+            resolved.parent.parent.name.casefold() == ".codex"
+            or resolved == resolve_codex_home() / "plugins/cache"
+        )
     )
 
 
@@ -701,20 +702,37 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
 def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None = None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     entries: list[dict[str, object]] = []
     diagnostics: list[dict[str, object]] = []
-    skill_dirs = _discover_skill_dirs_for_source(source_spec)
+    source_root = Path(str(source_spec["resolved_source_root"]))
     ambiguous_plugin_ids: set[str] = set()
-    if _is_codex_plugin_cache_root(Path(str(source_spec["resolved_source_root"]))):
+    if _is_codex_plugin_cache_root(source_root):
         try:
-            active_plugin_roots = resolve_codex_plugin_roots(Path(str(source_spec["resolved_source_root"])))
+            active_plugin_roots = resolve_codex_plugin_roots(source_root)
         except ValueError as exc:
             return [], [_invalid_entry("codex-plugin-inventory", source_spec, "host_plugin_inventory_unavailable", message=str(exc))]
-        if active_plugin_roots is not None:
-            skill_dirs = [path for path in skill_dirs if any(path.resolve().is_relative_to(root.resolve()) for root in active_plugin_roots)]
+        if active_plugin_roots is None:
+            active_plugin_roots = tuple(path for path in sorted(source_root.glob("*/*/*")) if path.is_dir())
+        skill_dirs = []
+        for plugin_root in active_plugin_roots:
+            try:
+                plugin_dirs = [
+                    path.parent.resolve()
+                    for export in resolve_codex_plugin_skill_roots(plugin_root)
+                    for path in (
+                        [export / "SKILL.md"] if (export / "SKILL.md").is_file() else export.glob("*/SKILL.md")
+                    ) if path.is_file()
+                ]
+            except (OSError, UnicodeError, ValueError) as exc:
+                diagnostics.append(_invalid_entry(plugin_root.parent.name, source_spec, "invalid_plugin_exports", path=plugin_root, message=str(exc)))
+                continue
+            skill_dirs.extend(plugin_dirs)
+        skill_dirs = sorted(set(skill_dirs))
         counts: dict[str, int] = {}
         for skill_dir in skill_dirs:
             skill_id = _normalize_skill_id(skill_dir.name)
             counts[skill_id] = counts.get(skill_id, 0) + 1
         ambiguous_plugin_ids = {skill_id for skill_id, count in counts.items() if skill_id and count > 1}
+    else:
+        skill_dirs = _discover_skill_dirs_for_source(source_spec)
 
     for skill_dir in skill_dirs:
         skill_id = skill_dir.name
