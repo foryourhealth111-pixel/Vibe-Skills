@@ -90,8 +90,12 @@ def resolve_codex_plugin_skill_roots(plugin_root: Path) -> tuple[Path, ...]:
         break
     if isinstance(exports, str):
         exports = [exports]
-    if not isinstance(exports, list) or any(not isinstance(value, str) or not value.startswith("./") for value in exports):
-        raise ValueError("Plugin Skill exports must be plugin-relative paths starting with ./")
+    if not isinstance(exports, list) or any(
+        not isinstance(value, str) or not value.startswith("./")
+        or ".." in value.replace("\\", "/").split("/")
+        for value in exports
+    ):
+        raise ValueError("Plugin Skill exports must start with ./ and contain no parent components")
     roots = tuple(dict.fromkeys((root / value).resolve() for value in exports))
     if any(not path.is_relative_to(root) for path in roots):
         raise ValueError("Plugin Skill export escapes its installed plugin")

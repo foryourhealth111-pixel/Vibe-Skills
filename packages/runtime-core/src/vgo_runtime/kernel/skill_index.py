@@ -717,7 +717,9 @@ def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None 
                 plugin_dirs = [
                     path.parent.resolve()
                     for export in resolve_codex_plugin_skill_roots(plugin_root)
-                    for path in export.rglob("SKILL.md") if path.is_file()
+                    for path in (
+                        [export / "SKILL.md"] if (export / "SKILL.md").is_file() else export.glob("*/SKILL.md")
+                    ) if path.is_file()
                 ]
             except (OSError, UnicodeError, ValueError) as exc:
                 diagnostics.append(_invalid_entry(plugin_root.parent.name, source_spec, "invalid_plugin_exports", path=plugin_root, message=str(exc)))

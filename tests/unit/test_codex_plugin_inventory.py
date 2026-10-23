@@ -181,6 +181,7 @@ def test_catalog_respects_plugin_skill_exports(host_inventory, manifest_path: st
         overlay.write_text(json.dumps({"skills": "./examples/"}), encoding="utf-8")
     manifest.write_text(json.dumps(payload), encoding="utf-8")
     _write_plugin_skill(plugin / export, "documents")
+    _write_plugin_skill(plugin / export / "documents/examples", "nested-example")
     _write_plugin_skill(plugin / "examples", "internal-example")
 
     catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
@@ -189,7 +190,10 @@ def test_catalog_respects_plugin_skill_exports(host_inventory, manifest_path: st
     assert catalog["discovery_diagnostics"]["invalid_entries"] == []
 
 
-@pytest.mark.parametrize("manifest_text", ['{"skills":"./../outside"}', '{"skills":null}', '[]', '{'])
+@pytest.mark.parametrize("manifest_text", [
+    '{"skills":"./../outside"}', '{"skills":null}', '[]', '{',
+    json.dumps({"skills": "./skills/.."}), json.dumps({"skills": "./skills\\.."}),
+])
 def test_invalid_plugin_exports_do_not_hide_other_plugins(host_inventory, manifest_text: str) -> None:
     cache, plugin, response, _ = host_inventory
     other = {**plugin, "pluginId": "notes@provider", "name": "notes"}
@@ -204,3 +208,18 @@ def test_invalid_plugin_exports_do_not_hide_other_plugins(host_inventory, manife
 
     assert [entry["skill_id"] for entry in catalog["entries"]] == ["notes"]
     assert [row["reason"] for row in catalog["discovery_diagnostics"]["invalid_entries"]] == ["invalid_plugin_exports"]
+
+
+def test_plugin_skill_exports_accept_skill_root_without_resource_skills(host_inventory) -> None:
+    cache, _, _, _ = host_inventory
+    plugin = cache / "provider/documents/2.0.0"
+    _write_plugin_skill(plugin, "documents")
+    _write_plugin_skill(plugin / "documents/examples", "nested-example")
+    manifest = plugin / ".codex-plugin/plugin.json"
+    manifest.parent.mkdir()
+    manifest.write_text(json.dumps({"skills": "./documents/"}), encoding="utf-8")
+
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+
+    assert [entry["skill_id"] for entry in catalog["entries"] if entry["active"] and entry["enabled"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
