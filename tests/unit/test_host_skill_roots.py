@@ -291,3 +291,21 @@ def test_host_alias_normalization_preserves_required_and_unknown_host_contracts(
         roots = resolve_host_skill_roots(**arguments)
         assert [root.path for root in roots] == [explicit.resolve()]
         assert roots[0].host_id == host_id
+
+
+def test_codex_home_relocates_legacy_skill_and_plugin_roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    agent_root = tmp_path / "home/.agents/skills"
+    codex_home = tmp_path / "custom-codex-state"
+    for home in (codex_home, tmp_path / "home/.codex"):
+        (home / "skills").mkdir(parents=True)
+        (home / "plugins/cache").mkdir(parents=True)
+    monkeypatch.setenv("CODEX_HOME", str(codex_home))
+
+    roots = resolve_host_skill_roots(
+        repo_root=REPO_ROOT, host_id="codex", agent_root=agent_root, workspace_root=None,
+    )
+
+    assert [root.path for root in roots] == [
+        agent_root.resolve(), (codex_home / "skills").resolve(), (codex_home / "plugins/cache").resolve(),
+    ]
+    assert roots[-1].root_key == "codex_plugin_cache"

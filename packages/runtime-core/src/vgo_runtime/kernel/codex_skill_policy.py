@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import ast
-import os
 from pathlib import Path
 
-from .host_skill_roots import _home_from_agent_root
+from .host_skill_roots import resolve_codex_home
 from .skill_manifest import _parse_scalar, _strip_frontmatter_comment
 
 
@@ -128,7 +127,7 @@ def _config_entries(text: str) -> list[dict[str, str]]:
 
 
 def _skill_overrides(agent_root: Path) -> tuple[set[Path], set[Path]]:
-    home = Path(os.environ["CODEX_HOME"]).expanduser() if os.environ.get("CODEX_HOME") else _home_from_agent_root(agent_root) / ".codex"
+    home = resolve_codex_home(agent_root)
     config = home / "config.toml"
     if not config.is_file():
         return set(), set()
