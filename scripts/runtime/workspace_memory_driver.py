@@ -21,6 +21,7 @@ CONTRACTS_SRC = Path(__file__).resolve().parents[2] / "packages" / "contracts" /
 if CONTRACTS_SRC.is_dir() and str(CONTRACTS_SRC) not in sys.path:
     sys.path.insert(0, str(CONTRACTS_SRC))
 
+from vgo_contracts.workspace_memory_identity import workspace_memory_id  # noqa: E402
 from vgo_contracts.live_governance_contract import (  # noqa: E402
     LiveGovernanceContract,
     load_live_governance_contract_file,
@@ -270,10 +271,6 @@ def load_workspace_memory_policy_bundle(repo_root: Path) -> dict[str, Any]:
     return bundle
 
 
-def _normalize_identity_input(value: str) -> str:
-    return value.replace("\\", "/").rstrip("/").lower()
-
-
 def _relative_runtime_contract(
     repo_root: Path,
     policy_bundle: dict[str, Any] | None,
@@ -345,12 +342,10 @@ def ensure_workspace_descriptor(repo_root: Path, policy_bundle: dict[str, Any] |
             ),
             "host_sidecar_root": None,
         }
-    descriptor["workspace_root"] = str(Path(str(descriptor.get("workspace_root") or workspace_root)).resolve())
-    descriptor["workspace_sidecar_root"] = str(Path(str(descriptor.get("workspace_sidecar_root") or sidecar_root)).resolve())
-    descriptor["project_descriptor_path"] = str(Path(str(descriptor.get("project_descriptor_path") or descriptor_path)).resolve())
-    descriptor["default_artifact_root"] = str(
-        Path(str(descriptor.get("default_artifact_root") or descriptor["workspace_sidecar_root"])).resolve()
-    )
+    descriptor["workspace_root"] = str(workspace_root)
+    descriptor["workspace_sidecar_root"] = str(sidecar_root)
+    descriptor["project_descriptor_path"] = str(descriptor_path)
+    descriptor["default_artifact_root"] = str(sidecar_root)
     descriptor["relative_runtime_contract"] = _relative_runtime_contract(
         workspace_root,
         policy_bundle,
@@ -373,13 +368,12 @@ def resolve_plane_path(descriptor: dict[str, Any]) -> Path:
 def workspace_memory_projection(descriptor: dict[str, Any], plane_path: Path) -> dict[str, Any]:
     workspace_root = str(descriptor["workspace_root"])
     identity_root = str(descriptor["project_descriptor_path"])
-    identity_key = _normalize_identity_input(identity_root)
     return {
         "schema_version": 1,
         "workspace_root": workspace_root,
         "workspace_sidecar_root": str(descriptor["workspace_sidecar_root"]),
         "descriptor_path": str(descriptor["project_descriptor_path"]),
-        "workspace_id": f"ws:{hashlib.sha256(identity_key.encode('utf-8')).hexdigest()[:24]}",
+        "workspace_id": workspace_memory_id(identity_root),
         "plane_path": str(plane_path),
     }
 

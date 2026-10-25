@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 
 import pytest
@@ -12,6 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "packages/runtime-core/src"))
 
 from vgo_runtime.kernel import codex_plugins, skill_index
+from vgo_runtime.kernel.host_skill_roots import resolve_host_skill_roots
+
+_RAW_RUN = getattr(subprocess.run, "_vibe_raw_run", subprocess.run)
 
 
 @pytest.fixture
@@ -223,3 +227,64 @@ def test_plugin_skill_exports_accept_skill_root_without_resource_skills(host_inv
 
     assert [entry["skill_id"] for entry in catalog["entries"] if entry["active"] and entry["enabled"]] == ["documents"]
     assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+
+
+def _directory_link(link: Path, target: Path) -> None:
+    if os.name != "nt":
+        link.symlink_to(target, target_is_directory=True)
+        return
+    powershell = shutil.which("pwsh") or shutil.which("powershell")
+    if powershell is None:
+        pytest.skip("PowerShell is required for directory junctions")
+    quote = lambda value: "'" + str(value).replace("'", "''") + "'"
+    _RAW_RUN(
+        [powershell, "-NoProfile", "-Command",
+         "$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction "
+         f"-Path {quote(link)} -Target {quote(target)} | Out-Null"],
+        capture_output=True, check=True, timeout=30,
+    )
+
+
+@pytest.mark.parametrize("target_kind", ["internal_example", "disabled_plugin", "other_version", "descriptor"])
+def test_catalog_excludes_plugin_candidates_outside_their_export(host_inventory, target_kind: str) -> None:
+    cache, plugin, response, _ = host_inventory
+    selected = cache / "provider/documents/2.0.0"
+    _write_plugin_skill(selected / "skills", "documents")
+    if target_kind == "disabled_plugin":
+        target_root = cache / "provider/private/2.0.0/skills"
+        response.stdout = json.dumps({"installed": [plugin, {**plugin, "name": "private", "pluginId": "private@provider", "enabled": False}]})
+    elif target_kind == "other_version":
+        target_root = cache / "provider/documents/1.0.0/skills"
+    else:
+        target_root = selected / "examples"
+    _write_plugin_skill(target_root, "private-report")
+    link = selected / "skills/private-report"
+    target = target_root / "private-report"
+    if target_kind == "descriptor":
+        link.mkdir()
+        try:
+            (link / "SKILL.md").symlink_to(target / "SKILL.md")
+        except OSError as exc:
+            pytest.skip(f"file symlinks unavailable: {exc}")
+    else:
+        _directory_link(link, target)
+    catalog = skill_index.scan_skill_catalog(agent_root=cache.parents[3] / "agent", host_roots=(cache,), host_id="codex")
+    assert [entry["skill_id"] for entry in catalog["entries"]] == ["documents"]
+    assert [row["reason"] for row in catalog["discovery_diagnostics"]["invalid_entries"]] == ["skill_outside_declared_root"]
+
+
+@pytest.mark.parametrize("host_inventory", ["custom-codex-state"], indirect=True)
+@pytest.mark.parametrize("target_name", ["relocated/plugins/cache", "relocated-storage"])
+def test_catalog_discovers_linked_cache_with_configured_host_context(host_inventory, tmp_path: Path, target_name: str) -> None:
+    cache, _, _, calls = host_inventory
+    physical_cache = tmp_path / target_name
+    physical_cache.mkdir(parents=True)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    _directory_link(cache, physical_cache)
+    _write_plugin_skill(physical_cache / "provider/documents/2.0.0/skills", "documents")
+    agent_root = tmp_path / "home/.agents/skills"
+    roots = resolve_host_skill_roots(repo_root=REPO_ROOT, host_id="codex", agent_root=agent_root, workspace_root=None)
+    catalog = skill_index.scan_skill_catalog(agent_root=agent_root, host_roots=tuple(root.path for root in roots), host_id="codex")
+    assert [entry["skill_id"] for entry in catalog["entries"]] == ["documents"]
+    assert catalog["discovery_diagnostics"]["invalid_entries"] == []
+    assert calls[0][1]["env"]["CODEX_HOME"] == str(cache.parent.parent.resolve())

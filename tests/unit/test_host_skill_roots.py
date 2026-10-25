@@ -21,6 +21,7 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.delenv("CODEX_HOME", raising=False)
 
 
 def _write_skill_roots_config(path: Path, roots: list[str]) -> None:

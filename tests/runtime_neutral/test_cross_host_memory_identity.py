@@ -198,6 +198,29 @@ class CrossHostMemoryIdentityTests(unittest.TestCase):
         self.assertNotEqual(identity_a["workspace_id"], identity_b["workspace_id"])
         self.assertNotEqual(identity_a["identity_root"], identity_b["identity_root"])
 
+    def test_workspace_memory_identity_matches_filesystem_case_semantics(self) -> None:
+        from vgo_runtime.workspace_memory import build_workspace_memory_identity
+
+        spec = importlib.util.spec_from_file_location(
+            "workspace_memory_driver_case_identity", REPO_ROOT / "scripts/runtime/workspace_memory_driver.py",
+        )
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tempdir:
+            upper, lower = Path(tempdir) / "Project", Path(tempdir) / "project"
+            upper.mkdir()
+            lower.mkdir(exist_ok=True)
+            identities = []
+            for workspace in (upper, lower):
+                _seed_live_document_contract(workspace)
+                runtime_identity = build_workspace_memory_identity(workspace)
+                descriptor = module.ensure_workspace_descriptor(workspace)
+                projection = module.workspace_memory_projection(descriptor, module.resolve_plane_path(descriptor))
+                self.assertEqual(runtime_identity.workspace_id, projection["workspace_id"])
+                identities.append(runtime_identity.workspace_id)
+            self.assertEqual(upper.samefile(lower), identities[0] == identities[1])
+
     def test_workspace_artifact_projection_keeps_identity_root_stable_across_hosts(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             workspace_root = Path(tempdir) / "workspace"
