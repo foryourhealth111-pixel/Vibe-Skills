@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from hashlib import sha256
 from pathlib import Path
+
+from vgo_contracts.workspace_memory_identity import workspace_memory_id
 
 from .workspace_memory_schema import (
     WORKSPACE_MEMORY_DRIVER_CONTRACT,
     WORKSPACE_MEMORY_IDENTITY_ROOT,
     WORKSPACE_MEMORY_IDENTITY_SCOPE,
 )
-
-
-def _normalize_identity_input(value: str) -> str:
-    return value.replace('\\', '/').rstrip('/').lower()
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,8 +32,7 @@ def build_workspace_memory_identity(
     del host_id
     workspace_root_path = Path(workspace_root).resolve()
     identity_root_path = (workspace_root_path / WORKSPACE_MEMORY_IDENTITY_ROOT).resolve()
-    identity_key = _normalize_identity_input(str(identity_root_path))
-    workspace_id = f"ws:{sha256(identity_key.encode('utf-8')).hexdigest()[:24]}"
+    workspace_id = workspace_memory_id(identity_root_path)
 
     return WorkspaceMemoryIdentity(
         workspace_id=workspace_id,

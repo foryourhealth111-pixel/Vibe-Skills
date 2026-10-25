@@ -20,10 +20,9 @@ def _cache_component(value: object) -> str:
 
 def resolve_codex_plugin_roots(cache_root: Path) -> tuple[Path, ...] | None:
     """Use the host's installed plugin inventory to select exact enabled cache versions."""
-    codex_home = cache_root.resolve().parent.parent
-    configured_home = resolve_codex_home()
+    codex_home = resolve_codex_home()
     # A discovered Skill root cannot nominate a program to execute during scanning.
-    if codex_home != configured_home:
+    if cache_root.resolve() != (codex_home / "plugins/cache").resolve():
         return None
     executable = codex_home / "plugins/.plugin-appserver" / ("codex.exe" if os.name == "nt" else "codex")
     if executable.is_file():

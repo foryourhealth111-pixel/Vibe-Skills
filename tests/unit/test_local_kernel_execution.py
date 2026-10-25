@@ -2081,3 +2081,41 @@ def test_explicit_selection_preserves_root_precedence_and_winner_enablement(
     provenance = result["plan"]["work_units"][0]["selected_skill_provenance"]
     assert provenance["resolved_skill_file"] == str((first / "requested-owner/SKILL.md").resolve())
     assert provenance["source_order"] == 0
+
+
+@pytest.mark.parametrize("replace_fails", [False, True])
+def test_run_state_update_preserves_a_complete_state(tmp_path: Path, monkeypatch, replace_fails: bool) -> None:
+    state_path = tmp_path / "run-state.json"
+    write_run_state(state_path, run_id="synthetic-run", task_id="synthetic-task", state="plan")
+    original_open, original_replace = Path.open, Path.replace
+    observations: list[str] = []
+
+    def observe_reader() -> None:
+        try:
+            observations.append(load_run_state(state_path).state)
+        except ValueError as exc:
+            observations.append(type(exc).__name__)
+
+    def observed_open(candidate, mode="r", *args, **kwargs):
+        stream = original_open(candidate, mode, *args, **kwargs)
+        if candidate == state_path and "w" in mode:
+            observe_reader()
+        return stream
+
+    def observed_replace(candidate, target):
+        if Path(target) == state_path:
+            observe_reader()
+            if replace_fails:
+                raise OSError("simulated replace failure")
+        return original_replace(candidate, target)
+
+    monkeypatch.setattr(Path, "open", observed_open)
+    monkeypatch.setattr(Path, "replace", observed_replace)
+    if replace_fails:
+        with pytest.raises(OSError, match="simulated replace failure"):
+            write_run_state(state_path, run_id="synthetic-run", task_id="synthetic-task", state="execute")
+    else:
+        write_run_state(state_path, run_id="synthetic-run", task_id="synthetic-task", state="execute")
+    assert observations == ["plan"]
+    assert load_run_state(state_path).state == ("plan" if replace_fails else "execute")
+    assert [path for path in tmp_path.iterdir() if path.is_file()] == [state_path]

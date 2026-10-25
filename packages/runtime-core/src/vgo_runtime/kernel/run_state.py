@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
+from ._io import write_json_atomic
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -55,8 +57,7 @@ def write_run_state(
         superseded_work_units=superseded_work_units,
         last_transition=_utc_now(),
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(run_state.model_dump(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_json_atomic(path, run_state.model_dump())
     return run_state
 
 

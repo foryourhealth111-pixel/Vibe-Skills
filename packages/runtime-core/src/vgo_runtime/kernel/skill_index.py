@@ -170,13 +170,10 @@ def _discover_skill_dirs_for_source(source_spec: dict[str, object]) -> list[Path
 
 def _is_codex_plugin_cache_root(path: Path) -> bool:
     resolved = path.resolve()
-    return (
+    return resolved == (resolve_codex_home() / "plugins/cache").resolve() or (
         resolved.name.casefold() == "cache"
         and resolved.parent.name.casefold() == "plugins"
-        and (
-            resolved.parent.parent.name.casefold() == ".codex"
-            or resolved == resolve_codex_home() / "plugins/cache"
-        )
+        and resolved.parent.parent.name.casefold() == ".codex"
     )
 
 
@@ -714,13 +711,26 @@ def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None 
         skill_dirs = []
         for plugin_root in active_plugin_roots:
             try:
-                plugin_dirs = [
-                    path.parent.resolve()
-                    for export in resolve_codex_plugin_skill_roots(plugin_root)
-                    for path in (
+                plugin_dirs = []
+                for export in resolve_codex_plugin_skill_roots(plugin_root):
+                    skill_files = (
                         [export / "SKILL.md"] if (export / "SKILL.md").is_file() else export.glob("*/SKILL.md")
-                    ) if path.is_file()
-                ]
+                    )
+                    for path in skill_files:
+                        if not path.is_file():
+                            continue
+                        skill_dir, skill_file = path.parent.resolve(), path.resolve()
+                        if any(
+                            not candidate.is_relative_to(boundary)
+                            for candidate in (skill_dir, skill_file)
+                            for boundary in (export, plugin_root.resolve())
+                        ):
+                            diagnostics.append(_invalid_entry(
+                                path.parent.name, source_spec, "skill_outside_declared_root",
+                                path=path, message=f"Skill must remain inside plugin export {export}",
+                            ))
+                            continue
+                        plugin_dirs.append(skill_dir)
             except (OSError, UnicodeError, ValueError) as exc:
                 diagnostics.append(_invalid_entry(plugin_root.parent.name, source_spec, "invalid_plugin_exports", path=plugin_root, message=str(exc)))
                 continue

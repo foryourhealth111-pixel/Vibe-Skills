@@ -164,6 +164,51 @@ def run_workspace_memory_common_json(
 
 
 class WorkspaceSharedMemoryPlaneTests(unittest.TestCase):
+    def test_relocated_workspace_keeps_memory_writes_local(self) -> None:
+        for move in (False, True):
+            with self.subTest(move=move), tempfile.TemporaryDirectory() as tempdir:
+                root = Path(tempdir)
+                original = root / "original"
+                relocated = root / "relocated"
+                session = root / "session"
+                original.mkdir()
+                _seed_live_document_contract(original)
+                original_write = run_driver(
+                    WORKSPACE_DRIVER, lane="serena", action="write",
+                    payload={"decisions": [{"summary": "Synthetic fixture: original architecture decision."}]},
+                    repo_root=original, session_root=session, store_path=root / "unused.jsonl",
+                    project_key="relocation-fixture",
+                )
+                original_plane = Path(original_write["store_path"])
+                original_content = original_plane.read_bytes()
+                if move:
+                    original.rename(relocated)
+                else:
+                    shutil.copytree(original, relocated)
+                result = run_driver(
+                    WORKSPACE_DRIVER, lane="serena", action="write",
+                    payload={"decisions": [{"summary": "Synthetic fixture: relocated architecture decision."}]},
+                    repo_root=relocated, session_root=session, store_path=root / "unused.jsonl",
+                    project_key="relocation-fixture",
+                )
+                expected_plane = relocated / ".vibeskills/memory/workspace-memory-plane.jsonl"
+                self.assertEqual("backend_write", result["status"])
+                self.assertEqual(expected_plane.resolve(), Path(result["store_path"]).resolve())
+                descriptor = json.loads((relocated / ".vibeskills/project.json").read_text(encoding="utf-8"))
+                self.assertEqual(str(relocated.resolve()), descriptor["workspace_root"])
+                self.assertEqual(str((relocated / ".vibeskills").resolve()), descriptor["default_artifact_root"])
+                if move:
+                    self.assertFalse(original.exists())
+                else:
+                    self.assertEqual(original_content, original_plane.read_bytes())
+                read = run_driver(
+                    WORKSPACE_DRIVER, lane="serena", action="read",
+                    payload={"task": "relocated architecture decision", "top_k": 5},
+                    repo_root=relocated, session_root=session, store_path=root / "unused.jsonl",
+                    project_key="relocation-fixture",
+                )
+                self.assertTrue(any("relocated architecture decision" in item for item in read["items"]))
+
     def test_compatibility_shell_hard_fails_when_workspace_broker_is_unavailable(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             temp_root = Path(tempdir)
