@@ -134,6 +134,8 @@ def _apply_agent_skill_organization(
         module_id = str(row.get("module_id") or "").strip()
         if not module_id or module_id in modules:
             raise ValueError("agent_skill_organization modules must use unique non-empty module_id values")
+        if "goal" in row and (not isinstance(row["goal"], str) or not row["goal"].strip()):
+            raise ValueError(f"agent_skill_organization module {module_id} goal must be a non-empty string")
         raw_criteria = row.get("acceptance_criteria")
         if not isinstance(raw_criteria, list) or not raw_criteria:
             raise ValueError(f"agent_skill_organization module {module_id} must include acceptance_criteria")
@@ -231,6 +233,7 @@ def _apply_agent_skill_organization(
 
     organized_units: list[WorkUnit] = []
     for unit in plan.work_units:
+        unit = replace(unit, goal=modules[unit.id].get("goal", unit.goal).strip())
         selected = selected_by_module.get(unit.id)
         uncovered = uncovered_by_module.get(unit.id)
         execution_mode = str(modules[unit.id].get("execution_mode") or "").strip()
@@ -548,8 +551,22 @@ def _fingerprint(payload: object) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def _is_continuation_prompt(prompt: str) -> bool:
+    return prompt.strip().rstrip(".!。！").casefold() in {"continue", "resume", "继续", "继续执行"}
+
+
+def _followup_prompts(task_card: TaskCard) -> tuple[str, ...]:
+    return tuple(
+        revision.prompt.strip()
+        for revision in task_card.accepted_revisions
+        if revision.prompt.strip()
+        and revision.prompt.strip() != task_card.initial_goal.strip()
+        and not _is_continuation_prompt(revision.prompt)
+    )
+
+
 def _task_input_sha256(task_card: TaskCard) -> str:
-    # Revision history describes the conversation; effective fields define the work.
+    # Field revisions are represented by their values; free-form instructions also affect the work.
     payload: dict[str, object] = {
         "schema_version": 1,
         "goal": task_card.goal,
@@ -563,6 +580,9 @@ def _task_input_sha256(task_card: TaskCard) -> str:
     if task_card.input_artifacts:
         payload["input_artifacts"] = task_card.input_artifacts
         payload["input_artifact_sha256"] = task_card.input_artifact_sha256
+    followup_prompts = _followup_prompts(task_card)
+    if followup_prompts:
+        payload["followup_prompts"] = followup_prompts
     return _fingerprint(payload)
 
 
@@ -756,8 +776,14 @@ def _build_task_revision(
     current_input_paths = set(current.input_artifacts)
     added_input_artifacts = tuple(path for path in current.input_artifacts if path not in previous_input_paths)
     removed_input_artifacts = tuple(path for path in previous.input_artifacts if path not in current_input_paths)
+    previous_prompt = (_followup_prompts(previous) or (previous.initial_goal,))[-1]
+    new_prompt = (
+        prompt.strip() not in {previous.initial_goal.strip(), previous_prompt.strip()}
+        and not _is_continuation_prompt(prompt)
+    )
     if not any(
         (
+            new_prompt,
             added_deliverables,
             removed_deliverables,
             added_constraints,
@@ -1748,6 +1774,7 @@ def inspect_local_run(
     artifact_resolution_mode = "canonical"
     if (
         projection.legacy_projection_enabled
+        and not (run_root / "task-card.json").is_file()
         and not (run_root / "work-dossier.json").is_file()
         and projection.legacy_run_root.is_dir()
     ):
@@ -1756,6 +1783,7 @@ def inspect_local_run(
         artifact_resolution_mode = "legacy_projection"
     if (
         workspace_root is None
+        and not (run_root / "task-card.json").is_file()
         and not (run_root / "work-dossier.json").is_file()
     ):
         # An older caller may have omitted workspace_root even though the run
@@ -1794,22 +1822,26 @@ def inspect_local_run(
     work_dossier_markdown_path = run_root / "work-dossier.md"
 
     skills_catalog = _load_required_json(skills_catalog_path)
-    work_dossier = _load_required_json(work_dossier_path)
     task_card = _load_required_json(task_card_path)
     plan = _load_required_json(plan_path)
     module_assignments = _load_required_json(module_assignments_path)
-    work_results = _load_required_json(work_results_path)
-    verification = _load_required_json(verification_path)
     run_state = load_run_state(run_state_path)
+    work_dossier = _load_required_json(work_dossier_path) if work_dossier_path.exists() else None
+    verification = _load_required_json(verification_path) if verification_path.exists() else None
 
     work_units = plan.get("work_units", [])
     if not isinstance(work_units, list):
         raise ValueError(f"plan work_units must be a list: {plan_path}")
 
     goal = str(task_card.get("goal") or "")
-    verification_result = str(verification.get("result") or "")
+    verification_result = str(verification.get("result") or "") if verification is not None else None
     current_task_card = _coerce_task_card(task_card)
     current_plan = _coerce_work_plan(plan)
+    # Execution can be interrupted before its first checkpoint or final dossier.
+    work_results = (
+        _load_required_json(work_results_path) if work_results_path.exists()
+        else _execution_checkpoint_payload(current_task_card, current_plan, [])
+    )
     current_results = (
         tuple(_coerce_work_result(item) for item in work_results.get("work_results", []))
         if _checkpoint_matches_current(work_results, current_task_card, current_plan) else ()
@@ -1868,9 +1900,12 @@ def inspect_local_run(
         "accepted_revision_count": run_state.accepted_revision_count,
         "reused_work_unit_count": len(run_state.reused_work_units),
         "superseded_work_unit_count": len(run_state.superseded_work_units),
-        "proof_ready": verification_result == "done" and current_verification["result"] == "done",
-        "primary_artifact": "work_dossier",
-        "primary_artifact_path": str(work_dossier_path),
+        "proof_ready": (
+            work_dossier is not None and run_state.state == "close"
+            and verification_result == "done" and current_verification["result"] == "done"
+        ),
+        "primary_artifact": "work_dossier" if work_dossier is not None else "run_state",
+        "primary_artifact_path": str(work_dossier_path if work_dossier is not None else run_state_path),
         "artifact_resolution": artifact_resolution,
     }
     return {

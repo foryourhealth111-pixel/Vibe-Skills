@@ -1057,3 +1057,122 @@ def test_resume_invalidates_changed_skill_resources(
     artifact = Path(resumed["work_results"]["work_results"][0]["artifact_paths"][0])
     expected = "version-2" if change == "edit" else "removed" if change == "delete" else "version-1"
     assert artifact.read_text(encoding="utf-8") == expected
+
+
+def test_module_goal_revision_changes_execution_and_remains_reusable(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        return _completed_result(unit, work_root, "# Synthetic execution\n" + unit.goal)
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="module-goal-revision", prompt="Produce a report.")
+    first = run_local_kernel_with_agent_choice(**arguments)
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    revised_goal = "Produce a three-line Windows maintenance report."
+    organization["modules"][0]["goal"] = revised_goal
+    revised = run_local_kernel(**arguments, agent_skill_organization=organization)
+
+    assert revised["work_plan"]["work_units"][0]["goal"] == revised_goal
+    assert revised["reused_work_units"] == []
+    artifact = Path(revised["work_results"]["work_results"][0]["artifact_paths"][0])
+    assert revised_goal in artifact.read_text(encoding="utf-8")
+    inspected = inspect_local_run(agent_root=agent_root, run_id=arguments["run_id"])
+    assert inspected["work_plan"]["work_units"][0]["goal"] == revised_goal
+    resumed = run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert resumed["reused_work_units"] == ["wu-1"]
+    assert resumed["verification"]["result"] == "done"
+
+
+@pytest.mark.parametrize("followup_prompt", [
+    "Make the report at most three lines long and include only Windows details.",
+    "请将报告压缩为三行，并且仅保留 Windows 相关信息。",
+])
+def test_free_form_followup_is_retained_invalidates_work_and_can_resume(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, followup_prompt: str,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        instructions = [revision.prompt for revision in task.accepted_revisions]
+        return _completed_result(unit, work_root, "# Synthetic execution\n" + json.dumps(instructions, ensure_ascii=False))
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="free-form-followup")
+    initial_prompt = "Produce a report."
+    first = run_local_kernel_with_agent_choice(**arguments, prompt=initial_prompt)
+    organization = first["agent_skill_organization"]
+    revised = run_local_kernel(**arguments, prompt=followup_prompt, agent_skill_organization=organization)
+
+    assert revised["work_summary"]["accepted_revision_count"] == 1
+    assert revised["task_card"]["accepted_revisions"][0]["prompt"] == followup_prompt
+    assert revised["task_card"]["goal"] == initial_prompt
+    assert revised["reused_work_units"] == []
+    artifact = Path(revised["work_results"]["work_results"][0]["artifact_paths"][0])
+    assert followup_prompt in artifact.read_text(encoding="utf-8")
+    inspected = inspect_local_run(**arguments)
+    assert inspected["task_card"]["accepted_revisions"][0]["prompt"] == followup_prompt
+    assert inspected["summary"]["proof_ready"] is True
+    for continuation in (followup_prompt, "Continue.", "继续", initial_prompt):
+        resumed = run_local_kernel(**arguments, prompt=continuation, agent_skill_organization=organization)
+        assert resumed["work_summary"]["accepted_revision_count"] == 1
+        assert resumed["reused_work_units"] == ["wu-1"]
+        assert resumed["verification"]["result"] == "done"
+
+
+@pytest.mark.parametrize("completed_before_stop", [0, 1, 2], ids=["initial", "partial", "completed"])
+def test_inspection_reads_initial_partial_and_completed_runs_without_writing(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, completed_before_stop: int,
+) -> None:
+    run_roots: list[Path] = []
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        run_roots.append(work_root.parent.parent)
+        if int(unit.id.removeprefix("wu-")) > completed_before_stop:
+            raise OSError("synthetic execution interruption")
+        return _completed_result(unit, work_root, "# Synthetic execution\n" + unit.goal)
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    identity = dict(agent_root=agent_root, workspace_root=agent_root.parent / "workspace", run_id="inspect-progress")
+    arguments = dict(**identity, prompt="Produce a summary and report.", context={"deliverables": ["summary", "report"]})
+    if completed_before_stop < 2:
+        with pytest.raises(OSError, match="synthetic execution interruption"):
+            run_local_kernel_with_agent_choice(**arguments)
+    else:
+        run_local_kernel_with_agent_choice(**arguments)
+    run_root = run_roots[-1]
+    before = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+    inspected = inspect_local_run(**identity)
+
+    assert inspected["summary"]["completed_work_unit_count"] == completed_before_stop
+    assert len(inspected["work_results"]["work_results"]) == completed_before_stop
+    assert inspected["summary"]["proof_ready"] is (completed_before_stop == 2)
+    if completed_before_stop < 2:
+        assert inspected["verification"] is None
+        assert inspected["work_dossier"] is None
+        assert inspected["summary"]["recorded_verification_result"] is None
+        assert inspected["summary"]["primary_artifact"] == "run_state"
+    else:
+        assert inspected["summary"]["verification_result"] == "done"
+        assert inspected["summary"]["primary_artifact"] == "work_dossier"
+    assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+
+def test_followup_can_return_to_an_earlier_instruction(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        current = task.accepted_revisions[-1].prompt if task.accepted_revisions else task.goal
+        return _completed_result(unit, work_root, "# Synthetic execution\n" + current)
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    arguments = dict(agent_root=agent_root, run_id="followup-return")
+    first = run_local_kernel_with_agent_choice(**arguments, prompt="Produce a report.")
+    for sequence, followup_prompt in enumerate(("Keep it to three lines.", "Keep it to five lines.", "Keep it to three lines."), 1):
+        revised = run_local_kernel(
+            **arguments, prompt=followup_prompt,
+            agent_skill_organization=first["agent_skill_organization"],
+        )
+        assert revised["work_summary"]["accepted_revision_count"] == sequence
+        assert revised["reused_work_units"] == []
+        artifact = Path(revised["work_results"]["work_results"][0]["artifact_paths"][0])
+        assert artifact.read_text(encoding="utf-8").endswith(followup_prompt)

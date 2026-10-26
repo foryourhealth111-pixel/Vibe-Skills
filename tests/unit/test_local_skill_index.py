@@ -704,3 +704,35 @@ def test_catalog_metadata_and_identity_use_the_same_snapshot_during_file_changes
     assert second["skills"][0]["content_sha256"] == hashlib.sha256(changed_bytes).hexdigest()
     assert second["skills"][0]["explicit_only"] is True
     assert second["skill_cache"]["cards"][0]["refresh_reason"] == "content_changed"
+
+
+@pytest.mark.parametrize("kind", ["catalog", "index"])
+def test_shared_skill_snapshot_failed_publication_preserves_previous_and_retries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str,
+) -> None:
+    writer = skill_index.write_skill_catalog if kind == "catalog" else skill_index.write_skill_index
+    agent_root = tmp_path / "agent-root"
+    path = writer(agent_root, {"synthetic_fixture": True, "generation": 1})
+    previous = path.read_bytes()
+    original_replace = Path.replace
+
+    def fail_commit(source: Path, destination: Path) -> Path:
+        if destination == path:
+            assert json.loads(source.read_text(encoding="utf-8"))["generation"] == 2
+            assert path.read_bytes() == previous
+            raise OSError("simulated snapshot commit failure")
+        return original_replace(source, destination)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "replace", fail_commit)
+        with pytest.raises(OSError, match="simulated snapshot commit failure"):
+            writer(agent_root, {"synthetic_fixture": True, "generation": 2})
+
+    assert path.read_bytes() == previous
+    assert set(path.parent.iterdir()) == {path}
+    writer(agent_root, {"synthetic_fixture": True, "generation": 2})
+    payload = (
+        skill_index.load_skill_index(agent_root)
+        if kind == "index" else json.loads(path.read_text(encoding="utf-8"))
+    )
+    assert payload["generation"] == 2

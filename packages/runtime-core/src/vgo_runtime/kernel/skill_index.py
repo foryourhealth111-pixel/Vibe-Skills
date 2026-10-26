@@ -12,6 +12,7 @@ from typing import Any
 
 from vgo_contracts.adapter_registry_support import load_adapter_registry, normalize_adapter_host_id
 
+from ._io import write_json_atomic
 from .capability_bridge import SKILL_INDEX_CAPABILITY_HINTS
 from .codex_plugins import resolve_codex_plugin_roots, resolve_codex_plugin_skill_roots
 from .codex_skill_policy import apply_codex_skill_policy
@@ -936,15 +937,13 @@ def build_skill_index(agent_root: Path, *, host_roots: tuple[Path, ...] = (), ho
 def write_skill_catalog(agent_root: Path, payload: dict[str, object]) -> Path:
     vibe_root = _ensure_runtime_dirs(agent_root)
     catalog_path = vibe_root / "generated" / "skills-catalog.json"
-    catalog_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return catalog_path
+    return write_json_atomic(catalog_path, payload)
 
 
 def write_skill_index(agent_root: Path, payload: dict[str, object]) -> Path:
     vibe_root = _ensure_runtime_dirs(agent_root)
     index_path = vibe_root / "generated" / "skills-index.json"
-    index_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return index_path
+    return write_json_atomic(index_path, payload)
 
 
 def load_skill_index(agent_root: Path) -> dict[str, object]:
