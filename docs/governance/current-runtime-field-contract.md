@@ -213,6 +213,28 @@ completion. Unchanged content remains reusable even when filesystem timestamps
 change. Inspection reports current verification separately from the recorded
 verification snapshot.
 
+A new free-form follow-up is retained in TaskRevision even when no structured
+field changes. Ordered follow-up instructions participate in execution identity.
+Repeating the initial request or latest follow-up, or sending the bare commands
+`continue`, `resume`, `继续`, or `继续执行` with optional trailing periods or
+exclamation marks preserves that identity. Returning to an earlier follow-up
+after a different instruction creates a new revision. The original goal stays unchanged.
+Supplied module goals must be non-empty strings and are projected into WorkUnit;
+changed module goals invalidate completed-result reuse.
+
+Inspection also accepts an initial or partial execution checkpoint. Before final
+artifacts exist, `verification` and `work_dossier` are null, the recorded verdict
+is null, and the primary artifact is the run state. A missing first checkpoint
+is represented by an empty result list. Stale checkpoints are also exposed as
+empty current checkpoints. Dossiers and recorded verification are exposed only
+when the dossier's task and plan match the current execution identity; current
+preview dossiers remain available. Existing malformed files remain errors.
+Inspection does not write artifacts, and proof readiness requires the closed
+state, a dossier, and both recorded and current verification to be done.
+
+Shared skill catalog and index publication uses atomic replacement. A failed
+publication preserves the previous readable snapshot and remains retryable.
+
 Completed-result reuse and final verification share readiness checks for final
 artifacts, current output hashes, required execution receipts, Skill bindings,
 proof references, and declared verification targets. Missing evidence makes a
