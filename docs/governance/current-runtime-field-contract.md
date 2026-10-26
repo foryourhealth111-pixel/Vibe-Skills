@@ -225,7 +225,10 @@ changed module goals invalidate completed-result reuse.
 Inspection also accepts an initial or partial execution checkpoint. Before final
 artifacts exist, `verification` and `work_dossier` are null, the recorded verdict
 is null, and the primary artifact is the run state. A missing first checkpoint
-is represented by an empty result list. Existing malformed files remain errors.
+is represented by an empty result list. Stale checkpoints are also exposed as
+empty current checkpoints. Dossiers and recorded verification are exposed only
+when the dossier's task and plan match the current execution identity; current
+preview dossiers remain available. Existing malformed files remain errors.
 Inspection does not write artifacts, and proof readiness requires the closed
 state, a dossier, and both recorded and current verification to be done.
 

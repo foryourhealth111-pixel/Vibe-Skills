@@ -116,6 +116,7 @@ def _apply_agent_skill_organization(
     candidates: tuple[object, ...],
     organization: dict[str, object],
 ) -> WorkPlan:
+    """Validate and project the Agent's module goals, criteria, and Skill bindings."""
     if organization.get("schema_version") != "agent_skill_organization_v1":
         raise ValueError("agent_skill_organization.schema_version must be agent_skill_organization_v1")
     if organization.get("derived_by") != "agent":
@@ -547,15 +548,18 @@ def _completed_result_artifacts_are_current(result: WorkUnitResult, work_unit: W
 
 
 def _fingerprint(payload: object) -> str:
+    """Hash a deterministic JSON representation of the supplied payload."""
     content = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
 def _is_continuation_prompt(prompt: str) -> bool:
+    """Recognize continuation commands with trailing periods or exclamation marks."""
     return prompt.strip().rstrip(".!。！").casefold() in {"continue", "resume", "继续", "继续执行"}
 
 
 def _followup_prompts(task_card: TaskCard) -> tuple[str, ...]:
+    """Return ordered non-continuation follow-ups that affect execution identity."""
     return tuple(
         revision.prompt.strip()
         for revision in task_card.accepted_revisions
@@ -566,7 +570,7 @@ def _followup_prompts(task_card: TaskCard) -> tuple[str, ...]:
 
 
 def _task_input_sha256(task_card: TaskCard) -> str:
-    # Field revisions are represented by their values; free-form instructions also affect the work.
+    """Hash effective task fields, input snapshots, and free-form instructions."""
     payload: dict[str, object] = {
         "schema_version": 1,
         "goal": task_card.goal,
@@ -762,6 +766,7 @@ def _build_task_revision(
     prompt: str,
     revision_mode: str,
 ) -> TaskRevision | None:
+    """Record changed task fields or a new instruction as an accepted revision."""
     added_deliverables = _ordered_difference(current.deliverables, previous.deliverables)
     removed_deliverables = _ordered_difference(previous.deliverables, current.deliverables)
     added_constraints = _ordered_difference(current.constraints, previous.constraints)
@@ -1758,6 +1763,7 @@ def inspect_local_run(
     host_id: str | None = None,
     workspace_root: Path | None = None,
 ) -> dict[str, object]:
+    """Inspect current run evidence without modifying recorded artifacts."""
     resolved_agent_root = agent_root.resolve()
     resolved_run_id = str(run_id).strip()
     if not resolved_run_id:
@@ -1834,7 +1840,6 @@ def inspect_local_run(
         raise ValueError(f"plan work_units must be a list: {plan_path}")
 
     goal = str(task_card.get("goal") or "")
-    verification_result = str(verification.get("result") or "") if verification is not None else None
     current_task_card = _coerce_task_card(task_card)
     current_plan = _coerce_work_plan(plan)
     # Execution can be interrupted before its first checkpoint or final dossier.
@@ -1842,10 +1847,17 @@ def inspect_local_run(
         _load_required_json(work_results_path) if work_results_path.exists()
         else _execution_checkpoint_payload(current_task_card, current_plan, [])
     )
-    current_results = (
-        tuple(_coerce_work_result(item) for item in work_results.get("work_results", []))
-        if _checkpoint_matches_current(work_results, current_task_card, current_plan) else ()
-    )
+    if not _checkpoint_matches_current(work_results, current_task_card, current_plan):
+        work_results = _execution_checkpoint_payload(current_task_card, current_plan, [])
+    # A new checkpoint can coexist with final artifacts from the previous revision.
+    if work_dossier is None or (
+        _task_input_sha256(_coerce_task_card(work_dossier["task_card"])) != _task_input_sha256(current_task_card)
+        or _plan_execution_identity(_coerce_work_plan(work_dossier["work_plan"])) != _plan_execution_identity(current_plan)
+    ):
+        work_dossier = None
+        verification = None
+    verification_result = str(verification.get("result") or "") if verification is not None else None
+    current_results = tuple(_coerce_work_result(item) for item in work_results.get("work_results", []))
     current_verification = verify_run(current_task_card, current_plan, current_results).model_dump()
     verification_checked_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     host_context = _inspect_host_context(

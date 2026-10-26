@@ -935,18 +935,21 @@ def build_skill_index(agent_root: Path, *, host_roots: tuple[Path, ...] = (), ho
 
 
 def write_skill_catalog(agent_root: Path, payload: dict[str, object]) -> Path:
+    """Publish the shared catalog atomically, preserving its snapshot on failure."""
     vibe_root = _ensure_runtime_dirs(agent_root)
     catalog_path = vibe_root / "generated" / "skills-catalog.json"
     return write_json_atomic(catalog_path, payload)
 
 
 def write_skill_index(agent_root: Path, payload: dict[str, object]) -> Path:
+    """Publish the shared index atomically, preserving its snapshot on failure."""
     vibe_root = _ensure_runtime_dirs(agent_root)
     index_path = vibe_root / "generated" / "skills-index.json"
     return write_json_atomic(index_path, payload)
 
 
 def load_skill_index(agent_root: Path) -> dict[str, object]:
+    """Read the published UTF-8 skill index snapshot."""
     index_path = _vibe_root(agent_root) / "generated" / "skills-index.json"
     return json.loads(index_path.read_text(encoding="utf-8"))
 

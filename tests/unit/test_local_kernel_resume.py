@@ -345,9 +345,11 @@ def test_inspect_checks_current_deliveries_and_preserves_verification_snapshot(
 def test_plan_only_preserves_identity_bound_completed_execution(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch, preview_kind: str,
 ) -> None:
+    """Preserve execution evidence during previews and inspect current identities."""
     calls: list[str] = []
 
     def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Create a deterministic completed report for preview and reuse checks."""
         calls.append(unit.id)
         return _completed_result(unit, work_root, "# Finished report\n")
 
@@ -368,10 +370,13 @@ def test_plan_only_preserves_identity_bound_completed_execution(
         agent_skill_organization=None if preview_kind == "unbound" else organization,
     )
     assert json.loads(ledger.read_text(encoding="utf-8")) == before
+    inspected = inspect_local_run(agent_root=agent_root, run_id="preview-completed")
+    assert inspected["work_dossier"] == json.loads(json.dumps(preview["work_dossier"]))
+    assert inspected["verification"] == json.loads(json.dumps(preview["verification"]))
     if preview_kind in {"input", "acceptance_criteria", "unbound"}:
         assert preview["verification"]["result"] != "done"
-        inspected = inspect_local_run(agent_root=agent_root, run_id="preview-completed")
         assert inspected["current_verification"]["result"] != "done"
+        assert inspected["work_results"]["work_results"] == []
     resumed = run_local_kernel(**arguments, context=context, agent_skill_organization=organization)
     assert resumed["verification"]["result"] == "done"
     changed = preview_kind in {"input", "acceptance_criteria"}
@@ -1025,6 +1030,7 @@ def test_legacy_task_revisions_without_context_deltas_remain_readable(agent_root
 def test_resume_invalidates_changed_skill_resources(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch, change: str,
 ) -> None:
+    """Invalidate changed Skill resources while ignoring generated cache files."""
     skill_root = agent_root / "vibe/skills/local/write-report"
     resource = skill_root / "scripts/template.txt"
     resource.parent.mkdir()
@@ -1062,7 +1068,9 @@ def test_resume_invalidates_changed_skill_resources(
 def test_module_goal_revision_changes_execution_and_remains_reusable(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Rebuild a revised module goal and reuse its subsequent unchanged execution."""
     def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Expose the approved module goal in a synthetic execution artifact."""
         return _completed_result(unit, work_root, "# Synthetic execution\n" + unit.goal)
 
     monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
@@ -1091,7 +1099,9 @@ def test_module_goal_revision_changes_execution_and_remains_reusable(
 def test_free_form_followup_is_retained_invalidates_work_and_can_resume(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch, followup_prompt: str,
 ) -> None:
+    """Retain follow-ups and reuse repeated instructions or continuation requests."""
     def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Expose accepted instructions in a synthetic execution artifact."""
         instructions = [revision.prompt for revision in task.accepted_revisions]
         return _completed_result(unit, work_root, "# Synthetic execution\n" + json.dumps(instructions, ensure_ascii=False))
 
@@ -1122,9 +1132,11 @@ def test_free_form_followup_is_retained_invalidates_work_and_can_resume(
 def test_inspection_reads_initial_partial_and_completed_runs_without_writing(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch, completed_before_stop: int,
 ) -> None:
+    """Inspect each completion stage without mutating the recorded run evidence."""
     run_roots: list[Path] = []
 
     def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Interrupt synthetic execution after the requested number of completions."""
         run_roots.append(work_root.parent.parent)
         if int(unit.id.removeprefix("wu-")) > completed_before_stop:
             raise OSError("synthetic execution interruption")
@@ -1160,7 +1172,9 @@ def test_inspection_reads_initial_partial_and_completed_runs_without_writing(
 def test_followup_can_return_to_an_earlier_instruction(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Treat a return to an earlier instruction as a new accepted revision."""
     def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Expose the latest accepted instruction in a synthetic artifact."""
         current = task.accepted_revisions[-1].prompt if task.accepted_revisions else task.goal
         return _completed_result(unit, work_root, "# Synthetic execution\n" + current)
 
@@ -1176,3 +1190,57 @@ def test_followup_can_return_to_an_earlier_instruction(
         assert revised["reused_work_units"] == []
         artifact = Path(revised["work_results"]["work_results"][0]["artifact_paths"][0])
         assert artifact.read_text(encoding="utf-8").endswith(followup_prompt)
+
+
+@pytest.mark.parametrize("revision_kind", ["followup", "plan"])
+@pytest.mark.parametrize("completed_before_stop", [0, 1], ids=["initial", "partial"])
+def test_inspection_excludes_previous_revision_artifacts(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, revision_kind: str,
+    completed_before_stop: int,
+) -> None:
+    """Inspect interrupted revisions without publishing prior execution evidence."""
+    completion_limit = 2
+
+    def execute(agent: Path, task: TaskCard, unit: WorkUnit, *, work_root: Path) -> WorkUnitResult:
+        """Complete synthetic units until the selected interruption boundary."""
+        if int(unit.id.removeprefix("wu-")) > completion_limit:
+            raise OSError("synthetic revision interruption")
+        return _completed_result(unit, work_root, "# Synthetic revision\n" + unit.goal)
+
+    monkeypatch.setattr("vgo_runtime.kernel.loop.execute_work_unit", execute)
+    identity = dict(agent_root=agent_root, workspace_root=agent_root.parent / "workspace", run_id="inspect-revision")
+    arguments = dict(**identity, prompt="Produce a summary and report.", context={"deliverables": ["summary", "report"]})
+    first = run_local_kernel_with_agent_choice(**arguments)
+    assert first["verification"]["result"] == "done"
+    organization = json.loads(json.dumps(first["agent_skill_organization"]))
+    if revision_kind == "followup":
+        arguments["prompt"] = "Include an audited appendix in each deliverable."
+    else:
+        for module in organization["modules"]:
+            module["acceptance_criteria"][0]["description"] = "Include an audited appendix."
+    completion_limit = completed_before_stop
+    with pytest.raises(OSError, match="synthetic revision interruption"):
+        run_local_kernel(**arguments, agent_skill_organization=organization)
+    run_root = Path(first["artifacts"]["work_results"]).parent
+    before = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+    inspected = inspect_local_run(**identity)
+
+    assert len(inspected["work_results"]["work_results"]) == completed_before_stop
+    assert json.loads(json.dumps(inspected["work_results"]["work_plan"])) == inspected["plan"]
+    assert inspected["summary"]["completed_work_unit_count"] == completed_before_stop
+    assert inspected["work_dossier"] is None
+    assert inspected["verification"] is None
+    assert inspected["summary"]["recorded_verification_result"] is None
+    assert inspected["summary"]["verification_result"] != "done"
+    assert inspected["summary"]["proof_ready"] is False
+    assert inspected["summary"]["primary_artifact"] == "run_state"
+    assert inspected["summary"]["primary_artifact_path"] == inspected["artifacts"]["run_state"]
+    assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+    completion_limit = 2
+    resumed = run_local_kernel(**arguments, agent_skill_organization=organization)
+    assert resumed["verification"]["result"] == "done"
+    completed = inspect_local_run(**identity)
+    assert completed["summary"]["proof_ready"] is True
+    assert completed["summary"]["primary_artifact"] == "work_dossier"

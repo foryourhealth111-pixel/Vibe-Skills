@@ -674,6 +674,7 @@ def test_skill_catalog_reads_each_source_once_on_cold_and_warm_scan(
 def test_catalog_metadata_and_identity_use_the_same_snapshot_during_file_changes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Bind metadata and content identity to the same captured Skill bytes."""
     agent = tmp_path / "agent-root"
     skill = _write_skill(
         agent / "vibe/skills/local/report-a",
@@ -710,6 +711,7 @@ def test_catalog_metadata_and_identity_use_the_same_snapshot_during_file_changes
 def test_shared_skill_snapshot_failed_publication_preserves_previous_and_retries(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str,
 ) -> None:
+    """Preserve published bytes on replacement failure and allow a clean retry."""
     writer = skill_index.write_skill_catalog if kind == "catalog" else skill_index.write_skill_index
     agent_root = tmp_path / "agent-root"
     path = writer(agent_root, {"synthetic_fixture": True, "generation": 1})
@@ -717,6 +719,7 @@ def test_shared_skill_snapshot_failed_publication_preserves_previous_and_retries
     original_replace = Path.replace
 
     def fail_commit(source: Path, destination: Path) -> Path:
+        """Check staged and published bytes before failing the synthetic replacement."""
         if destination == path:
             assert json.loads(source.read_text(encoding="utf-8"))["generation"] == 2
             assert path.read_bytes() == previous
