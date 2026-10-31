@@ -2640,3 +2640,33 @@ def test_lifecycle_rejects_copied_install_without_changing_either_location(
     assert _file_snapshot(original_root) == original_before
     assert _file_snapshot(copied_root) == copied_before
     assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+
+
+@pytest.mark.parametrize("operation", ["install", "update"])
+@pytest.mark.parametrize("missing_kind", ["absent", "directory"])
+def test_install_rejects_missing_declared_runtime_file_before_mutation(
+    tmp_path: Path, operation: str, missing_kind: str,
+) -> None:
+    """Reject incomplete packages while preserving any accepted installation."""
+    repo_root = tmp_path / "repo"
+    skills_dir = tmp_path / "skills"
+    entry = repo_root / "scripts/router/entry.py"
+    _write(repo_root / "SKILL.md", "# vibe\n")
+    _write(entry, "print('ready')\n")
+    _seed_runtime_contract(repo_root, script_files=("scripts/router/entry.py",))
+    if operation == "update":
+        install_vibe_skill(repo_root=repo_root, skills_dir=skills_dir, installed_at_utc="2026-10-31T01:00:00Z")
+    before = _file_snapshot(skills_dir / 'vibe')
+    entry.unlink()
+    if missing_kind == "directory":
+        entry.mkdir()
+    action = update_vibe_skill if operation == "update" else install_vibe_skill
+
+    with pytest.raises(RuntimeError, match="Package source file is missing:.*entry[.]py"):
+        action(repo_root=repo_root, skills_dir=skills_dir, installed_at_utc="2026-10-31T02:00:00Z")
+
+    assert _file_snapshot(skills_dir / 'vibe') == before
+    if operation == "update":
+        assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+    else:
+        assert not (skills_dir / "vibe").exists()

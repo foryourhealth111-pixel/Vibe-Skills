@@ -495,6 +495,49 @@ class RuntimeDeliveryAcceptanceTests(unittest.TestCase):
             report["truth_results"]["module_acceptance_truth"]["notes"],
         )
 
+    def test_required_prerequisite_must_satisfy_each_approved_criterion(self) -> None:
+        """Apply criterion completeness to the required dependency closure."""
+        for required_dependency in (False, True):
+            with self.subTest(required_dependency=required_dependency):
+                modules = [
+                    {"module_id": name, "required": required_dependency if name == "prepare" else True,
+                     "state": "completed", "criterion_results": [{"criterion_id": name + "-result", "state": "passing"}]}
+                    for name in ("prepare", "delivery")
+                ]
+                units = [
+                    {"unit_id": name + "--owner", "module_id": name, "skill_id": None, "role": "owner",
+                     "state": "completed", "result_summary": "Completed " + name,
+                     "evidence_paths": [], "verification_results": []}
+                    for name in ("prepare", "delivery")
+                ]
+                plan = {
+                    "schema_version": "module_work_plan_v1", "source_run_id": "pytest-runtime-delivery-run",
+                    "work_units": units,
+                    "modules": [
+                        {"module_id": module["module_id"], "required": module["required"],
+                         "depends_on": ["prepare"] if module["module_id"] == "delivery" else [],
+                         "acceptance_criteria": [{"criterion_id": module["module_id"] + "-result",
+                                                  "description": "Verify the planned result.", "verification_mode": "automated"}]}
+                        for module in modules
+                    ],
+                }
+                session = self._build_session(
+                    module_work_plan=plan,
+                    module_execution={"schema_version": "module_execution_v1", "source_run_id": "pytest-runtime-delivery-run",
+                                      "units": units, "modules": modules},
+                )
+                self.assertTrue(evaluate(REPO_ROOT, session)["summary"]["completion_language_allowed"])
+                result_path = session / "module-execution.json"
+                result = json.loads(result_path.read_text(encoding="utf-8"))
+                result["modules"][0]["criterion_results"] = []
+                write_json(result_path, result)
+
+                report = evaluate(REPO_ROOT, session)
+
+                self.assertFalse(report["summary"]["completion_language_allowed"])
+                self.assertIn("prepare:prepare-result", report["truth_results"]["module_acceptance_truth"]["notes"])
+
+
     def test_optional_module_failure_does_not_block_required_module_acceptance(self) -> None:
         session_root = self._build_session(
             module_execution={

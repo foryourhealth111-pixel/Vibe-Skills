@@ -197,12 +197,10 @@ def resolve_runtime_artifact_projection(
 
 
 def _write_json(path: Path, payload: object) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return path
+    """Publish JSON atomically, deferring kernel imports to avoid an entry cycle."""
+    from .kernel._io import write_json_atomic
+
+    return write_json_atomic(path, payload)
 
 
 def _write_primary_document(
@@ -213,6 +211,7 @@ def _write_primary_document(
     schema_version: int,
     payload: dict[str, Any],
 ) -> Path:
+    """Render the declared human-readable view of one run artifact."""
     payload_text = json.dumps(payload, ensure_ascii=False, indent=2)
     fence = "```"
     while fence in payload_text:

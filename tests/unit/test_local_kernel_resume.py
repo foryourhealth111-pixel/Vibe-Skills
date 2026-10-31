@@ -1244,3 +1244,52 @@ def test_inspection_excludes_previous_revision_artifacts(
     completed = inspect_local_run(**identity)
     assert completed["summary"]["proof_ready"] is True
     assert completed["summary"]["primary_artifact"] == "work_dossier"
+
+
+@pytest.mark.parametrize("boundary", ["task", "first_checkpoint", "last_checkpoint"])
+def test_inspection_reconciles_progress_at_publication_boundaries(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, boundary: str,
+) -> None:
+    """Report the current task and checkpoint when a state write was interrupted."""
+    import vgo_runtime.kernel.loop as loop
+
+    identity = dict(agent_root=agent_root, workspace_root=agent_root.parent / "workspace", run_id="inspect-boundary")
+    arguments = dict(**identity, prompt="Produce a summary and report.", context={"deliverables": ["summary", "report"]})
+    monkeypatch.setattr(loop, "execute_work_unit", lambda agent, task, unit, *, work_root: _completed_result(unit, work_root, unit.goal))
+    first = run_local_kernel_with_agent_choice(**arguments)
+    assert first["verification"]["result"] == "done"
+    run_root = Path(first["artifact_root"])
+    original_write, original_state = loop._write_json, loop.write_run_state
+
+    def write(path: Path, payload: object) -> Path:
+        """Stop after the final result checkpoint, before the final plan write."""
+        if boundary == "last_checkpoint" and path == run_root / "plan.json" and json.loads((run_root / "work-results.json").read_text(encoding="utf-8"))["task_input_sha256"] != first["work_results"]["task_input_sha256"]:
+            raise OSError("synthetic publication interruption")
+        return original_write(path, payload)
+
+    def state(path: Path, **kwargs: object):
+        """Stop before the state advances to the next published task or unit."""
+        if (boundary == "task" and kwargs["state"] == "find_skills") or (
+            boundary == "first_checkpoint" and kwargs.get("active_work_unit") == "wu-2"
+        ):
+            raise OSError("synthetic publication interruption")
+        return original_state(path, **kwargs)
+
+    monkeypatch.setattr(loop, "_write_json", write)
+    monkeypatch.setattr(loop, "write_run_state", state)
+    with pytest.raises(OSError, match="synthetic publication interruption"):
+        run_local_kernel(**{**arguments, "prompt": "Include an audited appendix in both deliverables."},
+                         agent_skill_organization=first["agent_skill_organization"])
+    before = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+    inspected = inspect_local_run(**identity)
+
+    expected_count = {"task": 0, "first_checkpoint": 1, "last_checkpoint": 2}[boundary]
+    assert len(inspected["work_results"]["work_results"]) == expected_count
+    assert inspected["summary"]["completed_work_unit_count"] == expected_count
+    assert inspected["summary"]["failed_work_unit_count"] == 0
+    assert inspected["summary"]["accepted_revision_count"] == 1
+    assert inspected["summary"]["state"] != "close"
+    assert inspected["summary"]["proof_ready"] is False
+    assert inspected["work_dossier"] is None
+    assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
