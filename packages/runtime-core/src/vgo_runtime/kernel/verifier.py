@@ -27,6 +27,7 @@ def _result_attr(work_result: Any, name: str, default: Any) -> Any:
 def completed_result_readiness_notes(
     work_result: Any, *, work_unit: WorkUnit | None = None,
 ) -> tuple[str, ...]:
+    """Explain missing or stale evidence for the approved work unit."""
     unit_id = work_unit.id if work_unit is not None else str(_result_attr(work_result, "work_unit_id", ""))
     notes: list[str] = []
     if not is_final_completed_result(work_result):
@@ -74,12 +75,18 @@ def completed_result_readiness_notes(
     return tuple(notes)
 
 
+def declared_inputs_are_current(task_card: TaskCard) -> bool:
+    """Match declared inputs to the digests captured for the current execution."""
+    return not task_card.input_artifacts or (
+        len(task_card.input_artifact_sha256) == len(task_card.input_artifacts)
+        and all(task_card.input_artifact_sha256)
+        and task_card.input_artifact_sha256 == artifact_sha256_for_paths(task_card.input_artifacts)
+    )
+
+
 def verify_run(task_card: TaskCard, plan: WorkPlan, work_results: tuple[Any, ...]) -> VerificationResult:
-    if task_card.input_artifacts and (
-        len(task_card.input_artifact_sha256) != len(task_card.input_artifacts)
-        or any(not digest for digest in task_card.input_artifact_sha256)
-        or task_card.input_artifact_sha256 != artifact_sha256_for_paths(task_card.input_artifacts)
-    ):
+    """Verify current task inputs and every approved work unit result."""
+    if not declared_inputs_are_current(task_card):
         return VerificationResult(
             result="revise_execution",
             notes=("Declared input artifacts changed or are missing since execution started",),

@@ -61,8 +61,7 @@
         "adapters",
         "docs",
         "protocols",
-        "templates",
-        "mcp"
+        "templates"
       ]
     },
     "generated_compatibility": {
@@ -112,8 +111,7 @@
           "adapters",
           "docs",
           "protocols",
-          "templates",
-          "mcp"
+          "templates"
         ]
       },
       "notes": {

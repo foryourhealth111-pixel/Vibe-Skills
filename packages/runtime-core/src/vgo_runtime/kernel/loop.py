@@ -23,7 +23,7 @@ from .planner import build_work_plan
 from .run_state import load_run_state, write_run_state
 from .skill_index import build_skill_catalog, build_skill_index_from_catalog, write_skill_catalog, write_skill_index
 from .task_card import TaskCard, TaskRevision, build_task_card, normalize_input_artifacts
-from .verifier import completed_result_readiness_notes, verify_run
+from .verifier import completed_result_readiness_notes, declared_inputs_are_current, verify_run
 from .module_assignments import ModuleAssignments, build_module_assignments
 from .work_plan import AcceptanceCriterion, SkillProvenance, WorkPlan, WorkUnit
 from vgo_runtime.artifact_contract import (
@@ -1884,10 +1884,11 @@ def inspect_local_run(
             projection,
             path=inspected_manifest_path,
         )
+    inputs_are_current = declared_inputs_are_current(current_task_card)
     approved_units = {unit.id: unit for unit in current_plan.work_units}
     completed_ids = {
         result.work_unit_id for result in current_results
-        if result.work_unit_id in approved_units
+        if inputs_are_current and result.work_unit_id in approved_units
         and _completed_result_artifacts_are_current(result, approved_units[result.work_unit_id])
     }
     revision_count = len(current_task_card.accepted_revisions)

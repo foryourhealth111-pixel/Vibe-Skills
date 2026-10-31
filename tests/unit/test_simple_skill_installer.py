@@ -223,6 +223,8 @@ def _seed_runtime_contract(
     script_files: tuple[str, ...] = (),
     package_dirs: tuple[str, ...] = (),
 ) -> None:
+    """Seed a minimal source contract with its declared protocol directory."""
+    (repo_root / "protocols").mkdir(parents=True, exist_ok=True)
     _write(
         repo_root / "config" / "version-governance.json",
         json.dumps(
@@ -2666,6 +2668,40 @@ def test_install_rejects_missing_declared_runtime_file_before_mutation(
         action(repo_root=repo_root, skills_dir=skills_dir, installed_at_utc="2026-10-31T02:00:00Z")
 
     assert _file_snapshot(skills_dir / 'vibe') == before
+    if operation == "update":
+        assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
+    else:
+        assert not (skills_dir / "vibe").exists()
+
+
+@pytest.mark.parametrize("operation", ["install", "update"])
+@pytest.mark.parametrize("source_kind", ["missing", "file"])
+@pytest.mark.parametrize("declaration", ["runtime_payload", "manifest"])
+def test_install_rejects_invalid_declared_runtime_directory_before_mutation(
+    tmp_path: Path, operation: str, source_kind: str, declaration: str,
+) -> None:
+    """Reject incomplete declared roots while preserving the installation and receipt."""
+    repo_root, skills_dir = tmp_path / "repo", tmp_path / "skills"
+    relpath = "protocols" if declaration == "runtime_payload" else "scripts/router"
+    source = repo_root / relpath
+    entry = source / "entry.md"
+    _write(repo_root / "SKILL.md", "# working release\n")
+    _write(entry, "required runtime content\n")
+    _seed_runtime_contract(repo_root, package_dirs=(relpath,) if declaration == "manifest" else ())
+    if operation == "update":
+        install_vibe_skill(repo_root=repo_root, skills_dir=skills_dir, installed_at_utc="2026-10-31T01:00:00Z")
+        _write(skills_dir / "vibe" / "notes.md", "keep my notes\n")
+    before = _file_snapshot(skills_dir / "vibe")
+    entry.unlink()
+    source.rmdir()
+    if source_kind == "file":
+        source.write_text("invalid directory root\n", encoding="utf-8")
+    action = update_vibe_skill if operation == "update" else install_vibe_skill
+
+    with pytest.raises(RuntimeError, match="Package source directory is missing or not a directory"):
+        action(repo_root=repo_root, skills_dir=skills_dir, installed_at_utc="2026-10-31T02:00:00Z")
+
+    assert _file_snapshot(skills_dir / "vibe") == before
     if operation == "update":
         assert check_vibe_skill(skills_dir=skills_dir)["ok"] is True
     else:

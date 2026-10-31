@@ -661,9 +661,11 @@ def test_resume_recovers_result_with_missing_execution_receipt(
     assert Path(resumed["work_results"]["work_results"][0]["execution_receipt_path"]).is_file()
 
 
+@pytest.mark.parametrize("mutation", ["changed", "missing"])
 def test_declared_input_paths_persist_across_resume_and_inspection(
-    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str,
 ) -> None:
+    """Count completion only while persisted declared inputs remain current."""
     source = tmp_path / "data.csv"
     source.write_text("stable input", encoding="utf-8")
 
@@ -683,15 +685,30 @@ def test_declared_input_paths_persist_across_resume_and_inspection(
     resumed = run_local_kernel_with_agent_choice(**arguments)
     assert resumed["reused_work_units"] == ["wu-1"]
     assert resumed["verification"]["result"] == "done"
-    source.write_text("changed input", encoding="utf-8")
-    inspected = inspect_local_run(agent_root=agent_root, workspace_root=tmp_path, run_id="persisted-input")
+    identity = dict(agent_root=agent_root, workspace_root=tmp_path, run_id="persisted-input")
+    current = inspect_local_run(**identity)
+    assert current["summary"]["completed_work_unit_count"] == 1
+    assert current["summary"]["reused_work_unit_count"] == 1
+    assert current["summary"]["proof_ready"] is True
+    run_root = Path(resumed["artifact_root"])
+    before = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+    if mutation == "changed":
+        source.write_text("changed input", encoding="utf-8")
+    else:
+        source.unlink()
+    inspected = inspect_local_run(**identity)
     assert inspected["current_verification"]["result"] == "revise_execution"
     assert inspected["summary"]["proof_ready"] is False
+    assert inspected["summary"]["completed_work_unit_count"] == 0
+    assert inspected["summary"]["failed_work_unit_count"] == 1
+    assert inspected["summary"]["reused_work_unit_count"] == 0
+    assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
 
 
 def test_missing_declared_input_blocks_stale_completion_and_can_recover(
     agent_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Block stale completion until the declared input has been restored."""
     source = tmp_path / "data.csv"
     source.write_text("original data", encoding="utf-8")
 

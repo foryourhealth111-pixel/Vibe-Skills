@@ -229,11 +229,13 @@ is represented by an empty result list. Stale checkpoints are also exposed as
 empty current checkpoints. Dossiers and recorded verification are exposed only
 when the dossier's task and plan match the current execution identity; current
 preview dossiers remain available. Existing malformed files remain errors.
-Inspection derives progress from current checkpoints and accepted revisions from
-the current TaskCard. A prior revision's closed state cannot describe the current
-revision; the recorded run-state snapshot remains unchanged. Inspection does not
-write artifacts, and proof readiness requires the closed state, a dossier, and
-both recorded and current verification to be done.
+Inspection derives progress from current checkpoints with current declared inputs
+and accepted revisions from the current TaskCard. Changed or missing declared
+inputs exclude results from completed and reused counts. A prior revision's
+closed state cannot describe the current revision; the recorded run-state
+snapshot remains unchanged. Inspection does not write artifacts, and proof
+readiness requires the closed state, a dossier, and both recorded and current
+verification to be done.
 
 Shared skill catalog, index, and run-artifact JSON publication use atomic
 replacement for each file. A failed publication preserves that file's previous
