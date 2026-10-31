@@ -23,7 +23,7 @@ from .planner import build_work_plan
 from .run_state import load_run_state, write_run_state
 from .skill_index import build_skill_catalog, build_skill_index_from_catalog, write_skill_catalog, write_skill_index
 from .task_card import TaskCard, TaskRevision, build_task_card, normalize_input_artifacts
-from .verifier import completed_result_readiness_notes, verify_run
+from .verifier import completed_result_readiness_notes, declared_inputs_are_current, verify_run
 from .module_assignments import ModuleAssignments, build_module_assignments
 from .work_plan import AcceptanceCriterion, SkillProvenance, WorkPlan, WorkUnit
 from vgo_runtime.artifact_contract import (
@@ -1884,6 +1884,21 @@ def inspect_local_run(
             projection,
             path=inspected_manifest_path,
         )
+    inputs_are_current = declared_inputs_are_current(current_task_card)
+    approved_units = {unit.id: unit for unit in current_plan.work_units}
+    completed_ids = {
+        result.work_unit_id for result in current_results
+        if inputs_are_current and result.work_unit_id in approved_units
+        and _completed_result_artifacts_are_current(result, approved_units[result.work_unit_id])
+    }
+    revision_count = len(current_task_card.accepted_revisions)
+    state_is_current = (
+        run_state.task_id == current_task_card.id
+        and run_state.accepted_revision_count == revision_count
+    )
+    inspection_state = run_state.state if state_is_current else "find_skills"
+    if inspection_state == "close" and work_dossier is None:
+        inspection_state = "execute" if current_results else "ready_for_execution"
     compatibility_read = artifact_resolution_mode != "canonical"
     artifact_resolution = {
         "mode": artifact_resolution_mode,
@@ -1899,21 +1914,24 @@ def inspect_local_run(
     }
     summary = {
         "run_id": resolved_run_id,
-        "task_id": run_state.task_id,
+        "task_id": current_task_card.id,
         "goal": goal,
-        "state": run_state.state,
+        "state": inspection_state,
         "verification_result": current_verification["result"],
         "recorded_verification_result": verification_result,
         "verification_checked_at": verification_checked_at,
         "work_unit_count": len(work_units),
-        "completed_work_unit_count": len(run_state.completed_work_units),
-        "failed_work_unit_count": len(run_state.failed_work_units),
-        "continuation_mode": run_state.continuation_mode,
-        "accepted_revision_count": run_state.accepted_revision_count,
-        "reused_work_unit_count": len(run_state.reused_work_units),
-        "superseded_work_unit_count": len(run_state.superseded_work_units),
+        "completed_work_unit_count": len(completed_ids),
+        "failed_work_unit_count": len({result.work_unit_id for result in current_results} - completed_ids),
+        "continuation_mode": run_state.continuation_mode if state_is_current else ("revised" if revision_count else "fresh"),
+        "accepted_revision_count": revision_count,
+        "reused_work_unit_count": len({
+            result.work_unit_id for result in current_results
+            if result.work_unit_id in completed_ids and result.lifecycle_state == "reused"
+        }),
+        "superseded_work_unit_count": len(current_plan.superseded_work_units),
         "proof_ready": (
-            work_dossier is not None and run_state.state == "close"
+            work_dossier is not None and inspection_state == "close"
             and verification_result == "done" and current_verification["result"] == "done"
         ),
         "primary_artifact": "work_dossier" if work_dossier is not None else "run_state",

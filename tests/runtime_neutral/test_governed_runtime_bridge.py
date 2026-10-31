@@ -128,6 +128,7 @@ def resolve_python_command_spec_via_powershell(command_spec: str, path_entries: 
 
 class GovernedRuntimeBridgeTests(unittest.TestCase):
     def test_runtime_wrappers_leave_runtime_summary_authority_to_python(self) -> None:
+        """Keep runtime summary construction under the Python core owner."""
         common_text = (REPO_ROOT / "scripts" / "runtime" / "VibeRuntime.Common.ps1").read_text(encoding="utf-8")
         invoke_text = (REPO_ROOT / "scripts" / "runtime" / "invoke-vibe-runtime.ps1").read_text(encoding="utf-8")
 
@@ -135,13 +136,14 @@ class GovernedRuntimeBridgeTests(unittest.TestCase):
         self.assertIn("Missing Python-built runtime-input-packet.json.", invoke_text)
 
     def test_version_governance_bridges_governed_runtime_surfaces(self) -> None:
+        """Require governed payload declarations to match the canonical runtime sources."""
         governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
         packaging = governance["packaging"]["runtime_payload"]
         runtime = governance["runtime"]["installed_runtime"]
         contract = json.loads((REPO_ROOT / "config" / "runtime-contract.json").read_text(encoding="utf-8"))
 
         self.assertIn("templates", packaging["directories"])
-        self.assertIn("mcp", packaging["directories"])
+        self.assertTrue(all((REPO_ROOT / path).is_dir() for path in packaging["directories"]))
         self.assertNotIn("scripts", packaging["directories"])
         self.assertNotIn("config", packaging["directories"])
         self.assertIn("config/runtime-script-manifest.json", packaging["files"])

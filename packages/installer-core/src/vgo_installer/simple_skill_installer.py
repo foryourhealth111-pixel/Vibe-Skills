@@ -497,6 +497,7 @@ def _validate_packaging_paths(
 
 
 def runtime_surface_relpaths(source_root: Path) -> list[str]:
+    """Collect runtime paths after validating declared source files and directories."""
     governance_path = source_root / "config" / "version-governance.json"
     _assert_source_path_is_local(source_root, governance_path)
     if not governance_path.is_file():
@@ -531,7 +532,9 @@ def runtime_surface_relpaths(source_root: Path) -> list[str]:
         _canonical_owned_relpath(normalized, artifact_path=governance_path, label="package")
         source = source_root / normalized
         _assert_source_path_is_local(source_root, source)
-        if source.is_file() and _should_copy_runtime_surface_file(normalized):
+        if _should_copy_runtime_surface_file(normalized):
+            if not source.is_file():
+                raise RuntimeError(f"Package source file is missing: {source}")
             relpaths.add(normalized)
 
     for relpath in directories:
@@ -540,8 +543,8 @@ def runtime_surface_relpaths(source_root: Path) -> list[str]:
         _canonical_owned_relpath(relpath, artifact_path=governance_path, label="package")
         source = source_root / relpath
         _assert_source_path_is_local(source_root, source)
-        if not source.exists():
-            continue
+        if not source.is_dir():
+            raise RuntimeError(f"Package source directory is missing or not a directory: {source}")
         for file_path in sorted(path for path in source.rglob("*") if path.is_file()):
             _assert_source_path_is_local(source_root, file_path)
             installed_relpath = file_path.relative_to(source_root).as_posix()
@@ -552,12 +555,13 @@ def runtime_surface_relpaths(source_root: Path) -> list[str]:
 
 
 def _package_file_relpaths(source_root: Path) -> list[str]:
+    """Recheck the collected source files before preparing an installation."""
     relpaths: list[str] = []
     for relpath in runtime_surface_relpaths(source_root):
         source = source_root / relpath
         _assert_source_path_is_local(source_root, source)
-        if not source.exists():
-            continue
+        if not source.is_file():
+            raise RuntimeError(f"Package source file is missing: {source}")
         relpaths.append(relpath)
     return sorted(set(relpaths))
 

@@ -11,6 +11,7 @@ OPENCODE_CONFIG_ROOT = REPO_ROOT / "config" / "opencode"
 
 class BundledRuntimePayloadTests(unittest.TestCase):
     def test_runtime_governance_includes_governed_dependency_surfaces_in_runtime_payload_contract(self) -> None:
+        """Declare runtime support roots that exist in the canonical source."""
         governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
         directories = set(governance["packaging"]["runtime_payload"]["directories"])
         files = set(governance["packaging"]["runtime_payload"]["files"])
@@ -18,10 +19,12 @@ class BundledRuntimePayloadTests(unittest.TestCase):
         self.assertIn("docs", directories)
         self.assertNotIn("references", directories)
         self.assertIn("protocols", directories)
-        self.assertTrue({"templates", "mcp"}.issubset(directories))
+        self.assertIn("templates", directories)
+        self.assertEqual([], [path for path in directories if not (REPO_ROOT / path).is_dir()])
         self.assertIn("core/skill-contracts/v1/vibe.json", files)
 
     def test_runtime_governance_declares_explicit_script_and_config_manifests(self) -> None:
+        """Keep script and config payloads tied to their explicit manifests."""
         governance = json.loads((REPO_ROOT / "config" / "version-governance.json").read_text(encoding="utf-8"))
         packaging = governance["packaging"]
         directories = set(packaging["runtime_payload"]["directories"])

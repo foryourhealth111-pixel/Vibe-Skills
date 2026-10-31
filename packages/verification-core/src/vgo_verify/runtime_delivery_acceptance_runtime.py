@@ -35,6 +35,7 @@ from vgo_contracts.tdd_evidence_contract import resolve_evidence_state
 
 
 def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[str, Any]:
+    """Evaluate frozen delivery criteria and current evidence across required dependencies."""
     contract = load_json(repo_root / "config" / "project-delivery-acceptance-contract.json")
     execute_receipt_path = session_root / "phase-execute.json"
     cleanup_receipt_path = session_root / "cleanup-receipt.json"
@@ -604,9 +605,9 @@ def evaluate_delivery_acceptance(repo_root: Path, session_root: Path) -> dict[st
             )
         incomplete_criteria: list[str] = []
         for planned_module in planned_module_records:
-            if not bool(planned_module.get("required", True)):
-                continue
             module_id = str(planned_module.get("module_id") or "")
+            if module_id not in required_module_ids:
+                continue
             execution_module = execution_module_by_id.get(module_id, {})
             criterion_state_by_id = {
                 str(result.get("criterion_id") or ""): str(result.get("state") or "")
