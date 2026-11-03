@@ -1310,3 +1310,89 @@ def test_inspection_reconciles_progress_at_publication_boundaries(
     assert inspected["summary"]["proof_ready"] is False
     assert inspected["work_dossier"] is None
     assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
+
+
+@pytest.mark.parametrize("worker_exit", ["finish", "terminate"])
+def test_overlapping_run_updates_reject_conflicts_and_release_after_exit(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, worker_exit: str,
+) -> None:
+    """Use a second process to hold a real update after reading the task snapshot."""
+    import subprocess
+    import sys
+    from vgo_runtime.kernel import loop
+
+    monkeypatch.setattr(loop, "_resolve_host_root_paths", lambda **kwargs: ())
+    args = dict(agent_root=agent_root, run_id="concurrent-update", execute=False)
+    first = loop.run_local_kernel(**args, prompt="Produce a report.")
+    task_path = Path(first["artifacts"]["task_card"])
+    child_code = '''
+import json
+from pathlib import Path
+import sys
+sys.path[:0] = json.loads(sys.argv[1])
+from vgo_runtime.kernel import loop
+loop._resolve_host_root_paths = lambda **kwargs: ()
+original_load = loop._load_required_json
+def hold_snapshot(path):
+    payload = original_load(path)
+    if path.name == "task-card.json":
+        print("snapshot-loaded", flush=True)
+        if sys.stdin.readline().strip() != "continue":
+            raise RuntimeError("parent cancelled update")
+    return payload
+loop._load_required_json = hold_snapshot
+loop.run_local_kernel(
+    agent_root=Path(sys.argv[2]), run_id="concurrent-update", execute=False,
+    prompt="continue", context={"constraints": ["Keep raw input immutable"]},
+)
+'''
+    child = subprocess.Popen(
+        [sys.executable, "-B", "-c", child_code, json.dumps(sys.path), str(agent_root)],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, encoding="utf-8",
+    )
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=1) as reader:
+            ready = reader.submit(child.stdout.readline)
+            try:
+                assert ready.result(timeout=20).strip() == "snapshot-loaded"
+            except BaseException:
+                child.kill()
+                raise
+        snapshot = task_path.read_bytes()
+        with pytest.raises(RuntimeError, match="already being updated"):
+            loop.run_local_kernel(
+                **args, prompt="continue", context={"constraints": ["Use anonymized labels"]},
+            )
+        assert task_path.read_bytes() == snapshot
+        # A lock on this run must not block an independent run.
+        loop.run_local_kernel(
+            agent_root=agent_root, run_id="independent-update", execute=False, prompt="Produce a report.",
+        )
+    finally:
+        if worker_exit == "terminate" or child.poll() is not None:
+            if child.poll() is None:
+                child.kill()
+            stdout, stderr = child.communicate(timeout=20)
+        else:
+            stdout, stderr = child.communicate("continue\n", timeout=20)
+    if worker_exit == "finish":
+        assert child.returncode == 0, stdout + stderr
+    resumed = loop.run_local_kernel(
+        **args, prompt="continue", context={"constraints": ["Use anonymized labels"]},
+    )
+    expected = ["Keep raw input immutable", "Use anonymized labels"] if worker_exit == "finish" else ["Use anonymized labels"]
+    assert list(resumed["task_card"]["constraints"]) == expected
+
+
+def test_run_update_lock_releases_after_validation_error(
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from vgo_runtime.kernel import loop
+
+    monkeypatch.setattr(loop, "_resolve_host_root_paths", lambda **kwargs: ())
+    args = dict(agent_root=agent_root, run_id="invalid-update", prompt="Produce a report.", execute=False)
+    with pytest.raises(ValueError, match="schema_version"):
+        loop.run_local_kernel(**args, agent_skill_organization={})
+    assert loop.run_local_kernel(**args)["task_card"]["goal"] == "Produce a report."

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from ._io import write_json_atomic as _write_json
+from ._io import exclusive_run_update, write_json_atomic as _write_json
 from .executor import (
     WorkUnitResult,
     artifact_sha256_for_paths,
@@ -27,6 +27,7 @@ from .verifier import completed_result_readiness_notes, declared_inputs_are_curr
 from .module_assignments import ModuleAssignments, build_module_assignments
 from .work_plan import AcceptanceCriterion, SkillProvenance, WorkPlan, WorkUnit
 from vgo_runtime.artifact_contract import (
+    RuntimeArtifactProjection,
     load_runtime_artifact_manifest,
     mirror_legacy_run_if_needed,
     resolve_runtime_artifact_projection,
@@ -1292,6 +1293,31 @@ def run_local_kernel(
         run_id=resolved_run_id,
         repo_root=resolved_repo_root,
     )
+    with exclusive_run_update(artifact_projection.run_root):
+        return _run_local_kernel(
+            resolved_agent_root=resolved_agent_root,
+            resolved_workspace_root=resolved_workspace_root,
+            resolved_repo_root=resolved_repo_root,
+            resolved_run_id=resolved_run_id,
+            artifact_projection=artifact_projection,
+            prompt=prompt, context=context, host_id=host_id,
+            agent_skill_organization=agent_skill_organization, execute=execute,
+        )
+
+
+def _run_local_kernel(
+    *,
+    resolved_agent_root: Path,
+    resolved_workspace_root: Path | None,
+    resolved_repo_root: Path,
+    resolved_run_id: str,
+    artifact_projection: RuntimeArtifactProjection,
+    prompt: str,
+    context: dict[str, object] | None,
+    host_id: str | None,
+    agent_skill_organization: dict[str, object] | None,
+    execute: bool,
+) -> dict[str, object]:
     seed_canonical_run_from_legacy_if_needed(artifact_projection)
     run_root = artifact_projection.run_root
     task_card_path = run_root / "task-card.json"

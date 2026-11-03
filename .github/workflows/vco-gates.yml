@@ -238,6 +238,8 @@ jobs:
         run: >-
           python -B -m pytest -q -ra
           tests/unit/test_local_kernel_resume.py
+          tests/unit/test_delegated_lane_contract.py
+          tests/unit/test_skill_cache_routing.py
           tests/unit/test_local_kernel_planning.py
           tests/unit/test_external_skill_selection.py
           tests/unit/test_powershell_process_tree.py

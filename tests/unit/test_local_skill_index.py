@@ -739,3 +739,93 @@ def test_shared_skill_snapshot_failed_publication_preserves_previous_and_retries
         if kind == "index" else json.loads(path.read_text(encoding="utf-8"))
     )
     assert payload["generation"] == 2
+
+
+def test_warm_catalog_reuses_parsing_and_rechecks_resource_content(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import os
+
+    agent = tmp_path / "agent-root"
+    skill = _write_skill(
+        agent / "vibe/skills/local/report-a",
+        "---\nname: Report\ndescription: Write a report.\noutputs: [report]\n---",
+    )
+    resource = skill.parent / "helper.py"
+    resource.write_text("version A", encoding="utf-8")
+    parses = []
+    original_parse = skill_index.parse_installed_skill_manifest
+
+    def parse(*args, **kwargs):
+        parses.append(args[0])
+        return original_parse(*args, **kwargs)
+
+    monkeypatch.setattr(skill_index, "parse_installed_skill_manifest", parse)
+    first = build_skill_index(agent)
+    second = build_skill_index(agent)
+    assert len(parses) == 1
+    assert second["skills"] == first["skills"]
+    previous_stat = resource.stat()
+    resource.write_text("version B", encoding="utf-8")
+    os.utime(resource, ns=(previous_stat.st_atime_ns, previous_stat.st_mtime_ns))
+    changed = build_skill_index(agent)
+    assert len(parses) == 1
+    assert changed["skills"][0]["resource_sha256"] != first["skills"][0]["resource_sha256"]
+    skill.write_text(skill.read_text(encoding="utf-8").replace("Write a report.", "Write a new report."), encoding="utf-8")
+    updated = build_skill_index(agent)
+    assert len(parses) == 2
+    assert updated["skills"][0]["description"] == "Write a new report."
+
+
+@pytest.mark.parametrize("damage", ["invalid_json", "edited_entry", "old_schema"])
+def test_catalog_rebuilds_unusable_metadata_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, damage: str,
+) -> None:
+    agent = tmp_path / "agent-root"
+    _write_skill(
+        agent / "vibe/skills/local/report-a",
+        "---\nname: Report\ndescription: Write a report.\n---",
+    )
+    first = build_skill_index(agent)
+    cache_path = agent / "vibe/generated/skill-metadata.json"
+    if damage == "invalid_json":
+        cache_path.write_text("{broken", encoding="utf-8")
+    else:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+        if damage == "old_schema":
+            payload["schema_version"] = "obsolete"
+        else:
+            next(iter(payload["entries"].values()))["entry"]["enabled"] = False
+        cache_path.write_text(json.dumps(payload), encoding="utf-8")
+    rebuilt = build_skill_index(agent)
+    assert rebuilt["skills"] == first["skills"]
+
+
+def test_warm_catalog_applies_current_host_policy_and_prunes_removed_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent = tmp_path / "home/.codex"
+    monkeypatch.setenv("CODEX_HOME", str(agent))
+    skill = _write_skill(
+        agent / "skills/report-a",
+        "---\nname: Report\ndescription: Write a report.\n---",
+    )
+    config = agent / "config.toml"
+    settings = skill.parent / "agents/openai.yaml"
+    settings.parent.mkdir()
+    for restricted in (True, False):
+        config.write_text(
+            "[[skills.config]]\npath = " + json.dumps(skill.as_posix())
+            + "\nenabled = " + str(not restricted).lower() + "\n", encoding="utf-8",
+        )
+        settings.write_text(
+            "policy:\n  allow_implicit_invocation: " + str(not restricted).lower() + "\n",
+            encoding="utf-8",
+        )
+        result = build_skill_index(agent, host_roots=(agent / "skills",), host_id="codex")
+        assert result["skills"][0]["enabled"] is (not restricted)
+        assert result["skills"][0]["explicit_only"] is restricted
+    skill.unlink()
+    assert build_skill_index(agent, host_roots=(agent / "skills",), host_id="codex")["skills"] == []
+    cache = json.loads((agent / "vibe/generated/skill-metadata.json").read_text(encoding="utf-8"))
+    assert cache["entries"] == {}

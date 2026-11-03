@@ -14,7 +14,7 @@ from unittest.mock import patch
 import warnings
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_CORE_SRC = REPO_ROOT / "packages" / "runtime-core" / "src"
 SCRIPT_PATH = REPO_ROOT / "scripts" / "runtime" / "Invoke-PlanExecute.ps1"
 
@@ -933,6 +933,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as startup_ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -946,6 +947,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as payload_ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -1056,6 +1058,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
             }), patch.object(module, "run_powershell_json_command", side_effect=fake_bridge):
                 module.invoke_vibe_runtime_entrypoint(
                     repo_root=repo_root,
+                    workspace_root=None,
                     host_id="claude-code",
                     entry_id="vibe",
                     prompt="unicode probe",
@@ -1132,6 +1135,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -1171,6 +1175,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                 ):
                     module.invoke_vibe_runtime_entrypoint(
                         repo_root=repo_root,
+                        workspace_root=None,
                         host_id="codex",
                         entry_id="vibe",
                         prompt="test",
@@ -1210,6 +1215,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                 ):
                     module.invoke_vibe_runtime_entrypoint(
                         repo_root=repo_root,
+                        workspace_root=None,
                         host_id="codex",
                         entry_id="vibe",
                         prompt="test",
