@@ -23,6 +23,10 @@ VECTOR_DIFF_API_KEY_ENV = "VCO_VECTOR_DIFF_API_KEY"
 VECTOR_DIFF_BASE_URL_ENV = "VCO_VECTOR_DIFF_BASE_URL"
 VECTOR_DIFF_MODEL_ENV = "VCO_VECTOR_DIFF_MODEL"
 
+# Named OpenAI-compatible gateway defaults.
+ORCAROUTER_BASE_URL = "https://api.orcarouter.ai/v1"
+ORCAROUTER_API_KEY_ENV = "ORCAROUTER_API_KEY"
+
 
 @dataclass
 class ProbeContext:
