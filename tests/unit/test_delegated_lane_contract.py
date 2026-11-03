@@ -973,9 +973,13 @@ class BridgeFailureLayeringTests(unittest.TestCase):
             command = [
                 sys.executable,
                 "-c",
-                "import json, os; print(json.dumps({'status':'ok','cwd':os.getcwd()}, ensure_ascii=False))",
+                "import json, os, sys; sys.stdout.reconfigure(encoding='utf-8'); "
+                "print(json.dumps({'status':'ok','cwd':os.getcwd()}, ensure_ascii=False))",
             ]
-            result = run_powershell_json_command(command, cwd=cwd, bridge_label="canonical entry bridge")
+            result = run_powershell_json_command(
+                command, cwd=cwd, bridge_label="canonical entry bridge",
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+            )
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["cwd"], str(cwd))
         self.assertIn("桥接", result["cwd"])

@@ -1283,6 +1283,7 @@ def run_local_kernel(
     agent_skill_organization: dict[str, object] | None = None,
     execute: bool = True,
 ) -> dict[str, object]:
+    """Resolve a run and hold exclusive ownership through its complete update."""
     resolved_agent_root = agent_root.resolve()
     resolved_workspace_root = workspace_root.resolve() if workspace_root is not None else None
     resolved_repo_root = repo_root.resolve() if repo_root is not None else _repo_root()
@@ -1318,6 +1319,7 @@ def _run_local_kernel(
     agent_skill_organization: dict[str, object] | None,
     execute: bool,
 ) -> dict[str, object]:
+    """Update the task, work plan, execution evidence, and state under the run lock."""
     seed_canonical_run_from_legacy_if_needed(artifact_projection)
     run_root = artifact_projection.run_root
     task_card_path = run_root / "task-card.json"

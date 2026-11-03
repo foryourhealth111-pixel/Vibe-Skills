@@ -201,6 +201,7 @@ def _invalid_entry(skill_id: str, source_spec: dict[str, object], reason: str, *
 
 
 def _metadata_digest(payload: object) -> str:
+    """Fingerprint a deterministic metadata payload for reuse and corruption checks."""
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
@@ -208,6 +209,7 @@ class _SkillMetadataCache:
     """Reuse source-derived metadata; resource bytes and host policy stay live."""
 
     def __init__(self, path: Path) -> None:
+        """Load entries only when their schema and parser implementation still match."""
         self.path = path
         self.saved = _load_card(path) or {}
         # Invalidate derived semantics when the installed parser or rules change.
@@ -226,6 +228,7 @@ class _SkillMetadataCache:
         self.entries: dict[str, object] = {}
 
     def get(self, key: str) -> dict[str, object] | None:
+        """Return an isolated copy of an intact cached entry."""
         cached = self.previous.get(key)
         entry = cached.get("entry") if isinstance(cached, dict) else None
         if isinstance(entry, dict) and cached.get("sha256") == _metadata_digest(entry):
@@ -233,11 +236,13 @@ class _SkillMetadataCache:
         return None
 
     def put(self, key: str, entry: dict[str, object]) -> None:
+        """Store source metadata before live resource and host policy updates."""
         metadata = deepcopy(entry)
         metadata.pop("resource_sha256", None)
         self.entries[key] = {"entry": metadata, "sha256": _metadata_digest(metadata)}
 
     def publish(self) -> None:
+        """Atomically publish refreshed entries and discard removed sources."""
         payload = {
             "schema_version": "skill_metadata_v1",
             "implementation_sha256": self.implementation,
@@ -248,6 +253,7 @@ class _SkillMetadataCache:
 
 
 def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object], host_id: str | None = None, metadata_cache: _SkillMetadataCache | None = None) -> dict[str, object]:
+    """Bind source metadata to captured descriptor bytes and current resource content."""
     source_bytes = skill_file.read_bytes()
     cache_key = _metadata_digest({
         "source": source_spec, "skill_file": str(skill_file.resolve()), "skill_id": skill_dir.name,
@@ -684,11 +690,12 @@ def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:
 
 
 def _load_card(path: Path) -> dict[str, object] | None:
-    if not path.is_file():
-        return None
+    """Treat unreadable or corrupt derived cache data as a cache miss."""
     try:
+        if not path.is_file():
+            return None
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
+    except (OSError, json.JSONDecodeError, UnicodeError):
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -758,6 +765,7 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
 
 
 def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None = None, metadata_cache: _SkillMetadataCache | None = None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Read valid declared Skills while retaining rejection diagnostics."""
     entries: list[dict[str, object]] = []
     diagnostics: list[dict[str, object]] = []
     source_root = Path(str(source_spec["resolved_source_root"]))
@@ -961,6 +969,7 @@ def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), h
 
 
 def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
+    """Refresh source discovery, reusable metadata, and capability cards."""
     cache = _SkillMetadataCache(_vibe_root(agent_root) / "generated" / "skill-metadata.json")
     catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=host_id, _metadata_cache=cache)
     vibe_root = _ensure_runtime_dirs(agent_root)

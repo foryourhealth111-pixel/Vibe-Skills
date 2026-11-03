@@ -744,6 +744,7 @@ def test_shared_skill_snapshot_failed_publication_preserves_previous_and_retries
 def test_warm_catalog_reuses_parsing_and_rechecks_resource_content(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Reuse unchanged metadata while detecting resource and descriptor edits."""
     import os
 
     agent = tmp_path / "agent-root"
@@ -757,6 +758,7 @@ def test_warm_catalog_reuses_parsing_and_rechecks_resource_content(
     original_parse = skill_index.parse_installed_skill_manifest
 
     def parse(*args, **kwargs):
+        """Count actual parsing work across repeated catalog builds."""
         parses.append(args[0])
         return original_parse(*args, **kwargs)
 
@@ -777,10 +779,11 @@ def test_warm_catalog_reuses_parsing_and_rechecks_resource_content(
     assert updated["skills"][0]["description"] == "Write a new report."
 
 
-@pytest.mark.parametrize("damage", ["invalid_json", "edited_entry", "old_schema"])
+@pytest.mark.parametrize("damage", ["invalid_json", "edited_entry", "old_schema", "unreadable"])
 def test_catalog_rebuilds_unusable_metadata_cache(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, damage: str,
 ) -> None:
+    """Recover from invalid, unreadable, edited, or obsolete derived cache data."""
     agent = tmp_path / "agent-root"
     _write_skill(
         agent / "vibe/skills/local/report-a",
@@ -788,7 +791,17 @@ def test_catalog_rebuilds_unusable_metadata_cache(
     )
     first = build_skill_index(agent)
     cache_path = agent / "vibe/generated/skill-metadata.json"
-    if damage == "invalid_json":
+    if damage == "unreadable":
+        original_read = Path.read_text
+
+        def read_cache(path: Path, *args, **kwargs):
+            """Fail only the optional cache read while preserving source access."""
+            if path == cache_path:
+                raise PermissionError("metadata cache is unreadable")
+            return original_read(path, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", read_cache)
+    elif damage == "invalid_json":
         cache_path.write_text("{broken", encoding="utf-8")
     else:
         payload = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -804,6 +817,7 @@ def test_catalog_rebuilds_unusable_metadata_cache(
 def test_warm_catalog_applies_current_host_policy_and_prunes_removed_sources(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Keep host policy live and remove metadata for deleted source Skills."""
     agent = tmp_path / "home/.codex"
     monkeypatch.setenv("CODEX_HOME", str(agent))
     skill = _write_skill(

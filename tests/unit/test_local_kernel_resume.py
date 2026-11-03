@@ -1312,11 +1312,12 @@ def test_inspection_reconciles_progress_at_publication_boundaries(
     assert before == {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in run_root.rglob("*") if path.is_file()}
 
 
+@pytest.mark.parametrize("pause_at", ["snapshot", "publication"])
 @pytest.mark.parametrize("worker_exit", ["finish", "terminate"])
 def test_overlapping_run_updates_reject_conflicts_and_release_after_exit(
-    agent_root: Path, monkeypatch: pytest.MonkeyPatch, worker_exit: str,
+    agent_root: Path, monkeypatch: pytest.MonkeyPatch, worker_exit: str, pause_at: str,
 ) -> None:
-    """Use a second process to hold a real update after reading the task snapshot."""
+    """Hold a real update at snapshot load or publication and reject a competing writer."""
     import subprocess
     import sys
     from vgo_runtime.kernel import loop
@@ -1333,21 +1334,31 @@ sys.path[:0] = json.loads(sys.argv[1])
 from vgo_runtime.kernel import loop
 loop._resolve_host_root_paths = lambda **kwargs: ()
 original_load = loop._load_required_json
+original_write = loop._write_json
+def pause_update():
+    print("update-paused", flush=True)
+    if sys.stdin.readline().strip() != "continue":
+        raise RuntimeError("parent cancelled update")
 def hold_snapshot(path):
     payload = original_load(path)
     if path.name == "task-card.json":
-        print("snapshot-loaded", flush=True)
-        if sys.stdin.readline().strip() != "continue":
-            raise RuntimeError("parent cancelled update")
+        pause_update()
     return payload
-loop._load_required_json = hold_snapshot
+def hold_publication(path, payload):
+    if path.name == "task-card.json":
+        pause_update()
+    return original_write(path, payload)
+if sys.argv[3] == "snapshot":
+    loop._load_required_json = hold_snapshot
+else:
+    loop._write_json = hold_publication
 loop.run_local_kernel(
     agent_root=Path(sys.argv[2]), run_id="concurrent-update", execute=False,
     prompt="continue", context={"constraints": ["Keep raw input immutable"]},
 )
 '''
     child = subprocess.Popen(
-        [sys.executable, "-B", "-c", child_code, json.dumps(sys.path), str(agent_root)],
+        [sys.executable, "-B", "-c", child_code, json.dumps(sys.path), str(agent_root), pause_at],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, encoding="utf-8",
     )
@@ -1356,7 +1367,7 @@ loop.run_local_kernel(
         with ThreadPoolExecutor(max_workers=1) as reader:
             ready = reader.submit(child.stdout.readline)
             try:
-                assert ready.result(timeout=20).strip() == "snapshot-loaded"
+                assert ready.result(timeout=20).strip() == "update-paused"
             except BaseException:
                 child.kill()
                 raise
@@ -1389,6 +1400,7 @@ loop.run_local_kernel(
 def test_run_update_lock_releases_after_validation_error(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Allow a valid retry after a rejected update releases its lock."""
     from vgo_runtime.kernel import loop
 
     monkeypatch.setattr(loop, "_resolve_host_root_paths", lambda **kwargs: ())
