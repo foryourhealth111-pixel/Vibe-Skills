@@ -57,12 +57,23 @@ def test_public_guidance_removes_vibe_by_deleting_the_folder() -> None:
     troubleshooting = (REPO_ROOT / "docs" / "troubleshooting.md").read_text(encoding="utf-8")
 
     assert (
-        "When no `conflicted` transaction exists, remove VibeSkills by deleting `<SkillsDir>/vibe`"
+        "After confirming there is no pending install transaction, remove VibeSkills by deleting `<SkillsDir>/vibe`"
         in " ".join(english.split())
     )
     assert "确认安装事务处于正常状态后，可以删除安装位置中的 `<SkillsDir>/vibe` 文件夹" in chinese
     assert "`conflicted` 事务应按上文保留目录、恢复日志和备份。" in chinese
-    assert "delete `<SkillsDir>/vibe`" in troubleshooting
+    assert (
+        "After confirming there is no pending install transaction, delete the old `<SkillsDir>/vibe`"
+        in " ".join(english.split())
+    )
+    assert "If the transaction journal" in english
+    assert "preserve the installed directory, journal and backups" in english
+    assert (
+        "After confirming there is no pending install transaction, delete `<SkillsDir>/vibe`"
+        in " ".join(troubleshooting.split())
+    )
+    assert "preserve the installed directory, journal and backups" in troubleshooting
+    assert "install/README.en.md#install" in troubleshooting
 
     for content in (english, chinese, troubleshooting):
         assert "uninstall.ps1" not in content

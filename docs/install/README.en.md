@@ -80,12 +80,16 @@ Do not extract the new release inside the managed `<SkillsDir>/vibe` directory. 
 
 ## Remove
 
-When no `conflicted` transaction exists, remove VibeSkills by deleting
+After confirming there is no pending install transaction, remove VibeSkills by deleting
 `<SkillsDir>/vibe` from the installation location.
+
+If the transaction journal at `<SkillsDir>/.vibeskills/vibe-install-state.json` exists,
+preserve the installed directory, journal and backups. Follow the recovery guidance
+under [Install](#install) before removing the installation.
 
 ## Replace An Older Version
 
-When no `conflicted` transaction exists, delete the old `<SkillsDir>/vibe`
+After confirming there is no pending install transaction, delete the old `<SkillsDir>/vibe`
 folder, then install the current release with the commands above.
 
 v4 does not automatically install or recommend the `chrome`, `chrome-devtools`, `playwright`, `context7`, or `claude-flow` MCPs. The installer also does not modify their host configuration.
