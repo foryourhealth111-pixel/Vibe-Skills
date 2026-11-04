@@ -54,6 +54,11 @@ recovery until the conflict is resolved. Earlier files in that transaction may
 already have been replaced; inspect the retained journal before using or
 repairing the installation.
 
+For a journal with status `preparing` or `prepared`, rerun `install` from the
+release copy against the same `SkillsDir`. The installer attempts recovery
+before applying a new install. If recovery reports an error, keep the installed
+directory, journal and backups for inspection.
+
 For a `conflicted` transaction, preserve `<SkillsDir>/vibe` and its backups
 alongside the journal at `<SkillsDir>/.vibeskills/vibe-install-state.json`.
 If you need a working installation while inspecting the conflict, install to a

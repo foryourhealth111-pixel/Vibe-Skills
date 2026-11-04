@@ -66,6 +66,11 @@ def test_public_guidance_removes_vibe_by_deleting_the_folder() -> None:
         "After confirming there is no pending install transaction, delete the old `<SkillsDir>/vibe`"
         in " ".join(english.split())
     )
+    assert (
+        "status `preparing` or `prepared`, rerun `install` from the release copy against the same `SkillsDir`"
+        in " ".join(english.split())
+    )
+    assert "If recovery reports an error" in english
     assert "If the transaction journal" in english
     assert "preserve the installed directory, journal and backups" in english
     assert (
