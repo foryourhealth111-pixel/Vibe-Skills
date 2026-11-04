@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-EXPECTED_VERSION = "4.1.1"
-EXPECTED_UPDATED = "2026-10-18"
-EXPECTED_BASE_COMMIT = "f9ef2785"
+EXPECTED_VERSION = "4.1.2"
+EXPECTED_UPDATED = "2026-11-04"
+EXPECTED_BASE_COMMIT = "96a2af6c"
 EXPECTED_ACTOR = "codex"
 
 

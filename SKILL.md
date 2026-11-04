@@ -239,6 +239,6 @@ Read these references only after canonical launch or when maintaining the repo:
 ## Maintenance
 
 - Runtime family: governed-runtime-first
-- Version: 4.1.1
-- Updated: 2026-10-18
+- Version: 4.1.2
+- Updated: 2026-11-04
 - Primary contract metadata: `core/skill-contracts/v1/vibe.json`

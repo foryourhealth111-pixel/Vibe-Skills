@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
   "release": {
-    "version": "4.1.1",
-    "updated": "2026-10-18",
+    "version": "4.1.2",
+    "updated": "2026-11-04",
     "channel": "stable",
-    "notes": "Runtime recovery and Skill authority correctness, identity-bound checkpoints and dependencies, bounded cancellation, installer path safety, and self-contained release installation for v4.1.1"
+    "notes": "Identity-bound delivery and review evidence, stable workspace and Skill provenance, host-native Skill discovery, transactional installer recovery, run update locking, and parsed Skill metadata caching for v4.1.2"
   },
   "source_of_truth": {
     "canonical_root": ".",

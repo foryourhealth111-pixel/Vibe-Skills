@@ -56,8 +56,12 @@ def test_public_guidance_removes_vibe_by_deleting_the_folder() -> None:
     chinese = (REPO_ROOT / "docs" / "install" / "README.md").read_text(encoding="utf-8")
     troubleshooting = (REPO_ROOT / "docs" / "troubleshooting.md").read_text(encoding="utf-8")
 
-    assert "delete `<SkillsDir>/vibe`" in english
-    assert "直接删除安装位置中的 `<SkillsDir>/vibe` 文件夹" in chinese
+    assert (
+        "When no `conflicted` transaction exists, remove VibeSkills by deleting `<SkillsDir>/vibe`"
+        in " ".join(english.split())
+    )
+    assert "确认安装事务处于正常状态后，可以删除安装位置中的 `<SkillsDir>/vibe` 文件夹" in chinese
+    assert "`conflicted` 事务应按上文保留目录、恢复日志和备份。" in chinese
     assert "delete `<SkillsDir>/vibe`" in troubleshooting
 
     for content in (english, chinese, troubleshooting):
