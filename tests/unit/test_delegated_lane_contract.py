@@ -14,7 +14,7 @@ from unittest.mock import patch
 import warnings
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_CORE_SRC = REPO_ROOT / "packages" / "runtime-core" / "src"
 SCRIPT_PATH = REPO_ROOT / "scripts" / "runtime" / "Invoke-PlanExecute.ps1"
 
@@ -933,6 +933,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as startup_ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -946,6 +947,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as payload_ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -971,9 +973,13 @@ class BridgeFailureLayeringTests(unittest.TestCase):
             command = [
                 sys.executable,
                 "-c",
-                "import json, os; print(json.dumps({'status':'ok','cwd':os.getcwd()}, ensure_ascii=False))",
+                "import json, os, sys; sys.stdout.reconfigure(encoding='utf-8'); "
+                "print(json.dumps({'status':'ok','cwd':os.getcwd()}, ensure_ascii=False))",
             ]
-            result = run_powershell_json_command(command, cwd=cwd, bridge_label="canonical entry bridge")
+            result = run_powershell_json_command(
+                command, cwd=cwd, bridge_label="canonical entry bridge",
+                env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+            )
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["cwd"], str(cwd))
         self.assertIn("桥接", result["cwd"])
@@ -1056,6 +1062,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
             }), patch.object(module, "run_powershell_json_command", side_effect=fake_bridge):
                 module.invoke_vibe_runtime_entrypoint(
                     repo_root=repo_root,
+                    workspace_root=None,
                     host_id="claude-code",
                     entry_id="vibe",
                     prompt="unicode probe",
@@ -1132,6 +1139,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError) as ctx:
                         module.invoke_vibe_runtime_entrypoint(
                             repo_root=repo_root,
+                            workspace_root=None,
                             host_id="codex",
                             entry_id="vibe",
                             prompt="test",
@@ -1171,6 +1179,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                 ):
                     module.invoke_vibe_runtime_entrypoint(
                         repo_root=repo_root,
+                        workspace_root=None,
                         host_id="codex",
                         entry_id="vibe",
                         prompt="test",
@@ -1210,6 +1219,7 @@ class BridgeFailureLayeringTests(unittest.TestCase):
                 ):
                     module.invoke_vibe_runtime_entrypoint(
                         repo_root=repo_root,
+                        workspace_root=None,
                         host_id="codex",
                         entry_id="vibe",
                         prompt="test",

@@ -57,7 +57,7 @@ tags:
         "research",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     assert result["candidate_focus"]["skill"] == "local-stats-helper"
@@ -280,7 +280,7 @@ tags:
         "research",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     assert result["candidate_focus"]["skill"] == "statistical-analysis"
@@ -329,7 +329,7 @@ Use for correlation plots, regression figures, data quality charts, and visual r
         "research",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     assert result["candidate_focus"]["skill"] == "statistical-analysis"
@@ -425,7 +425,7 @@ tags:
         "planning",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
@@ -505,7 +505,7 @@ tags:
         "planning",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]
@@ -638,7 +638,7 @@ tags:
         "planning",
         target_root=str(skills_root),
         host_id="codex",
-        repo_root=Path(__file__).resolve().parents[4],
+        repo_root=Path(__file__).resolve().parents[2],
     )
 
     selected_skills = [row["skill"] for row in result["skill_routing"]["focused_candidates"]]

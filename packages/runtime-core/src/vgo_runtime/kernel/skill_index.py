@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -18,7 +19,7 @@ from .codex_plugins import resolve_codex_plugin_roots, resolve_codex_plugin_skil
 from .codex_skill_policy import apply_codex_skill_policy
 from .host_skill_roots import resolve_codex_home, resolve_host_skill_roots
 from .skill_manifest import parse_installed_skill_manifest
-from .skill_resources import SkillResourceError
+from .skill_resources import SkillResourceError, skill_resource_sha256
 from ..runtime_support import keyword_hit, normalize_text
 
 
@@ -199,8 +200,70 @@ def _invalid_entry(skill_id: str, source_spec: dict[str, object], reason: str, *
     return payload
 
 
-def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object], host_id: str | None = None) -> dict[str, object]:
+def _metadata_digest(payload: object) -> str:
+    """Fingerprint a deterministic metadata payload for reuse and corruption checks."""
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+class _SkillMetadataCache:
+    """Reuse source-derived metadata; resource bytes and host policy stay live."""
+
+    def __init__(self, path: Path) -> None:
+        """Load entries only when their schema and parser implementation still match."""
+        self.path = path
+        self.saved = _load_card(path) or {}
+        # Invalidate derived semantics when the installed parser or rules change.
+        sources = [
+            Path(__file__), Path(__file__).with_name("skill_manifest.py"),
+            Path(__file__).with_name("capability_bridge.py"),
+            Path(__file__).parent.parent / "runtime_support.py",
+        ]
+        self.implementation = hashlib.sha256(b"".join(source.read_bytes() for source in sources)).hexdigest()
+        previous = self.saved.get("entries")
+        self.previous = previous if (
+            self.saved.get("schema_version") == "skill_metadata_v1"
+            and self.saved.get("implementation_sha256") == self.implementation
+            and isinstance(previous, dict)
+        ) else {}
+        self.entries: dict[str, object] = {}
+
+    def get(self, key: str) -> dict[str, object] | None:
+        """Return an isolated copy of an intact cached entry."""
+        cached = self.previous.get(key)
+        entry = cached.get("entry") if isinstance(cached, dict) else None
+        if isinstance(entry, dict) and cached.get("sha256") == _metadata_digest(entry):
+            return deepcopy(entry)
+        return None
+
+    def put(self, key: str, entry: dict[str, object]) -> None:
+        """Store source metadata before live resource and host policy updates."""
+        metadata = deepcopy(entry)
+        metadata.pop("resource_sha256", None)
+        self.entries[key] = {"entry": metadata, "sha256": _metadata_digest(metadata)}
+
+    def publish(self) -> None:
+        """Atomically publish refreshed entries and discard removed sources."""
+        payload = {
+            "schema_version": "skill_metadata_v1",
+            "implementation_sha256": self.implementation,
+            "entries": self.entries,
+        }
+        if payload != self.saved:
+            write_json_atomic(self.path, payload)
+
+
+def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, object], host_id: str | None = None, metadata_cache: _SkillMetadataCache | None = None) -> dict[str, object]:
+    """Bind source metadata to captured descriptor bytes and current resource content."""
     source_bytes = skill_file.read_bytes()
+    cache_key = _metadata_digest({
+        "source": source_spec, "skill_file": str(skill_file.resolve()), "skill_id": skill_dir.name,
+        "host_id": host_id, "content_sha256": hashlib.sha256(source_bytes).hexdigest(),
+    })
+    cached = metadata_cache.get(cache_key) if metadata_cache is not None else None
+    if cached is not None:
+        cached["resource_sha256"] = skill_resource_sha256(skill_file, source_bytes)
+        metadata_cache.put(cache_key, cached)
+        return cached
     source_lines = tuple(source_bytes.decode("utf-8-sig").splitlines())
     manifest = parse_installed_skill_manifest(
         skill_file, skill_id=skill_dir.name, source_bytes=source_bytes,
@@ -213,7 +276,7 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
     capability_evidence = _build_capability_evidence(manifest, source_lines, route_evidence_chunks)
     capabilities = _route_active_capabilities(capability_evidence)
     not_for = _unique_ordered([*manifest.not_for, *_extract_routing_boundary_not_for(source_lines)])
-    return {
+    entry = {
         "skill_id": manifest.skill_id,
         "id": manifest.skill_id,
         "display_name": manifest.name,
@@ -250,6 +313,9 @@ def _build_entry(*, skill_dir: Path, skill_file: Path, source_spec: dict[str, ob
         "active": False,
         "duplicate_state": "candidate",
     }
+    if metadata_cache is not None:
+        metadata_cache.put(cache_key, entry)
+    return entry
 
 
 def _frontmatter_field_line_number(source_lines: tuple[str, ...], field_name: str) -> int | None:
@@ -624,11 +690,12 @@ def _skill_card_payload(entry: dict[str, object]) -> dict[str, object]:
 
 
 def _load_card(path: Path) -> dict[str, object] | None:
-    if not path.is_file():
-        return None
+    """Treat unreadable or corrupt derived cache data as a cache miss."""
     try:
+        if not path.is_file():
+            return None
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError, UnicodeError):
+    except (OSError, json.JSONDecodeError, UnicodeError):
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -697,7 +764,8 @@ def _build_skill_cache(vibe_root: Path, entries: list[dict[str, object]]) -> dic
     }
 
 
-def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None = None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None = None, metadata_cache: _SkillMetadataCache | None = None) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Read valid declared Skills while retaining rejection diagnostics."""
     entries: list[dict[str, object]] = []
     diagnostics: list[dict[str, object]] = []
     source_root = Path(str(source_spec["resolved_source_root"]))
@@ -777,7 +845,7 @@ def _load_source_entries(source_spec: dict[str, object], *, host_id: str | None 
             diagnostics.append(_invalid_entry(skill_id, source_spec, "skill_outside_declared_root", path=skill_file))
             continue
         try:
-            entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec, host_id=host_id))
+            entries.append(_build_entry(skill_dir=skill_dir, skill_file=skill_file, source_spec=source_spec, host_id=host_id, metadata_cache=metadata_cache))
         except SkillResourceError as exc:
             diagnostics.append(_invalid_entry(skill_id, source_spec, "invalid_skill_resources", path=skill_file, message=str(exc)))
         except OSError as exc:
@@ -837,7 +905,7 @@ def _unique_ordered(values: list[str]) -> list[str]:
     return ordered
 
 
-def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
+def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None, _metadata_cache: _SkillMetadataCache | None = None) -> dict[str, object]:
     """Read source facts without creating runtime directories or capability cards."""
     if str(host_id or "").strip():
         host_id = normalize_adapter_host_id(host_id, load_adapter_registry(Path(__file__)))
@@ -847,7 +915,7 @@ def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), h
     invalid_entries: list[dict[str, object]] = []
 
     for source_spec in source_specs:
-        source_entries, source_invalid = _load_source_entries(source_spec, host_id=host_id)
+        source_entries, source_invalid = _load_source_entries(source_spec, host_id=host_id, metadata_cache=_metadata_cache)
         entries.extend(source_entries)
         invalid_entries.extend(source_invalid)
 
@@ -901,9 +969,12 @@ def scan_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), h
 
 
 def build_skill_catalog(*, agent_root: Path, host_roots: tuple[Path, ...] = (), host_id: str | None = None) -> dict[str, object]:
-    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=host_id)
+    """Refresh source discovery, reusable metadata, and capability cards."""
+    cache = _SkillMetadataCache(_vibe_root(agent_root) / "generated" / "skill-metadata.json")
+    catalog = scan_skill_catalog(agent_root=agent_root, host_roots=host_roots, host_id=host_id, _metadata_cache=cache)
     vibe_root = _ensure_runtime_dirs(agent_root)
     catalog["skill_cache"] = _build_skill_cache(vibe_root, catalog["entries"])
+    cache.publish()
     return catalog
 
 
