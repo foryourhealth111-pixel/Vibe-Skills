@@ -56,9 +56,29 @@ def test_public_guidance_removes_vibe_by_deleting_the_folder() -> None:
     chinese = (REPO_ROOT / "docs" / "install" / "README.md").read_text(encoding="utf-8")
     troubleshooting = (REPO_ROOT / "docs" / "troubleshooting.md").read_text(encoding="utf-8")
 
-    assert "delete `<SkillsDir>/vibe`" in english
-    assert "直接删除安装位置中的 `<SkillsDir>/vibe` 文件夹" in chinese
-    assert "delete `<SkillsDir>/vibe`" in troubleshooting
+    assert (
+        "After confirming there is no pending install transaction, remove VibeSkills by deleting `<SkillsDir>/vibe`"
+        in " ".join(english.split())
+    )
+    assert "确认安装事务处于正常状态后，可以删除安装位置中的 `<SkillsDir>/vibe` 文件夹" in chinese
+    assert "`conflicted` 事务应按上文保留目录、恢复日志和备份。" in chinese
+    assert (
+        "After confirming there is no pending install transaction, delete the old `<SkillsDir>/vibe`"
+        in " ".join(english.split())
+    )
+    assert (
+        "status `preparing` or `prepared`, rerun `install` from the release copy against the same `SkillsDir`"
+        in " ".join(english.split())
+    )
+    assert "If recovery reports an error" in english
+    assert "If the transaction journal" in english
+    assert "preserve the installed directory, journal and backups" in english
+    assert (
+        "After confirming there is no pending install transaction, delete `<SkillsDir>/vibe`"
+        in " ".join(troubleshooting.split())
+    )
+    assert "preserve the installed directory, journal and backups" in troubleshooting
+    assert "install/README.en.md#install" in troubleshooting
 
     for content in (english, chinese, troubleshooting):
         assert "uninstall.ps1" not in content
