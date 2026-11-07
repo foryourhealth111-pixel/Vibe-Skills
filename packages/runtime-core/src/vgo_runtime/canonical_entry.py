@@ -1627,6 +1627,7 @@ def _launch_local_agent_kernel(
     )
     with exclusive_run_update(
         artifact_projection.run_root,
+        artifact_projection.session_root,
         artifact_projection.artifact_sink.resolve_run_root(resolved_local_agent_root, resolved_run_id),
     ):
         return _launch_local_agent_kernel_locked(

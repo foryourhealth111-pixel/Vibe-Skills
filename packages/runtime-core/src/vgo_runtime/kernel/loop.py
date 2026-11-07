@@ -532,8 +532,11 @@ def _unique_non_empty(values: list[str]) -> list[str]:
     return ordered
 
 
-def _work_unit_reuse_key(work_unit: WorkUnit) -> tuple[tuple[str, ...], str | None]:
-    return (work_unit.expected_artifacts, work_unit.id if work_unit.binding_profile == "agent_direct" else None)
+def _work_unit_reuse_key(
+    work_unit: WorkUnit, duplicate_artifacts: set[tuple[str, ...]],
+) -> tuple[tuple[str, ...], str | None]:
+    use_id = work_unit.binding_profile == "agent_direct" or work_unit.expected_artifacts in duplicate_artifacts
+    return (work_unit.expected_artifacts, work_unit.id if use_id else None)
 
 
 def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_work_unit: WorkUnit) -> bool:
@@ -1430,11 +1433,16 @@ def _run_local_kernel(
             if result.status == "completed" and result_id_counts[result.work_unit_id] == 1:
                 previous_results_by_id[result.work_unit_id] = result
 
+    duplicate_artifacts = {
+        artifacts for units in (checkpoint_plan.work_units, plan.work_units)
+        for artifacts, count in Counter(unit.expected_artifacts for unit in units).items()
+        if count > 1
+    }
     previous_work_units_by_key = {
-        _work_unit_reuse_key(unit): unit for unit in checkpoint_plan.work_units
+        _work_unit_reuse_key(unit, duplicate_artifacts): unit for unit in checkpoint_plan.work_units
     }
     previous_results_by_key = {
-        _work_unit_reuse_key(unit): previous_results_by_id[unit.id]
+        _work_unit_reuse_key(unit, duplicate_artifacts): previous_results_by_id[unit.id]
         for unit in checkpoint_plan.work_units if unit.id in previous_results_by_id
     }
     task_input_sha256 = _task_input_sha256(task_card)
@@ -1447,9 +1455,9 @@ def _run_local_kernel(
     planned_work_units: list[WorkUnit] = []
     for work_unit in plan.work_units:
         reused_result = _reusable_completed_result(
-            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit)),
+            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             current_work_unit=work_unit,
-            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit)),
+            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=planned_reused_results,
             approved_work_units=current_work_units_by_id,
@@ -1543,9 +1551,9 @@ def _run_local_kernel(
     }
     for work_unit in (plan.work_units if should_execute else ()):
         reused_result = _reusable_completed_result(
-            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit)),
+            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             current_work_unit=work_unit,
-            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit)),
+            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=reused_results_by_id,
             approved_work_units=current_work_units_by_id,

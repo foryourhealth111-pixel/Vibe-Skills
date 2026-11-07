@@ -92,8 +92,9 @@ def test_direct_contract_survives_resume_and_invalidates_revised_work(
 
 
 @pytest.mark.parametrize("execute", [False, True])
-def test_direct_modules_with_identical_outputs_reuse_their_own_results(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, execute: bool,
+@pytest.mark.parametrize("skill", [None, "manual-report"])
+def test_modules_with_identical_outputs_reuse_their_own_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, manual_skill, execute: bool, skill: str | None,
 ) -> None:
     calls = []
 
@@ -102,13 +103,16 @@ def test_direct_modules_with_identical_outputs_reuse_their_own_results(
         return _completed_result(unit, work_root, f"Execution of {unit.id}")
 
     monkeypatch.setattr(loop, "execute_work_unit", complete)
-    organization = _organization()
+    agent_root, _ = manual_skill
+    organization = _organization(skill=skill)
+    if skill:
+        organization["selected_skills"][0]["module_ids"] = ["wu-1", "wu-2"]
     organization["modules"] = [
         dict(organization["modules"][0], module_id=unit_id, depends_on=[])
         for unit_id in ("wu-1", "wu-2")
     ]
     arguments = dict(
-        agent_root=tmp_path / "agent", run_id="identical-outputs", prompt="Write a report.",
+        agent_root=agent_root, run_id="identical-outputs", prompt="Use $manual-report to write a report.",
         context={"deliverables": ["report", "report"], "revision_mode": "replace"},
         agent_skill_organization=organization,
     )
@@ -120,6 +124,34 @@ def test_direct_modules_with_identical_outputs_reuse_their_own_results(
         assert unit["reused_from_work_unit_id"] == unit["id"]
     for result in resumed["work_results"]["work_results"]:
         assert Path(result["artifact_paths"][0]).read_text(encoding="utf-8") == f"Execution of {result['work_unit_id']}"
+
+
+@pytest.mark.parametrize("execute", [False, True])
+def test_unique_skill_checkpoint_can_reuse_a_previous_module_id(
+    manual_skill, monkeypatch: pytest.MonkeyPatch, execute: bool,
+) -> None:
+    agent_root, _ = manual_skill
+    calls = []
+
+    def complete(agent, task, unit, *, work_root):
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, "Approved report")
+
+    monkeypatch.setattr(loop, "execute_work_unit", complete)
+    arguments = dict(
+        agent_root=agent_root, run_id="unique-checkpoint", prompt="Use $manual-report to write a report.",
+        context={"deliverables": ["report"]}, agent_skill_organization=_organization(skill="manual-report"),
+    )
+    original = loop.run_local_kernel(**arguments)
+    checkpoint_path = Path(original["artifacts"]["work_results"])
+    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    checkpoint["work_plan"]["work_units"][0]["id"] = "previous-report"
+    checkpoint["work_results"][0]["work_unit_id"] = "previous-report"
+    checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+    resumed = loop.run_local_kernel(**arguments, execute=execute)
+    assert calls == ["wu-1"]
+    assert resumed["reused_work_units"] == ["wu-1"]
+    assert resumed["plan"]["work_units"][0]["reused_from_work_unit_id"] == "previous-report"
 
 
 @pytest.mark.parametrize("field,value", [
@@ -199,6 +231,34 @@ def test_canonical_launch_keeps_run_locked_through_summary_publication(
     )
 
 
+def test_canonical_launch_locks_shared_session_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    arguments = _canonical_arguments(tmp_path)
+    arguments["artifact_root"] = tmp_path / "shared-artifacts"
+    competitor = dict(
+        arguments, workspace_root=tmp_path / "other-workspace",
+        local_agent_root=tmp_path / "other-agent",
+    )
+    build_summary = canonical_entry.build_runtime_summary
+    attempted = []
+
+    def guarded_summary(**kwargs):
+        if not attempted:
+            attempted.append(True)
+            session_root = arguments["artifact_root"] / "outputs/runtime/vibe-sessions" / arguments["run_id"]
+            before = {path: path.read_bytes() for path in session_root.rglob("*") if path.is_file()}
+            with pytest.raises(RuntimeError, match="already being updated"):
+                canonical_entry.launch_canonical_vibe(**competitor)
+            assert before == {path: path.read_bytes() for path in before}
+        return build_summary(**kwargs)
+
+    monkeypatch.setattr(canonical_entry, "build_runtime_summary", guarded_summary)
+    canonical_entry.launch_canonical_vibe(**arguments)
+    assert attempted == [True]
+    canonical_entry.launch_canonical_vibe(**competitor)
+
+
 def test_legacy_projection_cannot_overwrite_canonical_task_card_through_session_receipts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -243,6 +303,15 @@ def manual_skill(tmp_path: Path, request: pytest.FixtureRequest):
     ("Use $manual-report. Write a report.", True),
     ("Use `$manual-report`. Write a report.", True),
     ("Do not use $manual-report. Write a report.", False),
+    ("Don't use manual-report.", False),
+    ("Don't use $manual-report.", False),
+    ("Do not use $other, $manual-report.", False),
+    ("Do not use `$other`, `$manual-report`.", False),
+    ("Do not use $other, $third, and $manual-report.", False),
+    ("Do not use $other, use $manual-report.", True),
+    ("Use $not-report, $manual-report.", True),
+    ("Use $manual-report. Do not use $manual-report anymore.", False),
+    ("Do not use $manual-report. Use $manual-report for this report.", True),
     ("Use $manual-report to write a report.", True),
     ("Use manual-report to write a report.", True),
     ("Use /manual-report to write a report.", True),
@@ -293,3 +362,31 @@ def test_manual_skill_revocation_respects_scope_independently_of_its_name(manual
     assert not resolve_skill_candidates(task, index, skill_ids=(skill_id,))
     with pytest.raises(ValueError, match="selected unknown candidate skill"):
         loop.run_local_kernel(**arguments, prompt=negative_prompt)
+
+
+@pytest.mark.parametrize("manual_skill", ["Straße"], indirect=True)
+def test_unicode_skill_invocation_preserves_the_catalog_id(manual_skill) -> None:
+    agent_root, index = manual_skill
+    skill_id = index["skills"][0]["id"]
+    assert skill_id == "Straße"
+    for name in (skill_id, skill_id.casefold()):
+        task = build_task_card(prompt=f"Use ${name} to write a report.", context={"deliverables": ["report"]})
+        assert [candidate.skill_id for candidate in find_skill_candidates(task, index)] == [skill_id]
+        assert [candidate.skill_id for candidate in resolve_skill_candidates(task, index, skill_ids=(skill_id,))] == [skill_id]
+    result = loop.run_local_kernel(
+        agent_root=agent_root, run_id="unicode-skill", prompt=f"Use ${skill_id} to write a report.",
+        context={"deliverables": ["report"]}, execute=False,
+        agent_skill_organization=_organization(skill=skill_id),
+    )
+    assert result["plan"]["work_units"][0]["preferred_skill"] == skill_id
+
+
+def test_later_revocation_in_one_prompt_prevents_agent_binding(manual_skill) -> None:
+    agent_root, _ = manual_skill
+    with pytest.raises(ValueError, match="selected unknown candidate skill"):
+        loop.run_local_kernel(
+            agent_root=agent_root, run_id="same-prompt-revocation",
+            prompt="Use $manual-report. Do not use $manual-report anymore.",
+            context={"deliverables": ["report"]}, execute=False,
+            agent_skill_organization=_organization(skill="manual-report"),
+        )

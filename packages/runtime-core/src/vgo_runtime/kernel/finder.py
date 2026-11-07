@@ -94,7 +94,7 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
     """Recognize user invocations without treating Agent binding as authorization."""
     invocation = re.compile(
         rf"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
-        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?{re.escape(skill_id)}(?![a-z0-9_-]|\.+[a-z0-9_-])",
+        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?(?P<skill_id>{re.escape(normalize_text(skill_id))})(?![a-z0-9_-]|\.+[a-z0-9_-])",
         re.IGNORECASE,
     )
     prompts = (
@@ -105,7 +105,12 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
         text = normalize_text(prompt)
         matches = tuple(invocation.finditer(text))
         if matches:
-            return any(not _match_is_in_negated_scope(text, match.start()) for match in matches)
+            # Keep a skill list under its governing instruction and exclude IDs from negation checks.
+            prefix = re.sub(
+                r"[$/][\w.-]+[\x60'\"]?\s*[,，]\s*(?:(?:and|or)\s+)?(?=[\x60'\"]?[$/])",
+                " ", text[:matches[-1].start("skill_id")],
+            )
+            return not _match_is_in_negated_scope(prefix, len(prefix))
     return False
 
 
