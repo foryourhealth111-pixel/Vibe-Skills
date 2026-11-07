@@ -1625,7 +1625,10 @@ def _launch_local_agent_kernel(
         run_id=resolved_run_id,
         repo_root=repo_root,
     )
-    with exclusive_run_update(artifact_projection.run_root):
+    with exclusive_run_update(
+        artifact_projection.run_root,
+        artifact_projection.artifact_sink.resolve_run_root(resolved_local_agent_root, resolved_run_id),
+    ):
         return _launch_local_agent_kernel_locked(
             repo_root=repo_root, workspace_root=workspace_root, host_id=host_id,
             entry_id=entry_id, prompt=prompt, requested_stage_stop=requested_stage_stop,

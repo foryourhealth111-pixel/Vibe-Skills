@@ -192,6 +192,8 @@ def resolve_runtime_artifact_projection(
         # a marked read-compatible projection until that API is removed.
         legacy_projection_enabled=(
             workspace_root is None and sink.legacy_write_mode != "disabled"
+            and not legacy_run_root.is_relative_to(session_root)
+            and not session_root.is_relative_to(legacy_run_root)
         ),
     )
 

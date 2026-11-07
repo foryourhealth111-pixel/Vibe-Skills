@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 import errno
 import json
 import os
@@ -28,8 +28,14 @@ def write_json_atomic(path: Path, payload: object) -> Path:
 
 
 @contextmanager
-def exclusive_run_update(run_root: Path) -> Iterator[None]:
+def exclusive_run_update(run_root: Path, *additional_roots: Path) -> Iterator[None]:
     """Reject overlapping writers; the OS releases ownership on close or exit."""
+    if additional_roots:
+        with ExitStack() as locks:
+            for root in sorted({run_root, *additional_roots}):
+                locks.enter_context(exclusive_run_update(root))
+            yield
+        return
     lock_dir = run_root.parent / ".locks"
     lock_path = lock_dir / f"{run_root.name}.lock"
     if lock_dir.resolve() != lock_dir or lock_path.resolve() != lock_path:

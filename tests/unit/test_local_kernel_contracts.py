@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tests.unit.test_local_kernel_resume import _completed_result
-from vgo_runtime import canonical_entry
+from vgo_runtime import artifact_contract, canonical_entry
 from vgo_runtime.kernel import loop
 from vgo_runtime.kernel._io import exclusive_run_update
 from vgo_runtime.kernel.finder import find_skill_candidates, resolve_skill_candidates
@@ -91,6 +91,37 @@ def test_direct_contract_survives_resume_and_invalidates_revised_work(
     assert list(persisted["verification"]) == declared["verification"]
 
 
+@pytest.mark.parametrize("execute", [False, True])
+def test_direct_modules_with_identical_outputs_reuse_their_own_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, execute: bool,
+) -> None:
+    calls = []
+
+    def complete(agent, task, unit, *, work_root):
+        calls.append(unit.id)
+        return _completed_result(unit, work_root, f"Execution of {unit.id}")
+
+    monkeypatch.setattr(loop, "execute_work_unit", complete)
+    organization = _organization()
+    organization["modules"] = [
+        dict(organization["modules"][0], module_id=unit_id, depends_on=[])
+        for unit_id in ("wu-1", "wu-2")
+    ]
+    arguments = dict(
+        agent_root=tmp_path / "agent", run_id="identical-outputs", prompt="Write a report.",
+        context={"deliverables": ["report", "report"], "revision_mode": "replace"},
+        agent_skill_organization=organization,
+    )
+    loop.run_local_kernel(**arguments)
+    resumed = loop.run_local_kernel(**arguments, execute=execute)
+    assert calls == ["wu-1", "wu-2"]
+    assert resumed["reused_work_units"] == ["wu-1", "wu-2"]
+    for unit in resumed["plan"]["work_units"]:
+        assert unit["reused_from_work_unit_id"] == unit["id"]
+    for result in resumed["work_results"]["work_results"]:
+        assert Path(result["artifact_paths"][0]).read_text(encoding="utf-8") == f"Execution of {result['work_unit_id']}"
+
+
 @pytest.mark.parametrize("field,value", [
     ("write_scope", None), ("write_scope", ""), ("write_scope", ["reports/**"]),
     ("expected_outputs", None), ("expected_outputs", []),
@@ -140,8 +171,9 @@ def test_rejected_canonical_launch_preserves_all_accepted_artifacts(tmp_path: Pa
     assert canonical_entry.launch_canonical_vibe(**arguments).summary["run_id"] == result.run_id
 
 
+@pytest.mark.parametrize("include_workspace", [False, True])
 def test_canonical_launch_keeps_run_locked_through_summary_publication(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, include_workspace: bool,
 ) -> None:
     arguments = _canonical_arguments(tmp_path)
     build_summary = canonical_entry.build_runtime_summary
@@ -150,7 +182,8 @@ def test_canonical_launch_keeps_run_locked_through_summary_publication(
     def guarded_summary(**kwargs):
         with pytest.raises(RuntimeError, match="already being updated"):
             loop.run_local_kernel(
-                agent_root=arguments["local_agent_root"], workspace_root=arguments["workspace_root"],
+                agent_root=arguments["local_agent_root"],
+                workspace_root=arguments["workspace_root"] if include_workspace else None,
                 run_id=arguments["run_id"], prompt="continue", execute=False,
             )
         publication_checked.append(True)
@@ -166,13 +199,35 @@ def test_canonical_launch_keeps_run_locked_through_summary_publication(
     )
 
 
+def test_legacy_projection_cannot_overwrite_canonical_task_card_through_session_receipts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = json.loads((REPO_ROOT / "config/live-document-contract.json").read_text(encoding="utf-8"))
+    payload["artifact_sink"]["legacy_write_mode"] = "dual_write"
+    payload["artifact_sink"]["legacy_projection_root"] = payload["artifact_sink"]["session_receipts"]["root"]
+    contract = artifact_contract.load_runtime_artifact_contract(REPO_ROOT).model_validate(payload)
+    monkeypatch.setattr(artifact_contract, "_load_contract", lambda root: contract)
+    arguments = _canonical_arguments(tmp_path)
+    arguments["artifact_root"] = arguments["local_agent_root"]
+    original = canonical_entry.launch_canonical_vibe(**arguments)
+    loop.run_local_kernel(
+        agent_root=arguments["local_agent_root"], run_id=arguments["run_id"],
+        prompt="Write an unrelated summary.", execute=False,
+    )
+    canonical_entry.launch_canonical_vibe(**{**arguments, "prompt": "continue"})
+    task_card = json.loads(Path(original.artifacts["task_card"]).read_text(encoding="utf-8"))
+    assert task_card["goal"] == arguments["prompt"]
+    assert not (original.session_root / "task-card.json").exists()
+
+
 @pytest.fixture
-def manual_skill(tmp_path: Path):
+def manual_skill(tmp_path: Path, request: pytest.FixtureRequest):
     agent_root = tmp_path / "agent"
-    descriptor = agent_root / "vibe/skills/local/manual-report/SKILL.md"
+    skill_id = getattr(request, "param", "manual-report")
+    descriptor = agent_root / f"vibe/skills/local/{skill_id}/SKILL.md"
     descriptor.parent.mkdir(parents=True)
     descriptor.write_text(
-        "---\nname: manual-report\ndescription: Write a report.\n"
+        f"---\nname: {skill_id}\ndescription: Write a report.\n"
         "disable-model-invocation: true\noutputs: [report]\n---\n",
         encoding="utf-8",
     )
@@ -184,6 +239,9 @@ def manual_skill(tmp_path: Path):
 @pytest.mark.parametrize("prompt,allowed", [
     ("Write a report.", False),
     ("Use $manual-report-extra to write a report.", False),
+    ("Use $manual-report.extra to write a report.", False),
+    ("Use $manual-report. Write a report.", True),
+    ("Use `$manual-report`. Write a report.", True),
     ("Do not use $manual-report. Write a report.", False),
     ("Use $manual-report to write a report.", True),
     ("Use manual-report to write a report.", True),
@@ -217,3 +275,21 @@ def test_explicit_manual_invocation_survives_continuation(manual_skill) -> None:
     loop.run_local_kernel(**arguments, prompt="Use $manual-report to write a report.")
     resumed = loop.run_local_kernel(**arguments, prompt="continue")
     assert resumed["plan"]["work_units"][0]["preferred_skill"] == "manual-report"
+
+
+@pytest.mark.parametrize("manual_skill", ["not-report", "notice-report", "manual-report.extra"], indirect=True)
+def test_manual_skill_revocation_respects_scope_independently_of_its_name(manual_skill) -> None:
+    agent_root, index = manual_skill
+    skill_id = index["skills"][0]["id"]
+    arguments = dict(
+        agent_root=agent_root, run_id="manual-revocation", execute=False,
+        context={"deliverables": ["report"]},
+        agent_skill_organization=_organization(skill=skill_id),
+    )
+    loop.run_local_kernel(**arguments, prompt=f"Use ${skill_id} to write a report.")
+    negative_prompt = f"Do not use ${skill_id} any more."
+    task = build_task_card(prompt=negative_prompt, context={"deliverables": ["report"]})
+    assert not find_skill_candidates(task, index)
+    assert not resolve_skill_candidates(task, index, skill_ids=(skill_id,))
+    with pytest.raises(ValueError, match="selected unknown candidate skill"):
+        loop.run_local_kernel(**arguments, prompt=negative_prompt)

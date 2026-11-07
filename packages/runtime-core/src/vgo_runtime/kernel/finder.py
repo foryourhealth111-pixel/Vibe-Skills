@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import re
 
-from ..runtime_support import keyword_hit, normalize_text
+from ..runtime_support import _match_is_in_negated_scope, normalize_text
 from .task_card import TaskCard
 from .text_tokens import SKILL_MATCH_STOPWORDS, tokens_from_text, tokens_from_values
 
@@ -94,7 +94,7 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
     """Recognize user invocations without treating Agent binding as authorization."""
     invocation = re.compile(
         rf"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
-        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?{re.escape(skill_id)}(?![a-z0-9_-])",
+        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?{re.escape(skill_id)}(?![a-z0-9_-]|\.+[a-z0-9_-])",
         re.IGNORECASE,
     )
     prompts = (
@@ -105,7 +105,7 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
         text = normalize_text(prompt)
         matches = tuple(invocation.finditer(text))
         if matches:
-            return any(keyword_hit(text, match.group()) for match in matches)
+            return any(not _match_is_in_negated_scope(text, match.start()) for match in matches)
     return False
 
 
