@@ -464,6 +464,7 @@ def _coerce_skill_provenance(payload: object) -> SkillProvenance | None:
 
 
 def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
+    """Restore a persisted work unit with its execution and verification contracts."""
     return WorkUnit(
         id=str(payload["id"]),
         goal=str(payload["goal"]),
@@ -535,11 +536,13 @@ def _unique_non_empty(values: list[str]) -> list[str]:
 def _work_unit_reuse_key(
     work_unit: WorkUnit, duplicate_artifacts: set[tuple[str, ...]],
 ) -> tuple[tuple[str, ...], str | None]:
+    """Disambiguate direct or duplicate-output checkpoints with the module identity."""
     use_id = work_unit.binding_profile == "agent_direct" or work_unit.expected_artifacts in duplicate_artifacts
     return (work_unit.expected_artifacts, work_unit.id if use_id else None)
 
 
 def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_work_unit: WorkUnit) -> bool:
+    """Require unchanged execution contracts and valid skill fingerprints for checkpoint reuse."""
     if previous_work_unit is None:
         return False
     if current_work_unit.preferred_skill is not None:

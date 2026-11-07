@@ -135,6 +135,7 @@ def resolve_runtime_artifact_projection(
     run_id: str,
     repo_root: Path,
 ) -> RuntimeArtifactProjection:
+    """Resolve contract-owned artifact paths and isolate legacy projections from session receipts."""
     resolved_agent_root = agent_root.resolve()
     resolved_workspace_root = (
         workspace_root.resolve() if workspace_root is not None else resolved_agent_root

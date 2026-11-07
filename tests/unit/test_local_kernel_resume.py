@@ -183,6 +183,7 @@ def test_resume_validates_dependency_fingerprints(
 def test_resume_preserves_independent_work_and_blocks_failed_dependents(
     agent_root: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Reuse independent work while blocking dependents of a failed prerequisite."""
     produced: dict[str, Path] = {}
     calls: list[str] = []
     fail_upstream = False

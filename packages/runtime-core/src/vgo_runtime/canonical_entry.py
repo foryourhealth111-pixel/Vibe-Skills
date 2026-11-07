@@ -1616,6 +1616,7 @@ def _launch_local_agent_kernel(
     summary_source: str,
     host_decision: dict[str, Any] | None,
 ) -> CanonicalLaunchResult:
+    """Lock run and session destinations through kernel execution and canonical publication."""
     resolved_run_id = str(run_id or "").strip() or f"local-{_new_run_id()}"
     resolved_local_agent_root = Path(local_agent_root).expanduser().resolve()
     artifact_projection = resolve_runtime_artifact_projection(

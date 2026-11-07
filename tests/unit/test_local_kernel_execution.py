@@ -1146,6 +1146,7 @@ enabled: true
 
 
 def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Path) -> None:
+    """Require structured acceptance criteria for approved Agent modules."""
     agent_root = tmp_path / "agent-root"
     discovery = run_local_kernel(
         agent_root=agent_root,
@@ -1188,6 +1189,7 @@ def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Pat
 
 
 def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> None:
+    """Retain approved Agent acceptance criteria in the executable work plan."""
     agent_root = tmp_path / "agent-root"
     discovery = run_local_kernel(
         agent_root=agent_root,
@@ -1238,6 +1240,7 @@ def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> 
 
 
 def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path: Path) -> None:
+    """Execute approved modules in their declared dependency order."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -1315,6 +1318,7 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
     depends_on: object,
     message: str,
 ) -> None:
+    """Reject malformed, unknown, duplicate, and self-referencing module dependencies."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -1354,6 +1358,7 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
 
 
 def test_local_kernel_rejects_confirmed_module_dependency_cycle(tmp_path: Path) -> None:
+    """Reject approved module graphs that contain a dependency cycle."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",

@@ -19,10 +19,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.fixture(autouse=True)
 def isolated_roots(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep contract tests independent of skills installed on the host."""
     monkeypatch.setattr(loop, "_resolve_host_root_paths", lambda **kwargs: ())
 
 
 def _organization(*, skill: str | None = None) -> dict:
+    """Build an approved module contract for direct execution or a selected skill."""
     return {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -57,9 +59,11 @@ def _organization(*, skill: str | None = None) -> dict:
 def test_direct_contract_survives_resume_and_invalidates_revised_work(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, field: str, value: object,
 ) -> None:
+    """Persist direct-module declarations and rerun completed work when a declaration changes."""
     calls = []
 
     def execute(agent, task, unit, *, work_root):
+        """Record each execution and write distinguishable final report evidence."""
         calls.append(unit)
         return _completed_result(unit, work_root, f"Report execution {len(calls)}")
 
@@ -96,9 +100,11 @@ def test_direct_contract_survives_resume_and_invalidates_revised_work(
 def test_modules_with_identical_outputs_reuse_their_own_results(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, manual_skill, execute: bool, skill: str | None,
 ) -> None:
+    """Preserve each module's result and proof when approved outputs are identical."""
     calls = []
 
     def complete(agent, task, unit, *, work_root):
+        """Record module execution and write evidence identifying its owner."""
         calls.append(unit.id)
         return _completed_result(unit, work_root, f"Execution of {unit.id}")
 
@@ -130,10 +136,12 @@ def test_modules_with_identical_outputs_reuse_their_own_results(
 def test_unique_skill_checkpoint_can_reuse_a_previous_module_id(
     manual_skill, monkeypatch: pytest.MonkeyPatch, execute: bool,
 ) -> None:
+    """Allow unique ordinary outputs to reuse valid evidence under a previous module ID."""
     agent_root, _ = manual_skill
     calls = []
 
     def complete(agent, task, unit, *, work_root):
+        """Count executions while producing a stable approved report."""
         calls.append(unit.id)
         return _completed_result(unit, work_root, "Approved report")
 
@@ -164,6 +172,7 @@ def test_unique_skill_checkpoint_can_reuse_a_previous_module_id(
 def test_direct_contract_rejects_missing_or_malformed_declarations(
     tmp_path: Path, field: str, value: object,
 ) -> None:
+    """Reject invalid direct-module contracts before publishing a task card."""
     organization = _organization()
     if value is None:
         del organization["modules"][0][field]
@@ -179,6 +188,7 @@ def test_direct_contract_rejects_missing_or_malformed_declarations(
 
 
 def _canonical_arguments(tmp_path: Path) -> dict:
+    """Build a canonical launch with isolated workspace and agent roots."""
     return dict(
         repo_root=REPO_ROOT, host_id="codex", entry_id="vibe",
         workspace_root=tmp_path / "workspace", artifact_root=tmp_path / "workspace",
@@ -188,6 +198,7 @@ def _canonical_arguments(tmp_path: Path) -> dict:
 
 
 def test_rejected_canonical_launch_preserves_all_accepted_artifacts(tmp_path: Path) -> None:
+    """Preserve accepted artifact bytes and timestamps when a competing launch is rejected."""
     arguments = _canonical_arguments(tmp_path)
     result = canonical_entry.launch_canonical_vibe(**arguments)
     run_root = Path(result.artifacts["run_state"]).parent
@@ -207,11 +218,13 @@ def test_rejected_canonical_launch_preserves_all_accepted_artifacts(tmp_path: Pa
 def test_canonical_launch_keeps_run_locked_through_summary_publication(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, include_workspace: bool,
 ) -> None:
+    """Retain ownership during summary publication for direct callers with either root form."""
     arguments = _canonical_arguments(tmp_path)
     build_summary = canonical_entry.build_runtime_summary
     publication_checked = []
 
     def guarded_summary(**kwargs):
+        """Verify that a direct caller cannot update the run during summary publication."""
         with pytest.raises(RuntimeError, match="already being updated"):
             loop.run_local_kernel(
                 agent_root=arguments["local_agent_root"],
@@ -234,6 +247,7 @@ def test_canonical_launch_keeps_run_locked_through_summary_publication(
 def test_canonical_launch_locks_shared_session_destination(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Serialize shared session publication across different workspace and agent roots."""
     arguments = _canonical_arguments(tmp_path)
     arguments["artifact_root"] = tmp_path / "shared-artifacts"
     competitor = dict(
@@ -244,6 +258,7 @@ def test_canonical_launch_locks_shared_session_destination(
     attempted = []
 
     def guarded_summary(**kwargs):
+        """Reject a competing publisher before it alters shared session receipts."""
         if not attempted:
             attempted.append(True)
             session_root = arguments["artifact_root"] / "outputs/runtime/vibe-sessions" / arguments["run_id"]
@@ -262,6 +277,7 @@ def test_canonical_launch_locks_shared_session_destination(
 def test_legacy_projection_cannot_overwrite_canonical_task_card_through_session_receipts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Keep overlapping legacy projections from replacing the canonical task card."""
     payload = json.loads((REPO_ROOT / "config/live-document-contract.json").read_text(encoding="utf-8"))
     payload["artifact_sink"]["legacy_write_mode"] = "dual_write"
     payload["artifact_sink"]["legacy_projection_root"] = payload["artifact_sink"]["session_receipts"]["root"]
@@ -282,6 +298,7 @@ def test_legacy_projection_cannot_overwrite_canonical_task_card_through_session_
 
 @pytest.fixture
 def manual_skill(tmp_path: Path, request: pytest.FixtureRequest):
+    """Install an explicit-only test skill and return its indexed catalog entry."""
     agent_root = tmp_path / "agent"
     skill_id = getattr(request, "param", "manual-report")
     descriptor = agent_root / f"vibe/skills/local/{skill_id}/SKILL.md"
@@ -318,6 +335,7 @@ def manual_skill(tmp_path: Path, request: pytest.FixtureRequest):
     ("请使用 manual-report 写报告。", True),
 ])
 def test_manual_skill_requires_user_invocation_in_both_candidate_paths(manual_skill, prompt, allowed):
+    """Apply invocation authorization consistently to discovery and explicit selection."""
     _, index = manual_skill
     task = build_task_card(prompt=prompt, context={"deliverables": ["report"]})
     assert bool(find_skill_candidates(task, index)) is allowed
@@ -325,6 +343,7 @@ def test_manual_skill_requires_user_invocation_in_both_candidate_paths(manual_sk
 
 
 def test_agent_selection_does_not_authorize_a_manual_skill(manual_skill) -> None:
+    """Reject Agent binding of a manual skill that the user has not invoked."""
     agent_root, _ = manual_skill
     with pytest.raises(ValueError, match="selected unknown candidate skill"):
         loop.run_local_kernel(
@@ -335,6 +354,7 @@ def test_agent_selection_does_not_authorize_a_manual_skill(manual_skill) -> None
 
 
 def test_explicit_manual_invocation_survives_continuation(manual_skill) -> None:
+    """Retain the user's manual-skill authorization across a continuation."""
     agent_root, _ = manual_skill
     arguments = dict(
         agent_root=agent_root, run_id="manual-continuation",
@@ -348,6 +368,7 @@ def test_explicit_manual_invocation_survives_continuation(manual_skill) -> None:
 
 @pytest.mark.parametrize("manual_skill", ["not-report", "notice-report", "manual-report.extra"], indirect=True)
 def test_manual_skill_revocation_respects_scope_independently_of_its_name(manual_skill) -> None:
+    """Revoke discovery and binding even when a skill name contains negation-like text."""
     agent_root, index = manual_skill
     skill_id = index["skills"][0]["id"]
     arguments = dict(
@@ -366,6 +387,7 @@ def test_manual_skill_revocation_respects_scope_independently_of_its_name(manual
 
 @pytest.mark.parametrize("manual_skill", ["Straße"], indirect=True)
 def test_unicode_skill_invocation_preserves_the_catalog_id(manual_skill) -> None:
+    """Match normalized Unicode invocations while retaining the installed skill ID."""
     agent_root, index = manual_skill
     skill_id = index["skills"][0]["id"]
     assert skill_id == "Straße"
@@ -382,6 +404,7 @@ def test_unicode_skill_invocation_preserves_the_catalog_id(manual_skill) -> None
 
 
 def test_later_revocation_in_one_prompt_prevents_agent_binding(manual_skill) -> None:
+    """Let the last invocation in a prompt revoke an earlier authorization."""
     agent_root, _ = manual_skill
     with pytest.raises(ValueError, match="selected unknown candidate skill"):
         loop.run_local_kernel(

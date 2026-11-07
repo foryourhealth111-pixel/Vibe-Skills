@@ -117,6 +117,7 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
 def _candidate_from_entry(
     raw_entry: dict[str, object], query_tokens: set[str], *, task_card: TaskCard,
 ) -> SkillCandidate | None:
+    """Build an eligible catalog candidate after checking user-only invocation requirements."""
     if not bool(raw_entry.get("enabled", False)):
         return None
     source_metadata = _validated_source_metadata(raw_entry)
@@ -186,6 +187,7 @@ def resolve_skill_candidates(
 
 
 def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object], *, limit: int = 8) -> tuple[SkillCandidate, ...]:
+    """Rank eligible skills by task overlap and return at most the requested limit."""
     query_tokens = _task_query_tokens(task_card)
     candidates: list[SkillCandidate] = []
     for entry in index_payload.get("skills", []):
