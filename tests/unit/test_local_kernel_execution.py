@@ -1171,6 +1171,9 @@ def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Pat
                         "goal": "Summarize the note.",
                         "candidate_skill_ids": [],
                         "execution_mode": "agent_direct",
+                        "write_scope": f"outputs/{module_id}/**",
+                        "expected_outputs": [f"outputs/{module_id}/result.md"],
+                        "verification": ["Check the direct result against its acceptance criteria."],
                         "acceptance_criteria": ["The summary exists."],
                     }
                 ],
@@ -1216,6 +1219,9 @@ def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> 
                     "goal": "Summarize the note.",
                     "candidate_skill_ids": [],
                     "execution_mode": "agent_direct",
+                    "write_scope": f"outputs/{module_id}/**",
+                    "expected_outputs": [f"outputs/{module_id}/result.md"],
+                    "verification": ["Check the direct result against its acceptance criteria."],
                     "acceptance_criteria": acceptance,
                 }
             ],
@@ -1243,6 +1249,9 @@ def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path
                 "candidate_skill_ids": [],
                 "depends_on": ["wu-2"],
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-1/**",
+                "expected_outputs": ["outputs/wu-1/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "brief-result",
@@ -1257,6 +1266,9 @@ def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path
                 "candidate_skill_ids": [],
                 "depends_on": [],
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-2/**",
+                "expected_outputs": ["outputs/wu-2/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "verification-result",
@@ -1314,6 +1326,9 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
                 "candidate_skill_ids": [],
                 "depends_on": depends_on,
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-1/**",
+                "expected_outputs": ["outputs/wu-1/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "brief-result",
@@ -1350,6 +1365,9 @@ def test_local_kernel_rejects_confirmed_module_dependency_cycle(tmp_path: Path) 
                 "candidate_skill_ids": [],
                 "depends_on": [dependency],
                 "execution_mode": "agent_direct",
+                "write_scope": f"outputs/{module_id}/**",
+                "expected_outputs": [f"outputs/{module_id}/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": f"{module_id}-result",

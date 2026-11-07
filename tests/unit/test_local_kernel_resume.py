@@ -202,6 +202,9 @@ def test_resume_preserves_independent_work_and_blocks_failed_dependents(
             {
                 "module_id": module_id,
                 "execution_mode": "agent_direct",
+                "write_scope": f"outputs/{module_id}/**",
+                "expected_outputs": [f"outputs/{module_id}/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "depends_on": depends_on,
                 "acceptance_criteria": [
                     {

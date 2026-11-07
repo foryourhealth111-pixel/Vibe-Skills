@@ -48,6 +48,7 @@ class WorkUnit:
     task_verification: tuple[str, ...] = ()
     plan_hints: tuple[str, ...] = ()
     verify_hints: tuple[str, ...] = ()
+    write_scope: str = ""
 
     def model_dump(self) -> dict[str, object]:
         payload = asdict(self)

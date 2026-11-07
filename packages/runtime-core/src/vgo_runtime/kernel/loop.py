@@ -259,6 +259,18 @@ def _apply_agent_skill_organization(
         if execution_mode not in {"skill_assigned", "agent_direct", "blocked_gap"}:
             raise ValueError(f"agent_skill_organization module {unit.id} has invalid execution_mode")
         if execution_mode == "agent_direct":
+            module = modules[unit.id]
+            write_scope = module.get("write_scope")
+            if not isinstance(write_scope, str) or not write_scope.strip():
+                raise ValueError(f"agent_direct module {unit.id} write_scope must be a non-empty string")
+            direct_fields: dict[str, tuple[str, ...]] = {}
+            for field in ("expected_outputs", "verification"):
+                values = module.get(field)
+                if not isinstance(values, list) or not values or any(
+                    not isinstance(value, str) or not value.strip() for value in values
+                ):
+                    raise ValueError(f"agent_direct module {unit.id} {field} must be a non-empty list of strings")
+                direct_fields[field] = tuple(value.strip() for value in values)
             organized_units.append(
                 replace(
                     unit,
@@ -266,7 +278,9 @@ def _apply_agent_skill_organization(
                     preferred_skill=None,
                     binding_profile="agent_direct",
                     binding_reason="The current Agent directly owns this approved module.",
-                    verification=task_verification,
+                    write_scope=write_scope.strip(),
+                    expected_artifacts=direct_fields["expected_outputs"],
+                    verification=direct_fields["verification"],
                     plan_hints=(),
                     verify_hints=(),
                     acceptance_criteria=acceptance_criteria,
@@ -459,6 +473,7 @@ def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
         binding_reason=(str(payload["binding_reason"]) if payload.get("binding_reason") is not None else None),
         fallback_skills=tuple(str(value) for value in payload.get("fallback_skills", [])),
         expected_artifacts=tuple(str(value) for value in payload.get("expected_artifacts", [])),
+        write_scope=str(payload.get("write_scope") or ""),
         verification=tuple(str(value) for value in payload.get("verification", [])),
         task_verification=tuple(
             str(value)
@@ -528,6 +543,7 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
     return (
         previous_work_unit.goal == current_work_unit.goal
         and previous_work_unit.expected_artifacts == current_work_unit.expected_artifacts
+        and previous_work_unit.write_scope == current_work_unit.write_scope
         and previous_work_unit.binding_profile == current_work_unit.binding_profile
         and previous_work_unit.preferred_skill == current_work_unit.preferred_skill
         and previous_work_unit.selected_skill_provenance == current_work_unit.selected_skill_provenance
@@ -1448,6 +1464,7 @@ def _run_local_kernel(
             binding_reason=work_unit.binding_reason,
             fallback_skills=work_unit.fallback_skills,
             expected_artifacts=work_unit.expected_artifacts,
+            write_scope=work_unit.write_scope,
             verification=work_unit.verification,
             task_verification=work_unit.task_verification,
             plan_hints=work_unit.plan_hints,

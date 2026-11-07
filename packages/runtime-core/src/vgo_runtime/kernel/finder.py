@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import re
 
+from ..runtime_support import keyword_hit, normalize_text
 from .task_card import TaskCard
 from .text_tokens import SKILL_MATCH_STOPWORDS, tokens_from_text, tokens_from_values
 
@@ -88,12 +90,33 @@ def _task_query_tokens(task_card: TaskCard) -> set[str]:
     )
 
 
-def _candidate_from_entry(raw_entry: dict[str, object], query_tokens: set[str]) -> SkillCandidate | None:
+def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
+    """Recognize user invocations without treating Agent binding as authorization."""
+    invocation = re.compile(
+        rf"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
+        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?{re.escape(skill_id)}(?![a-z0-9_-])",
+        re.IGNORECASE,
+    )
+    prompts = (
+        *(revision.prompt for revision in reversed(task_card.accepted_revisions)),
+        task_card.initial_goal, task_card.goal,
+    )
+    for prompt in prompts:
+        text = normalize_text(prompt)
+        matches = tuple(invocation.finditer(text))
+        if matches:
+            return any(keyword_hit(text, match.group()) for match in matches)
+    return False
+
+
+def _candidate_from_entry(
+    raw_entry: dict[str, object], query_tokens: set[str], *, task_card: TaskCard,
+) -> SkillCandidate | None:
     if not bool(raw_entry.get("enabled", False)):
         return None
     source_metadata = _validated_source_metadata(raw_entry)
     skill_id = str(raw_entry.get("id") or "").strip()
-    if not skill_id:
+    if not skill_id or (bool(raw_entry.get("explicit_only")) and not _user_requested_skill(task_card, skill_id)):
         return None
     search_tokens: set[str] = set()
     for field in ("id", "name", "description"):
@@ -151,7 +174,7 @@ def resolve_skill_candidates(
     for entry in index_payload.get("skills", []):
         if not isinstance(entry, dict) or str(entry.get("id") or "").strip() not in requested:
             continue
-        candidate = _candidate_from_entry(entry, query_tokens)
+        candidate = _candidate_from_entry(entry, query_tokens, task_card=task_card)
         if candidate is not None:
             resolved.append(candidate)
     return tuple(resolved)
@@ -163,7 +186,7 @@ def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object],
     for entry in index_payload.get("skills", []):
         if not isinstance(entry, dict):
             continue
-        candidate = _candidate_from_entry(entry, query_tokens)
+        candidate = _candidate_from_entry(entry, query_tokens, task_card=task_card)
         if candidate is not None and candidate.matched_tokens:
             candidates.append(candidate)
     ranked = sorted(

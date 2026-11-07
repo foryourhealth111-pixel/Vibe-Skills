@@ -40,12 +40,14 @@ from vgo_contracts.module_execution_contract import (
     validate_agent_module_execution as _validate_agent_module_execution,
 )
 from vgo_runtime.artifact_contract import (  # noqa: E402
+    RuntimeArtifactProjection,
     resolve_runtime_artifact_projection,
     resolve_runtime_session_receipts_root,
     resolve_runtime_session_root,
     sync_session_receipts_to_run_artifact_sink,
 )
-from vgo_runtime.kernel.loop import run_local_kernel
+from vgo_runtime.kernel._io import exclusive_run_update
+from vgo_runtime.kernel.loop import _run_local_kernel
 from vgo_runtime.powershell_bridge import run_powershell_json_command
 from vgo_runtime.runtime_support import resolve_host_id
 from vgo_runtime.runtime_truth import build_runtime_truth_packet, build_runtime_truth_packet_from_payload
@@ -1623,6 +1625,33 @@ def _launch_local_agent_kernel(
         run_id=resolved_run_id,
         repo_root=repo_root,
     )
+    with exclusive_run_update(artifact_projection.run_root):
+        return _launch_local_agent_kernel_locked(
+            repo_root=repo_root, workspace_root=workspace_root, host_id=host_id,
+            entry_id=entry_id, prompt=prompt, requested_stage_stop=requested_stage_stop,
+            requested_grade_floor=requested_grade_floor,
+            local_agent_root=resolved_local_agent_root, summary_source=summary_source,
+            host_decision=host_decision, artifact_projection=artifact_projection,
+        )
+
+
+def _launch_local_agent_kernel_locked(
+    *,
+    repo_root: Path,
+    workspace_root: Path,
+    host_id: str,
+    entry_id: str,
+    prompt: str,
+    requested_stage_stop: str | None,
+    requested_grade_floor: str | None,
+    local_agent_root: Path,
+    summary_source: str,
+    host_decision: dict[str, Any] | None,
+    artifact_projection: RuntimeArtifactProjection,
+) -> CanonicalLaunchResult:
+    """Keep kernel updates and canonical publication under the same run ownership."""
+    resolved_run_id = artifact_projection.run_id
+    resolved_local_agent_root = local_agent_root
     session_root = artifact_projection.session_root
     normalized_host_decision = _normalize_host_decision(host_decision)
     raw_agent_skill_organization = (
@@ -1653,13 +1682,13 @@ def _launch_local_agent_kernel(
     receipt_path = write_host_launch_receipt(session_root, receipt)
 
     try:
-        kernel_result = run_local_kernel(
-            agent_root=resolved_local_agent_root,
-            prompt=prompt,
-            run_id=resolved_run_id,
-            host_id=host_id,
-            workspace_root=workspace_root,
-            repo_root=repo_root,
+        kernel_result = _run_local_kernel(
+            resolved_agent_root=resolved_local_agent_root,
+            resolved_workspace_root=workspace_root,
+            resolved_repo_root=repo_root,
+            resolved_run_id=resolved_run_id,
+            artifact_projection=artifact_projection,
+            prompt=prompt, context=None, host_id=host_id,
             agent_skill_organization=agent_skill_organization,
             execute=should_execute,
         )
