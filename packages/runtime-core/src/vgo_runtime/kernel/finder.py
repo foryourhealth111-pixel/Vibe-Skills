@@ -92,9 +92,12 @@ def _task_query_tokens(task_card: TaskCard) -> set[str]:
 
 def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
     """Recognize user invocations without treating Agent binding as authorization."""
+    invocation_prefix = (
+        r"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
+        r"|(?:使用|调用|启用)\s*)[\x60'\"]?"
+    )
     invocation = re.compile(
-        rf"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
-        rf"|(?:使用|调用|启用)\s*)[\x60'\"]?(?P<skill_id>{re.escape(normalize_text(skill_id))})(?![a-z0-9_-]|\.+[a-z0-9_-])",
+        rf"{invocation_prefix}(?P<skill_id>{re.escape(normalize_text(skill_id))})(?![\w-]|\.+[\w-])",
         re.IGNORECASE,
     )
     prompts = (
@@ -105,11 +108,13 @@ def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
         text = normalize_text(prompt)
         matches = tuple(invocation.finditer(text))
         if matches:
-            # Keep a skill list under its governing instruction and exclude IDs from negation checks.
+            # Exclude complete skill names and list commas while retaining sentence boundaries.
             prefix = re.sub(
-                r"[$/][\w.-]+[\x60'\"]?\s*[,，]\s*(?:(?:and|or)\s+)?(?=[\x60'\"]?[$/])",
-                " ", text[:matches[-1].start("skill_id")],
+                rf"(?P<intro>{invocation_prefix})[\w-]+(?:\.+[\w-]+)*[\x60'\"]?"
+                r"(?:\s*[,，]\s*(?:(?:and|or)\s+)?(?=[\x60'\"]?[$/]))?",
+                r"\g<intro>", text[:matches[-1].start("skill_id")],
             )
+            prefix = re.sub(r"\b(?:don['’]t|never)\b", "not", prefix)
             return not _match_is_in_negated_scope(prefix, len(prefix))
     return False
 

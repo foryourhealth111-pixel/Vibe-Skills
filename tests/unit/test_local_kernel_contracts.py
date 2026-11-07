@@ -298,18 +298,22 @@ def test_legacy_projection_cannot_overwrite_canonical_task_card_through_session_
 
 @pytest.fixture
 def manual_skill(tmp_path: Path, request: pytest.FixtureRequest):
-    """Install an explicit-only test skill and return its indexed catalog entry."""
+    """Install explicit-only test skills and return their indexed catalog."""
     agent_root = tmp_path / "agent"
-    skill_id = getattr(request, "param", "manual-report")
-    descriptor = agent_root / f"vibe/skills/local/{skill_id}/SKILL.md"
-    descriptor.parent.mkdir(parents=True)
-    descriptor.write_text(
-        f"---\nname: {skill_id}\ndescription: Write a report.\n"
-        "disable-model-invocation: true\noutputs: [report]\n---\n",
-        encoding="utf-8",
-    )
+    skill_ids = getattr(request, "param", "manual-report")
+    if isinstance(skill_ids, str):
+        skill_ids = (skill_ids,)
+    for skill_id in skill_ids:
+        descriptor = agent_root / f"vibe/skills/local/{skill_id}/SKILL.md"
+        descriptor.parent.mkdir(parents=True)
+        descriptor.write_text(
+            f"---\nname: {skill_id}\ndescription: Write a report.\n"
+            "disable-model-invocation: true\noutputs: [report]\n---\n",
+            encoding="utf-8",
+        )
     index = build_skill_index(agent_root)
-    assert index["skills"][0]["explicit_only"] is True
+    assert len(index["skills"]) == len(skill_ids)
+    assert all(entry["explicit_only"] is True for entry in index["skills"])
     return agent_root, index
 
 
@@ -340,6 +344,48 @@ def test_manual_skill_requires_user_invocation_in_both_candidate_paths(manual_sk
     task = build_task_card(prompt=prompt, context={"deliverables": ["report"]})
     assert bool(find_skill_candidates(task, index)) is allowed
     assert bool(resolve_skill_candidates(task, index, skill_ids=("manual-report",))) is allowed
+
+
+@pytest.mark.parametrize("manual_skill", [(
+    "manual-report", "other.v2", "not-report", "manual-report中文", "manual-report.报告",
+)], indirect=True)
+@pytest.mark.parametrize("prompt,allowed", [
+    ("Don't invoke manual-report. Write a report directly.", False),
+    ("Don't run $manual-report. Write a report directly.", False),
+    ("Don't call /manual-report. Write a report directly.", False),
+    ("Don’t run $manual-report. Write a report directly.", False),
+    ("Never use $manual-report. Write a report directly.", False),
+    ("Never invoke manual-report. Write a report directly.", False),
+    ("Never call $manual-report. Write a report directly.", False),
+    ("Do not use $other.v2 and $manual-report. Write a report directly.", False),
+    ("Do not use $other.v2 or $manual-report. Write a report directly.", False),
+    ("Do not use `$other.v2` and `$manual-report`. Write a report directly.", False),
+    ("Use $not-report and $manual-report to write a report.", True),
+    ("Use the not-report and $manual-report to write a report.", True),
+    ("Use /not-report or /manual-report to write a report.", True),
+    ("请使用$manual-report 写报告。", True),
+    ("Use $manual-report中文 to write a report.", False),
+    ("Use $manual-report.报告 to write a report.", False),
+    ("Do not use $other.v2. Use $manual-report to write a report.", True),
+    ("Do not use $other.v2, use $manual-report to write a report.", True),
+])
+def test_manual_skill_authorization_preserves_instruction_scope(manual_skill, prompt, allowed):
+    """Enforce complete skill names and invocation scope through discovery and Agent binding."""
+    agent_root, index = manual_skill
+    task = build_task_card(prompt=prompt, context={"deliverables": ["report"]})
+    assert any(candidate.skill_id == "manual-report" for candidate in find_skill_candidates(task, index)) is allowed
+    assert bool(resolve_skill_candidates(task, index, skill_ids=("manual-report",))) is allowed
+    arguments = dict(
+        agent_root=agent_root, run_id="invocation-scope", prompt=prompt,
+        context={"deliverables": ["report"]}, execute=False,
+        agent_skill_organization=_organization(skill="manual-report"),
+    )
+    if allowed:
+        result = loop.run_local_kernel(**arguments)
+        assert result["plan"]["work_units"][0]["preferred_skill"] == "manual-report"
+    else:
+        with pytest.raises(ValueError, match="selected unknown candidate skill"):
+            loop.run_local_kernel(**arguments)
 
 
 def test_agent_selection_does_not_authorize_a_manual_skill(manual_skill) -> None:
@@ -385,12 +431,12 @@ def test_manual_skill_revocation_respects_scope_independently_of_its_name(manual
         loop.run_local_kernel(**arguments, prompt=negative_prompt)
 
 
-@pytest.mark.parametrize("manual_skill", ["Straße"], indirect=True)
+@pytest.mark.parametrize("manual_skill", ["Straße", "manual-report中文", "manual-report.报告"], indirect=True)
 def test_unicode_skill_invocation_preserves_the_catalog_id(manual_skill) -> None:
     """Match normalized Unicode invocations while retaining the installed skill ID."""
     agent_root, index = manual_skill
     skill_id = index["skills"][0]["id"]
-    assert skill_id == "Straße"
+    assert skill_id in ("Straße", "manual-report中文", "manual-report.报告")
     for name in (skill_id, skill_id.casefold()):
         task = build_task_card(prompt=f"Use ${name} to write a report.", context={"deliverables": ["report"]})
         assert [candidate.skill_id for candidate in find_skill_candidates(task, index)] == [skill_id]
