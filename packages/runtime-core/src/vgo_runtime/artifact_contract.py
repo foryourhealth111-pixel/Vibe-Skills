@@ -135,6 +135,7 @@ def resolve_runtime_artifact_projection(
     run_id: str,
     repo_root: Path,
 ) -> RuntimeArtifactProjection:
+    """Resolve contract-owned artifact paths and isolate legacy projections from session receipts."""
     resolved_agent_root = agent_root.resolve()
     resolved_workspace_root = (
         workspace_root.resolve() if workspace_root is not None else resolved_agent_root
@@ -192,6 +193,8 @@ def resolve_runtime_artifact_projection(
         # a marked read-compatible projection until that API is removed.
         legacy_projection_enabled=(
             workspace_root is None and sink.legacy_write_mode != "disabled"
+            and not legacy_run_root.is_relative_to(session_root)
+            and not session_root.is_relative_to(legacy_run_root)
         ),
     )
 

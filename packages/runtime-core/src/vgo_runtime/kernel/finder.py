@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import re
 
+from ..runtime_support import _match_is_in_negated_scope, normalize_text
 from .task_card import TaskCard
 from .text_tokens import SKILL_MATCH_STOPWORDS, tokens_from_text, tokens_from_values
 
@@ -88,12 +90,44 @@ def _task_query_tokens(task_card: TaskCard) -> set[str]:
     )
 
 
-def _candidate_from_entry(raw_entry: dict[str, object], query_tokens: set[str]) -> SkillCandidate | None:
+def _user_requested_skill(task_card: TaskCard, skill_id: str) -> bool:
+    """Recognize user invocations without treating Agent binding as authorization."""
+    invocation_prefix = (
+        r"(?:(?<![a-z0-9_/-])(?:[$/]|(?:use|invoke|run|call)\s+(?:the\s+)?)"
+        r"|(?:使用|调用|启用)\s*)[\x60'\"]?"
+    )
+    invocation = re.compile(
+        rf"{invocation_prefix}(?P<skill_id>{re.escape(normalize_text(skill_id))})(?![\w-]|\.+[\w-])",
+        re.IGNORECASE,
+    )
+    prompts = (
+        *(revision.prompt for revision in reversed(task_card.accepted_revisions)),
+        task_card.initial_goal, task_card.goal,
+    )
+    for prompt in prompts:
+        text = normalize_text(prompt)
+        matches = tuple(invocation.finditer(text))
+        if matches:
+            # Exclude complete skill names and list commas while retaining sentence boundaries.
+            prefix = re.sub(
+                rf"(?P<intro>{invocation_prefix})[\w-]+(?:\.+[\w-]+)*[\x60'\"]?"
+                r"(?:\s*[,，]\s*(?:(?:and|or)\s+)?(?=[\x60'\"]?[$/]))?",
+                r"\g<intro>", text[:matches[-1].start("skill_id")],
+            )
+            prefix = re.sub(r"\b(?:don['’]t|never)\b", "not", prefix)
+            return not _match_is_in_negated_scope(prefix, len(prefix))
+    return False
+
+
+def _candidate_from_entry(
+    raw_entry: dict[str, object], query_tokens: set[str], *, task_card: TaskCard,
+) -> SkillCandidate | None:
+    """Build an eligible catalog candidate after checking user-only invocation requirements."""
     if not bool(raw_entry.get("enabled", False)):
         return None
     source_metadata = _validated_source_metadata(raw_entry)
     skill_id = str(raw_entry.get("id") or "").strip()
-    if not skill_id:
+    if not skill_id or (bool(raw_entry.get("explicit_only")) and not _user_requested_skill(task_card, skill_id)):
         return None
     search_tokens: set[str] = set()
     for field in ("id", "name", "description"):
@@ -151,19 +185,20 @@ def resolve_skill_candidates(
     for entry in index_payload.get("skills", []):
         if not isinstance(entry, dict) or str(entry.get("id") or "").strip() not in requested:
             continue
-        candidate = _candidate_from_entry(entry, query_tokens)
+        candidate = _candidate_from_entry(entry, query_tokens, task_card=task_card)
         if candidate is not None:
             resolved.append(candidate)
     return tuple(resolved)
 
 
 def find_skill_candidates(task_card: TaskCard, index_payload: dict[str, object], *, limit: int = 8) -> tuple[SkillCandidate, ...]:
+    """Rank eligible skills by task overlap and return at most the requested limit."""
     query_tokens = _task_query_tokens(task_card)
     candidates: list[SkillCandidate] = []
     for entry in index_payload.get("skills", []):
         if not isinstance(entry, dict):
             continue
-        candidate = _candidate_from_entry(entry, query_tokens)
+        candidate = _candidate_from_entry(entry, query_tokens, task_card=task_card)
         if candidate is not None and candidate.matched_tokens:
             candidates.append(candidate)
     ranked = sorted(

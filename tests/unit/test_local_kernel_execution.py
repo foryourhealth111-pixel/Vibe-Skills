@@ -1146,6 +1146,7 @@ enabled: true
 
 
 def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Path) -> None:
+    """Require structured acceptance criteria for approved Agent modules."""
     agent_root = tmp_path / "agent-root"
     discovery = run_local_kernel(
         agent_root=agent_root,
@@ -1171,6 +1172,9 @@ def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Pat
                         "goal": "Summarize the note.",
                         "candidate_skill_ids": [],
                         "execution_mode": "agent_direct",
+                        "write_scope": f"outputs/{module_id}/**",
+                        "expected_outputs": [f"outputs/{module_id}/result.md"],
+                        "verification": ["Check the direct result against its acceptance criteria."],
                         "acceptance_criteria": ["The summary exists."],
                     }
                 ],
@@ -1185,6 +1189,7 @@ def test_local_kernel_rejects_unstructured_agent_module_acceptance(tmp_path: Pat
 
 
 def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> None:
+    """Retain approved Agent acceptance criteria in the executable work plan."""
     agent_root = tmp_path / "agent-root"
     discovery = run_local_kernel(
         agent_root=agent_root,
@@ -1216,6 +1221,9 @@ def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> 
                     "goal": "Summarize the note.",
                     "candidate_skill_ids": [],
                     "execution_mode": "agent_direct",
+                    "write_scope": f"outputs/{module_id}/**",
+                    "expected_outputs": [f"outputs/{module_id}/result.md"],
+                    "verification": ["Check the direct result against its acceptance criteria."],
                     "acceptance_criteria": acceptance,
                 }
             ],
@@ -1232,6 +1240,7 @@ def test_local_kernel_plan_preserves_agent_module_acceptance(tmp_path: Path) -> 
 
 
 def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path: Path) -> None:
+    """Execute approved modules in their declared dependency order."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -1243,6 +1252,9 @@ def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path
                 "candidate_skill_ids": [],
                 "depends_on": ["wu-2"],
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-1/**",
+                "expected_outputs": ["outputs/wu-1/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "brief-result",
@@ -1257,6 +1269,9 @@ def test_local_kernel_orders_confirmed_modules_by_explicit_dependencies(tmp_path
                 "candidate_skill_ids": [],
                 "depends_on": [],
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-2/**",
+                "expected_outputs": ["outputs/wu-2/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "verification-result",
@@ -1303,6 +1318,7 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
     depends_on: object,
     message: str,
 ) -> None:
+    """Reject malformed, unknown, duplicate, and self-referencing module dependencies."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -1314,6 +1330,9 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
                 "candidate_skill_ids": [],
                 "depends_on": depends_on,
                 "execution_mode": "agent_direct",
+                "write_scope": "outputs/wu-1/**",
+                "expected_outputs": ["outputs/wu-1/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": "brief-result",
@@ -1339,6 +1358,7 @@ def test_local_kernel_rejects_invalid_confirmed_module_dependency(
 
 
 def test_local_kernel_rejects_confirmed_module_dependency_cycle(tmp_path: Path) -> None:
+    """Reject approved module graphs that contain a dependency cycle."""
     organization = {
         "schema_version": "agent_skill_organization_v1",
         "derived_by": "agent",
@@ -1350,6 +1370,9 @@ def test_local_kernel_rejects_confirmed_module_dependency_cycle(tmp_path: Path) 
                 "candidate_skill_ids": [],
                 "depends_on": [dependency],
                 "execution_mode": "agent_direct",
+                "write_scope": f"outputs/{module_id}/**",
+                "expected_outputs": [f"outputs/{module_id}/result.md"],
+                "verification": ["Check the direct result against its acceptance criteria."],
                 "acceptance_criteria": [
                     {
                         "criterion_id": f"{module_id}-result",

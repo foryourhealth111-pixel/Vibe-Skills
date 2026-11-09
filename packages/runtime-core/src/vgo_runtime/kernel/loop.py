@@ -259,6 +259,18 @@ def _apply_agent_skill_organization(
         if execution_mode not in {"skill_assigned", "agent_direct", "blocked_gap"}:
             raise ValueError(f"agent_skill_organization module {unit.id} has invalid execution_mode")
         if execution_mode == "agent_direct":
+            module = modules[unit.id]
+            write_scope = module.get("write_scope")
+            if not isinstance(write_scope, str) or not write_scope.strip():
+                raise ValueError(f"agent_direct module {unit.id} write_scope must be a non-empty string")
+            direct_fields: dict[str, tuple[str, ...]] = {}
+            for field in ("expected_outputs", "verification"):
+                values = module.get(field)
+                if not isinstance(values, list) or not values or any(
+                    not isinstance(value, str) or not value.strip() for value in values
+                ):
+                    raise ValueError(f"agent_direct module {unit.id} {field} must be a non-empty list of strings")
+                direct_fields[field] = tuple(value.strip() for value in values)
             organized_units.append(
                 replace(
                     unit,
@@ -266,7 +278,9 @@ def _apply_agent_skill_organization(
                     preferred_skill=None,
                     binding_profile="agent_direct",
                     binding_reason="The current Agent directly owns this approved module.",
-                    verification=task_verification,
+                    write_scope=write_scope.strip(),
+                    expected_artifacts=direct_fields["expected_outputs"],
+                    verification=direct_fields["verification"],
                     plan_hints=(),
                     verify_hints=(),
                     acceptance_criteria=acceptance_criteria,
@@ -450,6 +464,7 @@ def _coerce_skill_provenance(payload: object) -> SkillProvenance | None:
 
 
 def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
+    """Restore a persisted work unit with its execution and verification contracts."""
     return WorkUnit(
         id=str(payload["id"]),
         goal=str(payload["goal"]),
@@ -459,6 +474,7 @@ def _coerce_work_unit(payload: dict[str, object]) -> WorkUnit:
         binding_reason=(str(payload["binding_reason"]) if payload.get("binding_reason") is not None else None),
         fallback_skills=tuple(str(value) for value in payload.get("fallback_skills", [])),
         expected_artifacts=tuple(str(value) for value in payload.get("expected_artifacts", [])),
+        write_scope=str(payload.get("write_scope") or ""),
         verification=tuple(str(value) for value in payload.get("verification", [])),
         task_verification=tuple(
             str(value)
@@ -517,7 +533,16 @@ def _unique_non_empty(values: list[str]) -> list[str]:
     return ordered
 
 
+def _work_unit_reuse_key(
+    work_unit: WorkUnit, duplicate_artifacts: set[tuple[str, ...]],
+) -> tuple[tuple[str, ...], str | None]:
+    """Disambiguate direct or duplicate-output checkpoints with the module identity."""
+    use_id = work_unit.binding_profile == "agent_direct" or work_unit.expected_artifacts in duplicate_artifacts
+    return (work_unit.expected_artifacts, work_unit.id if use_id else None)
+
+
 def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_work_unit: WorkUnit) -> bool:
+    """Require unchanged execution contracts and valid skill fingerprints for checkpoint reuse."""
     if previous_work_unit is None:
         return False
     if current_work_unit.preferred_skill is not None:
@@ -528,6 +553,7 @@ def _can_reuse_previous_work(*, previous_work_unit: WorkUnit | None, current_wor
     return (
         previous_work_unit.goal == current_work_unit.goal
         and previous_work_unit.expected_artifacts == current_work_unit.expected_artifacts
+        and previous_work_unit.write_scope == current_work_unit.write_scope
         and previous_work_unit.binding_profile == current_work_unit.binding_profile
         and previous_work_unit.preferred_skill == current_work_unit.preferred_skill
         and previous_work_unit.selected_skill_provenance == current_work_unit.selected_skill_provenance
@@ -1294,7 +1320,10 @@ def run_local_kernel(
         run_id=resolved_run_id,
         repo_root=resolved_repo_root,
     )
-    with exclusive_run_update(artifact_projection.run_root):
+    with exclusive_run_update(
+        artifact_projection.run_root,
+        artifact_projection.artifact_sink.resolve_run_root(resolved_agent_root, resolved_run_id),
+    ):
         return _run_local_kernel(
             resolved_agent_root=resolved_agent_root,
             resolved_workspace_root=resolved_workspace_root,
@@ -1381,7 +1410,7 @@ def _run_local_kernel(
         plan = _unbound_plan_for_agent(plan)
 
     current_work_units_by_id = {unit.id: unit for unit in plan.work_units}
-    previous_results_by_artifacts: dict[tuple[str, ...], WorkUnitResult] = {}
+    previous_results_by_id: dict[str, WorkUnitResult] = {}
     checkpoint_plan = previous_plan
     legacy_checkpoint_payload: dict[str, object] | None = None
     if resume_mode and work_results_path.is_file():
@@ -1405,10 +1434,19 @@ def _run_local_kernel(
                 continue
             result = _coerce_work_result(item)
             if result.status == "completed" and result_id_counts[result.work_unit_id] == 1:
-                previous_results_by_artifacts[result.artifacts] = result
+                previous_results_by_id[result.work_unit_id] = result
 
-    previous_work_units_by_artifacts: dict[tuple[str, ...], WorkUnit] = {
-        work_unit.expected_artifacts: work_unit for work_unit in checkpoint_plan.work_units
+    duplicate_artifacts = {
+        artifacts for units in (checkpoint_plan.work_units, plan.work_units)
+        for artifacts, count in Counter(unit.expected_artifacts for unit in units).items()
+        if count > 1
+    }
+    previous_work_units_by_key = {
+        _work_unit_reuse_key(unit, duplicate_artifacts): unit for unit in checkpoint_plan.work_units
+    }
+    previous_results_by_key = {
+        _work_unit_reuse_key(unit, duplicate_artifacts): previous_results_by_id[unit.id]
+        for unit in checkpoint_plan.work_units if unit.id in previous_results_by_id
     }
     task_input_sha256 = _task_input_sha256(task_card)
     unavailable_inputs = [
@@ -1420,9 +1458,9 @@ def _run_local_kernel(
     planned_work_units: list[WorkUnit] = []
     for work_unit in plan.work_units:
         reused_result = _reusable_completed_result(
-            previous_work_unit=previous_work_units_by_artifacts.get(work_unit.expected_artifacts),
+            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             current_work_unit=work_unit,
-            previous_result=previous_results_by_artifacts.get(work_unit.expected_artifacts),
+            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=planned_reused_results,
             approved_work_units=current_work_units_by_id,
@@ -1448,6 +1486,7 @@ def _run_local_kernel(
             binding_reason=work_unit.binding_reason,
             fallback_skills=work_unit.fallback_skills,
             expected_artifacts=work_unit.expected_artifacts,
+            write_scope=work_unit.write_scope,
             verification=work_unit.verification,
             task_verification=work_unit.task_verification,
             plan_hints=work_unit.plan_hints,
@@ -1515,9 +1554,9 @@ def _run_local_kernel(
     }
     for work_unit in (plan.work_units if should_execute else ()):
         reused_result = _reusable_completed_result(
-            previous_work_unit=previous_work_units_by_artifacts.get(work_unit.expected_artifacts),
+            previous_work_unit=previous_work_units_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             current_work_unit=work_unit,
-            previous_result=previous_results_by_artifacts.get(work_unit.expected_artifacts),
+            previous_result=previous_results_by_key.get(_work_unit_reuse_key(work_unit, duplicate_artifacts)),
             task_input_sha256=task_input_sha256,
             reused_results_by_id=reused_results_by_id,
             approved_work_units=current_work_units_by_id,
